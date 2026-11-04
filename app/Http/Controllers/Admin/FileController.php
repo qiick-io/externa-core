@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateFileMetadataRequest;
 use App\Http\Resources\Admin\FileResource;
 use App\Jobs\DuplicateFilesJob;
+use App\Jobs\EmptyFilesTrashJob;
 use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
 use App\Services\Files\FileWhereUsedScannerService;
@@ -722,6 +723,22 @@ class FileController extends Controller
         $this->fileService->forceDelete($fileModel);
 
         return response()->noContent();
+    }
+
+    /**
+     * Queue a background job that permanently deletes everything in the trash.
+     * The requester gets a database notification when it finishes.
+     */
+    public function emptyTrash(Request $request): JsonResponse
+    {
+        $jobUuid = (string) Str::uuid();
+
+        EmptyFilesTrashJob::dispatch($request->user()->id, $jobUuid);
+
+        return response()->json([
+            'queued' => true,
+            'job_id' => $jobUuid,
+        ], 202);
     }
 
     /**

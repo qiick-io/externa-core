@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
+import { useAiAvailability } from '@/hooks/use-ai-availability';
 import { useCan } from '@/hooks/use-can';
 import { useRegisterActiveUploads } from '@/hooks/use-register-active-uploads';
 import AppLayout from '@/layouts/app-layout';
@@ -81,6 +82,7 @@ import {
     listFileTagsCatalog,
     listFilesPage,
     moveFile,
+    queueEmptyFilesTrash,
     queueFilesZipDownload,
     renameFile,
     restoreFile,
@@ -196,6 +198,10 @@ export default function AdminFilesIndex({
         useState(0);
     const pendingZipJobIdsRef = useRef(new Set<string>());
     const [pendingZipJobCount, setPendingZipJobCount] = useState(0);
+    const pendingTrashJobIdsRef = useRef(new Set<string>());
+    const [pendingTrashJobCount, setPendingTrashJobCount] = useState(0);
+    const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false);
+    const [queueingEmptyTrash, setQueueingEmptyTrash] = useState(false);
     const [pendingDestructive, setPendingDestructive] = useState<{
         action: 'delete' | 'force_delete';
         targets: AdminFileRow[];
@@ -216,6 +222,7 @@ export default function AdminFilesIndex({
     const canTag = can(PermissionEnum.CanTagFiles);
     const canUpdateMetadata = can(PermissionEnum.CanUpdateFileMetadata);
     const canUseAi = can(PermissionEnum.CanUseAi);
+    const { isAvailable: isAiAvailable } = useAiAvailability();
     const isTrashed = trashed === 'trashed';
     const uploadsEnabled = canCreate && !isTrashed;
 
@@ -273,6 +280,7 @@ export default function AdminFilesIndex({
             canTag,
             canUpdateMetadata,
             canUseAi,
+            isAiAvailable,
         }),
         [
             canEdit,
@@ -286,6 +294,7 @@ export default function AdminFilesIndex({
             canTag,
             canUpdateMetadata,
             canUseAi,
+            isAiAvailable,
         ],
     );
 
@@ -486,7 +495,11 @@ export default function AdminFilesIndex({
     }, []);
 
     useEffect(() => {
-        if (pendingDuplicationJobCount === 0 && pendingZipJobCount === 0) {
+        if (
+            pendingDuplicationJobCount === 0 &&
+            pendingZipJobCount === 0 &&
+            pendingTrashJobCount === 0
+        ) {
             return;
         }
 
@@ -503,8 +516,10 @@ export default function AdminFilesIndex({
                 const pendingDuplicationJobIds =
                     pendingDuplicationJobIdsRef.current;
                 const pendingZipJobIds = pendingZipJobIdsRef.current;
+                const pendingTrashJobIds = pendingTrashJobIdsRef.current;
                 let resolvedDuplication = false;
                 let resolvedZip = false;
+                let resolvedTrash = false;
 
                 for (const notification of payload.data) {
                     const jobId = notification.data.job_id;
@@ -533,6 +548,23 @@ export default function AdminFilesIndex({
                                 notification.data.title ??
                                     t('files.toasts.duplicationFailed'),
                             );
+                        }
+                    }
+
+                    if (pendingTrashJobIds.has(jobId)) {
+                        pendingTrashJobIds.delete(jobId);
+                        resolvedTrash = true;
+
+                        if (notification.data.type === 'files_trash_emptied') {
+                            toast.success(t('files.toasts.trashEmptied'), {
+                                description: notification.data.body,
+                            });
+                            refreshPage();
+                        } else if (
+                            notification.data.type ===
+                            'files_trash_empty_failed'
+                        ) {
+                            toast.error(t('files.toasts.trashEmptyFailed'));
                         }
                     }
 
@@ -580,7 +612,11 @@ export default function AdminFilesIndex({
                     setPendingZipJobCount(pendingZipJobIds.size);
                 }
 
-                if (resolvedDuplication || resolvedZip) {
+                if (resolvedTrash) {
+                    setPendingTrashJobCount(pendingTrashJobIds.size);
+                }
+
+                if (resolvedDuplication || resolvedZip || resolvedTrash) {
                     notifyNotificationsUpdated();
                 }
             } catch {
@@ -597,7 +633,13 @@ export default function AdminFilesIndex({
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage, t]);
+    }, [
+        pendingDuplicationJobCount,
+        pendingZipJobCount,
+        pendingTrashJobCount,
+        refreshPage,
+        t,
+    ]);
 
     const buildFilesIndexUrl = useCallback(
         (
@@ -1261,6 +1303,10 @@ export default function AdminFilesIndex({
                         setTagDialogOpen(true);
                         break;
                     case 'ask_ai':
+                        if (!isAiAvailable) {
+                            break;
+                        }
+
                         openAiWithPrompt(
                             seedFilesBulkPrompt(
                                 selected.map((file) => ({
@@ -1296,9 +1342,31 @@ export default function AdminFilesIndex({
             trackPendingDuplication,
             trackPendingZip,
             openFileDetails,
+            isAiAvailable,
             t,
         ],
     );
+
+    const emptyTrash = async (): Promise<void> => {
+        setQueueingEmptyTrash(true);
+
+        try {
+            const jobId = await queueEmptyFilesTrash();
+
+            pendingTrashJobIdsRef.current.add(jobId);
+            setPendingTrashJobCount(pendingTrashJobIdsRef.current.size);
+            setEmptyTrashDialogOpen(false);
+            toast.info(t('files.toasts.trashEmptying'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('files.toasts.trashEmptyFailed'),
+            );
+        } finally {
+            setQueueingEmptyTrash(false);
+        }
+    };
 
     const executePendingDestructive = async (): Promise<void> => {
         if (!pendingDestructive) {
@@ -1404,6 +1472,20 @@ export default function AdminFilesIndex({
             breadcrumbs={pageBreadcrumbs}
             headerActions={
                 <>
+                    {isTrashed && canForceDelete && (
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={
+                                files.length === 0 || pendingTrashJobCount > 0
+                            }
+                            onClick={() => setEmptyTrashDialogOpen(true)}
+                            data-testid="files-empty-trash"
+                        >
+                            <Trash2 className="size-4" />
+                            {t('files.toolbar.emptyTrash')}
+                        </Button>
+                    )}
                     {canCreate && !isTrashed && (
                         <HeaderIconButton
                             type="button"
@@ -1478,10 +1560,12 @@ export default function AdminFilesIndex({
                         className="min-h-0 min-w-0 flex-1"
                         filters={
                             selection.selectedIds.length > 0 ? (
-                                <div className="flex min-w-0 items-center gap-2">
+                                <div className="flex w-full min-w-0 items-center gap-2">
                                     <FilesSelectionToolbar
                                         count={selection.selectedIds.length}
+                                        visibleCount={files.length}
                                         actions={toolbarActions}
+                                        onSelectAll={selection.selectAll}
                                         onClear={selection.clearSelection}
                                         onAction={(action) => {
                                             void runAction(action);
@@ -1524,7 +1608,6 @@ export default function AdminFilesIndex({
                                         }}
                                     >
                                         <SelectTrigger
-                                            size="sm"
                                             aria-label={t(
                                                 'files.toolbar.sortBy',
                                             )}
@@ -1551,7 +1634,6 @@ export default function AdminFilesIndex({
                                         type="button"
                                         variant="outline"
                                         size="icon"
-                                        className="size-8"
                                         aria-label={
                                             direction === 'asc'
                                                 ? t('files.toolbar.sortAsc')
@@ -1573,6 +1655,7 @@ export default function AdminFilesIndex({
                                         )}
                                     </Button>
                                     <ToggleGroup
+                                        variant="outline"
                                         type="single"
                                         value={trashed}
                                         onValueChange={(value) => {
@@ -1589,7 +1672,6 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.activeFiles',
                                             )}
-                                            className="px-3"
                                         >
                                             <Files className="size-4" />
                                         </ToggleGroupItem>
@@ -1598,7 +1680,6 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.trash',
                                             )}
-                                            className="px-3"
                                         >
                                             <Trash2 className="size-4" />
                                         </ToggleGroupItem>
@@ -1787,6 +1868,18 @@ export default function AdminFilesIndex({
                 }}
                 blockedFolders={blockedMoveFolders}
                 onConfirm={handleConfirmMove}
+            />
+
+            <ConfirmDestructiveDialog
+                open={emptyTrashDialogOpen}
+                onOpenChange={setEmptyTrashDialogOpen}
+                title={t('files.toolbar.emptyTrashTitle')}
+                description={t('files.toolbar.emptyTrashDescription')}
+                confirmLabel={t('files.toolbar.emptyTrash')}
+                confirming={queueingEmptyTrash}
+                onConfirm={() => {
+                    void emptyTrash();
+                }}
             />
 
             <ConfirmDestructiveDialog

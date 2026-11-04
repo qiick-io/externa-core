@@ -34,7 +34,7 @@ test('appearance form defaults to teal preset and persists selection', function 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/appearance')
             ->where('appearance.theme_preset', 'teal')
-            ->has('appearance.theme_presets', 5)
+            ->has('appearance.theme_presets', 6)
             ->where('projectAppearance.themePreset', 'teal')
         );
 

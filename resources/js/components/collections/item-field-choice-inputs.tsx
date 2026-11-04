@@ -50,7 +50,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none';
+    'border-input bg-background flex min-h-control w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none';
 
 /** Radix Select forbids empty string values — map allowNone ↔ sentinel. */
 const SELECT_NONE_VALUE = '__none__';
@@ -1026,7 +1026,7 @@ export function MultiselectWithOtherInput({
                     onClick={() => setOpen(!open)}
                     className={cn(
                         inputLike,
-                        'flex h-auto min-h-9 w-full items-center justify-between gap-2 text-left',
+                        'flex h-auto min-h-control w-full items-center justify-between gap-2 text-left',
                     )}
                 >
                     {selected.length === 0 ? (

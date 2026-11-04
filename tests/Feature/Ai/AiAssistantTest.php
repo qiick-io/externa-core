@@ -130,6 +130,39 @@ test('users only see their own conversations', function () {
         ->assertNotFound();
 });
 
+test('conversation list filters by title', function () {
+    $owner = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+
+    $matchingId = (string) Str::uuid7();
+    $otherId = (string) Str::uuid7();
+
+    Conversation::query()->create([
+        'id' => $matchingId,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
+        'title' => 'Quarterly Report draft',
+    ]);
+    Conversation::query()->create([
+        'id' => $otherId,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
+        'title' => 'Holiday plan',
+    ]);
+
+    $this->actingAs($owner)
+        ->getJson(route('ai.conversations.index', ['q' => 'report']))
+        ->assertOk()
+        ->assertJsonPath('total', 1)
+        ->assertJsonFragment(['id' => $matchingId])
+        ->assertJsonMissing(['id' => $otherId]);
+
+    $this->actingAs($owner)
+        ->getJson(route('ai.conversations.index', ['q' => str_repeat('a', 121)]))
+        ->assertUnprocessable();
+});
+
 test('manage files tool denies create without permission', function () {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,

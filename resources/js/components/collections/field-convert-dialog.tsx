@@ -230,7 +230,7 @@ export function FieldConvertDialog({
                                 setToType(event.target.value);
                                 setPreview(null);
                             }}
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="flex h-control w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                         >
                             {[
                                 field.type,

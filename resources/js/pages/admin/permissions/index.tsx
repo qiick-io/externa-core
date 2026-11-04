@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import {
@@ -91,9 +92,9 @@ export default function AdminPermissionsIndex({
                 >
                     <TablePanel
                         footer={
-                            permissions.last_page > 1 ? (
-                                <TablePagination
-                                    links={permissions.links ?? []}
+                            hasTablePaginationFooter(permissions) ? (
+                                <TablePaginationFooter
+                                    pagination={permissions}
                                 />
                             ) : undefined
                         }

@@ -7,6 +7,8 @@ use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Ai\AiConversationMutationService;
+use App\Support\Validation\SearchQueryRules;
+use App\Support\Validation\StringLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -31,9 +33,14 @@ class AiConversationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $validated = $request->validate([
+            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
+        ]);
+        $search = trim((string) ($validated['q'] ?? ''));
         $perPage = min(max($request->integer('per_page', 25), 1), 100);
 
         $conversations = $user->conversations()
+            ->when($search !== '', fn ($query) => $query->whereLike('title', '%'.$search.'%'))
             // raw-sql: reviewed — fixed nulls-last pin ordering
             ->orderByRaw('pinned_at IS NULL')
             ->orderByDesc('pinned_at')

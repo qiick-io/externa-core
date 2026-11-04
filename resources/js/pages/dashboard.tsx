@@ -1,5 +1,12 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
-import { Activity, FolderOpen, HardDrive, Inbox } from 'lucide-react';
+import {
+    Activity,
+    FolderOpen,
+    HardDrive,
+    HeartPulse,
+    Inbox,
+    LayoutGrid,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,6 +36,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { formatBytes } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -226,40 +234,40 @@ export default function Dashboard({
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={t('dashboard.title')} />
-            <PageLayout
-                scrollContent
-                subheader={
-                    <nav
-                        className="inline-flex items-center gap-3 text-sm"
-                        data-test="dashboard-tabs"
-                        aria-label={t('dashboard.tabsLabel')}
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    value={tab}
+                    onValueChange={(value) => {
+                        if (value === 'overview' || value === 'health') {
+                            selectTab(value);
+                        }
+                    }}
+                    aria-label={t('dashboard.tabsLabel')}
+                    data-test="dashboard-tabs"
+                >
+                    <ToggleGroupItem
+                        value="overview"
+                        data-test="dashboard-tab-overview"
                     >
-                        {(['overview', 'health'] as const).map((value) => (
-                            <button
-                                key={value}
-                                type="button"
-                                onClick={() => selectTab(value)}
-                                className={cn(
-                                    'border-b-2 pb-0.5 transition-colors',
-                                    tab === value
-                                        ? 'border-foreground font-medium text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground',
-                                )}
-                                data-test={`dashboard-tab-${value}`}
-                                aria-current={
-                                    tab === value ? 'page' : undefined
-                                }
-                            >
-                                {value === 'overview'
-                                    ? t('dashboard.tabOverview')
-                                    : t('dashboard.tabHealth')}
-                            </button>
-                        ))}
-                    </nav>
-                }
-            >
+                        <LayoutGrid className="size-4" />
+                        <span>{t('dashboard.tabOverview')}</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                        value="health"
+                        data-test="dashboard-tab-health"
+                    >
+                        <HeartPulse className="size-4" />
+                        <span>{t('dashboard.tabHealth')}</span>
+                    </ToggleGroupItem>
+                </ToggleGroup>
+            }
+        >
+            <Head title={t('dashboard.title')} />
+            <PageLayout scrollContent>
                 {tab === 'health' ? (
                     <DashboardHealthPanel health={health} />
                 ) : (
@@ -280,7 +288,7 @@ export default function Dashboard({
                                         aria-label={t(
                                             'dashboard.insightsCollections',
                                         )}
-                                        className="max-h-64 overflow-auto rounded-md border"
+                                        className="max-h-64 overflow-auto"
                                         tabIndex={0}
                                     >
                                         <Table>
@@ -332,7 +340,6 @@ export default function Dashboard({
                                                                 action={
                                                                     <Button
                                                                         asChild
-                                                                        size="sm"
                                                                     >
                                                                         <Link href="/collections">
                                                                             {t(
@@ -490,7 +497,7 @@ export default function Dashboard({
                                             aria-label={t(
                                                 'dashboard.latestActivity',
                                             )}
-                                            className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
+                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
                                             tabIndex={0}
                                         >
                                             <Table>
@@ -574,7 +581,6 @@ export default function Dashboard({
                                                                     action={
                                                                         <Button
                                                                             asChild
-                                                                            size="sm"
                                                                         >
                                                                             <Link
                                                                                 href={activityLogs.index.url()}
@@ -707,7 +713,7 @@ export default function Dashboard({
                                                     aria-label={t(
                                                         'dashboard.largestFiles',
                                                     )}
-                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
+                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
                                                     tabIndex={0}
                                                 >
                                                     <Table>
@@ -782,7 +788,6 @@ export default function Dashboard({
                                                                             action={
                                                                                 <Button
                                                                                     asChild
-                                                                                    size="sm"
                                                                                 >
                                                                                     <Link
                                                                                         href={files.index.url()}
@@ -830,7 +835,7 @@ export default function Dashboard({
                                                     aria-label={t(
                                                         'dashboard.storageTrend',
                                                     )}
-                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
+                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
                                                     tabIndex={0}
                                                 >
                                                     <Table>
@@ -915,7 +920,7 @@ export default function Dashboard({
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="overflow-x-auto rounded-md border">
+                                            <div className="overflow-x-auto">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
@@ -1011,7 +1016,7 @@ export default function Dashboard({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="overflow-x-auto">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -1090,7 +1095,7 @@ export default function Dashboard({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="overflow-x-auto">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -1195,7 +1200,7 @@ export default function Dashboard({
                                                 </div>
                                             }
                                         >
-                                            <div className="overflow-x-auto rounded-md border">
+                                            <div className="overflow-x-auto">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
@@ -1588,7 +1593,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                 className="border-0"
                             />
                         ) : (
-                            <div className="overflow-x-auto rounded-md border">
+                            <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>

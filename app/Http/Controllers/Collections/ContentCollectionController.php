@@ -12,6 +12,7 @@ use App\Http\Requests\Collections\BulkCollectionActionRequest;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
@@ -25,6 +26,7 @@ use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -35,6 +37,8 @@ use Inertia\Response;
  */
 class ContentCollectionController extends Controller
 {
+    use ValidatesListPerPageTrait;
+
     /**
      * @var list<string>
      */
@@ -90,8 +94,27 @@ class ContentCollectionController extends Controller
             ))
             ->values();
 
+        // ponytail: readability is resolved per collection in PHP, so page in memory;
+        // fine for collection counts (tens–hundreds), move to SQL if that ever grows.
+        $perPage = $this->validatedListPerPage($request);
+        $paginator = new LengthAwarePaginator(
+            $collections->forPage(LengthAwarePaginator::resolveCurrentPage(), $perPage)->values(),
+            $collections->count(),
+            $perPage,
+            LengthAwarePaginator::resolveCurrentPage(),
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
+        $paginatorPayload = $paginator->toArray();
+
         return Inertia::render('collections/collections/index', [
-            'collections' => $collections,
+            'collections' => $paginatorPayload['data'],
+            'pagination' => [
+                'current_page' => $paginatorPayload['current_page'],
+                'last_page' => $paginatorPayload['last_page'],
+                'per_page' => $paginatorPayload['per_page'],
+                'total' => $paginatorPayload['total'],
+                'links' => $paginatorPayload['links'],
+            ],
             'filters' => [
                 'trashed' => $trashed,
                 'search' => $search,

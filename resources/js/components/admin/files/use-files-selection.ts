@@ -25,6 +25,10 @@ export function useFilesSelection(
         setAnchorId(null);
     }, []);
 
+    const selectAll = useCallback((): void => {
+        setSelectedIds(files.map((file) => file.id));
+    }, [files]);
+
     const selectOnly = useCallback((fileId: number): void => {
         setSelectedIds([fileId]);
         setAnchorId(fileId);
@@ -89,6 +93,7 @@ export function useFilesSelection(
         selectedIds,
         selectedFiles,
         clearSelection,
+        selectAll,
         selectOnly,
         toggle,
         handleSelectClick,

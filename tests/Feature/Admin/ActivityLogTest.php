@@ -107,14 +107,14 @@ test('authorized users can paginate activity logs', function () {
 
     Activity::query()->delete();
 
-    foreach (range(1, 26) as $index) {
+    foreach (range(1, 21) as $index) {
         activity()
             ->causedBy($actor)
             ->event('created')
             ->log("Activity {$index}");
     }
 
-    $this->get(route('activity-logs.index', ['page' => 2, 'per_page' => 25]))
+    $this->get(route('activity-logs.index', ['page' => 2, 'per_page' => 20]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('admin/activity-logs/index')

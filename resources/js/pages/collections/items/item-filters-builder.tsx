@@ -93,8 +93,6 @@ export function ItemFiltersBuilder({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-2"
                     aria-label={t('a11y.filters')}
                 >
                     <Filter className="size-4" />
@@ -116,8 +114,7 @@ export function ItemFiltersBuilder({
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="px-2"
                             onClick={() => {
                                 onClear();
                                 setOpen(false);
@@ -139,8 +136,7 @@ export function ItemFiltersBuilder({
                                 }
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="filter-has-draft"
                                     aria-label={t(
                                         'collections.itemsList.hasDraft',
@@ -174,8 +170,7 @@ export function ItemFiltersBuilder({
                                 }
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="filter-in-review"
                                     aria-label={t(
                                         'collections.itemsList.inReview',
@@ -224,7 +219,6 @@ export function ItemFiltersBuilder({
                                     className="flex flex-wrap items-center gap-2"
                                 >
                                     <NativeSelect
-                                        size="sm"
                                         className="min-w-24 flex-1"
                                         value={rule.field}
                                         aria-label={t('a11y.filterField')}
@@ -244,7 +238,6 @@ export function ItemFiltersBuilder({
                                         ))}
                                     </NativeSelect>
                                     <NativeSelect
-                                        size="sm"
                                         className="min-w-28"
                                         value={rule.operator}
                                         aria-label={t('a11y.filterOperator')}
@@ -263,7 +256,7 @@ export function ItemFiltersBuilder({
                                     </NativeSelect>
                                     {operatorNeedsValue(rule.operator) ? (
                                         <Input
-                                            className="h-8 min-w-24 flex-1 text-xs"
+                                            className="min-w-24 flex-1"
                                             value={rule.value}
                                             placeholder={
                                                 rule.operator === '_in'
@@ -288,8 +281,7 @@ export function ItemFiltersBuilder({
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2"
+                                        className="px-2"
                                         aria-label={t('a11y.removeFilter')}
                                         onClick={() => removeRule(rule.id)}
                                     >
@@ -301,8 +293,6 @@ export function ItemFiltersBuilder({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
-                                    className="h-8 text-xs"
                                     onClick={addRule}
                                 >
                                     <Plus className="mr-1 size-3.5" />
@@ -310,8 +300,6 @@ export function ItemFiltersBuilder({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
-                                    className="h-8 text-xs"
                                     onClick={() => {
                                         onApply();
                                         setOpen(false);

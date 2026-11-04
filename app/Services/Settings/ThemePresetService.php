@@ -9,6 +9,8 @@ use App\Support\Css\OklchHue;
 /**
  * Resolves built-in theme presets into CSS variables with brand / AI precedence.
  *
+ * Tokens: the shared `base` surfaces from config/theme-presets.php, with the
+ * selected preset's brand colours merged over them.
  * Precedence: custom brand hex → selected preset → default teal.
  * AI override: preset `ai_override` or custom hex within ~30° of OKLCH hue 306°.
  *
@@ -51,12 +53,17 @@ class ThemePresetService
     private const FALLBACK_RING_DARK = 'var(--color-teal-400)';
 
     /**
+     * Presets for the appearance picker, each with its full base + brand token
+     * maps so the page previews them without a client-side copy of the config.
+     *
      * @return list<array{
      *     slug: string,
      *     name: string,
      *     aiOverride: bool,
      *     swatchLight: string,
-     *     swatchDark: string
+     *     swatchDark: string,
+     *     light: array<string, string>,
+     *     dark: array<string, string>
      * }>
      */
     public function catalog(): array
@@ -71,8 +78,8 @@ class ThemePresetService
                 continue;
             }
 
-            $light = is_array($definition['light'] ?? null) ? $definition['light'] : [];
-            $dark = is_array($definition['dark'] ?? null) ? $definition['dark'] : [];
+            $light = $this->presetTokens($definition, 'light');
+            $dark = $this->presetTokens($definition, 'dark');
 
             $catalog[] = [
                 'slug' => $case->value,
@@ -80,6 +87,8 @@ class ThemePresetService
                 'aiOverride' => (bool) ($definition['ai_override'] ?? false),
                 'swatchLight' => is_string($light['primary'] ?? null) ? $light['primary'] : '#0E7C86',
                 'swatchDark' => is_string($dark['primary'] ?? null) ? $dark['primary'] : '#2CB1BC',
+                'light' => $light,
+                'dark' => $dark,
             ];
         }
 
@@ -99,8 +108,8 @@ class ThemePresetService
         $preset = ThemePresetEnum::tryFromNullable($themePresetSlug);
         $definition = $this->presetDefinition($preset);
 
-        $light = $this->tokenMap($definition['light'] ?? []);
-        $dark = $this->tokenMap($definition['dark'] ?? []);
+        $light = $this->presetTokens($definition, 'light');
+        $dark = $this->presetTokens($definition, 'dark');
 
         $aiOverrideFromPreset = (bool) ($definition['ai_override'] ?? false);
         $aiOverrideFromHue = $this->customHexNeedsAiOverride($projectColor)
@@ -177,6 +186,22 @@ class ThemePresetService
         $definition = config('theme-presets.presets.'.$preset->value);
 
         return is_array($definition) ? $definition : [];
+    }
+
+    /**
+     * Shared base surfaces with the preset's brand colours merged over them.
+     *
+     * @param  array<mixed>  $definition
+     * @return array<string, string>
+     */
+    private function presetTokens(array $definition, string $mode): array
+    {
+        $base = config('theme-presets.base.'.$mode, []);
+
+        return [
+            ...$this->tokenMap(is_array($base) ? $base : []),
+            ...$this->tokenMap(is_array($definition[$mode] ?? null) ? $definition[$mode] : []),
+        ];
     }
 
     /**

@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} selected",
         "save": "Save",
         "saved": "Saved",
         "cancel": "Cancel",
@@ -23,12 +24,15 @@
         "created": "Created",
         "updated": "Updated",
         "search": "Search",
+        "rowsPerPage": "Rows per page",
         "online": "Online",
         "offline": "Offline",
         "sortAscending": "Sort ascending",
         "sortDescending": "Sort descending",
         "active": "Active",
-        "name": "Name"
+        "name": "Name",
+        "pageRange": "{{from}}–{{to}} of {{total}}",
+        "perPageOption": "{{count}} / page"
     },
     "emptyState": {
         "collections": {
@@ -317,7 +321,10 @@
             "integrations": "Integrations",
             "sidebar": "Sidebar",
             "aiTools": "AI write tools",
-            "pendingToolCalls": "AI tool approvals"
+            "pendingToolCalls": "AI tool approvals",
+            "sectionAi": "AI",
+            "aiToolsNav": "Write tools",
+            "pendingToolCallsNav": "Tool approvals"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -640,7 +647,8 @@
             },
             "themePresetTitle": "Theme preset",
             "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
-            "themePresetTeal": "qiick Teal (default)",
+            "themePresetTeal": "Teal (default)",
+            "themePresetBlue": "Blue",
             "themePresetIndigo": "Indigo",
             "themePresetViolet": "Violet",
             "themePresetRose": "Rose",
@@ -1466,7 +1474,7 @@
         "askAi": "Ask AI",
         "assistantOffline": "Assistant offline",
         "assistantOnline": "Assistant online",
-        "aiOfflineHint": "AI offline — start LM Studio to enable",
+        "aiOfflineHint": "AI unavailable — check the AI provider configuration",
         "thinking": "Thinking",
         "copied": "Copied to clipboard",
         "copyFailed": "Copy failed",
@@ -1541,7 +1549,15 @@
         "thisMonth": "This month",
         "today": "Today",
         "twoDaysAgo": "2 days ago",
-        "older": "Older"
+        "older": "Older",
+        "newChat": "New chat",
+        "noConversations": "No conversations yet.",
+        "openFullPage": "Open full page",
+        "openPanel": "Open in side panel",
+        "conversations": "Conversations",
+        "searchConversations": "Search conversations…",
+        "noConversationsMatch": "No conversations match your search.",
+        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools."
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1710,15 +1726,15 @@
     },
     "activityLog": {
         "title": "Activity Log",
-        "description": "Read-only audit trail of model changes and authentication events.",
         "searchPlaceholder": "Search description or subject…",
         "allUsers": "All users",
         "allActions": "All actions",
         "allLogs": "All logs",
         "filterByAction": "Filter by action",
         "filterByLog": "Filter by log name",
-        "dateFrom": "From date",
-        "dateTo": "To date",
+        "dateRange": "Date range",
+        "anyDate": "Any date",
+        "clearDates": "Clear dates",
         "empty": "No activity found for the selected filters.",
         "system": "System",
         "noChanges": "No field changes recorded.",
@@ -1803,7 +1819,10 @@
             "activeFiles": "Active files",
             "trash": "Trash",
             "selectedCount": "{{count}} selected",
-            "clearSelection": "Clear selection"
+            "clearSelection": "Clear selection",
+            "emptyTrash": "Empty trash",
+            "emptyTrashTitle": "Empty the trash?",
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done."
         },
         "sort": {
             "name": "Name",
@@ -1941,7 +1960,10 @@
             "zipFailed": "Zip preparation failed",
             "zipPreparing": "Preparing zip — you'll be notified when it's ready.",
             "duplicationStarted": "Duplication started — you'll be notified when it finishes",
-            "duplicated": "File duplicated"
+            "duplicated": "File duplicated",
+            "trashEmptying": "Emptying the trash in the background…",
+            "trashEmptied": "Trash emptied",
+            "trashEmptyFailed": "Couldn’t empty the trash"
         },
         "card": {
             "select": "Select {{name}}",

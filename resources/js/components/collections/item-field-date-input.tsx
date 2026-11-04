@@ -272,7 +272,6 @@ export function DatetimeLocalPicker({
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
                             className="w-full"
                             disabled={disabled}
                             onClick={() => {
@@ -450,7 +449,6 @@ export function DateFieldInput({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="sm"
                                 className="w-full"
                                 disabled={readonly}
                                 onClick={() => {

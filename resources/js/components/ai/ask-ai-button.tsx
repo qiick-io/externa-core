@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react';
 import type { MouseEvent } from 'react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,74 +8,126 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { PermissionEnum } from '@/enums/permission-enum';
-import { useCan } from '@/hooks/use-can';
+import { useAiAvailability } from '@/hooks/use-ai-availability';
 import { openAiWithPrompt } from '@/lib/ai-open';
 import { cn } from '@/lib/utils';
 
 type AskAiButtonProps = {
-    prompt: string;
-    /** icon = row action; labeled = bulk toolbar */
-    mode?: 'icon' | 'labeled';
+    /** Seeded composer prompt; ignored when `onAsk` is given. */
+    prompt?: string;
+    /** Custom handler (e.g. a bulk prompt built from the current selection). */
+    onAsk?: () => void;
+    /** Overrides the default "Ask AI" label. */
+    label?: string;
+    /**
+     * icon = compact table-row action (`icon-sm`, 24px); toolbar = icon-only
+     * selection / bulk bar action (32px, like the other bar actions);
+     * labeled = icon + text (32px, #472).
+     */
+    mode?: 'icon' | 'toolbar' | 'labeled';
     className?: string;
     stopPropagation?: boolean;
 };
 
 /**
  * Opens the AI FAB with a seeded composer prompt (CanUseAi only; never auto-sends).
+ *
+ * Shares the FAB availability probe: while AI is offline the button stays
+ * focusable but `aria-disabled`, ignores clicks and explains why in a tooltip
+ * and an `aria-describedby` description.
  */
 export function AskAiButton({
-    prompt,
+    prompt = '',
+    onAsk,
+    label,
     mode = 'icon',
     className,
     stopPropagation = false,
 }: AskAiButtonProps) {
     const { t } = useTranslation();
-    const { can } = useCan();
+    const { canUseAi, isAvailable, unavailableReason } = useAiAvailability();
+    const reasonId = useId();
 
-    if (!can(PermissionEnum.CanUseAi)) {
+    if (!canUseAi) {
         return null;
     }
 
-    const label = t('ai.askAi');
+    const buttonLabel = label ?? t('ai.askAi');
     const handleClick = (event: MouseEvent): void => {
         if (stopPropagation) {
             event.stopPropagation();
         }
 
+        if (!isAvailable) {
+            event.preventDefault();
+
+            return;
+        }
+
+        if (onAsk) {
+            onAsk();
+
+            return;
+        }
+
         openAiWithPrompt(prompt);
     };
+    const availabilityProps = isAvailable
+        ? {}
+        : {
+              'aria-disabled': true,
+              'aria-describedby': reasonId,
+              'data-ai-unavailable': '',
+          };
+    const buttonClassName = cn(
+        !isAvailable && 'cursor-not-allowed opacity-50',
+        className,
+    );
 
-    if (mode === 'labeled') {
-        return (
+    const button =
+        mode === 'labeled' ? (
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className={className}
+                className={buttonClassName}
                 onClick={handleClick}
+                {...availabilityProps}
             >
-                <Sparkles className="size-3.5 text-ai" />
-                {label}
+                <Sparkles className="size-4 text-ai" aria-hidden="true" />
+                {buttonLabel}
+            </Button>
+        ) : (
+            <Button
+                type="button"
+                variant="outline"
+                size={mode === 'toolbar' ? 'icon' : 'icon-sm'}
+                className={buttonClassName}
+                aria-label={buttonLabel}
+                data-testid={mode === 'toolbar' ? 'ask-ai-toolbar' : undefined}
+                onClick={handleClick}
+                {...availabilityProps}
+            >
+                <Sparkles className="text-ai" aria-hidden="true" />
             </Button>
         );
+
+    if (mode === 'labeled' && isAvailable) {
+        return button;
     }
 
     return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={cn('px-2', className)}
-                    aria-label={label}
-                    onClick={handleClick}
-                >
-                    <Sparkles className="size-3.5 text-ai" />
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
+        <>
+            <Tooltip>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent>
+                    {isAvailable ? buttonLabel : unavailableReason}
+                </TooltipContent>
+            </Tooltip>
+            {isAvailable ? null : (
+                <span id={reasonId} className="sr-only">
+                    {unavailableReason}
+                </span>
+            )}
+        </>
     );
 }

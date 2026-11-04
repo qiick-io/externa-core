@@ -199,7 +199,11 @@ export function FileCard({
                         onSelect(file.id, event);
                     }}
                     onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') {
+                        // Nested controls (checkbox, title) handle their own keys.
+                        if (
+                            event.target !== event.currentTarget ||
+                            (event.key !== 'Enter' && event.key !== ' ')
+                        ) {
                             return;
                         }
 
@@ -276,6 +280,15 @@ export function FileCard({
                     >
                         <Checkbox
                             checked={selected}
+                            onClick={(event) => {
+                                // Keep the card's select-only click from replacing the multi-selection (#464).
+                                event.stopPropagation();
+
+                                if (event.shiftKey) {
+                                    event.preventDefault();
+                                    onSelect(file.id, { shiftKey: true });
+                                }
+                            }}
                             onCheckedChange={() =>
                                 onSelect(file.id, { metaKey: true })
                             }
@@ -333,10 +346,21 @@ export function FileCard({
                                         : 'default'
                                 }
                                 data-testid={`files-context-action-${action.key}`}
+                                disabled={Boolean(action.disabledReason)}
+                                title={action.disabledReason}
                                 onSelect={() => onAction(action.key, file)}
                             >
                                 <Icon className="size-4" />
-                                {action.label}
+                                {action.disabledReason ? (
+                                    <span className="flex flex-col">
+                                        {action.label}
+                                        <span className="text-xs text-muted-foreground">
+                                            {action.disabledReason}
+                                        </span>
+                                    </span>
+                                ) : (
+                                    action.label
+                                )}
                             </ContextMenuItem>
                         </Fragment>
                     );

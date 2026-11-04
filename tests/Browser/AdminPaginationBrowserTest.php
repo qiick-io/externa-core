@@ -75,7 +75,7 @@ it('paginates users without bouncing to page 1', function () {
         PermissionEnum::CanShowUsers->value,
     ]);
 
-    User::factory()->count(20)->create();
+    User::factory()->count(25)->create();
 
     $this->actingAs($user);
 
@@ -94,7 +94,7 @@ it('paginates groups without bouncing to page 1', function () {
         PermissionEnum::CanShowGroups->value,
     ]);
 
-    UserGroup::factory()->count(20)->create();
+    UserGroup::factory()->count(25)->create();
 
     $this->actingAs($user);
 
@@ -113,7 +113,7 @@ it('paginates roles without bouncing to page 1', function () {
         PermissionEnum::CanShowRoles->value,
     ]);
 
-    foreach (range(1, 20) as $index) {
+    foreach (range(1, 25) as $index) {
         Role::query()->create([
             'name' => 'pagination-role-'.$index.'-'.uniqid(),
             'guard_name' => config('auth.defaults.guard', 'web'),
@@ -143,7 +143,7 @@ it('paginates collection items without bouncing to page 1', function () {
         'slug' => 'pagination-posts-'.uniqid(),
     ]);
 
-    CollectionItem::factory()->count(20)->create([
+    CollectionItem::factory()->count(25)->create([
         'collection_id' => $collection->id,
     ]);
 

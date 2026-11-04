@@ -95,4 +95,6 @@ export type FileActionDefinition = {
     label: string;
     icon: LucideIcon;
     destructive?: boolean;
+    /** When set the action renders disabled and shows this reason (e.g. AI offline). */
+    disabledReason?: string;
 };

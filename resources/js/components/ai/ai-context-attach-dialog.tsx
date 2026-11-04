@@ -294,7 +294,7 @@ export function AiContextAttachDialog({
                         </div>
                         {tab === 'items' ? (
                             <select
-                                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                className="h-control rounded-md border border-input bg-background px-2 text-sm"
                                 value={collectionId ?? ''}
                                 onChange={(event) =>
                                     setCollectionId(
@@ -319,7 +319,6 @@ export function AiContextAttachDialog({
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
                                 onClick={onPickUploadFiles}
                             >
                                 {t('ai.context.uploadImport')}
@@ -329,7 +328,6 @@ export function AiContextAttachDialog({
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
                                 onClick={() =>
                                     setPromptDraft({
                                         name: '',
@@ -568,7 +566,6 @@ export function AiContextAttachDialog({
                                                     type="button"
                                                     size="icon"
                                                     variant="ghost"
-                                                    className="size-8"
                                                     aria-label={t(
                                                         'ai.context.editPrompt',
                                                     )}
@@ -589,7 +586,6 @@ export function AiContextAttachDialog({
                                                     type="button"
                                                     size="icon"
                                                     variant="ghost"
-                                                    className="size-8"
                                                     aria-label={t(
                                                         'ai.context.deletePrompt',
                                                     )}

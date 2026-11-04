@@ -6,6 +6,7 @@ import {
     FolderGit2,
     LayoutGrid,
     MessageCircle,
+    PanelRight,
     ScrollText,
     Settings,
     Sparkles,
@@ -28,14 +29,20 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import { cn } from '@/lib/utils';
+import { toggleAiAssistant } from '@/lib/ai-open';
 import { dashboard } from '@/routes';
 import activityLogs from '@/routes/activity-logs';
 import { index as aiIndex } from '@/routes/ai';
@@ -58,6 +65,13 @@ type ModuleDef = {
 
 /** Always first in the nav, regardless of persisted module order. */
 const PINNED_SIDEBAR_MODULE_IDS = ['ai'] as const;
+
+/** Keyboard shortcut hint for the AI assistant panel (handled in the panel). */
+const AI_PANEL_SHORTCUT =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+        ? '⌘J'
+        : 'Ctrl+J';
 
 /**
  * Primary application sidebar with navigation and user menu.
@@ -174,6 +188,8 @@ export function AppSidebar() {
         },
     ];
 
+    const isOnAiPage = isCurrentUrl(aiIndex.url(), undefined, true);
+
     const renderModuleItem = (item: ModuleDef) => (
         <SidebarMenuItem key={item.id}>
             <SidebarMenuButton
@@ -184,22 +200,37 @@ export function AppSidebar() {
                     item.id === 'ai' || item.id === 'settings',
                 )}
                 tooltip={{ children: t(item.titleKey) }}
-                className={
-                    item.accent
-                        ? cn(
-                              'sidebar-ai-nav relative overflow-hidden',
-                              'text-ai-text hover:text-ai-text',
-                              'data-[active=true]:font-medium',
-                              'data-[active=true]:text-ai-text',
-                          )
-                        : undefined
-                }
+                className={item.accent ? 'sidebar-ai-nav' : undefined}
             >
                 <Link href={item.href} prefetch>
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
+                    {item.id === 'ai' && !isOnAiPage ? (
+                        <kbd className="ml-auto font-sans text-xs text-muted-foreground transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0 group-data-[collapsible=icon]:hidden">
+                            {AI_PANEL_SHORTCUT}
+                        </kbd>
+                    ) : null}
                 </Link>
             </SidebarMenuButton>
+            {/* The item goes to /ai; this hover action opens the side panel in place
+                (the shortcut hint gives way to it on hover). */}
+            {item.id === 'ai' && !isOnAiPage ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <SidebarMenuAction
+                            showOnHover
+                            onClick={toggleAiAssistant}
+                            aria-label={t('ai.openPanel')}
+                            data-test="sidebar-ai-panel"
+                        >
+                            <PanelRight />
+                        </SidebarMenuAction>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        {t('ai.openPanel')} ({AI_PANEL_SHORTCUT})
+                    </TooltipContent>
+                </Tooltip>
+            ) : null}
             {item.id === 'chat' ? (
                 <SidebarUnreadBadge
                     count={chatUnread.unread_count}

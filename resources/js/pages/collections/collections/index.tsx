@@ -18,8 +18,8 @@ import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
-import { NameSlugCell } from '@/components/admin/name-slug-cell';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
 import type { CollectionPackSummary } from '@/components/collections/apply-collection-pack-dialog';
@@ -30,7 +30,13 @@ import {
 } from '@/components/collections/field-settings/lucide-icon-picker';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { EmptyStatus } from '@/components/empty-status';
-import { PageLayout, TablePanel } from '@/components/layout/page-layout';
+import {
+    hasTablePaginationFooter,
+    PageLayout,
+    TablePaginationFooter,
+    TablePanel,
+} from '@/components/layout/page-layout';
+import type { TablePaginationState } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,6 +76,7 @@ import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
+import { listPerPageQuery } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 import collectionRoutes from '@/routes/collections';
 import { resolveCollectionColor } from '@/types';
@@ -91,10 +98,12 @@ type CollectionFilters = {
  */
 export default function CollectionsIndex({
     collections,
+    pagination,
     filters = {},
     collectionPacks = [],
 }: {
     collections: CollectionRow[];
+    pagination: TablePaginationState;
     filters?: CollectionFilters;
     collectionPacks?: CollectionPackSummary[];
 }) {
@@ -208,6 +217,7 @@ export default function CollectionsIndex({
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(pagination.per_page),
                     },
                 }),
                 {},
@@ -217,7 +227,7 @@ export default function CollectionsIndex({
                 },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, pagination.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -314,7 +324,7 @@ export default function CollectionsIndex({
                                 bulkActions={
                                     <>
                                         <AskAiButton
-                                            mode="labeled"
+                                            mode="toolbar"
                                             prompt={seedCollectionsBulkPrompt(
                                                 selectedRows,
                                             )}
@@ -326,7 +336,6 @@ export default function CollectionsIndex({
                                                 <Button
                                                     type="button"
                                                     variant="destructive-outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         setPendingBulkAction(
                                                             'delete',
@@ -343,7 +352,6 @@ export default function CollectionsIndex({
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         bulk('restore')
                                                     }
@@ -358,7 +366,6 @@ export default function CollectionsIndex({
                                                 <Button
                                                     type="button"
                                                     variant="destructive-outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         setPendingBulkAction(
                                                             'force_delete',
@@ -391,7 +398,6 @@ export default function CollectionsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
                                         aria-label={t(
                                             'collections.list.sortBy',
                                         )}
@@ -413,7 +419,7 @@ export default function CollectionsIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon-sm"
+                                    size="icon"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -435,6 +441,7 @@ export default function CollectionsIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {
@@ -450,14 +457,12 @@ export default function CollectionsIndex({
                                     <ToggleGroupItem
                                         value="active"
                                         aria-label={t('a11y.activeList')}
-                                        className="px-3"
                                     >
                                         <FolderOpen className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
                                         aria-label={t('a11y.trashList')}
-                                        className="px-3"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>
@@ -538,7 +543,15 @@ export default function CollectionsIndex({
                             }
                         />
                     ) : (
-                        <TablePanel>
+                        <TablePanel
+                            footer={
+                                hasTablePaginationFooter(pagination) ? (
+                                    <TablePaginationFooter
+                                        pagination={pagination}
+                                    />
+                                ) : undefined
+                            }
+                        >
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -557,6 +570,15 @@ export default function CollectionsIndex({
                                         </TableHead>
                                         <TableHead>
                                             {t('collections.list.name')}
+                                        </TableHead>
+                                        <TableHead>
+                                            {t('collections.list.slug')}
+                                        </TableHead>
+                                        <TableHead className="max-w-[16rem]">
+                                            {t('collections.list.description')}
+                                        </TableHead>
+                                        <TableHead>
+                                            {t('collections.list.singleton')}
                                         </TableHead>
                                         <TableHead className="w-16">
                                             {t('collections.list.status')}
@@ -638,67 +660,95 @@ export default function CollectionsIndex({
                                                         aria-label={`Select ${c.name}`}
                                                     />
                                                 </TableCell>
-                                                <TableCell className="max-w-[20rem]">
-                                                    <NameSlugCell
-                                                        name={c.name}
-                                                        slug={c.slug}
-                                                        description={
-                                                            c.description
-                                                        }
-                                                        leading={
-                                                            <span
-                                                                className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
+                                                <TableCell className="max-w-[20rem] font-medium">
+                                                    <div className="flex min-w-0 items-center gap-2">
+                                                        <span
+                                                            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
+                                                            style={
+                                                                accent
+                                                                    ? {
+                                                                          color: accent,
+                                                                          borderColor: `${accent}55`,
+                                                                          backgroundColor: `${accent}18`,
+                                                                      }
+                                                                    : undefined
+                                                            }
+                                                            aria-hidden
+                                                        >
+                                                            <LucideIconByName
+                                                                name={resolveCollectionIconName(
+                                                                    c.icon,
+                                                                )}
+                                                                className="size-3.5"
                                                                 style={
                                                                     accent
                                                                         ? {
                                                                               color: accent,
-                                                                              borderColor: `${accent}55`,
-                                                                              backgroundColor: `${accent}18`,
                                                                           }
                                                                         : undefined
                                                                 }
-                                                                aria-hidden
-                                                            >
-                                                                <LucideIconByName
-                                                                    name={resolveCollectionIconName(
-                                                                        c.icon,
-                                                                    )}
-                                                                    className="size-3.5"
-                                                                    style={
-                                                                        accent
-                                                                            ? {
-                                                                                  color: accent,
-                                                                              }
-                                                                            : undefined
-                                                                    }
-                                                                />
-                                                            </span>
-                                                        }
-                                                        badge={
-                                                            c.is_singleton ? (
-                                                                <Tooltip>
-                                                                    <TooltipTrigger
-                                                                        asChild
-                                                                    >
-                                                                        <span className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-0.5 text-xs">
-                                                                            <Box
-                                                                                className="size-3.5 shrink-0"
-                                                                                aria-hidden
-                                                                            />
-                                                                            {t(
-                                                                                'collections.meta.singletonShort',
-                                                                            )}
-                                                                        </span>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        {t(
-                                                                            'collections.meta.singleton',
-                                                                        )}
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            ) : null
-                                                        }
+                                                            />
+                                                        </span>
+                                                        <TruncatedText
+                                                            text={c.name}
+                                                            className="font-medium"
+                                                        />
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="max-w-[14rem]">
+                                                    <TruncatedText
+                                                        text={c.slug}
+                                                        className="font-mono text-xs text-muted-foreground"
                                                     />
+                                                </TableCell>
+                                                <TableCell className="max-w-[16rem] text-muted-foreground">
+                                                    {c.description ? (
+                                                        <span
+                                                            className="line-clamp-2"
+                                                            title={
+                                                                c.description
+                                                            }
+                                                        >
+                                                            {c.description}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {c.is_singleton ? (
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <span className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-0.5 text-xs">
+                                                                    <Box
+                                                                        className="size-3.5 shrink-0"
+                                                                        aria-hidden
+                                                                    />
+                                                                    {t(
+                                                                        'collections.meta.singletonShort',
+                                                                    )}
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {t(
+                                                                    'collections.meta.singleton',
+                                                                )}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <span
+                                                            className="text-muted-foreground"
+                                                            title={t(
+                                                                'collections.meta.listCollection',
+                                                            )}
+                                                        >
+                                                            —
+                                                        </span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge

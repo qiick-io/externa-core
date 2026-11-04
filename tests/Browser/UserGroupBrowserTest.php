@@ -131,3 +131,54 @@ it('supports trash restore and force delete actions', function () {
 
     expect(UserGroup::query()->withTrashed()->find($group->id))->toBeNull();
 });
+
+it('shows the group name and slug in separate columns', function () {
+    $actor = grantBrowserGroupPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowGroups->value,
+    ]);
+
+    UserGroup::factory()->create([
+        'name' => 'Column Group',
+    ]);
+
+    $this->actingAs($actor);
+
+    $page = visit('/groups');
+
+    $page->assertSee('Column Group')
+        ->assertScript("Array.from(document.querySelectorAll('thead th')).map((cell) => cell.textContent.trim()).slice(1, 3).join('|') === 'Name|Slug'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2) [data-test=\"group-avatar\"]').textContent.trim() === 'C'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2) [data-test=\"group-avatar\"]').nextElementSibling.textContent.trim() === 'Column Group'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(3)').textContent.trim() === 'column-group'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('shows member avatars with initials next to the member count', function () {
+    $actor = grantBrowserGroupPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowGroups->value,
+    ]);
+
+    $members = collect([
+        ['first_name' => 'Ada', 'last_name' => 'Lovelace'],
+        ['first_name' => 'Grace', 'last_name' => 'Hopper'],
+        ['first_name' => 'Alan', 'last_name' => 'Turing'],
+        ['first_name' => 'Edsger', 'last_name' => 'Dijkstra'],
+    ])->map(fn (array $name): User => User::factory()->create($name));
+
+    $group = UserGroup::factory()->create(['name' => 'Avatar Group']);
+    $group->users()->sync($members->pluck('id'));
+
+    $this->actingAs($actor);
+
+    $page = visit('/groups');
+
+    $selector = "[data-test=\"group-member-avatars-{$group->id}\"]";
+
+    $page->assertSee('Avatar Group')
+        ->assertPresent($selector)
+        ->assertScript("document.querySelectorAll('{$selector} [data-slot=\"avatar\"]').length === 3")
+        ->assertScript("Array.from(document.querySelectorAll('{$selector} [data-slot=\"avatar\"]')).map((avatar) => avatar.textContent.trim()).join(',') === 'AL,GH,AT'")
+        ->assertScript("document.querySelectorAll('{$selector} [data-test=\"user-online-dot\"]').length === 3")
+        ->assertScript("document.querySelector('{$selector}').closest('td').textContent.trim().endsWith('4')")
+        ->assertNoJavaScriptErrors();
+});

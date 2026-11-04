@@ -551,7 +551,6 @@ export function FileFieldInput({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     disabled={!preview}
                                     onClick={() => setDetailOpen(true)}
                                 >
@@ -560,7 +559,6 @@ export function FileFieldInput({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     onClick={() => setPickerOpen(true)}
                                 >
                                     {t('collections.fileField.replace')}
@@ -569,7 +567,6 @@ export function FileFieldInput({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="size-8"
                                     aria-label={t(
                                         'collections.fileField.clear',
                                     )}

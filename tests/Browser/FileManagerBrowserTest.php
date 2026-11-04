@@ -366,3 +366,169 @@ it('opens a folder picker dialog for move instead of a prompt', function () {
 
     expect($file->fresh()->parent_id)->toBe($destination->id);
 });
+
+it('keeps every checkbox-selected file and moves them all with one bulk action', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+
+    $destination = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Archive',
+        'path' => '/Archive',
+        'disk' => 'assets',
+    ]);
+
+    $files = collect(['first-pick.txt', 'second-pick.txt'])->map(
+        fn (string $name): File => File::query()->create([
+            'type' => FileTypeEnum::File,
+            'name' => $name,
+            'path' => '/'.$name,
+            'disk' => 'assets',
+            'storage_path' => '2026/07/'.$name,
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+        ]),
+    );
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->assertSee('first-pick.txt')
+        ->click('[aria-label="Select first-pick.txt"]')
+        ->assertSee('1 selected')
+        ->click('[aria-label="Select second-pick.txt"]')
+        ->assertSee('2 selected')
+        ->assertAttribute('[aria-label="Select first-pick.txt"]', 'aria-checked', 'true')
+        ->assertAttribute('[aria-label="Select second-pick.txt"]', 'aria-checked', 'true')
+        ->rightClick("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
+        ->assertPresent('[data-testid="folder-picker-dialog"]')
+        ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
+        ->click('[data-testid="folder-picker-confirm"]')
+        ->assertMissing('[data-testid="folder-picker-dialog"]')
+        ->assertNoJavaScriptErrors();
+
+    foreach ($files as $file) {
+        expect($file->fresh()->parent_id)->toBe($destination->id);
+    }
+});
+
+it('selects every visible file from the selection bar and keeps the actions on the right', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+    ]);
+
+    $files = collect(range(1, 3))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => "bulk-{$index}.txt",
+        'title' => "Bulk file {$index}",
+        'path' => "/bulk-{$index}.txt",
+        'disk' => 'assets',
+        'storage_path' => "2026/07/bulk-{$index}.txt",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$files->first()->id}\"]")
+        ->assertSee('1 selected')
+        ->assertAttribute('[data-testid="files-select-all"]', 'data-state', 'indeterminate')
+        ->assertScript(<<<'JS'
+(() => {
+  const bar = document.querySelector('[data-testid="files-select-all"]').closest('[data-slot="page-header"]').getBoundingClientRect();
+  const download = document.querySelector('[data-testid="files-action-download"]').getBoundingClientRect();
+
+  return bar.right - download.right < 8;
+})()
+JS)
+        ->click('[data-testid="files-select-all"]')
+        ->assertSee('3 selected')
+        ->assertAttribute('[data-testid="files-select-all"]', 'data-state', 'checked')
+        ->click('[data-testid="files-select-all"]')
+        ->assertMissing('[data-testid="files-select-all"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the selection actions inline after the selection grows and shrinks', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+        PermissionEnum::CanUseAi->value,
+    ]);
+
+    $files = collect(range(1, 2))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => "inline-{$index}.txt",
+        'title' => "Inline file {$index}",
+        'path' => "/inline-{$index}.txt",
+        'disk' => 'assets',
+        'storage_path' => "2026/07/inline-{$index}.txt",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$files->first()->id}\"]")
+        ->assertSee('1 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertScript(<<<'JS'
+(() => {
+  const askAi = document.querySelector('[data-testid="ask-ai-toolbar"]').getBoundingClientRect();
+  const download = document.querySelector('[data-testid="files-action-download"]').getBoundingClientRect();
+
+  return askAi.right < download.left && download.left - askAi.right < 120;
+})()
+JS)
+        ->click('button[aria-label="Select inline-2.txt"]')
+        ->assertSee('2 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertMissing('[data-testid="files-actions-more"]')
+        ->click('button[aria-label="Select inline-2.txt"]')
+        ->assertSee('1 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertMissing('[data-testid="files-actions-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('empties the trash in the background and refreshes when the job reports back', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanForceDeleteFiles->value,
+    ]);
+
+    collect(['old-a.txt', 'old-b.txt'])->each(fn (string $name): bool => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => $name,
+        'title' => $name,
+        'path' => "/{$name}",
+        'disk' => 'assets',
+        'storage_path' => "2026/11/{$name}",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ])->delete());
+
+    $this->actingAs($user);
+
+    $page = visit('/files?trashed=only');
+
+    $page->assertSee('old-a.txt')
+        ->click('[data-testid="files-empty-trash"]')
+        ->assertSee('Empty the trash?')
+        ->click('[data-test="confirm-destructive"]')
+        ->assertSee('Trash emptied')
+        ->assertDontSee('old-a.txt')
+        ->assertAttribute('[data-testid="files-empty-trash"]', 'disabled', '')
+        ->assertNoJavaScriptErrors();
+
+    expect(File::query()->withTrashed()->count())->toBe(0);
+});

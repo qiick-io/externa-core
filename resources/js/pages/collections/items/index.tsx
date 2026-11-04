@@ -38,7 +38,8 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { EmptyStatus } from '@/components/empty-status';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +86,7 @@ import {
     serializeFilterRules,
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
+import { listPerPageQuery } from '@/lib/pagination';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
 import type {
@@ -528,6 +530,12 @@ export default function ItemsIndex({
                 query.calendar_field = calendarField;
             }
 
+            const perPage = listPerPageQuery(items.per_page);
+
+            if (perPage !== undefined) {
+                query.per_page = perPage;
+            }
+
             router.get(
                 collections.items.index.url(collection.id, { query }),
                 {},
@@ -543,6 +551,7 @@ export default function ItemsIndex({
             hasDraftFilter,
             inReviewFilter,
             isTrashed,
+            items.per_page,
             kanbanField,
             listLayout,
         ],
@@ -809,7 +818,7 @@ export default function ItemsIndex({
                             bulkActions={
                                 <>
                                     <AskAiButton
-                                        mode="labeled"
+                                        mode="toolbar"
                                         prompt={seedItemsBulkPrompt(
                                             {
                                                 id: collection.id,
@@ -828,7 +837,6 @@ export default function ItemsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'delete',
@@ -845,7 +853,6 @@ export default function ItemsIndex({
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
                                                 Restore
@@ -858,7 +865,6 @@ export default function ItemsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'force_delete',
@@ -908,8 +914,7 @@ export default function ItemsIndex({
                                 }}
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="list-layout-select"
                                     aria-label={t(
                                         'collections.itemsList.layout',
@@ -971,8 +976,7 @@ export default function ItemsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="w-auto min-w-36 text-xs"
+                                        className="w-auto min-w-36"
                                         data-test="kanban-field-select"
                                         aria-label={t(
                                             'collections.itemsList.kanbanField',
@@ -1026,8 +1030,7 @@ export default function ItemsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="w-auto min-w-36 text-xs"
+                                        className="w-auto min-w-36"
                                         data-test="calendar-field-select"
                                         aria-label={t(
                                             'collections.itemsList.calendarField',
@@ -1068,6 +1071,7 @@ export default function ItemsIndex({
                                 </Select>
                             ) : null}
                             <ToggleGroup
+                                variant="outline"
                                 type="single"
                                 value={isTrashed ? 'trashed' : 'active'}
                                 onValueChange={(value) => {
@@ -1083,7 +1087,6 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.activeItems',
                                     )}
-                                    className="px-3"
                                 >
                                     <FolderOpen className="size-4" />
                                 </ToggleGroupItem>
@@ -1092,7 +1095,6 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.trash',
                                     )}
-                                    className="px-3"
                                 >
                                     <Trash2 className="size-4" />
                                 </ToggleGroupItem>
@@ -1103,8 +1105,8 @@ export default function ItemsIndex({
                 footer={
                     !hideListChrome &&
                     listLayout === 'table' &&
-                    items.last_page > 1 ? (
-                        <TablePagination links={items.links} />
+                    hasTablePaginationFooter(items) ? (
+                        <TablePaginationFooter pagination={items} />
                     ) : undefined
                 }
             >

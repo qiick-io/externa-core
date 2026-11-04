@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} selezionati",
         "save": "Salva",
         "saved": "Salvato",
         "cancel": "Annulla",
@@ -23,12 +24,15 @@
         "created": "Creato",
         "updated": "Aggiornato",
         "search": "Cerca",
+        "rowsPerPage": "Righe per pagina",
         "online": "Online",
         "offline": "Offline",
         "sortAscending": "Ordine crescente",
         "sortDescending": "Ordine decrescente",
         "active": "Attivo",
-        "name": "Nome"
+        "name": "Nome",
+        "pageRange": "{{from}}–{{to}} di {{total}}",
+        "perPageOption": "{{count}} / pagina"
     },
     "emptyState": {
         "collections": {
@@ -317,7 +321,10 @@
             "integrations": "Integrazioni",
             "sidebar": "Barra laterale",
             "aiTools": "Strumenti AI in scrittura",
-            "pendingToolCalls": "Approvazioni strumenti AI"
+            "pendingToolCalls": "Approvazioni strumenti AI",
+            "sectionAi": "AI",
+            "aiToolsNav": "Strumenti in scrittura",
+            "pendingToolCallsNav": "Approvazioni strumenti"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -640,7 +647,8 @@
             },
             "themePresetTitle": "Preset tema",
             "themePresetDescription": "Scegli una palette integrata per l’admin. Un colore brand personalizzato ha comunque priorità sul primary.",
-            "themePresetTeal": "qiick Teal (predefinito)",
+            "themePresetTeal": "Teal (predefinito)",
+            "themePresetBlue": "Blu",
             "themePresetIndigo": "Indaco",
             "themePresetViolet": "Viola",
             "themePresetRose": "Rosa",
@@ -1466,7 +1474,7 @@
         "askAi": "Chiedi all'AI",
         "assistantOffline": "Assistente offline",
         "assistantOnline": "Assistente online",
-        "aiOfflineHint": "AI offline — avvia LM Studio per abilitarla",
+        "aiOfflineHint": "AI non disponibile — verifica la configurazione del provider AI",
         "thinking": "Sto pensando",
         "copied": "Copiato negli appunti",
         "copyFailed": "Copia non riuscita",
@@ -1541,7 +1549,15 @@
         "thisMonth": "Questo mese",
         "today": "Oggi",
         "twoDaysAgo": "2 giorni fa",
-        "older": "Più vecchie"
+        "older": "Più vecchie",
+        "newChat": "Nuova chat",
+        "noConversations": "Nessuna conversazione.",
+        "openFullPage": "Apri a schermo intero",
+        "openPanel": "Apri nel pannello laterale",
+        "conversations": "Conversazioni",
+        "searchConversations": "Cerca conversazioni…",
+        "noConversationsMatch": "Nessuna conversazione corrisponde alla ricerca.",
+        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti."
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1710,15 +1726,15 @@
     },
     "activityLog": {
         "title": "Activity Log",
-        "description": "Audit trail in sola lettura di modifiche e eventi di autenticazione.",
         "searchPlaceholder": "Cerca descrizione o soggetto…",
         "allUsers": "Tutti gli utenti",
         "allActions": "Tutte le azioni",
         "allLogs": "Tutti i log",
         "filterByAction": "Filtra per azione",
         "filterByLog": "Filtra per nome log",
-        "dateFrom": "Data da",
-        "dateTo": "Data a",
+        "dateRange": "Intervallo di date",
+        "anyDate": "Qualsiasi data",
+        "clearDates": "Cancella date",
         "empty": "Nessuna attività per i filtri selezionati.",
         "system": "Sistema",
         "noChanges": "Nessuna modifica ai campi registrata.",
@@ -1803,7 +1819,10 @@
             "activeFiles": "File attivi",
             "trash": "Cestino",
             "selectedCount": "{{count}} selezionati",
-            "clearSelection": "Deseleziona"
+            "clearSelection": "Deseleziona",
+            "emptyTrash": "Svuota cestino",
+            "emptyTrashTitle": "Svuotare il cestino?",
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine."
         },
         "sort": {
             "name": "Nome",
@@ -1941,7 +1960,10 @@
             "zipFailed": "Preparazione zip non riuscita",
             "zipPreparing": "Preparazione zip — riceverai una notifica quando è pronto.",
             "duplicationStarted": "Duplicazione avviata — riceverai una notifica al termine",
-            "duplicated": "File duplicato"
+            "duplicated": "File duplicato",
+            "trashEmptying": "Svuotamento del cestino in background…",
+            "trashEmptied": "Cestino svuotato",
+            "trashEmptyFailed": "Impossibile svuotare il cestino"
         },
         "card": {
             "select": "Seleziona {{name}}",

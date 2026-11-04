@@ -34,7 +34,6 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { brandPassesAa } from '@/lib/brand-contrast';
 import { applyThemeCss, buildPreviewThemeCss } from '@/lib/theme-css';
-import { themePresetBySlug } from '@/lib/theme-presets';
 import { edit as editAppearance } from '@/routes/appearance';
 import type {
     AppearanceFileMeta,
@@ -97,7 +96,10 @@ export default function Appearance({
     const [pickerField, setPickerField] = useState<FileFieldKey | null>(null);
     const [isDirty, setIsDirty] = useState(false);
 
-    const selectedPreset = themePresetBySlug(themePreset);
+    const selectedPreset =
+        appearance.theme_presets.find(
+            (preset) => preset.slug === themePreset,
+        ) ?? appearance.theme_presets[0];
     const displayColor = projectColor ?? selectedPreset.swatchLight;
     const displayColorDark =
         projectColorDark ?? projectColor ?? selectedPreset.swatchDark;
@@ -149,13 +151,24 @@ export default function Appearance({
     // Live preview of the draft; the cleanup restores the latest saved theme.
     useEffect(() => {
         applyThemeCss(
-            buildPreviewThemeCss(themePreset, projectColor, projectColorDark),
+            buildPreviewThemeCss(
+                selectedPreset,
+                appearance.theme_ai_override,
+                projectColor,
+                projectColorDark,
+            ),
         );
 
         return () => {
             restoreThemeFromAppearance(projectAppearance);
         };
-    }, [themePreset, projectColor, projectColorDark, projectAppearance]);
+    }, [
+        selectedPreset,
+        appearance.theme_ai_override,
+        projectColor,
+        projectColorDark,
+        projectAppearance,
+    ]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -279,7 +292,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColor',
                                             )}
                                         </FieldLabel>
-                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background dark:border-white/25 dark:bg-transparent">
+                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-white/25 dark:bg-transparent">
                                             <InputGroupAddon
                                                 align="inline-start"
                                                 className="pl-2"
@@ -340,7 +353,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColorDark',
                                             )}
                                         </FieldLabel>
-                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background dark:border-white/25 dark:bg-transparent">
+                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-white/25 dark:bg-transparent">
                                             <InputGroupAddon
                                                 align="inline-start"
                                                 className="pl-2"
@@ -394,7 +407,6 @@ export default function Appearance({
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            size="sm"
                                             className="w-fit"
                                             onClick={() => {
                                                 setProjectColor(null);
@@ -468,7 +480,6 @@ export default function Appearance({
                                                     <Button
                                                         type="button"
                                                         variant="outline"
-                                                        size="sm"
                                                         onClick={() =>
                                                             setPickerField(
                                                                 field.key,
@@ -501,7 +512,6 @@ export default function Appearance({
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
-                                                            size="sm"
                                                             onClick={() =>
                                                                 setFiles(
                                                                     (

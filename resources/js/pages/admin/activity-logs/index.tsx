@@ -1,23 +1,41 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronDown, ChevronRight, Download } from 'lucide-react';
+import {
+    ChevronDown,
+    ChevronRight,
+    Download,
+    FileJson,
+    FileSpreadsheet,
+} from 'lucide-react';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
-import {
-    FilterSearch,
-    filterSelectClassName,
-} from '@/components/layout/page-header';
+import { FilterSearch } from '@/components/layout/page-header';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { NativeSelect } from '@/components/ui/native-select';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -29,9 +47,8 @@ import {
 import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import AppLayout from '@/layouts/app-layout';
 import { seedActivityLogPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { cn } from '@/lib/utils';
 import activityLogsRoutes from '@/routes/activity-logs';
 import type {
     AdminActivityLogRow,
@@ -39,6 +56,12 @@ import type {
     BreadcrumbItem,
     Paginated,
 } from '@/types';
+
+/**
+ * Radix Select reserves the empty string for "no value", so the "All …"
+ * option uses this sentinel and maps back to an unset filter.
+ */
+const ALL_FILTER_VALUE = '__all__';
 
 type Filters = {
     search?: string;
@@ -135,13 +158,22 @@ export default function AdminActivityLogsIndex({
                         log_name: nextLogName || undefined,
                         date_from: nextDateFrom || undefined,
                         date_to: nextDateTo || undefined,
+                        per_page: listPerPageQuery(activityLogs.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [search, userIds, event, logName, dateFrom, dateTo],
+        [
+            search,
+            userIds,
+            event,
+            logName,
+            dateFrom,
+            dateTo,
+            activityLogs.per_page,
+        ],
     );
 
     const exportHref = useCallback(
@@ -219,137 +251,145 @@ export default function AdminActivityLogsIndex({
     }, [users, userIds]);
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={t('activityLog.title')} />
-
-            <PageLayout
-                description={t('activityLog.description')}
-                filters={
-                    <>
-                        <FilterSearch
-                            value={search}
-                            onChange={setSearch}
-                            placeholder={t('activityLog.searchPlaceholder')}
-                            className="max-w-[12rem] min-w-[8rem] flex-none"
-                        />
-                        <UserMultiSelect
-                            value={userIds}
-                            onChange={(next) => {
-                                setUserIds(next);
-                                visit({ user_ids: next });
-                            }}
-                            placeholder={t('activityLog.allUsers')}
-                            initialUsers={initialSelectedUsers}
-                            className={cn(
-                                filterSelectClassName,
-                                'h-auto min-h-9 max-w-[12rem] min-w-[8rem] shrink-0',
-                            )}
-                        />
-                        <NativeSelect
-                            value={event}
-                            onChange={(changeEvent) => {
-                                setEvent(changeEvent.target.value);
-                                visit({
-                                    event:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className="max-w-[10rem] min-w-[7rem] shrink-0"
-                            aria-label={t('activityLog.filterByAction')}
-                            title={
-                                event
-                                    ? eventLabel(event)
-                                    : t('activityLog.allActions')
-                            }
-                        >
-                            <option value="">
-                                {t('activityLog.allActions')}
-                            </option>
-                            {events.map((eventName) => (
-                                <option key={eventName} value={eventName}>
-                                    {eventLabel(eventName)}
-                                </option>
-                            ))}
-                        </NativeSelect>
-                        <NativeSelect
-                            value={logName}
-                            onChange={(changeEvent) => {
-                                setLogName(changeEvent.target.value);
-                                visit({
-                                    log_name:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className="max-w-[10rem] min-w-[7rem] shrink-0"
-                            aria-label={t('activityLog.filterByLog')}
-                            title={
-                                logName
-                                    ? logNameLabel(logName)
-                                    : t('activityLog.allLogs')
-                            }
-                        >
-                            <option value="">{t('activityLog.allLogs')}</option>
-                            {logNames.map((name) => (
-                                <option key={name} value={name}>
-                                    {logNameLabel(name)}
-                                </option>
-                            ))}
-                        </NativeSelect>
-                        <Input
-                            type="date"
-                            value={dateFrom}
-                            onChange={(changeEvent) => {
-                                setDateFrom(changeEvent.target.value);
-                                visit({
-                                    date_from:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className="h-9 w-auto shrink-0"
-                            title={dateFrom || undefined}
-                            aria-label={t('activityLog.dateFrom')}
-                        />
-                        <Input
-                            type="date"
-                            value={dateTo}
-                            onChange={(changeEvent) => {
-                                setDateTo(changeEvent.target.value);
-                                visit({
-                                    date_to:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className="h-9 w-auto shrink-0"
-                            aria-label={t('activityLog.dateTo')}
-                        />
-                    </>
-                }
-                filtersRight={
-                    <div className="flex shrink-0 items-center gap-2">
-                        <span className="hidden text-xs text-muted-foreground sm:inline">
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline">
+                            <Download aria-hidden="true" />
+                            {t('common.export')}
+                            <ChevronDown aria-hidden="true" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-w-64">
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                             {t('activityLog.exportHint', {
                                 limit: exportRowLimit,
                             })}
-                        </span>
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={exportHref('csv')}>
-                                <Download className="size-4" />
-                                {t('activityLog.exportCsv')}
-                            </a>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
                             <a href={exportHref('json')}>
-                                <Download className="size-4" />
+                                <FileJson aria-hidden="true" />
                                 {t('activityLog.exportJson')}
                             </a>
-                        </Button>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <a href={exportHref('csv')}>
+                                <FileSpreadsheet aria-hidden="true" />
+                                {t('activityLog.exportCsv')}
+                            </a>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            }
+        >
+            <Head title={t('activityLog.title')} />
+
+            <PageLayout
+                filters={
+                    <div className="@container w-full min-w-0">
+                        <div
+                            data-testid="activity-log-filters"
+                            className="grid grid-cols-1 gap-2 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-5"
+                        >
+                            <FilterSearch
+                                value={search}
+                                onChange={setSearch}
+                                placeholder={t('activityLog.searchPlaceholder')}
+                                className="min-w-0 sm:max-w-none"
+                            />
+                            <UserMultiSelect
+                                value={userIds}
+                                onChange={(next) => {
+                                    setUserIds(next);
+                                    visit({ user_ids: next });
+                                }}
+                                placeholder={t('activityLog.allUsers')}
+                                initialUsers={initialSelectedUsers}
+                                className="h-auto min-h-control min-w-0"
+                            />
+                            <Select
+                                value={event || ALL_FILTER_VALUE}
+                                onValueChange={(value) => {
+                                    const nextEvent =
+                                        value === ALL_FILTER_VALUE ? '' : value;
+                                    setEvent(nextEvent);
+                                    visit({ event: nextEvent || undefined });
+                                }}
+                            >
+                                <SelectTrigger
+                                    className="w-full min-w-0"
+                                    aria-label={t('activityLog.filterByAction')}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL_FILTER_VALUE}>
+                                        {t('activityLog.allActions')}
+                                    </SelectItem>
+                                    {events.map((eventName) => (
+                                        <SelectItem
+                                            key={eventName}
+                                            value={eventName}
+                                        >
+                                            {eventLabel(eventName)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={logName || ALL_FILTER_VALUE}
+                                onValueChange={(value) => {
+                                    const nextLogName =
+                                        value === ALL_FILTER_VALUE ? '' : value;
+                                    setLogName(nextLogName);
+                                    visit({
+                                        log_name: nextLogName || undefined,
+                                    });
+                                }}
+                            >
+                                <SelectTrigger
+                                    className="w-full min-w-0"
+                                    aria-label={t('activityLog.filterByLog')}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL_FILTER_VALUE}>
+                                        {t('activityLog.allLogs')}
+                                    </SelectItem>
+                                    {logNames.map((name) => (
+                                        <SelectItem key={name} value={name}>
+                                            {logNameLabel(name)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <DateRangePicker
+                                dataTest="activity-log-date-range"
+                                value={{ from: dateFrom, to: dateTo }}
+                                onChange={(range) => {
+                                    setDateFrom(range.from);
+                                    setDateTo(range.to);
+                                    visit({
+                                        date_from: range.from,
+                                        date_to: range.to,
+                                    });
+                                }}
+                                placeholder={t('activityLog.anyDate')}
+                                clearLabel={t('activityLog.clearDates')}
+                                aria-label={t('activityLog.dateRange')}
+                            />
+                        </div>
                     </div>
                 }
             >
                 <TablePanel
                     footer={
-                        activityLogs.last_page > 1 ? (
-                            <TablePagination links={activityLogs.links ?? []} />
+                        hasTablePaginationFooter(activityLogs) ? (
+                            <TablePaginationFooter pagination={activityLogs} />
                         ) : undefined
                     }
                 >

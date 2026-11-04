@@ -4,6 +4,13 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Button variants. Sizes follow the shared antd control-size scale (#462,
+ * #472, `--spacing-control*` in app.css): `sm` / `icon-sm` = 24px (compact
+ * inline actions only, 12px text and 14px icons), `default` / `icon` = 32px
+ * (14px text, 16px icons), `lg` / `icon-lg` = 40px — the same heights as
+ * Input, NativeSelect, Select trigger and Toggle at the matching size.
+ */
 const buttonVariants = cva(
   "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
@@ -26,11 +33,12 @@ const buttonVariants = cva(
         ai: "bg-ai text-ai-foreground shadow-xs hover:bg-ai-hover",
       },
       size: {
-        default: "h-10 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md px-3 has-[>svg]:px-2.5",
-        lg: "h-12 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-10",
-        "icon-sm": "size-8",
+        sm: "h-control-sm gap-1.5 px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        default: "h-control px-4 has-[>svg]:px-3",
+        lg: "h-control-lg px-6 has-[>svg]:px-4",
+        "icon-sm": "size-control-sm [&_svg:not([class*='size-'])]:size-3.5",
+        icon: "size-control",
+        "icon-lg": "size-control-lg",
       },
     },
     defaultVariants: {

@@ -203,7 +203,6 @@ export function ItemRevisionCompareModal({
                             {canApply ? (
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     onClick={toggleSelectAllDiffs}
                                     disabled={diffNames.length === 0}
@@ -294,8 +293,7 @@ export function ItemRevisionCompareModal({
                             }}
                         >
                             <SelectTrigger
-                                size="sm"
-                                className="h-8 w-auto border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
+                                className="w-auto border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
                                 data-test="compare-to-select"
                             >
                                 <SelectValue />

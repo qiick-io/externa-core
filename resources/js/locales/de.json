@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} ausgewählt",
         "save": "Speichern",
         "saved": "Gespeichert",
         "cancel": "Abbrechen",
@@ -23,12 +24,15 @@
         "created": "Erstellt",
         "updated": "Aktualisiert",
         "search": "Suchen",
+        "rowsPerPage": "Zeilen pro Seite",
         "online": "Online",
         "offline": "Offline",
         "sortAscending": "Aufsteigend sortieren",
         "sortDescending": "Absteigend sortieren",
         "active": "Aktiv",
-        "name": "Name"
+        "name": "Name",
+        "pageRange": "{{from}}–{{to}} von {{total}}",
+        "perPageOption": "{{count}} / Seite"
     },
     "emptyState": {
         "collections": {
@@ -317,7 +321,10 @@
             "integrations": "Integrationen",
             "sidebar": "Seitenleiste",
             "aiTools": "KI-Schreibwerkzeuge",
-            "pendingToolCalls": "KI-Tool-Freigaben"
+            "pendingToolCalls": "KI-Tool-Freigaben",
+            "sectionAi": "KI",
+            "aiToolsNav": "Schreibwerkzeuge",
+            "pendingToolCallsNav": "Tool-Freigaben"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -640,7 +647,8 @@
             },
             "themePresetTitle": "Theme-Preset",
             "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
-            "themePresetTeal": "qiick Teal (Standard)",
+            "themePresetTeal": "Teal (Standard)",
+            "themePresetBlue": "Blau",
             "themePresetIndigo": "Indigo",
             "themePresetViolet": "Violett",
             "themePresetRose": "Rose",
@@ -1466,7 +1474,7 @@
         "askAi": "KI fragen",
         "assistantOffline": "Assistent offline",
         "assistantOnline": "Assistent online",
-        "aiOfflineHint": "KI offline — LM Studio starten zum Aktivieren",
+        "aiOfflineHint": "KI nicht verfügbar — Konfiguration des KI-Anbieters prüfen",
         "thinking": "Denke nach",
         "copied": "In die Zwischenablage kopiert",
         "copyFailed": "Kopieren fehlgeschlagen",
@@ -1541,7 +1549,15 @@
         "thisMonth": "Diesen Monat",
         "today": "Heute",
         "twoDaysAgo": "Vor 2 Tagen",
-        "older": "Älter"
+        "older": "Älter",
+        "newChat": "Neuer Chat",
+        "noConversations": "Noch keine Unterhaltungen.",
+        "openFullPage": "Ganze Seite öffnen",
+        "openPanel": "Im Seitenbereich öffnen",
+        "conversations": "Unterhaltungen",
+        "searchConversations": "Unterhaltungen suchen…",
+        "noConversationsMatch": "Keine Unterhaltung passt zur Suche.",
+        "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools."
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1710,15 +1726,15 @@
     },
     "activityLog": {
         "title": "Aktivitätsprotokoll",
-        "description": "Schreibgeschützter Audit-Trail für Modelländerungen und Authentifizierungsereignisse.",
         "searchPlaceholder": "Beschreibung oder Subjekt suchen…",
         "allUsers": "Alle Benutzer",
         "allActions": "Alle Aktionen",
         "allLogs": "Alle Protokolle",
         "filterByAction": "Nach Aktion filtern",
         "filterByLog": "Nach Protokollname filtern",
-        "dateFrom": "Von Datum",
-        "dateTo": "Bis Datum",
+        "dateRange": "Datumsbereich",
+        "anyDate": "Beliebiges Datum",
+        "clearDates": "Daten löschen",
         "empty": "Keine Aktivität für die gewählten Filter.",
         "system": "System",
         "noChanges": "Keine Feldänderungen erfasst.",
@@ -1803,7 +1819,10 @@
             "activeFiles": "Aktive Dateien",
             "trash": "Papierkorb",
             "selectedCount": "{{count}} ausgewählt",
-            "clearSelection": "Auswahl aufheben"
+            "clearSelection": "Auswahl aufheben",
+            "emptyTrash": "Papierkorb leeren",
+            "emptyTrashTitle": "Papierkorb leeren?",
+            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist."
         },
         "sort": {
             "name": "Name",
@@ -1941,7 +1960,10 @@
             "zipFailed": "Zip-Vorbereitung fehlgeschlagen",
             "zipPreparing": "Zip wird vorbereitet — Sie werden benachrichtigt, wenn sie bereit ist.",
             "duplicationStarted": "Duplizierung gestartet — Sie werden benachrichtigt, wenn sie fertig ist",
-            "duplicated": "Datei dupliziert"
+            "duplicated": "Datei dupliziert",
+            "trashEmptying": "Papierkorb wird im Hintergrund geleert…",
+            "trashEmptied": "Papierkorb geleert",
+            "trashEmptyFailed": "Papierkorb konnte nicht geleert werden"
         },
         "card": {
             "select": "{{name}} auswählen",

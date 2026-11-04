@@ -4,14 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
-import { NameSlugCell } from '@/components/admin/name-slug-cell';
+import { TruncatedText } from '@/components/admin/truncated-text';
+import { UserAvatar } from '@/components/admin/user-avatar';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,13 +39,17 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
+import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import groupsRoutes from '@/routes/groups';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
+
+/** Member avatars shown before the count in the Members column. */
+const MEMBER_AVATAR_LIMIT = 3;
 
 type GroupSortField = 'name' | 'created_at' | 'updated_at';
 type GroupSortDirection = 'asc' | 'desc';
@@ -73,6 +80,7 @@ export default function AdminGroupsIndex({
         { value: 'updated_at', label: t('common.updated') },
     ];
     const { can } = useCan();
+    const onlineUsers = useOnlineUsers();
     const requestLeave = useRequestLeave();
     const isTrashed = filters.trashed === true;
     const [search, setSearch] = useState(filters.search ?? '');
@@ -137,13 +145,14 @@ export default function AdminGroupsIndex({
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(groups.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, groups.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -254,7 +263,7 @@ export default function AdminGroupsIndex({
                             bulkActions={
                                 <>
                                     <AskAiButton
-                                        mode="labeled"
+                                        mode="toolbar"
                                         prompt={seedGroupsBulkPrompt(
                                             selectedRows,
                                         )}
@@ -264,7 +273,6 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'delete',
@@ -281,7 +289,6 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
                                                 {t('common.restore')}
@@ -294,7 +301,6 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'force_delete',
@@ -325,7 +331,6 @@ export default function AdminGroupsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
                                         aria-label={t('groups.sortBy')}
                                         className="w-[7.5rem]"
                                     >
@@ -345,7 +350,7 @@ export default function AdminGroupsIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon-sm"
+                                    size="icon"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -367,6 +372,7 @@ export default function AdminGroupsIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {
@@ -400,8 +406,8 @@ export default function AdminGroupsIndex({
                 >
                     <TablePanel
                         footer={
-                            groups.last_page > 1 ? (
-                                <TablePagination links={groups.links ?? []} />
+                            hasTablePaginationFooter(groups) ? (
+                                <TablePaginationFooter pagination={groups} />
                             ) : undefined
                         }
                     >
@@ -427,6 +433,7 @@ export default function AdminGroupsIndex({
                                         />
                                     </TableHead>
                                     <TableHead>Name</TableHead>
+                                    <TableHead>Slug</TableHead>
                                     <TableHead>Roles</TableHead>
                                     <TableHead className="text-right">
                                         Members
@@ -440,7 +447,7 @@ export default function AdminGroupsIndex({
                                 {groups.data.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={5}
+                                            colSpan={6}
                                             className="text-muted-foreground"
                                         >
                                             No groups yet.
@@ -486,10 +493,30 @@ export default function AdminGroupsIndex({
                                                     }
                                                 />
                                             </TableCell>
-                                            <TableCell className="max-w-[16rem]">
-                                                <NameSlugCell
-                                                    name={group.name}
-                                                    slug={group.slug}
+                                            <TableCell className="max-w-[14rem] font-medium">
+                                                <span className="inline-flex min-w-0 items-center gap-2">
+                                                    <Avatar
+                                                        userId={`group-${group.id}`}
+                                                        className="size-7"
+                                                        data-test="group-avatar"
+                                                        aria-hidden
+                                                    >
+                                                        <AvatarFallback className="text-xs font-medium">
+                                                            {group.name
+                                                                .trim()
+                                                                .charAt(0)
+                                                                .toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <TruncatedText
+                                                        text={group.name}
+                                                    />
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="max-w-[14rem]">
+                                                <TruncatedText
+                                                    text={group.slug}
+                                                    className="font-mono text-xs text-muted-foreground"
                                                 />
                                             </TableCell>
                                             <TableCell>
@@ -507,7 +534,39 @@ export default function AdminGroupsIndex({
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right tabular-nums">
-                                                {group.users_count ?? '—'}
+                                                <span className="inline-flex items-center justify-end gap-2">
+                                                    {(group.users ?? [])
+                                                        .length > 0 ? (
+                                                        <span
+                                                            className="flex gap-1"
+                                                            data-test={`group-member-avatars-${group.id}`}
+                                                        >
+                                                            {(group.users ?? [])
+                                                                .slice(
+                                                                    0,
+                                                                    MEMBER_AVATAR_LIMIT,
+                                                                )
+                                                                .map(
+                                                                    (
+                                                                        member,
+                                                                    ) => (
+                                                                        <UserAvatar
+                                                                            key={
+                                                                                member.id
+                                                                            }
+                                                                            user={
+                                                                                member
+                                                                            }
+                                                                            isOnline={onlineUsers.has(
+                                                                                member.id,
+                                                                            )}
+                                                                        />
+                                                                    ),
+                                                                )}
+                                                        </span>
+                                                    ) : null}
+                                                    {group.users_count ?? '—'}
+                                                </span>
                                             </TableCell>
                                             <TableCell
                                                 className="text-right"

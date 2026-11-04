@@ -149,12 +149,7 @@ export function TransformPresetsField({
                         {t('settings.project.presetTransformationsHint')}
                     </p>
                 </div>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={openCreate}
-                >
+                <Button type="button" variant="outline" onClick={openCreate}>
                     <Plus className="size-4" />
                     {t('settings.project.presetAdd')}
                 </Button>

@@ -1,4 +1,5 @@
-export type ThemePresetSlug = 'teal' | 'indigo' | 'violet' | 'rose' | 'slate';
+export type ThemePresetSlug =
+    'teal' | 'blue' | 'indigo' | 'violet' | 'rose' | 'slate';
 
 export type ThemePresetCatalogItem = {
     slug: ThemePresetSlug;
@@ -6,6 +7,17 @@ export type ThemePresetCatalogItem = {
     aiOverride: boolean;
     swatchLight: string;
     swatchDark: string;
+    /** Base surfaces merged with the preset's brand colours (server-resolved). */
+    light: Record<string, string>;
+    dark: Record<string, string>;
+};
+
+/** AI accent swap applied when a preset or custom colour sits near the AI hue. */
+export type ThemeAiOverride = {
+    light: Record<string, string>;
+    dark: Record<string, string>;
+    hue: number;
+    tolerance: number;
 };
 
 export type ThemeCssPayload = {
@@ -47,5 +59,6 @@ export type AppearanceSettings = {
     project_logo_dark: AppearanceFileMeta | null;
     public_favicon: AppearanceFileMeta | null;
     theme_presets: ThemePresetCatalogItem[];
+    theme_ai_override: ThemeAiOverride;
     brand_passes_aa: boolean;
 };

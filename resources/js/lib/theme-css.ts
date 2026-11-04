@@ -1,12 +1,11 @@
 import { meetsUiContrast } from '@/lib/brand-contrast';
 import { contrastingForeground } from '@/lib/contrasting-foreground';
-import {
-    AI_OVERRIDE_DARK,
-    AI_OVERRIDE_LIGHT,
-    themePresetBySlug,
-} from '@/lib/theme-presets';
-import type { ThemePresetSlug, ThemePresetTokens } from '@/lib/theme-presets';
-import type { ThemeCssPayload } from '@/types/appearance';
+import type { ThemePresetTokens } from '@/lib/theme-presets';
+import type {
+    ThemeAiOverride,
+    ThemeCssPayload,
+    ThemePresetCatalogItem,
+} from '@/types/appearance';
 
 const BRAND_LINKED_KEYS = [
     'primary',
@@ -82,25 +81,26 @@ function cssDeclarations(tokens: ThemePresetTokens): string {
 }
 
 /**
- * Build a ThemeCssPayload client-side for appearance form live preview.
+ * Build a ThemeCssPayload client-side for appearance form live preview, from
+ * the server-resolved preset tokens (no client copy of the presets).
  */
 export function buildPreviewThemeCss(
-    themePreset: ThemePresetSlug,
+    preset: ThemePresetCatalogItem,
+    aiOverride: ThemeAiOverride,
     projectColor: string | null,
     projectColorDark: string | null,
 ): ThemeCssPayload {
-    const preset = themePresetBySlug(themePreset);
     let light: ThemePresetTokens = { ...preset.light };
     let dark: ThemePresetTokens = { ...preset.dark };
 
-    const aiOverride =
+    const appliesAiOverride =
         preset.aiOverride ||
-        isNearAiHue(projectColor) ||
-        isNearAiHue(projectColorDark);
+        isNearAiHue(projectColor, aiOverride) ||
+        isNearAiHue(projectColorDark, aiOverride);
 
-    if (aiOverride) {
-        light = { ...light, ...AI_OVERRIDE_LIGHT };
-        dark = { ...dark, ...AI_OVERRIDE_DARK };
+    if (appliesAiOverride) {
+        light = { ...light, ...aiOverride.light };
+        dark = { ...dark, ...aiOverride.dark };
     }
 
     const hasCustomLight = Boolean(projectColor);
@@ -177,10 +177,13 @@ function stripBrandLinkedKeys(tokens: ThemePresetTokens): ThemePresetTokens {
 }
 
 /**
- * Approximate AI-accent hue proximity (±30° of ~306°) using HSL hue as a preview hint.
+ * Approximate AI-accent hue proximity (configured hue ± tolerance) using HSL hue as a preview hint.
  * Server-side OKLCH check is authoritative.
  */
-function isNearAiHue(hex: string | null | undefined): boolean {
+function isNearAiHue(
+    hex: string | null | undefined,
+    aiOverride: ThemeAiOverride,
+): boolean {
     if (!hex) {
         return false;
     }
@@ -197,9 +200,9 @@ function isNearAiHue(hex: string | null | undefined): boolean {
         return false;
     }
 
-    const delta = Math.abs(hue - 306) % 360;
+    const delta = Math.abs(hue - aiOverride.hue) % 360;
 
-    return Math.min(delta, 360 - delta) <= 30;
+    return Math.min(delta, 360 - delta) <= aiOverride.tolerance;
 }
 
 function parseHex(hex: string): [number, number, number] | null {

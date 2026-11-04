@@ -434,7 +434,6 @@ export function FileDetailPanel({
                             />
                             <Button
                                 type="button"
-                                size="sm"
                                 variant="outline"
                                 disabled={replacing}
                                 onClick={() => replaceInputRef.current?.click()}
@@ -562,7 +561,7 @@ export function FileDetailPanel({
                         <Input
                             value={file.storage_path ?? ''}
                             disabled
-                            className="font-mono text-xs"
+                            className="font-mono"
                         />
                     </div>
                 </div>
@@ -724,7 +723,7 @@ export function FileDetailPanel({
                             <Input
                                 value={file.name}
                                 disabled
-                                className="font-mono text-xs"
+                                className="font-mono"
                             />
                         </div>
                         <div className="space-y-2">

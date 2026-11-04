@@ -116,6 +116,18 @@
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
 
+    /*
+     * Control-size scale (antd: #462, #472): one height per size for every
+     * control (Button, icon Button, Input, InputGroup, NativeSelect, Select
+     * trigger and items, Toggle/ToggleGroup, date-time picker trigger) so
+     * mixed rows line up. Exposed as spacing keys: h-control, size-control-sm,
+     * min-w-control-lg, … `sm` is only for compact inline actions (table row
+     * icons, chips) and sits exactly on the WCAG 2.2 SC 2.5.8 minimum (24px).
+     */
+    --spacing-control-sm: 1.5rem; /* 24px — compact inline actions only */
+    --spacing-control: 2rem; /* 32px — default everywhere */
+    --spacing-control-lg: 2.5rem; /* 40px — rare large CTAs */
+
     --shadow-xs: 0 1px 2px rgb(14 23 30 / 0.05);
     --shadow-sm: 0 1px 3px rgb(14 23 30 / 0.08), 0 1px 2px rgb(14 23 30 / 0.04);
     --shadow-md:
@@ -226,9 +238,9 @@
      */
     --ring: var(--color-teal-600);
     --chart-1: var(--color-teal-600);
-    --chart-2: var(--color-blue-500);
-    --chart-3: var(--color-amber-500);
-    --chart-4: var(--color-green-600);
+    --chart-2: #2571d4;
+    --chart-3: #a85c0b;
+    --chart-4: #1f7a4e;
     --chart-5: var(--color-ink-400);
     --radius: 0.5rem;
     --sidebar: var(--color-ink-50);
@@ -259,7 +271,7 @@
     /* Keep #258 dark body teal-500 (#1A95A2); rim teal-300 */
     --primary: var(
         --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-500))
+        var(--brand-primary, var(--color-teal-400))
     );
     /*
      * Do not fall back to light --brand-primary-foreground (often #fff).
@@ -275,7 +287,7 @@
     --secondary-foreground: var(--color-ink-100);
     --muted: var(--color-ink-800);
     /* ink-200 on ink-950 ≈ 12:1 — margin vs placeholder opacity / AA edge cases */
-    --muted-foreground: var(--color-ink-200);
+    --muted-foreground: var(--color-ink-300);
     --accent: var(--color-ink-800);
     --accent-foreground: var(--color-ink-100);
     /* red-300 on ink-900 = 6.38:1 (red-400 fails AA) */
@@ -294,11 +306,12 @@
     /* teal-400 ≥3:1 on ink-950 (#227); contrast-checked brand ring via theme block (#453) */
     --ring: var(--color-teal-400);
     --chart-1: var(--color-teal-400);
-    --chart-2: var(--color-blue-400);
-    --chart-3: var(--color-amber-400);
-    --chart-4: var(--color-green-400);
+    --chart-2: #498fe4;
+    --chart-3: #f1ab27;
+    --chart-4: #4ab57e;
     --chart-5: var(--color-ink-300);
-    --sidebar: var(--color-ink-950);
+    /* Shell (sidebar + inset frame) one step lighter than the content, as before 1.4. */
+    --sidebar: var(--color-ink-900);
     --sidebar-foreground: var(--color-ink-300);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
@@ -333,6 +346,15 @@
         @apply bg-background text-foreground;
     }
 
+    /*
+     * #main-content takes focus programmatically (skip link, focusPageMain after
+     * navigation) so screen readers land on the page; it is not a control, so it
+     * shows no outline around the whole page.
+     */
+    #main-content:focus {
+        outline: none;
+    }
+
     /* Tailwind v4 preflight sets cursor: default on buttons — restore click affordance */
     button:not(:disabled),
     [role='button']:not([aria-disabled='true']),
@@ -361,17 +383,23 @@
     }
 }
 
-/* Assistant nav: solid AI border + hover/active AI wash (shimmer kept) */
+/*
+ * Assistant nav (#463): same text token, background and full-height active bar
+ * as its siblings, plus a 1px border in the current theme primary
+ * (`--sidebar-primary`, follows the theme preset / brand, ≥3:1 on the sidebar).
+ * Drawn as an inset outline so it keeps the item size, follows the square-left
+ * active corners, survives forced-colors and leaves the focus ring alone.
+ * Hover / keyboard focus add the theme accent wash and a primary-tinted shimmer.
+ */
 .sidebar-ai-nav {
-    border: 1px solid var(--ai-border);
-    background: var(--sidebar) !important;
+    outline: 1px solid var(--sidebar-primary);
+    outline-offset: -1px;
 }
 
 .sidebar-ai-nav:hover,
-.sidebar-ai-nav:active,
-.sidebar-ai-nav[data-active='true'] {
-    border-color: var(--ai-border);
-    background: var(--ai-bg) !important;
+.sidebar-ai-nav:focus-visible {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
 }
 
 .sidebar-ai-nav::after {
@@ -383,13 +411,14 @@
     background: linear-gradient(
         105deg,
         transparent 35%,
-        color-mix(in oklab, white 35%, transparent) 50%,
+        color-mix(in oklab, var(--sidebar-primary) 30%, transparent) 50%,
         transparent 65%
     );
     transform: translateX(-120%);
 }
 
-.sidebar-ai-nav:hover::after {
+.sidebar-ai-nav:hover::after,
+.sidebar-ai-nav:focus-visible::after {
     animation: sidebar-ai-shimmer 0.85s ease;
 }
 
@@ -397,6 +426,16 @@
     to {
         transform: translateX(120%);
     }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-ai-nav::after {
+        animation: none !important;
+    }
+}
+
+html.reduce-motion .sidebar-ai-nav::after {
+    animation: none !important;
 }
 
 /* Localized field: AI beam while translate runs */

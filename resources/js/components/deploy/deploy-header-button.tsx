@@ -21,7 +21,6 @@ export function DeployHeaderButton() {
         <Button
             type="button"
             variant="outline"
-            size="sm"
             disabled={isDeploying}
             data-test="header-deploy-button"
             onClick={() => {
@@ -36,7 +35,7 @@ export function DeployHeaderButton() {
                 );
             }}
         >
-            <Rocket className="size-3.5" aria-hidden />
+            <Rocket className="size-4" aria-hidden />
             {t('deploy.button')}
         </Button>
     );

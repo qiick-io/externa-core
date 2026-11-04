@@ -11,7 +11,7 @@ import {
     Square,
     X,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import type { FormEvent, KeyboardEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,17 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAutosizeTextarea } from '@/hooks/use-autosize-textarea';
 import type { AiChatAttachment } from '@/lib/ai-chat';
 import type { AiPendingContextAttachment } from '@/lib/ai-context';
+import {
+    COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
+    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
+    composerFrameClass,
+    composerTextareaClass,
+    composerToolbarClass,
+} from '@/lib/composer-chrome';
 import { cn } from '@/lib/utils';
-
-const MIN_TEXTAREA_HEIGHT_PX = 40;
-const MAX_TEXTAREA_HEIGHT_PX = 168; // ~7 rows at text-sm
 
 type AiComposerProps = {
     value: string;
@@ -89,22 +94,7 @@ export function AiComposer({
     const resolvedAttachTooltip = attachTooltip ?? t('ai.attachShortTooltip');
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-    useEffect(() => {
-        const textarea = textareaRef.current;
-
-        if (!textarea) {
-            return;
-        }
-
-        textarea.style.height = '0px';
-        const nextHeight = Math.min(
-            Math.max(textarea.scrollHeight, MIN_TEXTAREA_HEIGHT_PX),
-            MAX_TEXTAREA_HEIGHT_PX,
-        );
-        textarea.style.height = `${nextHeight}px`;
-        textarea.style.overflowY =
-            textarea.scrollHeight > MAX_TEXTAREA_HEIGHT_PX ? 'auto' : 'hidden';
-    }, [value]);
+    useAutosizeTextarea(textareaRef, value);
 
     const canSubmit =
         !disabled &&
@@ -149,12 +139,7 @@ export function AiComposer({
 
     return (
         <form className={cn('w-full', className)} onSubmit={handleFormSubmit}>
-            <div
-                className={cn(
-                    'rounded-2xl border border-border bg-background shadow-xs',
-                    'focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
-                )}
-            >
+            <div className={composerFrameClass}>
                 {attachments.length > 0 || contextAttachments.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5 px-3 pt-3">
                         {contextAttachments.map((attachment) => (
@@ -229,19 +214,15 @@ export function AiComposer({
                     placeholder={resolvedPlaceholder}
                     disabled={disabled || isStreaming}
                     rows={1}
-                    className={cn(
-                        'block w-full resize-none border-0 bg-transparent px-3 pt-3 pb-2',
-                        'text-sm text-foreground outline-none placeholder:text-muted-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50',
-                    )}
+                    className={composerTextareaClass}
                     style={{
-                        minHeight: MIN_TEXTAREA_HEIGHT_PX,
-                        maxHeight: MAX_TEXTAREA_HEIGHT_PX,
+                        minHeight: COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
+                        maxHeight: COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
                     }}
                     aria-label={t('ai.messageAria')}
                 />
 
-                <div className="flex items-center justify-between gap-2 px-2 pb-2">
+                <div className={composerToolbarClass}>
                     <div className="flex items-center gap-1">
                         {onOpenPresets ? (
                             <Tooltip>
@@ -250,7 +231,7 @@ export function AiComposer({
                                         type="button"
                                         size="icon"
                                         variant="ghost"
-                                        className="size-8 text-muted-foreground"
+                                        className="text-muted-foreground"
                                         disabled={disabled || isStreaming}
                                         onClick={onOpenPresets}
                                         aria-label={t('ai.usefulActionsAria')}
@@ -270,7 +251,7 @@ export function AiComposer({
                                         type="button"
                                         size="icon"
                                         variant="ghost"
-                                        className="size-8 text-muted-foreground"
+                                        className="text-muted-foreground"
                                         disabled={
                                             disabled ||
                                             isStreaming ||
@@ -293,11 +274,10 @@ export function AiComposer({
                                 <TooltipTrigger asChild>
                                     <Button
                                         type="button"
-                                        size="sm"
                                         variant={
                                             dryRunMode ? 'secondary' : 'ghost'
                                         }
-                                        className="h-8 gap-1.5 px-2 text-xs"
+                                        className="gap-1.5 px-2"
                                         disabled={disabled || isStreaming}
                                         onClick={() =>
                                             onDryRunModeChange(!dryRunMode)
@@ -325,7 +305,7 @@ export function AiComposer({
                                             size="icon"
                                             variant="ghost"
                                             className={cn(
-                                                'size-8 text-muted-foreground',
+                                                'text-muted-foreground',
                                                 isListening &&
                                                     'bg-primary/10 text-primary',
                                             )}
@@ -361,7 +341,7 @@ export function AiComposer({
                                                 type="button"
                                                 size="icon"
                                                 variant="ghost"
-                                                className="size-8 text-muted-foreground"
+                                                className="text-muted-foreground"
                                                 disabled
                                                 aria-label={t(
                                                     'ai.dictationAria',
@@ -383,7 +363,7 @@ export function AiComposer({
                                 type="button"
                                 size="icon"
                                 variant="destructive"
-                                className="relative z-10 size-8 rounded-full"
+                                className="relative z-10 rounded-full"
                                 disabled={false}
                                 onClick={handleStopClick}
                                 aria-label={t('ai.stopAria')}
@@ -394,7 +374,7 @@ export function AiComposer({
                             <Button
                                 type="submit"
                                 size="icon"
-                                className="size-8 rounded-full"
+                                className="rounded-full"
                                 disabled={!canSubmit || isStreaming}
                                 aria-label={t('ai.sendAria')}
                             >

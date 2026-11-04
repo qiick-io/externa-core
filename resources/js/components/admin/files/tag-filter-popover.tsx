@@ -44,8 +44,6 @@ export function TagFilterPopover({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-2"
                     aria-label={t('files.tags.filterBy')}
                 >
                     <Tags className="size-4" />
@@ -66,8 +64,7 @@ export function TagFilterPopover({
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="px-2"
                             onClick={() => onChange([])}
                         >
                             <X className="mr-1 size-3" />

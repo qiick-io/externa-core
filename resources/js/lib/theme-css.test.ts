@@ -4,7 +4,48 @@ import {
     buildPreviewThemeCss,
     THEME_STYLE_ELEMENT_ID,
 } from '@/lib/theme-css';
-import { themePresetBySlug } from '@/lib/theme-presets';
+import type {
+    ThemeAiOverride,
+    ThemePresetCatalogItem,
+} from '@/types/appearance';
+
+/** Minimal server-shaped presets: base surfaces + brand primary/ring. */
+function presetFixture(
+    slug: ThemePresetCatalogItem['slug'],
+    lightPrimary: string,
+    darkPrimary: string,
+): ThemePresetCatalogItem {
+    return {
+        slug,
+        name: slug,
+        aiOverride: false,
+        swatchLight: lightPrimary,
+        swatchDark: darkPrimary,
+        light: {
+            background: '#FFFFFF',
+            primary: lightPrimary,
+            ring: lightPrimary,
+        },
+        dark: {
+            background: '#0E171E',
+            primary: darkPrimary,
+            ring: darkPrimary,
+        },
+    };
+}
+
+const PRESETS = {
+    teal: presetFixture('teal', '#0E7C86', '#2CB1BC'),
+    indigo: presetFixture('indigo', '#4F46E5', '#A5B4FC'),
+    rose: presetFixture('rose', '#BE185D', '#F9A8D4'),
+};
+
+const AI_OVERRIDE: ThemeAiOverride = {
+    light: { ai: '#0E7C86' },
+    dark: { ai: '#2CB1BC' },
+    hue: 306,
+    tolerance: 30,
+};
 
 function computedVariable(name: string): string {
     return getComputedStyle(document.documentElement)
@@ -20,10 +61,12 @@ afterEach(() => {
 
 describe('applyThemeCss', () => {
     it('uses the dark preset palette in dark mode', () => {
-        const indigo = themePresetBySlug('indigo');
+        const indigo = PRESETS.indigo;
         document.documentElement.classList.add('dark');
 
-        applyThemeCss(buildPreviewThemeCss('indigo', null, null));
+        applyThemeCss(
+            buildPreviewThemeCss(PRESETS.indigo, AI_OVERRIDE, null, null),
+        );
 
         expect(computedVariable('--background')).toBe(indigo.dark.background);
         expect(computedVariable('--primary')).toBe(indigo.dark.primary);
@@ -31,9 +74,11 @@ describe('applyThemeCss', () => {
     });
 
     it('uses the light preset palette in light mode', () => {
-        const indigo = themePresetBySlug('indigo');
+        const indigo = PRESETS.indigo;
 
-        applyThemeCss(buildPreviewThemeCss('indigo', null, null));
+        applyThemeCss(
+            buildPreviewThemeCss(PRESETS.indigo, AI_OVERRIDE, null, null),
+        );
 
         expect(computedVariable('--background')).toBe(indigo.light.background);
         expect(computedVariable('--primary')).toBe(indigo.light.primary);
@@ -45,21 +90,28 @@ describe('applyThemeCss', () => {
         serverStyle.textContent = ':root { --brand-primary: #112233; }';
         document.head.appendChild(serverStyle);
 
-        applyThemeCss(buildPreviewThemeCss('rose', null, null));
+        applyThemeCss(
+            buildPreviewThemeCss(PRESETS.rose, AI_OVERRIDE, null, null),
+        );
 
         expect(
             document.querySelectorAll(`#${THEME_STYLE_ELEMENT_ID}`),
         ).toHaveLength(1);
         expect(computedVariable('--brand-primary')).toBe('');
-        expect(computedVariable('--primary')).toBe(
-            themePresetBySlug('rose').light.primary,
-        );
+        expect(computedVariable('--primary')).toBe(PRESETS.rose.light.primary);
     });
 
     it('applies custom brand colours as brand variables in the style block', () => {
         document.documentElement.classList.add('dark');
 
-        applyThemeCss(buildPreviewThemeCss('teal', '#0f172a', '#38bdf8'));
+        applyThemeCss(
+            buildPreviewThemeCss(
+                PRESETS.teal,
+                AI_OVERRIDE,
+                '#0f172a',
+                '#38bdf8',
+            ),
+        );
 
         expect(computedVariable('--brand-primary')).toBe('#0f172a');
         expect(computedVariable('--brand-primary-dark')).toBe('#38bdf8');
@@ -70,7 +122,12 @@ describe('applyThemeCss', () => {
         document.documentElement.classList.add('dark');
 
         // #0f172a is ~1.1:1 on the dark background but ~17:1 on white (#453).
-        const themeCss = buildPreviewThemeCss('teal', '#0f172a', null);
+        const themeCss = buildPreviewThemeCss(
+            PRESETS.teal,
+            AI_OVERRIDE,
+            '#0f172a',
+            null,
+        );
         applyThemeCss(themeCss);
 
         expect(themeCss.light.ring).toBe('#0f172a');
@@ -80,7 +137,12 @@ describe('applyThemeCss', () => {
     });
 
     it('falls back to the teal focus ring when the brand has under 3:1 contrast in light mode', () => {
-        const themeCss = buildPreviewThemeCss('teal', '#f5f5f5', '#38bdf8');
+        const themeCss = buildPreviewThemeCss(
+            PRESETS.teal,
+            AI_OVERRIDE,
+            '#f5f5f5',
+            '#38bdf8',
+        );
         applyThemeCss(themeCss);
 
         expect(themeCss.light.ring).toBe('var(--color-teal-600)');
@@ -88,9 +150,27 @@ describe('applyThemeCss', () => {
         expect(computedVariable('--ring')).toBe('var(--color-teal-600)');
     });
 
+    it('swaps in the AI override tokens for a custom colour near the configured AI hue', () => {
+        // #8e44ad is a violet (~283° HSL), inside 306° ± 30°.
+        const themeCss = buildPreviewThemeCss(
+            PRESETS.teal,
+            AI_OVERRIDE,
+            '#8e44ad',
+            null,
+        );
+
+        expect(themeCss.light.ai).toBe(AI_OVERRIDE.light.ai);
+        expect(themeCss.dark.ai).toBe(AI_OVERRIDE.dark.ai);
+    });
+
     it('skips values that would break out of the declaration block', () => {
         applyThemeCss(
-            buildPreviewThemeCss('teal', '#000000; } body { color: red', null),
+            buildPreviewThemeCss(
+                PRESETS.teal,
+                AI_OVERRIDE,
+                '#000000; } body { color: red',
+                null,
+            ),
         );
 
         expect(

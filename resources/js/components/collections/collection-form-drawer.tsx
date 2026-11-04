@@ -338,7 +338,7 @@ export function CollectionFormDrawer({
                                                 e.target.value,
                                             )
                                         }
-                                        className="h-9 w-12 shrink-0 cursor-pointer border-0 p-1 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                                        className="w-12 shrink-0 cursor-pointer border-0 p-1 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                                     />
                                     <div className="relative min-w-0 flex-1">
                                         <Input

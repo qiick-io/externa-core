@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActionsOverflow } from '@/components/admin/actions-overflow';
 import type { OverflowActionDefinition } from '@/components/admin/actions-overflow';
 import type { FileActionDefinition, FileActionKey } from '@/types/files';
@@ -6,6 +7,7 @@ type FilesActionsOverflowProps = {
     actions: FileActionDefinition[];
     onAction: (key: FileActionKey) => void;
     className?: string;
+    pinned?: ReactNode;
 };
 
 /**
@@ -15,12 +17,14 @@ export function FilesActionsOverflow({
     actions,
     onAction,
     className,
+    pinned,
 }: FilesActionsOverflowProps) {
     return (
         <ActionsOverflow
             actions={actions as OverflowActionDefinition[]}
             onAction={(key) => onAction(key as FileActionKey)}
             className={className}
+            pinned={pinned}
             iconOnly
         />
     );

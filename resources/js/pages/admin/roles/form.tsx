@@ -621,7 +621,7 @@ export default function AdminRoleForm({
                                                             aria-label={`${action.label} for files: ${allowed ? 'allowed' : 'denied'}`}
                                                             title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
                                                             className={cn(
-                                                                'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
+                                                                'inline-flex size-control items-center justify-center rounded-md border transition-colors',
                                                                 allowed
                                                                     ? 'border-success/50 bg-success/15 text-success'
                                                                     : 'border-destructive/50 bg-destructive/10 text-destructive',
@@ -832,7 +832,7 @@ export default function AdminRoleForm({
                                                                                     aria-label={`${action.label} for ${collection.name}: ${allowed ? 'allowed' : 'denied'}`}
                                                                                     title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
                                                                                     className={cn(
-                                                                                        'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
+                                                                                        'inline-flex size-control items-center justify-center rounded-md border transition-colors',
                                                                                         allowed
                                                                                             ? 'border-success/50 bg-success/15 text-success'
                                                                                             : 'border-destructive/50 bg-destructive/10 text-destructive',
@@ -975,7 +975,6 @@ export default function AdminRoleForm({
                                                                                         className="flex flex-wrap items-center gap-2"
                                                                                     >
                                                                                         <NativeSelect
-                                                                                            size="sm"
                                                                                             className="min-w-28 flex-1"
                                                                                             value={
                                                                                                 rule.field
@@ -1022,7 +1021,6 @@ export default function AdminRoleForm({
                                                                                             )}
                                                                                         </NativeSelect>
                                                                                         <NativeSelect
-                                                                                            size="sm"
                                                                                             className="min-w-28"
                                                                                             value={
                                                                                                 rule.operator
@@ -1068,7 +1066,7 @@ export default function AdminRoleForm({
                                                                                         rule.operator !==
                                                                                             'not_empty' ? (
                                                                                             <Input
-                                                                                                className="h-8 max-w-40 text-xs"
+                                                                                                className="max-w-40"
                                                                                                 value={
                                                                                                     rule.value ??
                                                                                                     ''
@@ -1099,8 +1097,7 @@ export default function AdminRoleForm({
                                                                                         <Button
                                                                                             type="button"
                                                                                             variant="ghost"
-                                                                                            size="sm"
-                                                                                            className="h-8 px-2 text-xs"
+                                                                                            className="px-2"
                                                                                             onClick={() =>
                                                                                                 setItemFilterRules(
                                                                                                     collection.id,
@@ -1123,8 +1120,6 @@ export default function AdminRoleForm({
                                                                             <Button
                                                                                 type="button"
                                                                                 variant="outline"
-                                                                                size="sm"
-                                                                                className="h-8 text-xs"
                                                                                 onClick={() =>
                                                                                     setItemFilterRules(
                                                                                         collection.id,

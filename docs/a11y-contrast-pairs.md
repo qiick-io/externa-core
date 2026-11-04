@@ -1,7 +1,7 @@
 # Admin contrast pairs (WCAG 2.2 AA)
 
 Source tokens: `resources/css/app.css` (`:root`, `.dark`, `html.high-contrast`, `html.high-contrast.dark`).
-Ratios measured from resolved hex (WCAG relative luminance). **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
+Ratios measured from resolved hex (WCAG relative luminance). `sidebar-primary / sidebar-accent` is the full-height active-item bar in the sidebar and settings nav (non-colour active cue, #463, #473); `sidebar-accent-foreground / sidebar-accent` is the Assistant nav hover/focus wash and `sidebar-primary / sidebar` is its 1px theme-primary border (both follow the theme preset / brand, not the violet `ai` tokens). **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
 
 Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForeground` picks fg; if a project brand fails 3:1 against the surface, settings should warn or fall back (#243).
 
@@ -23,6 +23,9 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | input / background (UI)              | `#8195a2` (ink-400)  | `#ffffff`             | 3.11  | 3.0  | PASS   |
 | ring / background (focus)            | `#0e7c86` (teal-600) | `#ffffff`             | 4.95  | 3.0  | PASS   |
 | sidebar-foreground / sidebar         | `#516370`            | `#f8fdfe` (ink-50)    | 6.08  | 4.5  | PASS   |
+| sidebar-primary / sidebar-accent     | `#0e7c86` (teal-600) | `#ecfdfd` (teal-50)   | 4.72  | 3.0  | PASS   |
+| sidebar-accent-foreground / sidebar-accent | `#074f5a` (teal-800) | `#ecfdfd` (teal-50) | 8.81 | 4.5 | PASS |
+| sidebar-primary / sidebar (Assistant border) | `#0e7c86` (teal-600) | `#f8fdfe` (ink-50) | 4.82 | 3.0 | PASS |
 
 ## Dark (`.dark`)
 
@@ -39,6 +42,9 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | info-foreground / info               | `#0e171e`            | `#8ec0ff` (blue-300)  | 9.60  | 4.5  | PASS   |
 | input / background (UI)              | `#637683` (ink-500)  | `#0e171e`             | 3.84  | 3.0  | PASS   |
 | ring / background (focus)            | `#2cb1bc` (teal-400) | `#0e171e`             | 7.00  | 3.0  | PASS   |
+| sidebar-primary / sidebar-accent     | `#1a95a2` (teal-500) | `#02252c` (teal-950)  | 4.50  | 3.0  | PASS   |
+| sidebar-accent-foreground / sidebar-accent | `#a3ebf0` (teal-200) | `#02252c` (teal-950) | 12.04 | 4.5 | PASS |
+| sidebar-primary / sidebar (Assistant border) | `#1a95a2` (teal-500) | `#0e171e` (ink-950) | 5.06 | 3.0 | PASS |
 
 ## High contrast (`html.high-contrast`)
 
@@ -48,6 +54,9 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | muted-foreground / background | ink-700 on white (~8.6:1)  | 4.5  | PASS   |
 | input / background            | ink-600 on white (~6.2:1)  | 3.0  | PASS   |
 | ring / background             | teal-700 on white (~6.8:1) | 3.0  | PASS   |
+| sidebar-primary / sidebar-accent | teal-600 on teal-50 (~4.7:1) | 3.0 | PASS |
+| sidebar-accent-foreground / sidebar-accent | teal-800 on teal-50 (~8.8:1) | 4.5 | PASS |
+| sidebar-primary / sidebar (Assistant border) | teal-600 on ink-50 (~4.8:1) | 3.0 | PASS |
 
 ## High contrast dark (`html.high-contrast.dark`)
 
@@ -57,6 +66,9 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | muted-foreground / background | ink-200 on ink-950  | 4.5  | PASS   |
 | input / background            | ink-300 on ink-950  | 3.0  | PASS   |
 | ring / background             | teal-300 on ink-950 | 3.0  | PASS   |
+| sidebar-primary / sidebar-accent | teal-500 on teal-950 (~4.5:1) | 3.0 | PASS |
+| sidebar-accent-foreground / sidebar-accent | teal-200 on teal-950 (~12.0:1) | 4.5 | PASS |
+| sidebar-primary / sidebar (Assistant border) | teal-500 on ink-950 (~5.1:1) | 3.0 | PASS |
 
 ## Related
 

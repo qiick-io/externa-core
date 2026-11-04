@@ -1,10 +1,15 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
+import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldLabel,
+} from '@/components/ui/field';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import type { BreadcrumbItem } from '@/types';
@@ -34,6 +39,23 @@ export default function AiToolSettingsPage({
     const { t } = useTranslation();
     const [selected, setSelected] = useState<string[]>(enabledTools);
     const [saving, setSaving] = useState(false);
+    const [recentlySuccessful, setRecentlySuccessful] = useState(false);
+    const isDirty =
+        selected.length !== enabledTools.length ||
+        selected.some((name) => !enabledTools.includes(name));
+
+    useEffect(() => {
+        if (!recentlySuccessful) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(
+            () => setRecentlySuccessful(false),
+            2000,
+        );
+
+        return () => window.clearTimeout(timeoutId);
+    }, [recentlySuccessful]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -61,6 +83,7 @@ export default function AiToolSettingsPage({
             { write_tools: selected },
             {
                 preserveScroll: true,
+                onSuccess: () => setRecentlySuccessful(true),
                 onFinish: () => setSaving(false),
             },
         );
@@ -70,7 +93,13 @@ export default function AiToolSettingsPage({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={t('settings.aiTools.head')} />
             <SettingsLayout>
-                <div className="space-y-6">
+                <form
+                    className="space-y-6"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        save();
+                    }}
+                >
                     <Heading
                         variant="small"
                         title={t('settings.aiTools.title')}
@@ -99,9 +128,11 @@ export default function AiToolSettingsPage({
 
                     <div className="space-y-3">
                         {tools.map((tool) => (
-                            <div
+                            <Field
                                 key={tool.name}
-                                className="flex items-start gap-3 rounded-md border border-border p-3"
+                                orientation="horizontal"
+                                className="rounded-md border border-border p-3"
+                                data-test={`ai-tool-${tool.name}`}
                             >
                                 <Checkbox
                                     id={`tool-${tool.name}`}
@@ -111,29 +142,28 @@ export default function AiToolSettingsPage({
                                         toggle(tool.name, value === true)
                                     }
                                 />
-                                <div className="space-y-1">
-                                    <Label htmlFor={`tool-${tool.name}`}>
-                                        {tool.name}{' '}
-                                        <span className="text-xs text-muted-foreground">
+                                <FieldContent>
+                                    <FieldLabel htmlFor={`tool-${tool.name}`}>
+                                        {tool.name}
+                                        <span className="text-xs font-normal text-muted-foreground">
                                             ({tool.kind})
                                         </span>
-                                    </Label>
-                                    <p className="text-xs text-muted-foreground">
+                                    </FieldLabel>
+                                    <FieldDescription>
                                         {tool.description}
-                                    </p>
-                                </div>
-                            </div>
+                                    </FieldDescription>
+                                </FieldContent>
+                            </Field>
                         ))}
                     </div>
 
-                    <Button
-                        type="button"
-                        onClick={save}
-                        disabled={saving || !writeEnabled}
-                    >
-                        {t('settings.aiTools.save')}
-                    </Button>
-                </div>
+                    <SettingsFormActions
+                        processing={saving}
+                        recentlySuccessful={recentlySuccessful}
+                        isDirty={isDirty}
+                        data-test="ai-tools-settings-save"
+                    />
+                </form>
             </SettingsLayout>
         </AppLayout>
     );

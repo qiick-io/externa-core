@@ -200,7 +200,7 @@ export function ChatSendAttachmentsDialog({
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="size-8 shrink-0"
+                        className="shrink-0"
                         disabled={sending}
                         onClick={onClose}
                         aria-label={t('common.cancel')}
@@ -214,7 +214,7 @@ export function ChatSendAttachmentsDialog({
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="size-8 shrink-0"
+                        className="shrink-0"
                         disabled={!canAddMore}
                         aria-label={t('collections.itemChat.attach')}
                         data-test="chat-send-attachments-add"
@@ -275,7 +275,7 @@ export function ChatSendAttachmentsDialog({
                                             type="button"
                                             size="icon"
                                             variant="ghost"
-                                            className="size-8 shrink-0 text-muted-foreground"
+                                            className="shrink-0 text-muted-foreground"
                                             disabled={sending}
                                             onClick={() => onRemove(item.key)}
                                             aria-label={t('common.delete')}
@@ -412,7 +412,6 @@ export function ChatSendAttachmentsDialog({
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                className="size-8"
                                 disabled={sending}
                                 aria-label={t('collections.itemChat.mention')}
                                 data-test="chat-send-caption-mention"
@@ -431,7 +430,6 @@ export function ChatSendAttachmentsDialog({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    className="size-8"
                                     disabled={sending}
                                     aria-label={t('collections.itemChat.emoji')}
                                     data-test="chat-send-caption-emoji"

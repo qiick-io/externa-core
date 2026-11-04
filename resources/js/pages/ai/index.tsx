@@ -1,8 +1,16 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import {
+    MessagesSquare,
+    MoreHorizontal,
+    Pin,
+    Plus,
+    Sparkles,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
@@ -13,6 +21,8 @@ import {
     fileCardsFromToolResults,
 } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
+import { FilterSearch } from '@/components/layout/page-header';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -23,6 +33,18 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import AppLayout from '@/layouts/app-layout';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
@@ -56,6 +78,7 @@ import { speechRecognitionLang } from '@/lib/format';
 import i18n from '@/lib/i18n';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex, show as aiShow } from '@/routes/ai';
@@ -295,6 +318,8 @@ export default function AiIndexPage({
         initialPaginated.last_page,
     );
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [conversationQuery, setConversationQuery] = useState('');
+    const hasSearchedConversationsRef = useRef(false);
     const [pendingAttachments, setPendingAttachments] = useState<
         AiChatAttachment[]
     >([]);
@@ -425,16 +450,6 @@ export default function AiIndexPage({
     }, [flatConversationIds]);
 
     const hasMoreConversations = listPage < listLastPage;
-
-    const selectedTitle = useMemo(() => {
-        return (
-            conversationItems.find(
-                (conversation) => conversation.id === conversationId,
-            )?.title ??
-            selectedConversation?.title ??
-            'New chat'
-        );
-    }, [conversationItems, conversationId, selectedConversation?.title]);
 
     const selectConversation = (id: string) => {
         if (isStreamingRef.current) {
@@ -571,6 +586,38 @@ export default function AiIndexPage({
         selectRange(lastSelectedIndexRef.current, index);
     };
 
+    // Server-side title search (debounced): replaces the loaded list with page 1.
+    useEffect(() => {
+        if (!hasSearchedConversationsRef.current && conversationQuery === '') {
+            return;
+        }
+
+        hasSearchedConversationsRef.current = true;
+        let cancelled = false;
+        const timeoutId = window.setTimeout(() => {
+            void fetchAiConversationsPage(1, 25, conversationQuery.trim())
+                .then((firstPage) => {
+                    if (cancelled) {
+                        return;
+                    }
+
+                    setConversationItems(firstPage.data);
+                    setListPage(firstPage.current_page);
+                    setListLastPage(firstPage.last_page);
+                })
+                .catch(() => {
+                    if (!cancelled) {
+                        toast.error(t('ai.unableLoadMoreChats'));
+                    }
+                });
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timeoutId);
+        };
+    }, [conversationQuery, t]);
+
     const handleLoadMoreConversations = async () => {
         if (isLoadingMore || !hasMoreConversations) {
             return;
@@ -579,7 +626,11 @@ export default function AiIndexPage({
         setIsLoadingMore(true);
 
         try {
-            const nextPage = await fetchAiConversationsPage(listPage + 1);
+            const nextPage = await fetchAiConversationsPage(
+                listPage + 1,
+                25,
+                conversationQuery.trim(),
+            );
             setConversationItems((current) => {
                 const seenIds = new Set(
                     current.map((conversation) => conversation.id),
@@ -1457,294 +1508,344 @@ export default function AiIndexPage({
     return (
         <AppLayout
             breadcrumbs={[{ title: t('nav.assistant'), href: aiIndex.url() }]}
+            headerActions={
+                <Button
+                    type="button"
+                    onClick={() => void handleNewChat()}
+                    data-test="ai-new-chat"
+                >
+                    <Plus className="size-4" />
+                    {t('ai.newChat')}
+                </Button>
+            }
         >
             <Head title={t('nav.assistant')} />
 
-            <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card">
-                <aside className="flex w-72 shrink-0 flex-col border-r">
-                    <div className="flex items-center justify-between gap-2 border-b p-3">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                            <Sparkles className="size-4 text-ai" />
-                            {t('ai.chat')}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                size="icon"
-                                variant="outline"
-                                className="size-8"
-                                disabled={
-                                    selectedIds.size === 0 || isBulkDeleting
-                                }
-                                onClick={() => setConfirmBulkDeleteOpen(true)}
-                                aria-label={t('a11y.deleteSelectedChats')}
-                            >
-                                <Trash2 className="size-3.5" />
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => void handleNewChat()}
-                            >
-                                <Plus className="size-4" />
-                                Nuova
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                        {conversationItems.length === 0 ? (
-                            <p className="px-2 py-4 text-sm text-muted-foreground">
-                                No conversations.
-                            </p>
-                        ) : (
-                            <>
-                                {conversationSections.map((section) => (
-                                    <div key={section.key} className="mb-3">
-                                        <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                            {section.key === 'pinned' ? (
-                                                <Pin className="size-3 fill-current" />
-                                            ) : null}
-                                            {section.label}
-                                        </div>
-                                        {section.conversations.map(
-                                            (conversation) => {
-                                                const index =
-                                                    conversationIndexById.get(
-                                                        conversation.id,
-                                                    ) ?? 0;
-
-                                                return (
-                                                    <div
-                                                        key={conversation.id}
-                                                        className={cn(
-                                                            'group mb-0.5 flex items-center gap-1 rounded-md',
-                                                            conversation.id ===
-                                                                conversationId
-                                                                ? 'bg-muted'
-                                                                : 'hover:bg-muted/60',
-                                                        )}
-                                                    >
-                                                        <Checkbox
-                                                            className="ml-2"
-                                                            checked={selectedIds.has(
-                                                                conversation.id,
-                                                            )}
-                                                            onPointerDown={(
-                                                                event,
-                                                            ) =>
-                                                                handleCheckboxPointerDown(
-                                                                    event,
-                                                                    index,
-                                                                )
-                                                            }
-                                                            onCheckedChange={(
-                                                                checked,
-                                                            ) =>
-                                                                toggleSelected(
-                                                                    conversation.id,
-                                                                    checked ===
-                                                                        true,
-                                                                    index,
-                                                                )
-                                                            }
-                                                            aria-label={`Select ${conversation.title}`}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            className="min-w-0 flex-1 truncate px-2 py-2 text-left text-sm"
-                                                            onClick={() =>
-                                                                selectConversation(
-                                                                    conversation.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            {conversation.title}
-                                                        </button>
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            className={cn(
-                                                                'size-8',
-                                                                conversation.pinned_at
-                                                                    ? 'opacity-100'
-                                                                    : 'opacity-0 group-hover:opacity-100',
-                                                            )}
-                                                            onClick={() =>
-                                                                void handleTogglePin(
-                                                                    conversation.id,
-                                                                )
-                                                            }
-                                                            aria-label={
-                                                                conversation.pinned_at
-                                                                    ? t(
-                                                                          'a11y.unpinChat',
-                                                                      )
-                                                                    : t(
-                                                                          'a11y.pinChat',
-                                                                      )
-                                                            }
-                                                        >
-                                                            <Pin
-                                                                className={cn(
-                                                                    'size-3.5',
-                                                                    conversation.pinned_at &&
-                                                                        'fill-current',
-                                                                )}
-                                                            />
-                                                        </Button>
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            className="size-8 opacity-0 group-hover:opacity-100"
-                                                            onClick={() =>
-                                                                void handleDelete(
-                                                                    conversation.id,
-                                                                )
-                                                            }
-                                                            aria-label={t(
-                                                                'a11y.deleteChat',
-                                                            )}
-                                                        >
-                                                            <Trash2 className="size-3.5" />
-                                                        </Button>
-                                                    </div>
-                                                );
-                                            },
-                                        )}
-                                    </div>
-                                ))}
-                                {hasMoreConversations ? (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="mb-2 w-full text-muted-foreground"
-                                        disabled={isLoadingMore}
-                                        onClick={() =>
-                                            void handleLoadMoreConversations()
-                                        }
-                                    >
-                                        {isLoadingMore
-                                            ? 'Loading…'
-                                            : t('ai.loadMore')}
-                                    </Button>
-                                ) : null}
-                            </>
-                        )}
-                    </div>
-                </aside>
-
-                <section className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center justify-between border-b px-4 py-3">
-                        <div>
-                            <h1 className="text-sm font-semibold">
-                                {selectedTitle}
-                            </h1>
-                            <p className="text-xs text-muted-foreground">
-                                Assistant with permissions for collections and
-                                files
-                            </p>
-                        </div>
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href={aiIndex.url()}>New chat</Link>
-                        </Button>
-                    </div>
-
-                    <AiChatDropZone
-                        disabled={isStreaming || isUploadingAttachment}
-                        onFilesSelected={(files) =>
-                            void handleAttachmentFiles(files)
-                        }
+            <PageLayout
+                filters={
+                    <FilterSearch
+                        dataTest="ai-filter-q"
+                        className="w-64 flex-none sm:max-w-none lg:w-80"
+                        value={conversationQuery}
+                        placeholder={t('ai.searchConversations')}
+                        maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
+                        onChange={setConversationQuery}
+                    />
+                }
+                filtersRight={
+                    <HeaderIconButton
+                        type="button"
+                        variant="outline"
+                        data-test="ai-delete-selected"
+                        disabled={selectedIds.size === 0 || isBulkDeleting}
+                        onClick={() => setConfirmBulkDeleteOpen(true)}
+                        label={t('a11y.deleteSelectedChats')}
                     >
-                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-                            <AiChatMessages
-                                messages={messages}
-                                isStreaming={isStreaming}
-                                editingMessageId={editingMessageId}
-                                editingDraft={editingDraft}
-                                onEditingDraftChange={setEditingDraft}
-                                onCancelEdit={cancelEditing}
-                                onStartEdit={startEditing}
-                                onResendEdited={(messageId) =>
-                                    void handleResendEdited(messageId)
-                                }
-                                onRegenerate={(messageId, options) =>
-                                    void handleRegenerate(messageId, options)
-                                }
-                                onSuggestedAction={setComposer}
-                                onResolveApprovals={(messageId, approved) =>
-                                    void handleResolveApprovals(
-                                        messageId,
-                                        approved,
-                                    )
-                                }
-                                emptyState={
-                                    <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
-                                        Ask the assistant to list collections,
-                                        create items, or manage files.
-                                        Destructive actions go through tools.
-                                    </div>
-                                }
-                            />
+                        <Trash2 className="size-4" />
+                    </HeaderIconButton>
+                }
+            >
+                <div
+                    data-test="ai-hub"
+                    className="flex min-h-0 flex-1 overflow-hidden"
+                >
+                    <aside
+                        aria-label={t('ai.conversations')}
+                        className="flex w-64 shrink-0 flex-col border-r lg:w-80"
+                    >
+                        <div
+                            data-test="ai-list"
+                            className={cn(
+                                'min-h-0 flex-1 overflow-y-auto p-2',
+                                conversationItems.length === 0 &&
+                                    'flex flex-col items-center justify-center',
+                            )}
+                        >
+                            {conversationItems.length === 0 ? (
+                                <Empty
+                                    data-test="ai-list-empty"
+                                    className="gap-3 p-6 md:p-6"
+                                >
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-primary/10 text-primary"
+                                        >
+                                            <MessagesSquare />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            {conversationQuery.trim() !== ''
+                                                ? t('ai.noConversationsMatch')
+                                                : t('ai.noConversations')}
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
+                            ) : (
+                                <>
+                                    {conversationSections.map((section) => (
+                                        <div key={section.key} className="mb-3">
+                                            <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                {section.key === 'pinned' ? (
+                                                    <Pin className="size-3 fill-current" />
+                                                ) : null}
+                                                {section.label}
+                                            </div>
+                                            {section.conversations.map(
+                                                (conversation) => {
+                                                    const index =
+                                                        conversationIndexById.get(
+                                                            conversation.id,
+                                                        ) ?? 0;
 
-                            {toolHint ? (
-                                <p className="text-xs text-muted-foreground">
-                                    {toolHint}
-                                </p>
-                            ) : null}
-                            {importJobStatus ? (
-                                <p className="text-xs text-muted-foreground">
-                                    Importazione {importJobStatus.status}:{' '}
-                                    {importJobStatus.processed}
-                                    {importJobStatus.total !== null
-                                        ? `/${importJobStatus.total}`
-                                        : ''}
-                                    {' — '}
-                                    {importJobStatus.message}
-                                </p>
-                            ) : null}
-                            <div ref={bottomRef} />
+                                                    return (
+                                                        <div
+                                                            key={
+                                                                conversation.id
+                                                            }
+                                                            className={cn(
+                                                                'group mb-0.5 flex items-center gap-1 rounded-md',
+                                                                conversation.id ===
+                                                                    conversationId
+                                                                    ? 'bg-muted'
+                                                                    : 'hover:bg-muted/60',
+                                                            )}
+                                                        >
+                                                            <Checkbox
+                                                                className="ml-2"
+                                                                checked={selectedIds.has(
+                                                                    conversation.id,
+                                                                )}
+                                                                onPointerDown={(
+                                                                    event,
+                                                                ) =>
+                                                                    handleCheckboxPointerDown(
+                                                                        event,
+                                                                        index,
+                                                                    )
+                                                                }
+                                                                onCheckedChange={(
+                                                                    checked,
+                                                                ) =>
+                                                                    toggleSelected(
+                                                                        conversation.id,
+                                                                        checked ===
+                                                                            true,
+                                                                        index,
+                                                                    )
+                                                                }
+                                                                aria-label={`Select ${conversation.title}`}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="min-w-0 flex-1 truncate px-2 py-2 text-left text-sm"
+                                                                onClick={() =>
+                                                                    selectConversation(
+                                                                        conversation.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {
+                                                                    conversation.title
+                                                                }
+                                                            </button>
+                                                            {conversation.pinned_at ? (
+                                                                <Pin
+                                                                    className="size-3.5 shrink-0 fill-current text-muted-foreground group-hover:hidden group-has-[[data-state=open]]:hidden"
+                                                                    aria-hidden
+                                                                />
+                                                            ) : null}
+                                                            {/* ChatGPT / Claude style: conversation actions live on the row, not in a pane header. */}
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                                                                        aria-label={t(
+                                                                            'a11y.moreActions',
+                                                                        )}
+                                                                        data-test="ai-conversation-menu"
+                                                                    >
+                                                                        <MoreHorizontal className="size-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        onSelect={() =>
+                                                                            void handleTogglePin(
+                                                                                conversation.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Pin className="size-4" />
+                                                                        {conversation.pinned_at
+                                                                            ? t(
+                                                                                  'a11y.unpinChat',
+                                                                              )
+                                                                            : t(
+                                                                                  'a11y.pinChat',
+                                                                              )}
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        variant="destructive"
+                                                                        data-test="ai-conversation-delete"
+                                                                        onSelect={() =>
+                                                                            void handleDelete(
+                                                                                conversation.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="size-4" />
+                                                                        {t(
+                                                                            'a11y.deleteChat',
+                                                                        )}
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    );
+                                                },
+                                            )}
+                                        </div>
+                                    ))}
+                                    {hasMoreConversations ? (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="mb-2 w-full text-muted-foreground"
+                                            disabled={isLoadingMore}
+                                            onClick={() =>
+                                                void handleLoadMoreConversations()
+                                            }
+                                        >
+                                            {isLoadingMore
+                                                ? t('chatHub.loading')
+                                                : t('ai.loadMore')}
+                                        </Button>
+                                    ) : null}
+                                </>
+                            )}
                         </div>
+                    </aside>
 
-                        <div className="border-t p-3">
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept={AI_CHAT_ATTACHMENT_ACCEPT}
-                                multiple
-                                className="hidden"
-                                onChange={(event) =>
-                                    void handleAttachmentSelected(event)
-                                }
-                            />
-                            <AiComposer
-                                value={composer}
-                                onChange={setComposer}
-                                onSubmit={() => void handleSend()}
-                                onStop={handleStop}
-                                isStreaming={isStreaming}
-                                attachments={pendingAttachments}
-                                onRemoveAttachment={removePendingAttachment}
-                                contextAttachments={pendingContextAttachments}
-                                onRemoveContextAttachment={
-                                    removePendingContextAttachment
-                                }
-                                onAttach={handlePickAttachment}
-                                isUploadingAttachment={isUploadingAttachment}
-                                attachDisabled={
-                                    pendingAttachments.length >=
-                                    AI_CHAT_ATTACHMENT_MAX_COUNT
-                                }
-                                speechSupported={speechSupported}
-                                isListening={isListening}
-                                onToggleVoice={toggleVoiceInput}
-                                dryRunMode={dryRunMode}
-                                onDryRunModeChange={setDryRunMode}
-                                onOpenPresets={() => setPresetsOpen(true)}
-                            />
-                        </div>
-                    </AiChatDropZone>
-                </section>
-            </div>
+                    <section className="flex min-w-0 flex-1 flex-col">
+                        <AiChatDropZone
+                            disabled={isStreaming || isUploadingAttachment}
+                            onFilesSelected={(files) =>
+                                void handleAttachmentFiles(files)
+                            }
+                        >
+                            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+                                <AiChatMessages
+                                    messages={messages}
+                                    isStreaming={isStreaming}
+                                    editingMessageId={editingMessageId}
+                                    editingDraft={editingDraft}
+                                    onEditingDraftChange={setEditingDraft}
+                                    onCancelEdit={cancelEditing}
+                                    onStartEdit={startEditing}
+                                    onResendEdited={(messageId) =>
+                                        void handleResendEdited(messageId)
+                                    }
+                                    onRegenerate={(messageId, options) =>
+                                        void handleRegenerate(
+                                            messageId,
+                                            options,
+                                        )
+                                    }
+                                    onSuggestedAction={setComposer}
+                                    onResolveApprovals={(messageId, approved) =>
+                                        void handleResolveApprovals(
+                                            messageId,
+                                            approved,
+                                        )
+                                    }
+                                    emptyState={
+                                        <Empty
+                                            data-test="ai-pane-empty"
+                                            className="m-auto"
+                                        >
+                                            <EmptyHeader>
+                                                <EmptyMedia
+                                                    variant="icon"
+                                                    className="bg-ai/10 text-ai"
+                                                >
+                                                    <Sparkles />
+                                                </EmptyMedia>
+                                                <EmptyDescription>
+                                                    {t('ai.paneEmpty')}
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                        </Empty>
+                                    }
+                                />
+
+                                {toolHint ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        {toolHint}
+                                    </p>
+                                ) : null}
+                                {importJobStatus ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        Importazione {importJobStatus.status}:{' '}
+                                        {importJobStatus.processed}
+                                        {importJobStatus.total !== null
+                                            ? `/${importJobStatus.total}`
+                                            : ''}
+                                        {' — '}
+                                        {importJobStatus.message}
+                                    </p>
+                                ) : null}
+                                <div ref={bottomRef} />
+                            </div>
+
+                            <div className="border-t p-3">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept={AI_CHAT_ATTACHMENT_ACCEPT}
+                                    multiple
+                                    className="hidden"
+                                    onChange={(event) =>
+                                        void handleAttachmentSelected(event)
+                                    }
+                                />
+                                <AiComposer
+                                    value={composer}
+                                    onChange={setComposer}
+                                    onSubmit={() => void handleSend()}
+                                    onStop={handleStop}
+                                    isStreaming={isStreaming}
+                                    attachments={pendingAttachments}
+                                    onRemoveAttachment={removePendingAttachment}
+                                    contextAttachments={
+                                        pendingContextAttachments
+                                    }
+                                    onRemoveContextAttachment={
+                                        removePendingContextAttachment
+                                    }
+                                    onAttach={handlePickAttachment}
+                                    isUploadingAttachment={
+                                        isUploadingAttachment
+                                    }
+                                    attachDisabled={
+                                        pendingAttachments.length >=
+                                        AI_CHAT_ATTACHMENT_MAX_COUNT
+                                    }
+                                    speechSupported={speechSupported}
+                                    isListening={isListening}
+                                    onToggleVoice={toggleVoiceInput}
+                                    dryRunMode={dryRunMode}
+                                    onDryRunModeChange={setDryRunMode}
+                                    onOpenPresets={() => setPresetsOpen(true)}
+                                />
+                            </div>
+                        </AiChatDropZone>
+                    </section>
+                </div>
+            </PageLayout>
 
             <AiContextAttachDialog
                 open={contextAttachOpen}

@@ -35,7 +35,7 @@ export function NewChatMenu({ canCreateDirect }: Props) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline" data-test="chat-new">
+                    <Button data-test="chat-new">
                         <Plus className="size-4" />
                         {t('chatHub.new')}
                     </Button>

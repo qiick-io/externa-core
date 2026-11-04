@@ -37,7 +37,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Optional first-party MCP server (`/mcp`, `laravel/mcp`): `AI_MCP_ENABLED` / `AI_MCP_WRITE_ENABLED`, owned API keys with `mcp:read`/`mcp:write` scopes, permission-aware tools/resources over the shared AI tool registry, dedicated `mcp` rate limiter; OAuth/Passport deferred (#121).
 - Consistent admin empty states via shadcn `Empty` (`PageEmptyState`): icon, title, description, primary CTA, optional docs link; hide list chrome for no-records vs Clear filters for no-results (#234).
 - Safe field type / translatable conversion for fields with existing content: documented conversion matrix (string↔textarea↔markdown, string→select, translatable flips), dry-run preview, chunked `externa:field-convert` artisan command, admin convert dialog, AI `convert_field` (approval-gated), activity log + `source=convert` revisions; historical revisions stay snapshots and restore adapts or rejects incompatible values (#220).
-- Five built-in appearance theme presets (qiick Teal default, Indigo, Violet, Rose, Slate) alongside optional custom brand hex, with AI-role override when the Violet preset or a violet-ish custom hex is selected (#243).
+- Six built-in appearance theme presets (Teal default, Blue, Indigo, Violet, Rose, Slate) alongside optional custom brand hex, with AI-role override when the Violet preset or a violet-ish custom hex is selected (#243).
 - Public CMS API batch item create/update/delete (`POST|PATCH|DELETE /api/v1/collections/{slug}/items/batch`) with `API_MAX_BATCH_SIZE` (default 100), atomic-per-item results, shared #269 write Actions, per-item activity log and existing `item.*` webhooks (no batch event types) (#125).
 - Public REST/GraphQL system-column filters on items (`filter[id]`, `filter[created_at]`, `filter[updated_at]`, `filter[published_at]`) with typed operators and ISO-8601 datetime validation (#333).
 - Public REST/GraphQL depth-1 relational filters (`filter[author.name][_eq]=…`); hard cap on join depth (422 above), related-collection readability gate (same as `?include=`), OpenAPI notes, and `API_COST_FILTER_RELATION` cost-budget interaction (#124).
@@ -59,6 +59,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Add Vitest frontend unit runner and CI step for `resources/js` lib/hook tests (#285).
 - Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
 - AI tool actions `ManageCollectionItems` `publish` and `ManageFiles` `tag` (write actions, approval required) (#435).
+- File manager "Empty trash": a queued job permanently deletes every trashed file and folder and notifies the requester when done (`DELETE /files/trash`, `can-force-delete-files`) (#497).
+- Files selection bar select-all (loaded files), Assistant conversation search by title (`GET /ai/conversations?q=`), and a rows-per-page select on admin lists (10 / 20 / 50 / 100, kept in `per_page`) (#480, #492, #505).
+- The AI assistant opens as a side panel on the current page from the sidebar Assistant hover action or ⌘J / Ctrl+J; the floating button is removed and the panel links to the full page (#499, #503).
+- Blue theme preset (Excubia's brand blue) (#508).
 
 ### Changed
 - Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
@@ -96,6 +100,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
 - `check-ui-tokens` fails on stale baseline entries, so allowances for fixed raw palette and hex usage cannot hide a later regression (#452).
 - New `--primary-hover` token for primary button and link-badge hover (AA in light and dark) (#449).
+- Theme presets now only define brand colours over one shared base in `config/theme-presets.php`; the appearance preview reads them from the server (no client copy); the dark shell is two-tone again (sidebar `ink-900` over `ink-950` content) and the `app.css` fallbacks match the default preset (#506–#509).
+- Admin layout pass: framed content panel with flat tables (lists, dashboard cards, chat and assistant hubs), sticky table headers, a three-area list footer (range, pages, rows per page), dashboard tabs as a header segmented control, and the chat and assistant pages on one shared layout with one composer (#484–#487, #493–#505).
+- Controls follow one size scale (24 / 32 / 40) and one field focus style; selection bars show count and select-all on the left and icon actions on the right; activity log date filters use one range picker; settings group the AI pages under "AI" (#462, #472, #489–#492, #508).
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
@@ -116,6 +123,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Restored work that stale squash merges had reverted (#449, #452, #457): sidebar `<nav aria-label>` landmark and violet AI accent on the Assistant item; shared empty states (collections, users, API keys, roles, items, file grid); collections table name/slug cell; settings save bar status announcements; full-opacity focus ring on colour fields; appearance `ToggleGroup` and `ink-950` auth panel; Assistant context picker; item form field sizing and read-only style; translated a11y labels; `lucide-react` ^1.61 without `react-file-icon`; `is/has/can` boolean method names (guarded by an Arch test).
 - Collection row menu: "Delete" opens the confirm dialog instead of navigating into the collection (#438).
 - CI: the full browser suite completes (no silent 20-minute hang), a failing `assets` job fails the required checks, and `resources/skills/**` changes run the full gate (#438).
+- Select menus flip upward near the window edge and drop the dark tinted trigger background; file thumbnails that fail to load fall back to the type icon; user menu labels, the deploy-on-publish switch and AI tools checkboxes are aligned (#482, #483, #495, #496, #508).
+- Files multi-select keeps every ticked file; Ask AI entry points are disabled while AI is offline, with provider-neutral copy; the item edit sub-header stays steady; the collections list shows name, slug and description columns again (#464, #465, #476, #477, #488).
 
 ## [1.3.0] - 2026-10-24
 
