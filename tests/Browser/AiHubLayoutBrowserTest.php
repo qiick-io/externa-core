@@ -111,3 +111,18 @@ it('filters the assistant conversation list from the search field', function ():
         ->assertDontSeeIn('[data-test="ai-list"]', 'Holiday plan')
         ->assertNoJavaScriptErrors();
 });
+
+it('gives /chat and /ai the same composer box', function (): void {
+    $composerBox = <<<'JS'
+(() => {
+  const box = document.querySelector('section textarea').closest('.rounded-2xl').getBoundingClientRect();
+
+  return JSON.stringify([Math.round(box.left), Math.round(box.width), Math.round(box.height), Math.round(window.innerHeight - box.bottom)]);
+})()
+JS;
+
+    $chat = visit('/chat')->script($composerBox);
+    $assistant = visit('/ai')->script($composerBox);
+
+    expect($assistant)->toBe($chat);
+});
