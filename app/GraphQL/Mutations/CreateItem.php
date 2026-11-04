@@ -6,11 +6,13 @@ use App\Actions\Collections\CreateCollectionItemAction;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 
 final class CreateItem
 {
     use AuthorizesGraphqlCollectionTrait;
+    use SerializesGraphqlItemTrait;
 
     /**
      * @param  array{collection: string, data: array<string, mixed>}  $args
@@ -35,6 +37,6 @@ final class CreateItem
 
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
-        return (new CollectionItemResource($item))->toArray($request);
+        return $this->withGraphqlTimestamps((new CollectionItemResource($item))->toArray($request));
     }
 }

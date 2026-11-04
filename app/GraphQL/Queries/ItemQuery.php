@@ -4,6 +4,7 @@ namespace App\GraphQL\Queries;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
@@ -14,6 +15,7 @@ use App\Support\Api\ApiAccess;
 final class ItemQuery
 {
     use AuthorizesGraphqlCollectionTrait;
+    use SerializesGraphqlItemTrait;
 
     /**
      * @param  array{collection: string, id: string}  $args
@@ -39,7 +41,8 @@ final class ItemQuery
         ]);
         $key = $cache->itemKey($collection->slug, $args['id'], $version, $hash);
 
-        return $cache->remember($key, function () use ($collection, $args, $request): ?array {
+        // Convert after the cache read so entries cached before the fix are served correctly too.
+        $payload = $cache->remember($key, function () use ($collection, $args, $request): ?array {
             $item = CollectionItem::query()
                 ->where('collection_id', $collection->id)
                 ->whereKey($args['id'])
@@ -59,5 +62,7 @@ final class ItemQuery
 
             return (new CollectionItemResource($item))->toArray($request);
         });
+
+        return is_array($payload) ? $this->withGraphqlTimestamps($payload) : null;
     }
 }

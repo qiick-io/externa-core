@@ -4,6 +4,7 @@ namespace App\GraphQL\Queries;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
@@ -17,6 +18,7 @@ use App\Support\Collections\CollectionLocaleResolver;
 final class ItemsQuery
 {
     use AuthorizesGraphqlCollectionTrait;
+    use SerializesGraphqlItemTrait;
 
     /**
      * @param  array{collection: string, filter?: mixed, page?: int, perPage?: int, sort?: list<mixed>|null}  $args
@@ -104,15 +106,6 @@ final class ItemsQuery
      */
     private function serializeItem(CollectionItem $item, mixed $request): array
     {
-        $payload = (new CollectionItemResource($item))->toArray($request);
-
-        // Lighthouse DateTime scalar expects Y-m-d H:i:s
-        foreach (['created_at', 'updated_at', 'published_at'] as $key) {
-            if (! empty($payload[$key]) && is_string($payload[$key])) {
-                $payload[$key] = date('Y-m-d H:i:s', strtotime($payload[$key]));
-            }
-        }
-
-        return $payload;
+        return $this->withGraphqlTimestamps((new CollectionItemResource($item))->toArray($request));
     }
 }
