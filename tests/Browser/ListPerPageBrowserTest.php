@@ -96,7 +96,7 @@ JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('shows the row range on the left and groups rows per page with the page links on the right', function (): void {
+it('shows the row range on the left, the page links centred and rows per page on the right', function (): void {
     foreach (range(1, 60) as $index) {
         User::factory()->create(['email' => "range-{$index}@example.com"]);
     }
@@ -108,17 +108,41 @@ it('shows the row range on the left and groups rows per page with the page links
 (() => {
   const range = document.querySelector('[data-test="pagination-range"]').getBoundingClientRect();
   const perPage = document.querySelector('[data-test="rows-per-page"]').getBoundingClientRect();
-  const lastPage = document.querySelector('button[aria-label="Go to next page"]').getBoundingClientRect();
-  const panel = document.querySelector('[data-test="pagination-range"]').parentElement.getBoundingClientRect();
+  const pages = document.querySelector('[data-slot="pagination"]').getBoundingClientRect();
+  const footer = document.querySelector('[data-test="pagination-range"]').parentElement;
+  const panel = footer.getBoundingClientRect();
+  const contentRight = panel.right - parseFloat(getComputedStyle(footer).paddingRight);
+  const pagesCentre = (pages.left + pages.right) / 2;
+  const contentCentre = (panel.left + contentRight) / 2;
 
   return range.left - panel.left < 4
-    && perPage.left > panel.left + panel.width / 2
-    && lastPage.right > perPage.right
-    && panel.right - lastPage.right < 4;
+    && Math.abs(pagesCentre - contentCentre) < 4
+    && contentRight - perPage.right < 4
+    && pages.right < perPage.left;
 })()
 JS)
         ->assertNoJavaScriptErrors();
 
     visit('/users?page=2')
         ->assertSeeIn('[data-test="pagination-range"]', '21–40 of 61');
+});
+
+it('keeps the page links clear of the floating Ask AI button', function (): void {
+    foreach (range(1, 60) as $index) {
+        User::factory()->create(['email' => "fab-{$index}@example.com"]);
+    }
+
+    $page = visit('/users');
+
+    $page->assertPresent('[data-slot="ai-fab"]')
+        ->assertScript(<<<'JS'
+(() => {
+  const fab = document.querySelector('[data-slot="ai-fab"]').getBoundingClientRect();
+  const next = document.querySelector('button[aria-label="Go to next page"]').getBoundingClientRect();
+  const overlaps = next.right > fab.left && next.left < fab.right && next.bottom > fab.top && next.top < fab.bottom;
+
+  return ! overlaps;
+})()
+JS)
+        ->assertNoJavaScriptErrors();
 });

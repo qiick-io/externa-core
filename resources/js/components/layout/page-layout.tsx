@@ -252,10 +252,10 @@ export function hasTablePaginationFooter(
 }
 
 /**
- * Admin list footer, shadcn data-table layout: the row range ("1–20 of 312")
- * on the left; on the right the shared "Rows per page" select (10 / 20 / 50 /
- * 100, URL `per_page`, resets to page 1 and keeps every other query param)
- * next to the page links. Default-size (32px) shadcn Select per the control scale.
+ * Admin list footer in three areas: the row range ("1–20 of 312") on the
+ * left, the page links centred, and the shared "Rows per page" select (10 /
+ * 20 / 50 / 100, URL `per_page`, resets to page 1 and keeps every other query
+ * param) on the right. Default-size (32px) shadcn Select per the control scale.
  *
  * @param props.pagination - Current paginator state
  * @returns {JSX.Element}
@@ -277,7 +277,8 @@ export function TablePaginationFooter({
     );
 
     return (
-        <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        // Keep the footer clear of the fixed Ask AI button (bottom-right, 56px + 20px inset).
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3 sm:grid sm:grid-cols-[1fr_auto_1fr] [body:has([data-slot=ai-fab])_&]:pr-16">
             <p
                 className="text-sm whitespace-nowrap text-muted-foreground tabular-nums"
                 data-test="pagination-range"
@@ -288,49 +289,47 @@ export function TablePaginationFooter({
                     total: pagination.total,
                 })}
             </p>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <div className="flex items-center gap-2">
-                    <span
-                        id={perPageId}
-                        className="text-sm whitespace-nowrap text-muted-foreground"
+            {pagination.last_page > 1 ? (
+                <TablePagination
+                    links={pagination.links ?? []}
+                    className="mx-0 w-auto sm:col-start-2"
+                />
+            ) : null}
+            <div className="flex items-center gap-2 sm:col-start-3 sm:justify-self-end">
+                <span
+                    id={perPageId}
+                    className="text-sm whitespace-nowrap text-muted-foreground"
+                >
+                    {t('common.rowsPerPage')}
+                </span>
+                <Select
+                    value={String(pagination.per_page)}
+                    onValueChange={(value) =>
+                        router.get(
+                            listUrlWithPerPage(
+                                window.location.href,
+                                Number(value),
+                            ),
+                            {},
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    <SelectTrigger
+                        aria-labelledby={perPageId}
+                        className="w-20"
+                        data-test="rows-per-page"
                     >
-                        {t('common.rowsPerPage')}
-                    </span>
-                    <Select
-                        value={String(pagination.per_page)}
-                        onValueChange={(value) =>
-                            router.get(
-                                listUrlWithPerPage(
-                                    window.location.href,
-                                    Number(value),
-                                ),
-                                {},
-                                { preserveScroll: true },
-                            )
-                        }
-                    >
-                        <SelectTrigger
-                            aria-labelledby={perPageId}
-                            className="w-20"
-                            data-test="rows-per-page"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {LIST_PER_PAGE_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={String(option)}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                {pagination.last_page > 1 ? (
-                    <TablePagination
-                        links={pagination.links ?? []}
-                        className="mx-0 w-auto"
-                    />
-                ) : null}
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {LIST_PER_PAGE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={String(option)}>
+                                {option}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
         </div>
     );

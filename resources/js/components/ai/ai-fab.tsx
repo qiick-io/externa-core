@@ -675,6 +675,7 @@ export function AiFab() {
                 <TooltipTrigger asChild>
                     <button
                         type="button"
+                        data-slot="ai-fab"
                         disabled={offline}
                         onClick={() => setOpen(true)}
                         aria-label={
