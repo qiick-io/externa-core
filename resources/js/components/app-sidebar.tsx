@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import type { MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -35,6 +36,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { toggleAiAssistant } from '@/lib/ai-open';
 import { dashboard } from '@/routes';
 import activityLogs from '@/routes/activity-logs';
 import { index as aiIndex } from '@/routes/ai';
@@ -57,6 +59,13 @@ type ModuleDef = {
 
 /** Always first in the nav, regardless of persisted module order. */
 const PINNED_SIDEBAR_MODULE_IDS = ['ai'] as const;
+
+/** Keyboard shortcut hint for the AI assistant panel (handled in the panel). */
+const AI_PANEL_SHORTCUT =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+        ? '⌘J'
+        : 'Ctrl+J';
 
 /**
  * Primary application sidebar with navigation and user menu.
@@ -173,6 +182,25 @@ export function AppSidebar() {
         },
     ];
 
+    /**
+     * The Assistant item opens the side panel in place; on `/ai` (where the
+     * panel is not mounted) and on modifier / middle clicks it stays a link.
+     */
+    const openAssistantPanel = (event: MouseEvent): void => {
+        if (
+            isCurrentUrl(aiIndex.url(), undefined, true) ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.button !== 0
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        toggleAiAssistant();
+    };
+
     const renderModuleItem = (item: ModuleDef) => (
         <SidebarMenuItem key={item.id}>
             <SidebarMenuButton
@@ -185,9 +213,18 @@ export function AppSidebar() {
                 tooltip={{ children: t(item.titleKey) }}
                 className={item.accent ? 'sidebar-ai-nav' : undefined}
             >
-                <Link href={item.href} prefetch>
+                <Link
+                    href={item.href}
+                    prefetch
+                    onClick={item.id === 'ai' ? openAssistantPanel : undefined}
+                >
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
+                    {item.id === 'ai' ? (
+                        <kbd className="ml-auto font-sans text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                            {AI_PANEL_SHORTCUT}
+                        </kbd>
+                    ) : null}
                 </Link>
             </SidebarMenuButton>
             {item.id === 'chat' ? (

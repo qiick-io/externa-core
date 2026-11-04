@@ -1,4 +1,4 @@
-import { AiFab } from '@/components/ai/ai-fab';
+import { AiAssistantPanel } from '@/components/ai/ai-assistant-panel';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -47,7 +47,7 @@ export default function AppSidebarLayout({
                     {children}
                 </div>
             </AppContent>
-            <AiFab />
+            <AiAssistantPanel />
         </AppShell>
     );
 }

@@ -126,23 +126,3 @@ JS)
     visit('/users?page=2')
         ->assertSeeIn('[data-test="pagination-range"]', '21–40 of 61');
 });
-
-it('keeps the page links clear of the floating Ask AI button', function (): void {
-    foreach (range(1, 60) as $index) {
-        User::factory()->create(['email' => "fab-{$index}@example.com"]);
-    }
-
-    $page = visit('/users');
-
-    $page->assertPresent('[data-slot="ai-fab"]')
-        ->assertScript(<<<'JS'
-(() => {
-  const fab = document.querySelector('[data-slot="ai-fab"]').getBoundingClientRect();
-  const next = document.querySelector('button[aria-label="Go to next page"]').getBoundingClientRect();
-  const overlaps = next.right > fab.left && next.left < fab.right && next.bottom > fab.top && next.top < fab.bottom;
-
-  return ! overlaps;
-})()
-JS)
-        ->assertNoJavaScriptErrors();
-});

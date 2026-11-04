@@ -31,7 +31,8 @@
         "sortDescending": "Sort descending",
         "active": "Active",
         "name": "Name",
-        "pageRange": "{{from}}–{{to}} of {{total}}"
+        "pageRange": "{{from}}–{{to}} of {{total}}",
+        "perPageOption": "{{count}} / page"
     },
     "emptyState": {
         "collections": {
@@ -1547,7 +1548,8 @@
         "older": "Older",
         "newChat": "New chat",
         "noConversations": "No conversations yet.",
-        "assistantScope": "Assistant with permissions for collections and files"
+        "assistantScope": "Assistant with permissions for collections and files",
+        "openFullPage": "Open full page"
     },
     "dashboard": {
         "title": "Dashboard",
