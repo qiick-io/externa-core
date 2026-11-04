@@ -10,7 +10,7 @@ import {
     FolderOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { createElement, useEffect, useRef } from 'react';
+import { createElement, useEffect, useRef, useState } from 'react';
 import { withSearchParam } from '@/lib/file-field-image';
 import { filePublicUrl, isImageFile, isPlayableVideo } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
@@ -123,6 +123,8 @@ export function FilePreview({
     variant = 'icon',
 }: FilePreviewProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
+    // A thumbnail that fails to load (undecodable upload) falls back to the type icon.
+    const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
     const isCover = variant === 'cover';
     const boxClass = isCover
         ? cn('absolute inset-0 size-full overflow-hidden', className)
@@ -175,12 +177,13 @@ export function FilePreview({
                 : thumb
             : publicUrl;
 
-        if (imageSrc) {
+        if (imageSrc && imageSrc !== failedImageSrc) {
             return (
                 <img
                     src={imageSrc}
                     alt={file.title || file.name}
                     className={mediaClass}
+                    onError={() => setFailedImageSrc(imageSrc)}
                 />
             );
         }
@@ -211,12 +214,19 @@ export function FilePreview({
         <div
             className={cn(
                 boxClass,
-                !isCover && 'rounded-md bg-muted text-muted-foreground',
+                isCover
+                    ? 'flex items-center justify-center bg-muted text-muted-foreground'
+                    : 'rounded-md bg-muted text-muted-foreground',
             )}
+            data-testid="file-preview-icon"
         >
             {createElement(Icon, {
                 className: cn(
-                    size === 'lg' ? 'size-16' : 'size-1/2',
+                    isCover
+                        ? 'size-1/3'
+                        : size === 'lg'
+                          ? 'size-16'
+                          : 'size-1/2',
                     'max-h-full max-w-full',
                 ),
                 'aria-hidden': true,
