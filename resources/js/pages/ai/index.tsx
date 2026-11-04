@@ -1,5 +1,12 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { MessagesSquare, Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
+import {
+    MessagesSquare,
+    MoreHorizontal,
+    Pin,
+    Plus,
+    Sparkles,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +33,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Empty,
     EmptyDescription,
@@ -437,16 +450,6 @@ export default function AiIndexPage({
     }, [flatConversationIds]);
 
     const hasMoreConversations = listPage < listLastPage;
-
-    const selectedTitle = useMemo(() => {
-        return (
-            conversationItems.find(
-                (conversation) => conversation.id === conversationId,
-            )?.title ??
-            selectedConversation?.title ??
-            t('ai.newChat')
-        );
-    }, [conversationItems, conversationId, selectedConversation?.title, t]);
 
     const selectConversation = (id: string) => {
         if (isStreamingRef.current) {
@@ -1645,52 +1648,62 @@ export default function AiIndexPage({
                                                                     conversation.title
                                                                 }
                                                             </button>
-                                                            <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className={cn(
-                                                                    conversation.pinned_at
-                                                                        ? 'opacity-100'
-                                                                        : 'opacity-0 group-hover:opacity-100',
-                                                                )}
-                                                                onClick={() =>
-                                                                    void handleTogglePin(
-                                                                        conversation.id,
-                                                                    )
-                                                                }
-                                                                aria-label={
-                                                                    conversation.pinned_at
-                                                                        ? t(
-                                                                              'a11y.unpinChat',
-                                                                          )
-                                                                        : t(
-                                                                              'a11y.pinChat',
-                                                                          )
-                                                                }
-                                                            >
+                                                            {conversation.pinned_at ? (
                                                                 <Pin
-                                                                    className={cn(
-                                                                        'size-3.5',
-                                                                        conversation.pinned_at &&
-                                                                            'fill-current',
-                                                                    )}
+                                                                    className="size-3.5 shrink-0 fill-current text-muted-foreground group-hover:hidden group-has-[[data-state=open]]:hidden"
+                                                                    aria-hidden
                                                                 />
-                                                            </Button>
-                                                            <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className="opacity-0 group-hover:opacity-100"
-                                                                onClick={() =>
-                                                                    void handleDelete(
-                                                                        conversation.id,
-                                                                    )
-                                                                }
-                                                                aria-label={t(
-                                                                    'a11y.deleteChat',
-                                                                )}
-                                                            >
-                                                                <Trash2 className="size-3.5" />
-                                                            </Button>
+                                                            ) : null}
+                                                            {/* ChatGPT / Claude style: conversation actions live on the row, not in a pane header. */}
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                                                                        aria-label={t(
+                                                                            'a11y.moreActions',
+                                                                        )}
+                                                                        data-test="ai-conversation-menu"
+                                                                    >
+                                                                        <MoreHorizontal className="size-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        onSelect={() =>
+                                                                            void handleTogglePin(
+                                                                                conversation.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Pin className="size-4" />
+                                                                        {conversation.pinned_at
+                                                                            ? t(
+                                                                                  'a11y.unpinChat',
+                                                                              )
+                                                                            : t(
+                                                                                  'a11y.pinChat',
+                                                                              )}
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        variant="destructive"
+                                                                        data-test="ai-conversation-delete"
+                                                                        onSelect={() =>
+                                                                            void handleDelete(
+                                                                                conversation.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="size-4" />
+                                                                        {t(
+                                                                            'a11y.deleteChat',
+                                                                        )}
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
                                                         </div>
                                                     );
                                                 },
@@ -1718,24 +1731,6 @@ export default function AiIndexPage({
                     </aside>
 
                     <section className="flex min-w-0 flex-1 flex-col">
-                        {/* Like /chat: a pane header only once a conversation is open. */}
-                        {conversationId ? (
-                            <div
-                                data-test="ai-pane-header"
-                                className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
-                            >
-                                <div
-                                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ai/10 text-ai"
-                                    aria-hidden
-                                >
-                                    <Sparkles className="size-5" />
-                                </div>
-                                <h1 className="min-w-0 flex-1 truncate text-sm font-medium">
-                                    {selectedTitle}
-                                </h1>
-                            </div>
-                        ) : null}
-
                         <AiChatDropZone
                             disabled={isStreaming || isUploadingAttachment}
                             onFilesSelected={(files) =>

@@ -126,3 +126,27 @@ JS;
 
     expect($assistant)->toBe($chat);
 });
+
+it('deletes a conversation from its row menu and keeps the pane header-less when one is open', function (): void {
+    $conversationId = (string) Str::uuid7();
+
+    Conversation::query()->create([
+        'id' => $conversationId,
+        'participant_type' => $this->admin->getMorphClass(),
+        'participant_id' => $this->admin->id,
+        'title' => 'Throwaway thread',
+    ]);
+
+    $page = visit("/ai/{$conversationId}");
+
+    $page->assertSeeIn('[data-test="ai-list"]', 'Throwaway thread')
+        ->assertMissing('[data-test="ai-pane-header"]')
+        ->hover('[data-test="ai-list"] [data-test="ai-conversation-menu"]')
+        ->click('[data-test="ai-conversation-menu"]')
+        ->click('[data-test="ai-conversation-delete"]')
+        ->wait(1)
+        ->assertDontSeeIn('[data-test="ai-list"]', 'Throwaway thread')
+        ->assertNoJavaScriptErrors();
+
+    expect(Conversation::query()->whereKey($conversationId)->exists())->toBeFalse();
+});
