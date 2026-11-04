@@ -103,6 +103,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Theme presets now only define brand colours over one shared base in `config/theme-presets.php`; the appearance preview reads them from the server (no client copy); the dark shell is two-tone again (sidebar `ink-900` over `ink-950` content) and the `app.css` fallbacks match the default preset (#506–#509).
 - Admin layout pass: framed content panel with flat tables (lists, dashboard cards, chat and assistant hubs), sticky table headers, a three-area list footer (range, pages, rows per page), dashboard tabs as a header segmented control, and the chat and assistant pages on one shared layout with one composer (#484–#487, #493–#505).
 - Controls follow one size scale (24 / 32 / 40) and one field focus style; selection bars show count and select-all on the left and icon actions on the right; activity log date filters use one range picker; settings group the AI pages under "AI" (#462, #472, #489–#492, #508).
+- Sidebar and settings nav: full-height active bar with square left corners and a theme-primary Assistant item; groups list shows an initials avatar and member avatars; activity log filters use one responsive grid with the export menu in the header (#463, #466, #473, #478, #479, #481).
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
