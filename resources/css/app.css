@@ -238,9 +238,9 @@
      */
     --ring: var(--color-teal-600);
     --chart-1: var(--color-teal-600);
-    --chart-2: var(--color-blue-500);
-    --chart-3: var(--color-amber-500);
-    --chart-4: var(--color-green-600);
+    --chart-2: #2571d4;
+    --chart-3: #a85c0b;
+    --chart-4: #1f7a4e;
     --chart-5: var(--color-ink-400);
     --radius: 0.5rem;
     --sidebar: var(--color-ink-50);
@@ -271,7 +271,7 @@
     /* Keep #258 dark body teal-500 (#1A95A2); rim teal-300 */
     --primary: var(
         --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-500))
+        var(--brand-primary, var(--color-teal-400))
     );
     /*
      * Do not fall back to light --brand-primary-foreground (often #fff).
@@ -287,7 +287,7 @@
     --secondary-foreground: var(--color-ink-100);
     --muted: var(--color-ink-800);
     /* ink-200 on ink-950 ≈ 12:1 — margin vs placeholder opacity / AA edge cases */
-    --muted-foreground: var(--color-ink-200);
+    --muted-foreground: var(--color-ink-300);
     --accent: var(--color-ink-800);
     --accent-foreground: var(--color-ink-100);
     /* red-300 on ink-900 = 6.38:1 (red-400 fails AA) */
@@ -306,9 +306,9 @@
     /* teal-400 ≥3:1 on ink-950 (#227); contrast-checked brand ring via theme block (#453) */
     --ring: var(--color-teal-400);
     --chart-1: var(--color-teal-400);
-    --chart-2: var(--color-blue-400);
-    --chart-3: var(--color-amber-400);
-    --chart-4: var(--color-green-400);
+    --chart-2: #498fe4;
+    --chart-3: #f1ab27;
+    --chart-4: #4ab57e;
     --chart-5: var(--color-ink-300);
     /* Shell (sidebar + inset frame) one step lighter than the content, as before 1.4. */
     --sidebar: var(--color-ink-900);
