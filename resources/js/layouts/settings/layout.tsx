@@ -119,11 +119,6 @@ export default function SettingsLayout({
                   href: editPerformance(),
                   icon: null,
               },
-              {
-                  title: t('settings.layout.aiTools'),
-                  href: '/settings/ai-tools',
-                  icon: null,
-              },
           ]
         : [];
 
@@ -164,10 +159,22 @@ export default function SettingsLayout({
                   },
               ]
             : []),
+    ];
+
+    const aiNavItems: NavItem[] = [
+        ...(can(PermissionEnum.CanManageProjectSettings)
+            ? [
+                  {
+                      title: t('settings.layout.aiToolsNav'),
+                      href: '/settings/ai-tools',
+                      icon: null,
+                  },
+              ]
+            : []),
         ...(can(PermissionEnum.CanUseAi)
             ? [
                   {
-                      title: t('settings.layout.pendingToolCalls'),
+                      title: t('settings.layout.pendingToolCallsNav'),
                       href: '/settings/pending-tool-calls',
                       icon: null,
                   },
@@ -234,6 +241,13 @@ export default function SettingsLayout({
                             ? renderNavGroup(
                                   t('settings.layout.sectionAccess'),
                                   accessNavItems,
+                              )
+                            : null}
+
+                        {aiNavItems.length > 0
+                            ? renderNavGroup(
+                                  t('settings.layout.sectionAi'),
+                                  aiNavItems,
                               )
                             : null}
 

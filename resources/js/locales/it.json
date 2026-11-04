@@ -321,7 +321,10 @@
             "integrations": "Integrazioni",
             "sidebar": "Barra laterale",
             "aiTools": "Strumenti AI in scrittura",
-            "pendingToolCalls": "Approvazioni strumenti AI"
+            "pendingToolCalls": "Approvazioni strumenti AI",
+            "sectionAi": "AI",
+            "aiToolsNav": "Strumenti in scrittura",
+            "pendingToolCallsNav": "Approvazioni strumenti"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -644,7 +647,8 @@
             },
             "themePresetTitle": "Preset tema",
             "themePresetDescription": "Scegli una palette integrata per l’admin. Un colore brand personalizzato ha comunque priorità sul primary.",
-            "themePresetTeal": "qiick Teal (predefinito)",
+            "themePresetTeal": "Teal (predefinito)",
+            "themePresetBlue": "Blu",
             "themePresetIndigo": "Indaco",
             "themePresetViolet": "Viola",
             "themePresetRose": "Rosa",

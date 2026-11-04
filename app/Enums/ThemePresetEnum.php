@@ -10,6 +10,7 @@ namespace App\Enums;
 enum ThemePresetEnum: string
 {
     case Teal = 'teal';
+    case Blue = 'blue';
     case Indigo = 'indigo';
     case Violet = 'violet';
     case Rose = 'rose';

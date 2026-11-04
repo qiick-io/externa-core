@@ -3,12 +3,12 @@
 use App\Services\Settings\ThemePresetService;
 use App\Support\Css\OklchHue;
 
-test('catalog lists the five built-in theme presets', function () {
+test('catalog lists the six built-in theme presets', function () {
     $catalog = app(ThemePresetService::class)->catalog();
 
-    expect($catalog)->toHaveCount(5)
+    expect($catalog)->toHaveCount(6)
         ->and(collect($catalog)->pluck('slug')->all())
-        ->toBe(['teal', 'indigo', 'violet', 'rose', 'slate']);
+        ->toBe(['teal', 'blue', 'indigo', 'violet', 'rose', 'slate']);
 });
 
 test('unset preset resolves to teal tokens without brand overrides', function () {
@@ -70,4 +70,26 @@ test('every preset keeps the dark shell one step lighter than the content', func
 
     expect($dark['sidebar'])->toBe('#17232C')
         ->and($dark['sidebar'])->not->toBe($dark['background']);
-})->with(['teal', 'indigo', 'violet', 'rose', 'slate']);
+})->with(['teal', 'blue', 'indigo', 'violet', 'rose', 'slate']);
+
+test('presets only carry brand colours; surfaces live once in the shared base', function () {
+    $base = config('theme-presets.base');
+
+    foreach (config('theme-presets.presets') as $slug => $definition) {
+        foreach (['light', 'dark'] as $mode) {
+            expect(array_intersect_key($definition[$mode], $base[$mode]))
+                ->toBe([], "{$slug}.{$mode} repeats base tokens");
+        }
+    }
+});
+
+test('the appearance catalog carries the same merged tokens the server applies', function () {
+    $service = app(ThemePresetService::class);
+
+    foreach ($service->catalog() as $preset) {
+        $resolved = $service->resolve($preset['slug'], null, null);
+
+        expect($preset['light'])->toBe($resolved['light'])
+            ->and($preset['dark'])->toBe($resolved['dark']);
+    }
+});

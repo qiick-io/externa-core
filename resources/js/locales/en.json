@@ -321,7 +321,10 @@
             "integrations": "Integrations",
             "sidebar": "Sidebar",
             "aiTools": "AI write tools",
-            "pendingToolCalls": "AI tool approvals"
+            "pendingToolCalls": "AI tool approvals",
+            "sectionAi": "AI",
+            "aiToolsNav": "Write tools",
+            "pendingToolCallsNav": "Tool approvals"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -644,7 +647,8 @@
             },
             "themePresetTitle": "Theme preset",
             "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
-            "themePresetTeal": "qiick Teal (default)",
+            "themePresetTeal": "Teal (default)",
+            "themePresetBlue": "Blue",
             "themePresetIndigo": "Indigo",
             "themePresetViolet": "Violet",
             "themePresetRose": "Rose",

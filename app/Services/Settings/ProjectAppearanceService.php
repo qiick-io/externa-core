@@ -167,6 +167,12 @@ class ProjectAppearanceService
             'project_logo_dark' => $this->fileMeta($files->get($this->intOrNull($raw['project_logo_dark'] ?? null))),
             'public_favicon' => $this->fileMeta($files->get($this->intOrNull($raw['public_favicon'] ?? null))),
             'theme_presets' => $this->themePresets->catalog(),
+            'theme_ai_override' => [
+                'light' => config('theme-presets.ai_override_light', []),
+                'dark' => config('theme-presets.ai_override_dark', []),
+                'hue' => (float) config('theme-presets.ai_accent_hue', 306.0),
+                'tolerance' => (float) config('theme-presets.ai_override_hue_tolerance', 30.0),
+            ],
             'brand_passes_aa' => $resolved['brandPassesAa'],
         ];
     }
