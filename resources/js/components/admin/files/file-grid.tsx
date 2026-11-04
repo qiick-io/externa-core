@@ -1,4 +1,5 @@
 import { FolderOpen, FolderPlus, Trash2, Upload } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isInternalFileDrag } from '@/components/admin/file-dropzone';
@@ -139,6 +140,56 @@ export function FileGrid({
     onUploadFolder,
     cardActionsFor,
 }: FileGridProps) {
+    const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+    // List state at the last automatic load; a failed or empty load leaves it
+    // unchanged, so auto-loading stops (the button still retries) instead of looping.
+    const lastAutoLoadKeyRef = useRef<string | null>(null);
+    const listKey = `${files.length}:${files[0]?.id ?? ''}`;
+    // Parents pass an inline callback; read the latest one without re-observing.
+    const onLoadMoreRef = useRef(onLoadMore);
+
+    useEffect(() => {
+        onLoadMoreRef.current = onLoadMore;
+    }, [onLoadMore]);
+
+    // Load the next page whenever the sentinel under the grid is on screen, so a
+    // tall window fills up without a gap and scrolling keeps loading (Drive-style).
+    useEffect(() => {
+        const sentinel = loadMoreSentinelRef.current;
+
+        if (!sentinel || !hasMore || loadingMore) {
+            return;
+        }
+
+        // Observe against the panel that scrolls (not the window), so the 400px
+        // look-ahead starts loading before the user reaches the end.
+        let scrollRoot: HTMLElement | null = sentinel.parentElement;
+
+        while (
+            scrollRoot &&
+            !/(auto|scroll)/.test(getComputedStyle(scrollRoot).overflowY)
+        ) {
+            scrollRoot = scrollRoot.parentElement;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (
+                    entries.some((entry) => entry.isIntersecting) &&
+                    lastAutoLoadKeyRef.current !== listKey
+                ) {
+                    lastAutoLoadKeyRef.current = listKey;
+                    onLoadMoreRef.current();
+                }
+            },
+            { root: scrollRoot, rootMargin: '0px 0px 400px 0px' },
+        );
+
+        observer.observe(sentinel);
+
+        return () => observer.disconnect();
+    }, [hasMore, listKey, loadingMore]);
+
     const { t } = useTranslation();
 
     const handleBackgroundPointerDown = (
@@ -206,11 +257,11 @@ export function FileGrid({
         >
             <div
                 data-testid="files-grid-area"
-                className="flex min-h-0 flex-1 flex-col gap-3"
+                className="flex flex-1 flex-col gap-3"
                 onPointerDown={handleBackgroundPointerDown}
             >
                 <div
-                    className="grid min-h-0 flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
+                    className="grid flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
                     onDragOver={(event) => {
                         if (isTrashed || !isInternalFileDrag(event)) {
                             return;
@@ -257,7 +308,11 @@ export function FileGrid({
                 </div>
 
                 {hasMore && (
-                    <div className="flex justify-center py-2">
+                    <div
+                        ref={loadMoreSentinelRef}
+                        data-testid="files-load-more"
+                        className="flex justify-center py-2"
+                    >
                         <Button
                             type="button"
                             variant="outline"

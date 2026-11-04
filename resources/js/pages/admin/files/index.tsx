@@ -1556,8 +1556,10 @@ export default function AdminFilesIndex({
                 className="min-h-0 flex-1"
             >
                 <div className="flex min-h-0 flex-1">
+                    {/* scrollContent: the grid scrolls inside the panel (it was clipped with no scroll on short windows). */}
                     <PageLayout
                         className="min-h-0 min-w-0 flex-1"
+                        scrollContent
                         filters={
                             selection.selectedIds.length > 0 ? (
                                 <div className="flex w-full min-w-0 items-center gap-2">
