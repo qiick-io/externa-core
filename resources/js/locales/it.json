@@ -1549,7 +1549,8 @@
         "newChat": "Nuova chat",
         "noConversations": "Nessuna conversazione.",
         "assistantScope": "Assistente con permessi su collezioni e file",
-        "openFullPage": "Apri a schermo intero"
+        "openFullPage": "Apri a schermo intero",
+        "openPanel": "Apri nel pannello laterale"
     },
     "dashboard": {
         "title": "Dashboard",

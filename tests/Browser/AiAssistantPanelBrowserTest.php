@@ -6,8 +6,8 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
 /**
- * The AI assistant opens as a side panel on the current page from the sidebar
- * Assistant item or ⌘J / Ctrl+J; there is no floating button any more.
+ * The sidebar Assistant item goes to /ai; its hover action and ⌘J / Ctrl+J
+ * open the assistant as a side panel on the current page. No floating button.
  */
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -18,12 +18,20 @@ beforeEach(function (): void {
     $this->actingAs($admin);
 });
 
-it('opens the assistant panel from the sidebar without leaving the page', function (): void {
+it('links the sidebar Assistant item to the full page', function (): void {
+    $page = visit('/dashboard');
+
+    $page->assertAttribute('a.sidebar-ai-nav', 'href', '/ai')
+        ->assertNoJavaScriptErrors();
+});
+
+it('opens the assistant panel from the sidebar hover action without leaving the page', function (): void {
     $page = visit('/dashboard');
 
     $page->assertMissing('[data-slot="ai-fab"]')
         ->assertMissing('[role="dialog"]')
-        ->click('.sidebar-ai-nav')
+        ->hover('a.sidebar-ai-nav')
+        ->click('[data-test="sidebar-ai-panel"]')
         ->assertPresent('[role="dialog"] [data-testid="ai-panel-full-page"]')
         ->assertPathIs('/dashboard')
         ->assertNoJavaScriptErrors();
