@@ -64,3 +64,10 @@ test('oklch hue distance treats violet brand as within thirty degrees of AI acce
         ->and(OklchHue::distanceDegrees($hue, 306.0))->toBeLessThanOrEqual(30.0)
         ->and(OklchHue::isWithinHue('#0E7C86', 306.0, 30.0))->toBeFalse();
 });
+
+test('every preset keeps the dark shell one step lighter than the content', function (string $slug) {
+    $dark = app(ThemePresetService::class)->resolve($slug, null, null)['dark'];
+
+    expect($dark['sidebar'])->toBe('#17232C')
+        ->and($dark['sidebar'])->not->toBe($dark['background']);
+})->with(['teal', 'indigo', 'violet', 'rose', 'slate']);
