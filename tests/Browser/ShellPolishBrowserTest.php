@@ -57,3 +57,11 @@ it('keeps the deploy on publish switch at its intrinsic size', function (): void
         ->assertScript("document.querySelector('[data-test=\"deploy-on-publish\"]').getBoundingClientRect().width < 60")
         ->assertNoJavaScriptErrors();
 });
+
+it('lays tables flat on the framed panel instead of a nested card', function (): void {
+    $page = visit('/users');
+
+    $page->assertPresent('[data-slot="table-panel-scroll"]')
+        ->assertScript("getComputedStyle(document.querySelector('[data-slot=\"table-panel-scroll\"]').parentElement).backgroundColor === 'rgba(0, 0, 0, 0)'")
+        ->assertNoJavaScriptErrors();
+});
