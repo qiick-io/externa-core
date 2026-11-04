@@ -972,7 +972,7 @@ export default function ProjectIntegrationsSettingsPage({
                                         {t('settings.project.deployHookAdd')}
                                     </Button>
 
-                                    <Field className="flex flex-row items-center gap-3">
+                                    <Field orientation="horizontal">
                                         <Switch
                                             id="deploy_on_publish"
                                             checked={form.deploy_on_publish}
@@ -984,7 +984,7 @@ export default function ProjectIntegrationsSettingsPage({
                                             }
                                             data-test="deploy-on-publish"
                                         />
-                                        <div className="space-y-1">
+                                        <div className="grid gap-1">
                                             <FieldLabel htmlFor="deploy_on_publish">
                                                 {t(
                                                     'settings.project.deployOnPublish',
