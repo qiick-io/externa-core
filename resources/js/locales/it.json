@@ -1808,7 +1808,10 @@
             "activeFiles": "File attivi",
             "trash": "Cestino",
             "selectedCount": "{{count}} selezionati",
-            "clearSelection": "Deseleziona"
+            "clearSelection": "Deseleziona",
+            "emptyTrash": "Svuota cestino",
+            "emptyTrashTitle": "Svuotare il cestino?",
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine."
         },
         "sort": {
             "name": "Nome",
@@ -1946,7 +1949,10 @@
             "zipFailed": "Preparazione zip non riuscita",
             "zipPreparing": "Preparazione zip — riceverai una notifica quando è pronto.",
             "duplicationStarted": "Duplicazione avviata — riceverai una notifica al termine",
-            "duplicated": "File duplicato"
+            "duplicated": "File duplicato",
+            "trashEmptying": "Svuotamento del cestino in background…",
+            "trashEmptied": "Cestino svuotato",
+            "trashEmptyFailed": "Impossibile svuotare il cestino"
         },
         "card": {
             "select": "Seleziona {{name}}",

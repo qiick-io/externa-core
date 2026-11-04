@@ -82,6 +82,7 @@ import {
     listFileTagsCatalog,
     listFilesPage,
     moveFile,
+    queueEmptyFilesTrash,
     queueFilesZipDownload,
     renameFile,
     restoreFile,
@@ -197,6 +198,10 @@ export default function AdminFilesIndex({
         useState(0);
     const pendingZipJobIdsRef = useRef(new Set<string>());
     const [pendingZipJobCount, setPendingZipJobCount] = useState(0);
+    const pendingTrashJobIdsRef = useRef(new Set<string>());
+    const [pendingTrashJobCount, setPendingTrashJobCount] = useState(0);
+    const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false);
+    const [queueingEmptyTrash, setQueueingEmptyTrash] = useState(false);
     const [pendingDestructive, setPendingDestructive] = useState<{
         action: 'delete' | 'force_delete';
         targets: AdminFileRow[];
@@ -490,7 +495,11 @@ export default function AdminFilesIndex({
     }, []);
 
     useEffect(() => {
-        if (pendingDuplicationJobCount === 0 && pendingZipJobCount === 0) {
+        if (
+            pendingDuplicationJobCount === 0 &&
+            pendingZipJobCount === 0 &&
+            pendingTrashJobCount === 0
+        ) {
             return;
         }
 
@@ -507,8 +516,10 @@ export default function AdminFilesIndex({
                 const pendingDuplicationJobIds =
                     pendingDuplicationJobIdsRef.current;
                 const pendingZipJobIds = pendingZipJobIdsRef.current;
+                const pendingTrashJobIds = pendingTrashJobIdsRef.current;
                 let resolvedDuplication = false;
                 let resolvedZip = false;
+                let resolvedTrash = false;
 
                 for (const notification of payload.data) {
                     const jobId = notification.data.job_id;
@@ -537,6 +548,23 @@ export default function AdminFilesIndex({
                                 notification.data.title ??
                                     t('files.toasts.duplicationFailed'),
                             );
+                        }
+                    }
+
+                    if (pendingTrashJobIds.has(jobId)) {
+                        pendingTrashJobIds.delete(jobId);
+                        resolvedTrash = true;
+
+                        if (notification.data.type === 'files_trash_emptied') {
+                            toast.success(t('files.toasts.trashEmptied'), {
+                                description: notification.data.body,
+                            });
+                            refreshPage();
+                        } else if (
+                            notification.data.type ===
+                            'files_trash_empty_failed'
+                        ) {
+                            toast.error(t('files.toasts.trashEmptyFailed'));
                         }
                     }
 
@@ -584,7 +612,11 @@ export default function AdminFilesIndex({
                     setPendingZipJobCount(pendingZipJobIds.size);
                 }
 
-                if (resolvedDuplication || resolvedZip) {
+                if (resolvedTrash) {
+                    setPendingTrashJobCount(pendingTrashJobIds.size);
+                }
+
+                if (resolvedDuplication || resolvedZip || resolvedTrash) {
                     notifyNotificationsUpdated();
                 }
             } catch {
@@ -601,7 +633,13 @@ export default function AdminFilesIndex({
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage, t]);
+    }, [
+        pendingDuplicationJobCount,
+        pendingZipJobCount,
+        pendingTrashJobCount,
+        refreshPage,
+        t,
+    ]);
 
     const buildFilesIndexUrl = useCallback(
         (
@@ -1309,6 +1347,27 @@ export default function AdminFilesIndex({
         ],
     );
 
+    const emptyTrash = async (): Promise<void> => {
+        setQueueingEmptyTrash(true);
+
+        try {
+            const jobId = await queueEmptyFilesTrash();
+
+            pendingTrashJobIdsRef.current.add(jobId);
+            setPendingTrashJobCount(pendingTrashJobIdsRef.current.size);
+            setEmptyTrashDialogOpen(false);
+            toast.info(t('files.toasts.trashEmptying'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('files.toasts.trashEmptyFailed'),
+            );
+        } finally {
+            setQueueingEmptyTrash(false);
+        }
+    };
+
     const executePendingDestructive = async (): Promise<void> => {
         if (!pendingDestructive) {
             return;
@@ -1413,6 +1472,20 @@ export default function AdminFilesIndex({
             breadcrumbs={pageBreadcrumbs}
             headerActions={
                 <>
+                    {isTrashed && canForceDelete && (
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={
+                                files.length === 0 || pendingTrashJobCount > 0
+                            }
+                            onClick={() => setEmptyTrashDialogOpen(true)}
+                            data-testid="files-empty-trash"
+                        >
+                            <Trash2 className="size-4" />
+                            {t('files.toolbar.emptyTrash')}
+                        </Button>
+                    )}
                     {canCreate && !isTrashed && (
                         <HeaderIconButton
                             type="button"
@@ -1795,6 +1868,18 @@ export default function AdminFilesIndex({
                 }}
                 blockedFolders={blockedMoveFolders}
                 onConfirm={handleConfirmMove}
+            />
+
+            <ConfirmDestructiveDialog
+                open={emptyTrashDialogOpen}
+                onOpenChange={setEmptyTrashDialogOpen}
+                title={t('files.toolbar.emptyTrashTitle')}
+                description={t('files.toolbar.emptyTrashDescription')}
+                confirmLabel={t('files.toolbar.emptyTrash')}
+                confirming={queueingEmptyTrash}
+                onConfirm={() => {
+                    void emptyTrash();
+                }}
             />
 
             <ConfirmDestructiveDialog

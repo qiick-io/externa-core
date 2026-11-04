@@ -499,3 +499,36 @@ JS)
         ->assertMissing('[data-testid="files-actions-more"]')
         ->assertNoJavaScriptErrors();
 });
+
+it('empties the trash in the background and refreshes when the job reports back', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanForceDeleteFiles->value,
+    ]);
+
+    collect(['old-a.txt', 'old-b.txt'])->each(fn (string $name): bool => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => $name,
+        'title' => $name,
+        'path' => "/{$name}",
+        'disk' => 'assets',
+        'storage_path' => "2026/11/{$name}",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ])->delete());
+
+    $this->actingAs($user);
+
+    $page = visit('/files?trashed=only');
+
+    $page->assertSee('old-a.txt')
+        ->click('[data-testid="files-empty-trash"]')
+        ->assertSee('Empty the trash?')
+        ->click('[data-test="confirm-destructive"]')
+        ->assertSee('Trash emptied')
+        ->assertDontSee('old-a.txt')
+        ->assertAttribute('[data-testid="files-empty-trash"]', 'disabled', '')
+        ->assertNoJavaScriptErrors();
+
+    expect(File::query()->withTrashed()->count())->toBe(0);
+});

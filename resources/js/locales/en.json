@@ -1808,7 +1808,10 @@
             "activeFiles": "Active files",
             "trash": "Trash",
             "selectedCount": "{{count}} selected",
-            "clearSelection": "Clear selection"
+            "clearSelection": "Clear selection",
+            "emptyTrash": "Empty trash",
+            "emptyTrashTitle": "Empty the trash?",
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done."
         },
         "sort": {
             "name": "Name",
@@ -1946,7 +1949,10 @@
             "zipFailed": "Zip preparation failed",
             "zipPreparing": "Preparing zip — you'll be notified when it's ready.",
             "duplicationStarted": "Duplication started — you'll be notified when it finishes",
-            "duplicated": "File duplicated"
+            "duplicated": "File duplicated",
+            "trashEmptying": "Emptying the trash in the background…",
+            "trashEmptied": "Trash emptied",
+            "trashEmptyFailed": "Couldn’t empty the trash"
         },
         "card": {
             "select": "Select {{name}}",

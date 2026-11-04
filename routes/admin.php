@@ -193,6 +193,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('bulk', [FileController::class, 'bulk'])->name('bulk');
             Route::post('download', [FileController::class, 'downloadMany'])->name('download-many');
             Route::get('zips/{jobId}', [FileController::class, 'downloadPreparedZip'])->name('zips.download');
+            Route::delete('trash', [FileController::class, 'emptyTrash'])->name('trash.empty');
             Route::patch('{file}', [FileController::class, 'update'])->name('update');
             Route::post('{file}/replace', [FileController::class, 'replace'])->name('replace');
             Route::post('{file}/copy', [FileController::class, 'copy'])->name('copy');
