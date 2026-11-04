@@ -648,6 +648,7 @@
             "themePresetTitle": "Theme preset",
             "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
             "themePresetTeal": "Teal (default)",
+            "themePresetBlue": "Blue",
             "themePresetIndigo": "Indigo",
             "themePresetViolet": "Violet",
             "themePresetRose": "Rose",

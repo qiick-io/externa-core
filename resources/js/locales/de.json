@@ -648,6 +648,7 @@
             "themePresetTitle": "Theme-Preset",
             "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
             "themePresetTeal": "Teal (Standard)",
+            "themePresetBlue": "Blau",
             "themePresetIndigo": "Indigo",
             "themePresetViolet": "Violett",
             "themePresetRose": "Rose",

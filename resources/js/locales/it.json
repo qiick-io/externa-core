@@ -648,6 +648,7 @@
             "themePresetTitle": "Preset tema",
             "themePresetDescription": "Scegli una palette integrata per l’admin. Un colore brand personalizzato ha comunque priorità sul primary.",
             "themePresetTeal": "Teal (predefinito)",
+            "themePresetBlue": "Blu",
             "themePresetIndigo": "Indaco",
             "themePresetViolet": "Viola",
             "themePresetRose": "Rosa",
