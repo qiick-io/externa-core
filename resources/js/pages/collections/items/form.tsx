@@ -361,8 +361,9 @@ export default function ItemsForm({
     const versioningEnabled = Boolean(collection.versioning);
     const approvalsRequired = Boolean(collection.approvals_required);
     const approvalStatus = item?.approval_status ?? 'draft';
+    // A new item has no published version yet; treating it as one made the create form read-only.
     const viewingPublished =
-        versioningEnabled && contentVersion === 'published';
+        versioningEnabled && !isNew && contentVersion === 'published';
     const hasServerDraft = Boolean(item?.has_draft);
     // ponytail: treat any set publish_at as Scheduled; due rows clear via scheduler
     const isScheduled = Boolean(item?.publish_at);
