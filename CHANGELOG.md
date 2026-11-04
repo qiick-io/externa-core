@@ -127,6 +127,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Select menus flip upward near the window edge and drop the dark tinted trigger background; file thumbnails that fail to load fall back to the type icon; user menu labels, the deploy-on-publish switch and AI tools checkboxes are aligned (#482, #483, #495, #496, #508).
 - Files multi-select keeps every ticked file; Ask AI entry points are disabled while AI is offline, with provider-neutral copy; the item edit sub-header stays steady; the collections list shows name, slug and description columns again (#464, #465, #476, #477, #488).
 - `externa:upgrade` also clears the cached GraphQL schema (`lighthouse:clear-cache`), so the new GraphQL sort and filter arguments work right after an in-place upgrade (#510).
+- Items can be created from the admin on collections with versioning enabled; the create form was read-only with no Save button (#512).
+- GraphQL `item`, `createItem` and `updateItem` return `created_at` / `updated_at` instead of a DateTime error (#511).
 
 ## [1.3.0] - 2026-10-24
 
