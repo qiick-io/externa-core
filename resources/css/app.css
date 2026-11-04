@@ -310,7 +310,8 @@
     --chart-3: var(--color-amber-400);
     --chart-4: var(--color-green-400);
     --chart-5: var(--color-ink-300);
-    --sidebar: var(--color-ink-950);
+    /* Shell (sidebar + inset frame) one step lighter than the content, as before 1.4. */
+    --sidebar: var(--color-ink-900);
     --sidebar-foreground: var(--color-ink-300);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
