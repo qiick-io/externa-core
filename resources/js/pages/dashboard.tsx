@@ -288,7 +288,7 @@ export default function Dashboard({
                                         aria-label={t(
                                             'dashboard.insightsCollections',
                                         )}
-                                        className="max-h-64 overflow-auto rounded-md border"
+                                        className="max-h-64 overflow-auto"
                                         tabIndex={0}
                                     >
                                         <Table>
@@ -497,7 +497,7 @@ export default function Dashboard({
                                             aria-label={t(
                                                 'dashboard.latestActivity',
                                             )}
-                                            className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
+                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
                                             tabIndex={0}
                                         >
                                             <Table>
@@ -713,7 +713,7 @@ export default function Dashboard({
                                                     aria-label={t(
                                                         'dashboard.largestFiles',
                                                     )}
-                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
+                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
                                                     tabIndex={0}
                                                 >
                                                     <Table>
@@ -835,7 +835,7 @@ export default function Dashboard({
                                                     aria-label={t(
                                                         'dashboard.storageTrend',
                                                     )}
-                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
+                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
                                                     tabIndex={0}
                                                 >
                                                     <Table>
@@ -920,7 +920,7 @@ export default function Dashboard({
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="overflow-x-auto rounded-md border">
+                                            <div className="overflow-x-auto">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
@@ -1016,7 +1016,7 @@ export default function Dashboard({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="overflow-x-auto">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -1095,7 +1095,7 @@ export default function Dashboard({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="overflow-x-auto">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -1200,7 +1200,7 @@ export default function Dashboard({
                                                 </div>
                                             }
                                         >
-                                            <div className="overflow-x-auto rounded-md border">
+                                            <div className="overflow-x-auto">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
@@ -1593,7 +1593,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                 className="border-0"
                             />
                         ) : (
-                            <div className="overflow-x-auto rounded-md border">
+                            <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
