@@ -6,6 +6,7 @@ import {
     FolderGit2,
     LayoutGrid,
     MessageCircle,
+    PanelRight,
     ScrollText,
     Settings,
     Sparkles,
@@ -14,7 +15,6 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
-import type { MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -29,9 +29,15 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
@@ -182,24 +188,7 @@ export function AppSidebar() {
         },
     ];
 
-    /**
-     * The Assistant item opens the side panel in place; on `/ai` (where the
-     * panel is not mounted) and on modifier / middle clicks it stays a link.
-     */
-    const openAssistantPanel = (event: MouseEvent): void => {
-        if (
-            isCurrentUrl(aiIndex.url(), undefined, true) ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.button !== 0
-        ) {
-            return;
-        }
-
-        event.preventDefault();
-        toggleAiAssistant();
-    };
+    const isOnAiPage = isCurrentUrl(aiIndex.url(), undefined, true);
 
     const renderModuleItem = (item: ModuleDef) => (
         <SidebarMenuItem key={item.id}>
@@ -213,20 +202,35 @@ export function AppSidebar() {
                 tooltip={{ children: t(item.titleKey) }}
                 className={item.accent ? 'sidebar-ai-nav' : undefined}
             >
-                <Link
-                    href={item.href}
-                    prefetch
-                    onClick={item.id === 'ai' ? openAssistantPanel : undefined}
-                >
+                <Link href={item.href} prefetch>
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
-                    {item.id === 'ai' ? (
-                        <kbd className="ml-auto font-sans text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    {item.id === 'ai' && !isOnAiPage ? (
+                        <kbd className="ml-auto font-sans text-xs text-muted-foreground transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0 group-data-[collapsible=icon]:hidden">
                             {AI_PANEL_SHORTCUT}
                         </kbd>
                     ) : null}
                 </Link>
             </SidebarMenuButton>
+            {/* The item goes to /ai; this hover action opens the side panel in place
+                (the shortcut hint gives way to it on hover). */}
+            {item.id === 'ai' && !isOnAiPage ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <SidebarMenuAction
+                            showOnHover
+                            onClick={toggleAiAssistant}
+                            aria-label={t('ai.openPanel')}
+                            data-test="sidebar-ai-panel"
+                        >
+                            <PanelRight />
+                        </SidebarMenuAction>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        {t('ai.openPanel')} ({AI_PANEL_SHORTCUT})
+                    </TooltipContent>
+                </Tooltip>
+            ) : null}
             {item.id === 'chat' ? (
                 <SidebarUnreadBadge
                     count={chatUnread.unread_count}
