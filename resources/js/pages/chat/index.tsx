@@ -310,7 +310,7 @@ export default function ChatHubPage({
             >
                 <div
                     data-test="chat-hub"
-                    className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-card"
+                    className="flex min-h-0 flex-1 overflow-hidden"
                 >
                     <aside
                         aria-label={t('a11y.chatThreadList')}
@@ -387,7 +387,7 @@ export default function ChatHubPage({
                         {selectedChat === null ? (
                             <Empty
                                 data-test="chat-pane-empty"
-                                className="absolute inset-0 bg-card"
+                                className="absolute inset-0 bg-background"
                             >
                                 <EmptyHeader>
                                     <EmptyMedia

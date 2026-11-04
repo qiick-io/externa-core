@@ -1474,7 +1474,7 @@ export default function AiIndexPage({
             <PageLayout>
                 <div
                     data-test="ai-hub"
-                    className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-card"
+                    className="flex min-h-0 flex-1 overflow-hidden"
                 >
                     <aside className="flex w-72 shrink-0 flex-col border-r">
                         <div className="flex items-center justify-between gap-2 border-b p-3">
