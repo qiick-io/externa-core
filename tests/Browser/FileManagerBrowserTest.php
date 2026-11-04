@@ -5,6 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
@@ -531,4 +532,118 @@ it('empties the trash in the background and refreshes when the job reports back'
         ->assertNoJavaScriptErrors();
 
     expect(File::query()->withTrashed()->count())->toBe(0);
+});
+
+/**
+ * @return Collection<int, File>
+ */
+function createGridFiles(int $count): Collection
+{
+    return collect(range(1, $count))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => sprintf('grid-%03d.txt', $index),
+        'title' => sprintf('Grid file %03d', $index),
+        'path' => sprintf('/grid-%03d.txt', $index),
+        'disk' => 'assets',
+        'storage_path' => sprintf('2026/11/grid-%03d.txt', $index),
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+}
+
+it('fills a tall window with pages automatically and stops at the end of the list', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [PermissionEnum::CanShowFiles->value]);
+    createGridFiles(60);
+    $this->actingAs($user);
+
+    $page = visit('/files');
+    $page->resize(1440, 3200);
+
+    $page->wait(2)
+        ->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 60")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('loads more files on scroll without fetching everything up front', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [PermissionEnum::CanShowFiles->value]);
+    createGridFiles(144);
+    $this->actingAs($user);
+
+    // A laptop-sized window from the first paint (the default test window is 1728x1117).
+    // wait() resolves the page: calls on the device proxy itself open a new visit each time.
+    $page = visit('/files')->on()->macbookAir()->wait(1);
+
+    $page->assertScript("(n => n >= 48 && n <= 96)(document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length)")
+        ->assertPresent('[data-testid="files-load-more"]');
+
+    // Scroll the grid panel to the bottom, as the wheel would.
+    foreach (range(1, 4) as $_) {
+        $page->script(<<<'JS'
+            (() => {
+                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                    panel = panel.parentElement;
+                }
+                if (panel) {
+                    panel.scrollTop = panel.scrollHeight;
+                }
+            })()
+            JS);
+        $page->wait(1);
+    }
+
+    $page->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 144")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the loaded pages after a move and keeps loading on scroll', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+    $destination = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Archive',
+        'path' => '/Archive',
+        'disk' => 'assets',
+    ]);
+    $files = createGridFiles(144);
+    $this->actingAs($user);
+
+    $countCards = "document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length";
+    $page = visit('/files')->on()->macbookAir()->wait(1);
+    $loaded = $page->script($countCards);
+
+    expect($loaded)->toBeGreaterThan(48);
+
+    $page->rightClick("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
+        ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
+        ->click('[data-testid="folder-picker-confirm"]')
+        ->wait(1.5)
+        ->assertMissing("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->assertScript("{$countCards} === {$loaded}");
+
+    // Scroll the grid panel to the bottom, as the wheel would.
+    foreach (range(1, 4) as $_) {
+        $page->script(<<<'JS'
+            (() => {
+                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                    panel = panel.parentElement;
+                }
+                if (panel) {
+                    panel.scrollTop = panel.scrollHeight;
+                }
+            })()
+            JS);
+        $page->wait(1);
+    }
+
+    // The folder plus the 143 files left in the root.
+    $page->assertScript("{$countCards} === 144")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
 });

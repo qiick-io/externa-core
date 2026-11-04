@@ -167,6 +167,12 @@ export default function AdminFilesIndex({
     // ponytail: ref lock + generation beat double-click / stale load-more races
     const loadingMoreRef = useRef(false);
     const listGenerationRef = useRef(0);
+    // Pages on screen, read by refreshPage without re-creating it on every load.
+    const loadedPageRef = useRef(page);
+
+    useEffect(() => {
+        loadedPageRef.current = page;
+    }, [page]);
     const [search, setSearch] = useState('');
     const [detailFile, setDetailFile] = useState<AdminFileRow | null>(null);
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -452,27 +458,49 @@ export default function AdminFilesIndex({
         listGenerationRef.current = requestGeneration;
         loadingMoreRef.current = false;
         setLoadingMore(false);
-        // ponytail: after file upload, immediately fetch fresh page-1 data from the API
-        // to ensure newly uploaded files appear. Inertia reload can cache stale responses.
+        // Reload every page already on screen, so uploads, moves and deletes keep the
+        // list as long as it was (and the scroll position) instead of cutting it to page 1.
+        const loadedPages = loadedPageRef.current;
+        const fetchPage = (pageNumber: number) =>
+            listFilesPage({
+                parentId,
+                trashed: isTrashed ? 'only' : null,
+                page: pageNumber,
+                search: search.trim() || undefined,
+                tagIds: selectedTagIds,
+                sort,
+                direction,
+            });
         void (async () => {
             try {
-                const next = await listFilesPage({
-                    parentId,
-                    trashed: isTrashed ? 'only' : null,
-                    page: 1,
-                    search: search.trim() || undefined,
-                    tagIds: selectedTagIds,
-                    sort,
-                    direction,
-                });
+                const first = await fetchPage(1);
+                const lastLoadedPage = Math.min(loadedPages, first.last_page);
+                const rest = await Promise.all(
+                    Array.from({ length: lastLoadedPage - 1 }, (_, index) =>
+                        fetchPage(index + 2),
+                    ),
+                );
 
                 if (requestGeneration !== listGenerationRef.current) {
                     return;
                 }
 
-                setFiles(next.data);
-                setPage(next.current_page);
-                setLastPage(next.last_page);
+                const seenIds = new Set<number>();
+                const merged = [first, ...rest]
+                    .flatMap((paginator) => paginator.data)
+                    .filter((file) => {
+                        if (seenIds.has(file.id)) {
+                            return false;
+                        }
+
+                        seenIds.add(file.id);
+
+                        return true;
+                    });
+
+                setFiles(merged);
+                setPage(lastLoadedPage);
+                setLastPage(rest.at(-1)?.last_page ?? first.last_page);
             } catch {
                 // Fallback to Inertia reload if API fetch fails
                 router.visit(window.location.href, {
@@ -1556,8 +1584,10 @@ export default function AdminFilesIndex({
                 className="min-h-0 flex-1"
             >
                 <div className="flex min-h-0 flex-1">
+                    {/* scrollContent: the grid scrolls inside the panel (it was clipped with no scroll on short windows). */}
                     <PageLayout
                         className="min-h-0 min-w-0 flex-1"
+                        scrollContent
                         filters={
                             selection.selectedIds.length > 0 ? (
                                 <div className="flex w-full min-w-0 items-center gap-2">
