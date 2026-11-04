@@ -34,7 +34,7 @@ class EnsureCanManageFilesMiddleware
 
         $permission = match ($routeName) {
             'files.restore' => PermissionEnum::CanRestoreFiles,
-            'files.force-delete' => PermissionEnum::CanForceDeleteFiles,
+            'files.force-delete', 'files.trash.empty' => PermissionEnum::CanForceDeleteFiles,
             'files.download', 'files.download-many', 'files.zips.download' => PermissionEnum::CanDownloadFiles,
             'files.favorite', 'files.unfavorite' => PermissionEnum::CanFavoriteFiles,
             'files.copy' => PermissionEnum::CanCopyFiles,

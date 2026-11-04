@@ -3,6 +3,7 @@ import { formatFileSize } from '@/lib/format';
 import { assertOk, parseError } from '@/lib/http';
 import files from '@/routes/files';
 import { index as fileTagsCatalogIndex } from '@/routes/files/tags';
+import { empty as emptyFilesTrashRoute } from '@/routes/files/trash';
 import type { AdminFileRow, FileTag } from '@/types/files';
 
 export { formatFileSize };
@@ -561,6 +562,25 @@ export async function queueFilesZipDownload(
     };
 
     return { queued: true, job_id: payload.job_id };
+}
+
+/**
+ * Queues a background job that permanently deletes everything in the trash.
+ *
+ * @returns Job id to match against the completion notification
+ */
+export async function queueEmptyFilesTrash(): Promise<string> {
+    const response = await fetch(emptyFilesTrashRoute.url(), {
+        method: 'DELETE',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Failed to empty the trash');
+
+    const payload = (await response.json()) as { job_id: string };
+
+    return payload.job_id;
 }
 
 /** Result of a bulk file action — immediate completion or queued job. */
