@@ -4,8 +4,8 @@ type LiveAnnounceOptions = {
     politeness?: LiveAnnouncePoliteness;
 };
 
-const POLITE_REGION_ID = 'externa-live-polite';
-const ASSERTIVE_REGION_ID = 'externa-live-assertive';
+const POLITE_REGION_ID = 'app-live-polite';
+const ASSERTIVE_REGION_ID = 'app-live-assertive';
 
 /**
  * Ensures a document-level aria-live region exists and returns it.

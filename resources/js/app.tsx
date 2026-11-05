@@ -10,12 +10,22 @@ import { UnsavedChangesProvider } from '@/components/unsaved-changes-provider';
 import '../css/app.css';
 import { initializeAccessibilityPreferences } from '@/hooks/use-accessibility-preferences';
 import type { Appearance } from '@/hooks/use-appearance';
-import { initializeTheme } from '@/hooks/use-appearance';
+import { initializeTheme, useAppearance } from '@/hooks/use-appearance';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import { initI18n } from '@/lib/i18n';
 import type { ProjectAppearance } from '@/types/appearance';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+/**
+ * The app's one Toaster (app-ui `docs/notifications.md`): position, offset, colours and
+ * durations come from the `@qiick/sonner` item; the app only passes its appearance.
+ */
+function AppToaster() {
+    const { resolvedAppearance } = useAppearance();
+
+    return <Toaster theme={resolvedAppearance} />;
+}
 
 const resolveProjectDefaultAppearance = (
     projectAppearance: unknown,
@@ -75,12 +85,7 @@ createInertiaApp({
                             <FocusAfterNavigation />
                             <App {...props} />
                         </UnsavedChangesProvider>
-                        {/* bottom-right: top-right toast was intercepting header Save/Create clicks */}
-                        <Toaster
-                            position="bottom-right"
-                            duration={5000}
-                            closeButton
-                        />
+                        <AppToaster />
                     </TooltipProvider>
                 </AppErrorBoundary>
             </StrictMode>,

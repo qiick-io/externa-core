@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { Button } from '@/components/ui/button';
+import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -42,6 +43,8 @@ export function ItemLivePreviewButton({
     const [loading, setLoading] = useState(false);
     const [asOfOpen, setAsOfOpen] = useState(false);
     const [asOfLocal, setAsOfLocal] = useState('');
+    /** Validation message under the date field (app-ui `docs/notifications.md`: not a toast). */
+    const [asOfError, setAsOfError] = useState<string | null>(null);
 
     const openPreview = async (asOfIso: string | null): Promise<void> => {
         setLoading(true);
@@ -71,10 +74,16 @@ export function ItemLivePreviewButton({
             };
 
             if (!res.ok || !body.url) {
-                const asOfError = body.errors?.as_of?.[0];
+                const serverAsOfError = body.errors?.as_of?.[0];
+
+                if (asOfIso && serverAsOfError) {
+                    setAsOfError(serverAsOfError);
+
+                    return;
+                }
+
                 toast.error(
-                    asOfError ??
-                        body.message ??
+                    body.message ??
                         t('collections.itemToolbar.livePreviewError'),
                 );
 
@@ -92,7 +101,7 @@ export function ItemLivePreviewButton({
 
     const openAsOfPreview = (): void => {
         if (!asOfLocal) {
-            toast.error(t('collections.itemToolbar.livePreviewAtInvalid'));
+            setAsOfError(t('collections.itemToolbar.livePreviewAtInvalid'));
 
             return;
         }
@@ -100,7 +109,7 @@ export function ItemLivePreviewButton({
         const chosen = new Date(asOfLocal);
 
         if (Number.isNaN(chosen.getTime())) {
-            toast.error(t('collections.itemToolbar.livePreviewAtInvalid'));
+            setAsOfError(t('collections.itemToolbar.livePreviewAtInvalid'));
 
             return;
         }
@@ -108,7 +117,7 @@ export function ItemLivePreviewButton({
         const max = Date.now() + MAX_AHEAD_DAYS * 24 * 60 * 60 * 1000;
 
         if (chosen.getTime() > max) {
-            toast.error(t('collections.itemToolbar.livePreviewAtInvalid'));
+            setAsOfError(t('collections.itemToolbar.livePreviewAtInvalid'));
 
             return;
         }
@@ -163,10 +172,20 @@ export function ItemLivePreviewButton({
                             type="datetime-local"
                             value={asOfLocal}
                             data-test="live-preview-as-of-input"
-                            onChange={(event) =>
-                                setAsOfLocal(event.target.value)
+                            aria-invalid={asOfError !== null}
+                            aria-describedby={
+                                asOfError !== null
+                                    ? `${asOfFieldId}-error`
+                                    : undefined
                             }
+                            onChange={(event) => {
+                                setAsOfLocal(event.target.value);
+                                setAsOfError(null);
+                            }}
                         />
+                        <FieldError id={`${asOfFieldId}-error`}>
+                            {asOfError}
+                        </FieldError>
                     </div>
                     <Button
                         type="button"
