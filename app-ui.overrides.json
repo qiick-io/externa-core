@@ -15,5 +15,7 @@
     "resources/js/components/user-menu-content.tsx": "externa-core wires its own routes, language, appearance, accessibility and logout cleanup; the registry takes them as props.",
     "resources/js/components/user-info.tsx": "externa-core takes its User type; the registry takes a generic { id, name, email, avatar? } user.",
     "resources/js/components/admin/files/file-grid.tsx": "externa-core's grid takes its file rows, permissions and drag-and-drop callbacks; the registry FileGrid is generic over the item.",
-    "resources/js/components/admin/files/file-card.tsx": "externa-core's card takes an AdminFileRow; the registry FileCard takes name, preview, cover, tags, badges and actions."
+    "resources/js/components/admin/files/file-card.tsx": "externa-core's card takes an AdminFileRow; the registry FileCard takes name, preview, cover, tags, badges and actions.",
+    "resources/js/lib/list-per-page.ts": "externa-core keeps the rows-per-page helpers in lib/pagination.ts, where the registry's list-per-page.ts was extracted from.",
+    "resources/js/components/layout/chat-layout.tsx": "externa-core is the source of chat-layout: /ai and /chat still have the list column, thread and composer frame inline; the registry extracted them into this file."
 }
