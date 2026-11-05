@@ -21,6 +21,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - **PostgreSQL 15 or later** is required for the `collections_items_values` null-locale unique index (`NULLS NOT DISTINCT`, #278).
 
 ### Security
+- Symfony components updated to 8.1.11 for the 2026-11-04 advisories: HtmlSanitizer host-allowlist bypass (CVE-2026-118517) and `srcset` sanitising, Filesystem path-root handling, HttpFoundation, HttpKernel, Serializer, Routing and a YAML parse-time DoS. Composer and npm packages are refreshed within their ranges; dev tooling moves to Vitest 5 and jsdom 29 (#516).
 - Secure-by-default install: registration off for fresh installs, IP throttle (5/min) on register/forgot/reset, passkeys limiter keyed on IP, Docker entrypoint refuses `change-me` DB passwords in production, safer `.env.example` (`APP_DEBUG=false`, webhook token guidance) (#272).
 - Outbound webhooks send `X-Externa-Signature-V2` over `"{timestamp}.{body}"` (legacy `X-Externa-Signature` kept for one minor); inbound collection-import requires `X-AI-Webhook-Timestamp` within 300s, signs `"{timestamp}.{body}"`, and rejects replayed signatures (#273).
 - Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, DNS-pinned byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
