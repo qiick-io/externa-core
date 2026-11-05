@@ -18,6 +18,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -78,6 +79,8 @@ export function AiContextAttachDialog({
     const [selected, setSelected] = useState<AiPendingContextAttachment[]>([]);
     const [loading, setLoading] = useState(false);
     const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null);
+    /** Shown under the prompt form when Save is pressed with an empty name or body. */
+    const [isPromptIncomplete, setIsPromptIncomplete] = useState(false);
     const [savingPrompt, setSavingPrompt] = useState(false);
 
     useEffect(() => {
@@ -197,7 +200,7 @@ export function AiContextAttachDialog({
             promptDraft.name.trim() === '' ||
             promptDraft.body.trim() === ''
         ) {
-            toast.error(t('ai.context.promptRequired'));
+            setIsPromptIncomplete(true);
 
             return;
         }
@@ -465,12 +468,22 @@ export function AiContextAttachDialog({
                                     <Input
                                         id="ai-prompt-name"
                                         value={promptDraft.name}
-                                        onChange={(event) =>
+                                        aria-invalid={
+                                            isPromptIncomplete &&
+                                            promptDraft.name.trim() === ''
+                                        }
+                                        aria-describedby={
+                                            isPromptIncomplete
+                                                ? 'ai-prompt-error'
+                                                : undefined
+                                        }
+                                        onChange={(event) => {
                                             setPromptDraft({
                                                 ...promptDraft,
                                                 name: event.target.value,
-                                            })
-                                        }
+                                            });
+                                            setIsPromptIncomplete(false);
+                                        }}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
@@ -496,19 +509,37 @@ export function AiContextAttachDialog({
                                         id="ai-prompt-body"
                                         rows={5}
                                         value={promptDraft.body}
-                                        onChange={(event) =>
+                                        aria-invalid={
+                                            isPromptIncomplete &&
+                                            promptDraft.body.trim() === ''
+                                        }
+                                        aria-describedby={
+                                            isPromptIncomplete
+                                                ? 'ai-prompt-error'
+                                                : undefined
+                                        }
+                                        onChange={(event) => {
                                             setPromptDraft({
                                                 ...promptDraft,
                                                 body: event.target.value,
-                                            })
-                                        }
+                                            });
+                                            setIsPromptIncomplete(false);
+                                        }}
                                     />
                                 </div>
+                                {isPromptIncomplete ? (
+                                    <FieldError id="ai-prompt-error">
+                                        {t('ai.context.promptRequired')}
+                                    </FieldError>
+                                ) : null}
                                 <div className="flex justify-end gap-2">
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        onClick={() => setPromptDraft(null)}
+                                        onClick={() => {
+                                            setPromptDraft(null);
+                                            setIsPromptIncomplete(false);
+                                        }}
                                     >
                                         {t('ai.context.cancel')}
                                     </Button>

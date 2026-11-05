@@ -122,7 +122,6 @@ import type { FieldConditions } from '@/lib/field-conditions';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import { FIELD_KEY_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
 import { STRING_LIMITS } from '@/lib/string-limits';
-import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
 import { resolveCollectionColor } from '@/types';
@@ -2057,18 +2056,6 @@ export function CollectionFieldFormDrawer({
                 }}
                 onInput={() => setInputDirty(true)}
                 onChange={() => setInputDirty(true)}
-                onError={(formErrors) => {
-                    const first = Object.values(formErrors).find(
-                        (message) =>
-                            typeof message === 'string' && message !== '',
-                    );
-
-                    toast.error(
-                        typeof first === 'string'
-                            ? first
-                            : 'Could not save field. Check the form for errors.',
-                    );
-                }}
             >
                 {({ processing, errors }) => (
                     <>
