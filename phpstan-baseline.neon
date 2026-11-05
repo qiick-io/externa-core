@@ -49,18 +49,6 @@ parameters:
 			path: app/Ai/Tools/ImportRemoteJson.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) expects callable\(stdClass, int\)\: array\{id\: int, collection_id\: int, deleted_at\: Illuminate\\Support\\Carbon\|null, data\: array\<string, mixed\>\}, Closure\(App\\Models\\CollectionItem\)\: array\{id\: int, collection_id\: int, deleted_at\: Illuminate\\Support\\Carbon\|null, data\: array\<string, mixed\>\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Ai/Tools/ManageCollectionItems.php
-
-		-
-			message: '#^Parameter \#2 \$query of method App\\Ai\\Tools\\ManageCollectionItems\:\:applyAiItemFilter\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItem\>, Illuminate\\Database\\Query\\Builder given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Ai/Tools/ManageCollectionItems.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
@@ -179,12 +167,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Ai/CollectionImportWebhookController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/Api/V1/CollectionController.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between int and null will always evaluate to false\.$#'
@@ -493,12 +475,6 @@ parameters:
 			path: app/Models/UserGroup.php
 
 		-
-			message: '#^Method App\\Services\\Ai\\EmbeddingSimilarityService\:\:topMatches\(\) should return Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int, score\: float\}\> but returns Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int\<0, max\>, score\: float\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Ai/EmbeddingSimilarityService.php
-
-		-
 			message: '#^Offset int on array\<int, array\<mixed, mixed\>\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -583,12 +559,6 @@ parameters:
 			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Services/Collections/CollectionListDisplayEnricherService.php
-
-		-
 			message: '#^Parameter \#2 \$usedNames of method App\\Services\\Collections\\MigrateFormLayoutToGroupsService\:\:uniqueName\(\) expects array\<string, true\>, array\<mixed, \(int\|string\)\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -617,12 +587,6 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 2
 			path: app/Services/FileTransformService.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Services/Files/FileWhereUsedScannerService.php
 
 		-
 			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
