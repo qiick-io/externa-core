@@ -279,7 +279,7 @@ export function AiContextAttachDialog({
                         </TabsTrigger>
                     </TabsList>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-1 flex flex-wrap gap-2">
                         <div className="relative min-w-[12rem] flex-1">
                             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
                             <Input
@@ -344,7 +344,7 @@ export function AiContextAttachDialog({
 
                     <TabsContent
                         value="items"
-                        className="mt-3 max-h-[40vh] overflow-y-auto"
+                        className="mt-1 max-h-[40vh] overflow-y-auto"
                     >
                         {loading ? (
                             <p className="text-sm text-muted-foreground">
@@ -397,7 +397,7 @@ export function AiContextAttachDialog({
 
                     <TabsContent
                         value="files"
-                        className="mt-3 max-h-[40vh] overflow-y-auto"
+                        className="mt-1 max-h-[40vh] overflow-y-auto"
                     >
                         {loading ? (
                             <p className="text-sm text-muted-foreground">
@@ -454,7 +454,7 @@ export function AiContextAttachDialog({
 
                     <TabsContent
                         value="prompts"
-                        className="mt-3 max-h-[40vh] overflow-y-auto"
+                        className="mt-1 max-h-[40vh] overflow-y-auto"
                     >
                         {promptDraft ? (
                             <div className="space-y-3 rounded-md border p-3">

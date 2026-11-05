@@ -7,7 +7,6 @@ import {
     Inbox,
     LayoutGrid,
 } from 'lucide-react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Bar,
@@ -20,6 +19,7 @@ import {
 } from 'recharts';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { PageLayout } from '@/components/layout/page-layout';
+import { StatCard } from '@/components/stat-card';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -36,12 +36,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { formatBytes } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import activityLogs from '@/routes/activity-logs';
+import dashboardRoutes from '@/routes/dashboard';
 import files from '@/routes/files';
 import type { BreadcrumbItem } from '@/types';
 
@@ -171,9 +172,11 @@ type DashboardProps = {
     activityOverTime?: ActivityOverTimeItem[];
     contentEventBreakdown?: ContentEventBreakdown;
     health?: HealthMetrics;
+    /** The tab, from the URL: `/dashboard` or `/dashboard/{view}`. */
+    view: DashboardView;
 };
 
-type DashboardTab = 'overview' | 'health';
+type DashboardView = 'overview' | 'health';
 
 /**
  * Main dashboard with activity, storage, and upload health widgets.
@@ -193,18 +196,9 @@ export default function Dashboard({
     activityOverTime = [],
     contentEventBreakdown = { created: 0, updated: 0, deleted: 0 },
     health,
+    view,
 }: DashboardProps) {
     const { t } = useTranslation();
-    const [tab, setTab] = useState<DashboardTab>(() => {
-        if (typeof window === 'undefined') {
-            return 'overview';
-        }
-
-        return new URLSearchParams(window.location.search).get('tab') ===
-            'health'
-            ? 'health'
-            : 'overview';
-    });
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('dashboard.title'),
@@ -220,58 +214,44 @@ export default function Dashboard({
         { event: t('dashboard.deleted'), count: contentEventBreakdown.deleted },
     ];
 
-    const selectTab = (value: DashboardTab): void => {
-        setTab(value);
-        const url = new URL(window.location.href);
-
-        if (value === 'health') {
-            url.searchParams.set('tab', 'health');
-        } else {
-            url.searchParams.delete('tab');
-        }
-
-        window.history.replaceState({}, '', url.pathname + url.search);
-    };
-
     return (
-        <AppLayout
-            breadcrumbs={breadcrumbs}
-            headerActions={
-                <ToggleGroup
-                    type="single"
-                    variant="outline"
-                    value={tab}
-                    onValueChange={(value) => {
-                        if (value === 'overview' || value === 'health') {
-                            selectTab(value);
-                        }
-                    }}
-                    aria-label={t('dashboard.tabsLabel')}
-                    data-test="dashboard-tabs"
-                >
-                    <ToggleGroupItem
-                        value="overview"
-                        data-test="dashboard-tab-overview"
-                    >
-                        <LayoutGrid className="size-4" />
-                        <span>{t('dashboard.tabOverview')}</span>
-                    </ToggleGroupItem>
-                    <ToggleGroupItem
-                        value="health"
-                        data-test="dashboard-tab-health"
-                    >
-                        <HeartPulse className="size-4" />
-                        <span>{t('dashboard.tabHealth')}</span>
-                    </ToggleGroupItem>
-                </ToggleGroup>
-            }
-        >
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={t('dashboard.title')} />
+            <DashboardTabs view={view} />
             <PageLayout scrollContent>
-                {tab === 'health' ? (
+                {view === 'health' ? (
                     <DashboardHealthPanel health={health} />
                 ) : (
                     <div className="flex flex-col gap-4">
+                        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.files')}
+                                value={fileStats.files_count.toLocaleString()}
+                                headline={t('dashboard.statFilesHeadline', {
+                                    count: fileStats.folders_count,
+                                })}
+                            />
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.totalSize')}
+                                value={formatBytes(fileStats.files_size_sum)}
+                                context={t('dashboard.statSizeContext')}
+                            />
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.statUploadsInProgress')}
+                                value={uploadHealth.in_progress_count.toLocaleString()}
+                                context={t('dashboard.statInProgressContext')}
+                            />
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.statStaleUploads')}
+                                value={uploadHealth.stale_count.toLocaleString()}
+                                context={t('dashboard.statStaleContext')}
+                            />
+                        </section>
+
                         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
                             <Card className="xl:col-span-4">
                                 <CardHeader className="pb-3">
@@ -610,84 +590,7 @@ export default function Dashboard({
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-7 xl:h-full xl:grid-rows-2">
-                                    <Card className="h-full min-h-0 gap-4">
-                                        <CardHeader className="shrink-0 pb-3">
-                                            <CardTitle>
-                                                {t('dashboard.storageOverview')}
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t(
-                                                    'dashboard.storageOverviewDesc',
-                                                )}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="grid grid-cols-3 gap-3">
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.files')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {fileStats.files_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.folders')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {fileStats.folders_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.totalSize')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {formatBytes(
-                                                        fileStats.files_size_sum,
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card className="h-full min-h-0 gap-4">
-                                        <CardHeader className="shrink-0 pb-3">
-                                            <CardTitle>
-                                                {t('dashboard.uploadHealth')}
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t(
-                                                    'dashboard.uploadHealthDesc',
-                                                )}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.inProgress')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {uploadHealth.in_progress_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.stale')}
-                                                </div>
-                                                <div
-                                                    className={
-                                                        uploadHealth.stale_count >
-                                                        0
-                                                            ? 'text-2xl font-semibold text-destructive'
-                                                            : 'text-2xl font-semibold'
-                                                    }
-                                                >
-                                                    {uploadHealth.stale_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-7 xl:h-full xl:grid-rows-1">
                                     <Card className="h-full max-h-[22rem] min-h-[14rem] gap-4 xl:max-h-none xl:min-h-0">
                                         <CardHeader className="shrink-0 pb-3">
                                             <CardTitle>
@@ -1283,30 +1186,60 @@ export default function Dashboard({
     );
 }
 
-function MetricCard({
-    label,
-    value,
-    tone = 'default',
-}: {
-    label: string;
-    value: string;
-    tone?: 'default' | 'danger' | 'ok';
-}) {
+const VIEW_ICONS = {
+    overview: LayoutGrid,
+    health: HeartPulse,
+} as const;
+
+/**
+ * Overview / Health as line tabs under the header, each a link to its own URL
+ * (app-ui `docs/page.md`, "Views: tabs under the header").
+ */
+function DashboardTabs({ view }: { view: DashboardView }) {
+    const { t } = useTranslation();
+    const views: DashboardView[] = ['overview', 'health'];
+
     return (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardDescription>{label}</CardDescription>
-                <CardTitle
-                    className={cn(
-                        'text-xl',
-                        tone === 'danger' && 'text-destructive',
-                        tone === 'ok' && 'text-success',
-                    )}
-                >
-                    {value}
-                </CardTitle>
-            </CardHeader>
-        </Card>
+        <Tabs
+            value={view}
+            activationMode="manual"
+            className="overflow-x-auto border-b px-4"
+        >
+            <TabsList
+                variant="line"
+                aria-label={t('dashboard.tabsLabel')}
+                data-test="dashboard-tabs"
+            >
+                {views.map((item) => {
+                    const Icon = VIEW_ICONS[item];
+
+                    return (
+                        <TabsTrigger
+                            key={item}
+                            value={item}
+                            data-test={`dashboard-tab-${item}`}
+                            // Each tab is a link to its own URL, so there is no tab panel to point at.
+                            aria-controls={undefined}
+                            asChild
+                        >
+                            <Link
+                                href={
+                                    item === 'overview'
+                                        ? dashboard.url()
+                                        : dashboardRoutes.view.url(item)
+                                }
+                                preserveScroll
+                            >
+                                <Icon />
+                                {item === 'overview'
+                                    ? t('dashboard.tabOverview')
+                                    : t('dashboard.tabHealth')}
+                            </Link>
+                        </TabsTrigger>
+                    );
+                })}
+            </TabsList>
+        </Tabs>
     );
 }
 
@@ -1343,27 +1276,33 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
 
     return (
         <div className="flex flex-col gap-4" data-test="dashboard-health">
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthQueue')}
                     value={health.queue_connection}
                 />
-                <MetricCard
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthBroadcast')}
                     value={health.broadcast_connection}
                 />
-                <MetricCard
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthRedis')}
                     value={
                         health.redis_ok
                             ? t('dashboard.healthOk')
                             : t('dashboard.healthDown')
                     }
-                    tone={health.redis_ok ? 'ok' : 'danger'}
                 />
-                <MetricCard
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthPendingJobs')}
                     value={health.pending_jobs.toLocaleString()}
+                    headline={t('dashboard.statFailedJobsHeadline', {
+                        count: health.failed_jobs,
+                    })}
                 />
             </section>
 
