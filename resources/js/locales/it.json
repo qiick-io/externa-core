@@ -1660,7 +1660,14 @@
         "healthWorkloadQueue": "Coda",
         "healthWorkloadLength": "Lunghezza",
         "healthWorkloadWait": "Attesa",
-        "healthWorkloadProcesses": "Proc"
+        "healthWorkloadProcesses": "Proc",
+        "statFilesHeadline": "Cartelle: {{count}}",
+        "statSizeContext": "Tutti i file, su ogni disco",
+        "statUploadsInProgress": "Upload in corso",
+        "statInProgressContext": "Upload a blocchi non ancora completati",
+        "statStaleUploads": "Upload stagnanti",
+        "statStaleContext": "Scaduti prima di finire",
+        "statFailedJobsHeadline": "Job falliti: {{count}}"
     },
     "realtime": {
         "connected": "Realtime connesso",

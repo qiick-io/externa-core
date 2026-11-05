@@ -1660,7 +1660,14 @@
         "healthWorkloadQueue": "Queue",
         "healthWorkloadLength": "Länge",
         "healthWorkloadWait": "Wartezeit",
-        "healthWorkloadProcesses": "Proz"
+        "healthWorkloadProcesses": "Proz",
+        "statFilesHeadline": "Ordner: {{count}}",
+        "statSizeContext": "Alle Dateien auf allen Datenträgern",
+        "statUploadsInProgress": "Laufende Uploads",
+        "statInProgressContext": "Noch nicht abgeschlossene Chunk-Uploads",
+        "statStaleUploads": "Veraltete Uploads",
+        "statStaleContext": "Vor dem Abschluss abgelaufen",
+        "statFailedJobsHeadline": "Fehlgeschlagene Jobs: {{count}}"
     },
     "realtime": {
         "connected": "Realtime verbunden",

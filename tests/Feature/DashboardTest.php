@@ -212,3 +212,38 @@ test('super-admin can visit the dashboard', function () {
 
     $this->get(route('dashboard'))->assertOk();
 });
+
+test('dashboard views have their own URLs', function () {
+    $user = grantDashboardPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowDashboard->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('view', 'overview'));
+
+    $this->get(route('dashboard.view', ['view' => 'health']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('dashboard')
+            ->where('view', 'health'));
+
+    $this->get('/dashboard/unknown')->assertNotFound();
+});
+
+test('old dashboard tab links redirect to the view URL', function () {
+    $user = grantDashboardPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowDashboard->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->get('/dashboard?tab=health')
+        ->assertRedirect(route('dashboard.view', ['view' => 'health']));
+});
+
+test('users without permission cannot open a dashboard view', function () {
+    $this->actingAs(User::factory()->create());
+
+    $this->get(route('dashboard.view', ['view' => 'health']))->assertForbidden();
+});

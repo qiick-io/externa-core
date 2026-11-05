@@ -32,6 +32,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:'.PermissionEnum::CanShowDashboard->value)
         ->name('dashboard');
+    // The dashboard's views after the overview, as their own URLs.
+    Route::get('dashboard/{view}', [DashboardController::class, 'index'])
+        ->whereIn('view', DashboardController::VIEWS)
+        ->middleware('permission:'.PermissionEnum::CanShowDashboard->value)
+        ->name('dashboard.view');
 
     Route::get('notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
