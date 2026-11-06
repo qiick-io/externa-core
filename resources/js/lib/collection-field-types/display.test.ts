@@ -1,30 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import {
-    CONTENT_SIZED_CONTROL_CLASS,
+    defaultsToHalfWidth,
     getFieldGridColSpans,
     getFieldLayoutWidth,
-    isContentSizedField,
 } from './display';
+import * as display from './display';
 
-describe('isContentSizedField', () => {
-    it('treats number, color, and date as content-sized', () => {
-        expect(isContentSizedField({ type: 'number' })).toBe(true);
-        expect(isContentSizedField({ type: 'color' })).toBe(true);
-        expect(isContentSizedField({ type: 'date' })).toBe(true);
+describe('defaultsToHalfWidth', () => {
+    it('defaults number, color, and date to a half-width column', () => {
+        expect(defaultsToHalfWidth({ type: 'number' })).toBe(true);
+        expect(defaultsToHalfWidth({ type: 'color' })).toBe(true);
+        expect(defaultsToHalfWidth({ type: 'date' })).toBe(true);
     });
 
-    it('treats slugified strings as content-sized', () => {
+    it('defaults slugified strings to a half-width column', () => {
         expect(
-            isContentSizedField({
+            defaultsToHalfWidth({
                 type: 'string',
                 settings: { slugify: true },
             }),
         ).toBe(true);
-        expect(isContentSizedField({ type: 'string' })).toBe(false);
+        expect(defaultsToHalfWidth({ type: 'string' })).toBe(false);
     });
 
-    it('exposes a content-sized control class token', () => {
-        expect(CONTENT_SIZED_CONTROL_CLASS).toContain('w-auto');
+    it('has no content-sized control class: controls fill their field', () => {
+        expect(display).not.toHaveProperty('CONTENT_SIZED_CONTROL_CLASS');
     });
 });
 
