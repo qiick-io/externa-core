@@ -18,6 +18,13 @@ vi.mock('react-i18next', () => ({
     }),
 }));
 
+vi.mock('@/lib/i18n', () => ({
+    default: {
+        t: (key: string, options?: { tools?: string }) =>
+            options?.tools ? `${key}:${options.tools}` : key,
+    },
+}));
+
 vi.mock('@/lib/toast', () => ({
     toast: { error: mocks.toastError, success: mocks.toastSuccess },
 }));
@@ -259,8 +266,7 @@ describe('useAiChat', () => {
         await typeAndSend(result, 'Find items');
 
         expect(result.current.messages[1]).toMatchObject({
-            content:
-                'Completed via search_items. Ask me to verify the result if needed.',
+            content: 'ai.toolFallback:search_items',
             toolNames: ['search_items'],
         });
     });
@@ -533,8 +539,7 @@ describe('settleLoadedAiMessages', () => {
             {
                 id: '2',
                 role: 'assistant',
-                content:
-                    'Completed via search_items. Ask me to verify the result if needed.',
+                content: 'ai.toolFallback:search_items',
                 tool_calls: [{ name: 'search_items' }],
             },
         ]);

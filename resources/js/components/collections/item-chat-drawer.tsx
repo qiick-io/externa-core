@@ -14,6 +14,7 @@ import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
 import {
     ChatMentionMenu,
     handleMentionMenuKeyDown,
@@ -2436,6 +2437,7 @@ export function ItemChatDrawer({
                     <ChatMentionMenu
                         {...mentionMenu}
                         open={mentionMenu.isOpen}
+                        renderHit={(hit) => <ChatMentionHitLabel hit={hit} />}
                         textareaRef={textareaRef}
                     >
                         <ChatComposer

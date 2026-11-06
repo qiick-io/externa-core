@@ -6,11 +6,12 @@ vi.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
+import type { ChatMentionHit } from '@/components/chat/chat-mention-hit';
 import {
     ChatMentionMenu,
     handleMentionMenuKeyDown,
 } from '@/components/chat/chat-mention-menu';
-import type { ChatMentionHit } from '@/components/chat/chat-mention-menu';
 
 const hits: ChatMentionHit[] = [
     { type: 'user', id: 1, name: 'Bruno Test', email: 'bruno@example.test' },
@@ -109,6 +110,7 @@ describe('ChatMentionMenu', () => {
                 highlightIndex={0}
                 onHighlightChange={vi.fn()}
                 onPick={onPick}
+                renderHit={(hit) => <ChatMentionHitLabel hit={hit} />}
                 onDismiss={vi.fn()}
             >
                 <textarea aria-label="Message" />
@@ -138,6 +140,7 @@ describe('ChatMentionMenu', () => {
                 highlightIndex={0}
                 onHighlightChange={vi.fn()}
                 onPick={vi.fn()}
+                renderHit={(hit) => <ChatMentionHitLabel hit={hit} />}
                 onDismiss={vi.fn()}
             >
                 <textarea aria-label="Message" />

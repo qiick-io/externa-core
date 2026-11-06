@@ -1618,7 +1618,29 @@
             "copyLink": "Copy link",
             "copied": "Copied",
             "openLink": "Open link"
-        }
+        },
+        "errors": {
+            "tooManyAttachments": "You can attach at most 5 files per message.",
+            "unsupportedAttachment": "Only CSV, TXT, XLSX or PDF files are allowed.",
+            "attachmentTooLarge": "The file is larger than 5 MB.",
+            "attachmentUploadFailed": "Attachment upload failed",
+            "connectionInterrupted": "Connection to the AI server was interrupted (timeout, proxy, or model crash). Check the AI provider and retry with a smaller prompt.",
+            "network": "Network error",
+            "noResponseStream": "No response stream",
+            "stream": "Error during the AI stream",
+            "streamInterrupted": "AI stream connection interrupted (proxy timeout or slow model). Check the AI provider and that fastcgi_read_timeout is at least 600s, then retry.",
+            "loadConversations": "Unable to load conversations",
+            "truncate": "Could not truncate the conversation",
+            "popupBlocked": "Popup blocked: allow pop-ups to export the PDF."
+        },
+        "awaitingApproval": "Waiting for your approval to run {{tools}}.",
+        "aTool": "a tool",
+        "toolFallback": "Completed via {{tools}}. Ask me to verify the result if needed.",
+        "pinned": "Pinned",
+        "selectConversation": "Select {{title}}",
+        "bulkDeleteTitle": "Delete selected chats?",
+        "bulkDeleteDescription_one": "You are about to delete {{count}} chat. This action cannot be undone.",
+        "bulkDeleteDescription_other": "You are about to delete {{count}} chats. This action cannot be undone."
     },
     "dashboard": {
         "title": "Dashboard",

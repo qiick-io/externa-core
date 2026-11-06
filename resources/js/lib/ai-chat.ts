@@ -1,5 +1,6 @@
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
 import { assertOk, parseError } from '@/lib/http';
+import i18n from '@/lib/i18n';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import type { Paginated } from '@/types/admin';
@@ -77,7 +78,7 @@ export function pickAiChatAttachmentFiles(
     if (remainingSlots <= 0) {
         return {
             files: [],
-            error: 'Puoi allegare al massimo 5 file per messaggio',
+            error: i18n.t('ai.errors.tooManyAttachments'),
         };
     }
 
@@ -87,17 +88,17 @@ export function pickAiChatAttachmentFiles(
 
     for (const file of candidates) {
         if (accepted.length >= remainingSlots) {
-            error = 'Puoi allegare al massimo 5 file per messaggio';
+            error = i18n.t('ai.errors.tooManyAttachments');
             break;
         }
 
         if (!isAcceptedAiChatAttachment(file)) {
-            error = 'Sono ammessi solo file CSV, TXT, XLSX o PDF';
+            error = i18n.t('ai.errors.unsupportedAttachment');
             continue;
         }
 
         if (file.size > AI_CHAT_ATTACHMENT_MAX_BYTES) {
-            error = 'Il file supera il limite di 5 MB.';
+            error = i18n.t('ai.errors.attachmentTooLarge');
             continue;
         }
 
@@ -105,7 +106,7 @@ export function pickAiChatAttachmentFiles(
     }
 
     if (accepted.length === 0 && error === null && candidates.length > 0) {
-        error = 'Sono ammessi solo file CSV, TXT, XLSX o PDF';
+        error = i18n.t('ai.errors.unsupportedAttachment');
     }
 
     return { files: accepted, error };
@@ -142,7 +143,9 @@ export function awaitingApprovalContent(
 ): string {
     const tools = [...new Set(approvals.map((approval) => approval.tool))];
 
-    return `Waiting for your approval to run ${tools.length > 0 ? tools.join(', ') : 'a tool'}.`;
+    return i18n.t('ai.awaitingApproval', {
+        tools: tools.length > 0 ? tools.join(', ') : i18n.t('ai.aTool'),
+    });
 }
 
 /** Callbacks invoked while consuming an AI chat SSE stream. */
@@ -279,7 +282,12 @@ export async function uploadAiAttachment(
     });
 
     if (!response.ok) {
-        throw new Error(await parseError(response, 'Attachment upload failed'));
+        throw new Error(
+            await parseError(
+                response,
+                i18n.t('ai.errors.attachmentUploadFailed'),
+            ),
+        );
     }
 
     const payload = (await response.json()) as {
@@ -344,10 +352,10 @@ export async function streamAiChat(
 
         const networkError = new Error(
             error instanceof TypeError
-                ? 'Connection to the AI server was interrupted (timeout, proxy, or model crash). Check the AI provider and retry with a smaller prompt.'
+                ? i18n.t('ai.errors.connectionInterrupted')
                 : error instanceof Error
                   ? error.message
-                  : 'Network error',
+                  : i18n.t('ai.errors.network'),
         );
         handlers.onError?.(networkError);
 
@@ -366,7 +374,7 @@ export async function streamAiChat(
     }
 
     if (!response.body) {
-        const error = new Error('No response stream');
+        const error = new Error(i18n.t('ai.errors.noResponseStream'));
         handlers.onError?.(error);
 
         throw error;
@@ -495,7 +503,7 @@ export async function streamAiChat(
                             typeof parsed.message === 'string' &&
                                 parsed.message !== ''
                                 ? parsed.message
-                                : 'Error during AI stream',
+                                : i18n.t('ai.errors.stream'),
                         );
                         handlers.onError?.(streamError);
                     }
@@ -527,10 +535,10 @@ export async function streamAiChat(
         // fastcgi_read_timeout 60s when the local model thinks without emitting events).
         const streamError = new Error(
             error instanceof TypeError
-                ? 'AI stream connection interrupted (proxy/nginx timeout or slow model). Check the AI provider and that fastcgi_read_timeout is ≥ 600s, then retry.'
+                ? i18n.t('ai.errors.streamInterrupted')
                 : error instanceof Error
                   ? error.message
-                  : 'Error during stream',
+                  : i18n.t('ai.errors.stream'),
         );
         handlers.onError?.(streamError);
 
@@ -613,7 +621,7 @@ export async function fetchAiConversationsPage(
         credentials: 'same-origin',
     });
 
-    await assertOk(response, 'Unable to load conversations');
+    await assertOk(response, i18n.t('ai.errors.loadConversations'));
 
     const payload = (await response.json()) as
         | LaravelPaginated<AiConversationSummary>
@@ -642,7 +650,7 @@ export async function createAiConversation(
         body: JSON.stringify({ title: title ?? null }),
     });
 
-    await assertOk(response, 'Unable to create conversation');
+    await assertOk(response, i18n.t('ai.unableStartChat'));
 
     const payload = (await response.json()) as {
         conversation: { id: string; title: string };
@@ -666,7 +674,7 @@ export async function deleteAiConversation(
         credentials: 'same-origin',
     });
 
-    await assertOk(response, 'Unable to delete chat');
+    await assertOk(response, i18n.t('ai.unableDeleteChat'));
 }
 
 /**
@@ -685,7 +693,7 @@ export async function bulkDeleteAiConversations(
         body: JSON.stringify({ ids: conversationIds }),
     });
 
-    await assertOk(response, 'Unable to delete selected chats');
+    await assertOk(response, i18n.t('ai.unableDeleteSelectedChats'));
 
     return (await response.json()) as { deleted: number };
 }
@@ -707,7 +715,7 @@ export async function toggleAiConversationPin(conversationId: string): Promise<{
         credentials: 'same-origin',
     });
 
-    await assertOk(response, 'Unable to update pin');
+    await assertOk(response, i18n.t('ai.unableUpdatePin'));
 
     const payload = (await response.json()) as {
         conversation: {
@@ -741,7 +749,7 @@ export async function truncateAiConversationFrom(
         },
     );
 
-    await assertOk(response, 'Could not truncate conversation');
+    await assertOk(response, i18n.t('ai.errors.truncate'));
 
     return (await response.json()) as { deleted: number };
 }
@@ -839,9 +847,7 @@ export function exportTextAsPdf(title: string, content: string): void {
     );
 
     if (!printWindow) {
-        throw new Error(
-            'Popup bloccato: consenti le finestre popup per esportare il PDF',
-        );
+        throw new Error(i18n.t('ai.errors.popupBlocked'));
     }
 
     const escapedTitle = title
@@ -882,7 +888,7 @@ export function exportTextAsPdf(title: string, content: string): void {
  */
 export function speakText(text: string, locale = 'en-US'): void {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-        throw new Error('Speech synthesis is not supported in this browser');
+        throw new Error(i18n.t('ai.speechUnavailable'));
     }
 
     window.speechSynthesis.cancel();
