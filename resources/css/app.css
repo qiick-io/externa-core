@@ -191,9 +191,38 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Per-user avatar swatches (`avatarToneClass()` from the avatar-tone item), same in every mode */
+    --color-avatar-1: var(--avatar-1);
+    --color-avatar-2: var(--avatar-2);
+    --color-avatar-3: var(--avatar-3);
+    --color-avatar-4: var(--avatar-4);
+    --color-avatar-5: var(--avatar-5);
+    --color-avatar-6: var(--avatar-6);
+    --color-avatar-7: var(--avatar-7);
+    --color-avatar-8: var(--avatar-8);
+    --color-avatar-9: var(--avatar-9);
+    --color-avatar-10: var(--avatar-10);
+    --color-avatar-foreground: var(--avatar-foreground);
 }
 
 :root {
+    /*
+     * Avatar swatches (the former lib/avatar-color.ts Filegrant pastels, as in the
+     * @qiick/theme item): light enough for ink initials in light and dark mode.
+     */
+    --avatar-1: #d4a5c7;
+    --avatar-2: #8fc4a3;
+    --avatar-3: #7bafd4;
+    --avatar-4: #d4c17a;
+    --avatar-5: #d4a574;
+    --avatar-6: #b8a5d4;
+    --avatar-7: #d49a9a;
+    --avatar-8: #7fb8a8;
+    --avatar-9: #c4a5b8;
+    --avatar-10: #9fa5c7;
+    --avatar-foreground: #1f2937;
+
     /* Keep UA form controls / scrollbars in sync with theme tokens (axe + Chrome). */
     color-scheme: light;
     /* Surface stays white; sidebar frame uses ink-50 Paper */
