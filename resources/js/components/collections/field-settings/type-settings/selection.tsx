@@ -1,7 +1,7 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
     parseBooleanFieldSettings,
@@ -59,8 +59,8 @@ export function SelectionSettings({
 
         return (
             <div className="space-y-6">
-                <div className="grid gap-2">
-                    <Label htmlFor="date_mode">Mode</Label>
+                <Field>
+                    <FieldLabel htmlFor="date_mode">Mode</FieldLabel>
                     <NativeSelect
                         id="date_mode"
                         name="settings[date_mode]"
@@ -75,7 +75,7 @@ export function SelectionSettings({
                         <option value="time">Time only</option>
                         <option value="datetime">Date and time</option>
                     </NativeSelect>
-                </div>
+                </Field>
                 <SettingCheckbox
                     id="date_include_seconds"
                     name="settings[include_seconds]"
@@ -95,8 +95,10 @@ export function SelectionSettings({
 
         return (
             <div className="space-y-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="geometry_mode">Geometry mode</Label>
+                <Field>
+                    <FieldLabel htmlFor="geometry_mode">
+                        Geometry mode
+                    </FieldLabel>
                     <NativeSelect
                         id="geometry_mode"
                         name="settings[geometry_mode]"
@@ -106,34 +108,34 @@ export function SelectionSettings({
                         <option value="point">Point</option>
                         <option value="multipoint">MultiPoint</option>
                     </NativeSelect>
-                </div>
+                </Field>
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="grid gap-2">
-                        <Label>Default latitude</Label>
+                    <Field>
+                        <FieldLabel>Default latitude</FieldLabel>
                         <Input
                             type="number"
                             step="any"
                             name="settings[default_lat]"
                             defaultValue={mapSettings.defaultLat ?? ''}
                         />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Default longitude</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel>Default longitude</FieldLabel>
                         <Input
                             type="number"
                             step="any"
                             name="settings[default_lng]"
                             defaultValue={mapSettings.defaultLng ?? ''}
                         />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Default zoom</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel>Default zoom</FieldLabel>
                         <Input
                             type="number"
                             name="settings[default_zoom]"
                             defaultValue={mapSettings.defaultZoom}
                         />
-                    </div>
+                    </Field>
                 </div>
             </div>
         );
@@ -151,13 +153,13 @@ export function SelectionSettings({
                     description="Allow adjusting the alpha channel in the color picker."
                     defaultChecked={colorSettings.opacity}
                 />
-                <div className="grid gap-2">
-                    <Label>Preset colors (comma-separated hex)</Label>
+                <Field>
+                    <FieldLabel>Preset colors (comma-separated hex)</FieldLabel>
                     <Input
                         name="settings[preset_colors]"
                         defaultValue={colorSettings.presetColors.join(', ')}
                     />
-                </div>
+                </Field>
             </div>
         );
     }
@@ -195,8 +197,10 @@ export function SelectionSettings({
 
     if (fieldType === 'checkbox_group_tree') {
         return (
-            <div className="grid gap-2">
-                <Label htmlFor="value_combining">Value combining</Label>
+            <Field>
+                <FieldLabel htmlFor="value_combining">
+                    Value combining
+                </FieldLabel>
                 <NativeSelect
                     id="value_combining"
                     name="settings[value_combining]"
@@ -206,7 +210,7 @@ export function SelectionSettings({
                     <option value="all">All selected nodes</option>
                     <option value="leaf">Leaf nodes only</option>
                 </NativeSelect>
-            </div>
+            </Field>
         );
     }
 
