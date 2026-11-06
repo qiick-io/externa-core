@@ -43,8 +43,10 @@ import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import { cn } from '@/lib/utils';
 import groupsRoutes from '@/routes/groups';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
 
@@ -496,12 +498,18 @@ export default function AdminGroupsIndex({
                                             <TableCell className="max-w-[14rem] font-medium">
                                                 <span className="inline-flex min-w-0 items-center gap-2">
                                                     <Avatar
-                                                        userId={`group-${group.id}`}
                                                         className="size-7"
                                                         data-test="group-avatar"
                                                         aria-hidden
                                                     >
-                                                        <AvatarFallback className="text-xs font-medium">
+                                                        <AvatarFallback
+                                                            className={cn(
+                                                                avatarToneClass(
+                                                                    `group-${group.id}`,
+                                                                ),
+                                                                'text-xs font-medium',
+                                                            )}
+                                                        >
                                                             {group.name
                                                                 .trim()
                                                                 .charAt(0)

@@ -17,9 +17,11 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { getInitialsFromParts } from '@/hooks/use-initials';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { fetchChatDirectory } from '@/lib/chat-hub-api';
 import type { ChatDirectoryRow, ChatListMeta } from '@/lib/chat-hub-api';
 import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 
 export function directoryKey(row: { type: string; id: number }): string {
     return `${row.type}:${row.id}`;
@@ -209,11 +211,15 @@ export function ChatUsersDrawer({
                                         aria-hidden
                                         className="pointer-events-none"
                                     />
-                                    <Avatar
-                                        userId={avatarSeed(row)}
-                                        className="size-9"
-                                    >
-                                        <AvatarFallback className="text-xs font-medium">
+                                    <Avatar className="size-9">
+                                        <AvatarFallback
+                                            className={cn(
+                                                avatarToneClass(
+                                                    avatarSeed(row),
+                                                ),
+                                                'text-xs font-medium',
+                                            )}
+                                        >
                                             {directoryInitials(row)}
                                         </AvatarFallback>
                                     </Avatar>
