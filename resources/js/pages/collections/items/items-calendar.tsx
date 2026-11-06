@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { Item, ItemGroup } from '@/components/ui/item';
 import {
     Popover,
     PopoverContent,
@@ -1134,11 +1135,13 @@ export function ItemsCalendar({
                                 {t('collections.itemsList.calendarEmptyList')}
                             </p>
                         ) : (
-                            <ul className="divide-y">
+                            <ItemGroup className="divide-y">
                                 {listRows.map(({ item, day }) => (
-                                    <li
+                                    <Item
                                         key={item.id}
-                                        className="flex items-center gap-3 px-3 py-2"
+                                        role="listitem"
+                                        size="sm"
+                                        className="flex-nowrap rounded-none"
                                         data-test="calendar-list-row"
                                     >
                                         <time
@@ -1165,9 +1168,9 @@ export function ItemsCalendar({
                                         >
                                             {itemTitle(item)}
                                         </Link>
-                                    </li>
+                                    </Item>
                                 ))}
-                            </ul>
+                            </ItemGroup>
                         )}
                     </div>
                 ) : null}
