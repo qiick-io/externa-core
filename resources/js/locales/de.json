@@ -2143,6 +2143,20 @@
         "linkUrl": "Link-URL",
         "headingLevel": "Überschrift {{level}}"
     },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "Keine Berechtigungen in der Datenbank. Synchronisierung ausführen.",
+        "sync": "Aus Enum synchronisieren"
+    },
+    "passwordInput": {
+        "strength": "Passwortstärke",
+        "meetsPolicy": "Erfüllt die Passwortrichtlinie des Projekts.",
+        "keepGoing": "Weiter so, um die Passwortrichtlinie des Projekts zu erfüllen.",
+        "generate": "Sicheres Passwort generieren"
+    },
     "jobs": {
         "title": "Jobs",
         "pendingCount": "In der Warteschlange: {{count}}",
@@ -2161,11 +2175,5 @@
             "exception": "Ausnahme",
             "actions": "Aktionen"
         }
-    },
-    "passwordInput": {
-        "strength": "Passwortstärke",
-        "meetsPolicy": "Erfüllt die Passwortrichtlinie des Projekts.",
-        "keepGoing": "Weiter so, um die Passwortrichtlinie des Projekts zu erfüllen.",
-        "generate": "Sicheres Passwort generieren"
     }
 }

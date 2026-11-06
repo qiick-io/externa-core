@@ -2143,6 +2143,20 @@
         "linkUrl": "URL del link",
         "headingLevel": "Titolo {{level}}"
     },
+    "permissions": {
+        "columns": {
+            "name": "Nome",
+            "guard": "Guard"
+        },
+        "empty": "Nessun permesso nel database. Esegui la sincronizzazione.",
+        "sync": "Sincronizza dall'enum"
+    },
+    "passwordInput": {
+        "strength": "Robustezza della password",
+        "meetsPolicy": "Rispetta la policy password del progetto.",
+        "keepGoing": "Continua per rispettare la policy password del progetto.",
+        "generate": "Genera una password sicura"
+    },
     "jobs": {
         "title": "Job",
         "pendingCount": "In coda: {{count}}",
@@ -2161,11 +2175,5 @@
             "exception": "Eccezione",
             "actions": "Azioni"
         }
-    },
-    "passwordInput": {
-        "strength": "Robustezza della password",
-        "meetsPolicy": "Rispetta la policy password del progetto.",
-        "keepGoing": "Continua per rispettare la policy password del progetto.",
-        "generate": "Genera una password sicura"
     }
 }
