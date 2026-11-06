@@ -1981,6 +1981,20 @@
             "select": "{{name}} auswählen",
             "privateBadge": "Privat",
             "privateTitle": "Privat — erfordert Read private auf API-Rollen"
+        },
+        "picker": {
+            "title": "Datei auswählen",
+            "descriptionMultiple": "Klicke auf Dateien, um sie auszuwählen, und bestätige dann unten",
+            "description": "Ordner durchsuchen oder eine neue Datei hochladen",
+            "empty": "Keine Dateien in diesem Ordner",
+            "chooseFiles": "Dateien auswählen",
+            "chooseCount": "{{count}} auswählen"
+        },
+        "dropzone": {
+            "dropToUpload": "Dateien hier ablegen, um sie hochzuladen",
+            "dropOrBrowse": "Dateien hier ablegen oder durchsuchen",
+            "chunkedHint": "Große Dateien werden automatisch in Teilen hochgeladen",
+            "chooseFiles": "Dateien auswählen"
         }
     },
     "confirmDestructive": {
@@ -2083,5 +2097,11 @@
         "table": "Tabelle",
         "linkUrl": "Link-URL",
         "headingLevel": "Überschrift {{level}}"
+    },
+    "passwordInput": {
+        "strength": "Passwortstärke",
+        "meetsPolicy": "Erfüllt die Passwortrichtlinie des Projekts.",
+        "keepGoing": "Weiter so, um die Passwortrichtlinie des Projekts zu erfüllen.",
+        "generate": "Sicheres Passwort generieren"
     }
 }

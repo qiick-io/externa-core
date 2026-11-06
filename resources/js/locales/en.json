@@ -1981,6 +1981,20 @@
             "select": "Select {{name}}",
             "privateBadge": "Private",
             "privateTitle": "Private — requires Read private on API roles"
+        },
+        "picker": {
+            "title": "Choose file",
+            "descriptionMultiple": "Click files to select them, then confirm below",
+            "description": "Browse folders or upload a new file",
+            "empty": "No files in this folder",
+            "chooseFiles": "Choose files",
+            "chooseCount": "Choose {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Drop files here to upload",
+            "dropOrBrowse": "Drop files here or browse",
+            "chunkedHint": "Large files use chunked upload automatically",
+            "chooseFiles": "Choose files"
         }
     },
     "confirmDestructive": {
@@ -2083,5 +2097,11 @@
         "table": "Table",
         "linkUrl": "Link URL",
         "headingLevel": "Heading {{level}}"
+    },
+    "passwordInput": {
+        "strength": "Password strength",
+        "meetsPolicy": "Meets project password policy.",
+        "keepGoing": "Keep going to meet project password policy.",
+        "generate": "Generate secure password"
     }
 }
