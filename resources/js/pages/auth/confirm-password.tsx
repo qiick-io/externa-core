@@ -10,6 +10,7 @@ import {
     FieldError,
     FieldGroup,
     FieldLabel,
+    FieldSeparator,
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
@@ -118,16 +119,9 @@ export default function ConfirmPassword({
 
             {showPasskeyConfirm && (
                 <div className="mt-6 flex flex-col gap-3">
-                    <div className="relative py-1">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                                {t('auth.confirmPassword.orConfirmWithPasskey')}
-                            </span>
-                        </div>
-                    </div>
+                    <FieldSeparator className="my-0">
+                        {t('auth.confirmPassword.orConfirmWithPasskey')}
+                    </FieldSeparator>
                     <Button
                         type="button"
                         variant="outline"
