@@ -32,7 +32,9 @@
         "active": "Aktiv",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} von {{total}}",
-        "perPageOption": "{{count}} / Seite"
+        "perPageOption": "{{count}} / Seite",
+        "copy": "Kopieren",
+        "copied": "Kopiert"
     },
     "emptyState": {
         "collections": {
@@ -357,7 +359,8 @@
                 "revokeTitle": "API-Schlüssel „{{name}}“ widerrufen?",
                 "revokeDescription": "Dieser Schlüssel funktioniert sofort nicht mehr.",
                 "revokeConfirm": "Widerrufen"
-            }
+            },
+            "secretValue": "Neuer API-Schlüssel"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -685,7 +688,8 @@
             "regenerate": "Codes neu generieren",
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
-            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>.",
+            "setupKey": "Einrichtungsschlüssel"
         },
         "performance": {
             "appDebug": "APP_DEBUG",

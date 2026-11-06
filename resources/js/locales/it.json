@@ -32,7 +32,9 @@
         "active": "Attivo",
         "name": "Nome",
         "pageRange": "{{from}}–{{to}} di {{total}}",
-        "perPageOption": "{{count}} / pagina"
+        "perPageOption": "{{count}} / pagina",
+        "copy": "Copia",
+        "copied": "Copiato"
     },
     "emptyState": {
         "collections": {
@@ -357,7 +359,8 @@
                 "revokeTitle": "Revocare la API key “{{name}}”?",
                 "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
                 "revokeConfirm": "Revoca"
-            }
+            },
+            "secretValue": "Nuova chiave API"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -734,7 +737,8 @@
             "regenerate": "Rigenera codici",
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
-            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra.",
+            "setupKey": "Chiave di configurazione"
         },
         "aiTools": {
             "breadcrumb": "Strumenti AI in scrittura",
