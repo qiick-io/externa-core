@@ -6,8 +6,10 @@ import {
     AvatarGroupCount,
 } from '@/components/ui/avatar';
 import { BubbleReactions } from '@/components/ui/bubble';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { initialsFromName } from '@/lib/format';
 import type { ChatReaction } from '@/lib/item-chat-api';
+import { cn } from '@/lib/utils';
 
 const MAX_FACES = 3;
 
@@ -57,10 +59,14 @@ export function ChatMessageReactions({
                             {users.slice(0, MAX_FACES).map((user) => (
                                 <Avatar
                                     key={user.id}
-                                    userId={user.id}
                                     className="size-4 ring-1!"
                                 >
-                                    <AvatarFallback className="text-xs">
+                                    <AvatarFallback
+                                        className={cn(
+                                            avatarToneClass(user.id),
+                                            'text-xs',
+                                        )}
+                                    >
                                         {initialsFromName(user.name)}
                                     </AvatarFallback>
                                 </Avatar>

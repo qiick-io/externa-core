@@ -17,6 +17,7 @@ import type {
     ChatParticipantRef,
     ChatThreadIdentity,
 } from '@/lib/chat-thread-identity';
+import { cn } from '@/lib/utils';
 
 function FaceCircle({
     face,
