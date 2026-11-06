@@ -17,6 +17,5 @@
     "resources/js/components/admin/files/file-grid.tsx": "externa-core's grid takes its file rows, permissions and drag-and-drop callbacks; the registry FileGrid is generic over the item.",
     "resources/js/components/admin/files/file-card.tsx": "externa-core's card takes an AdminFileRow; the registry FileCard takes name, preview, cover, tags, badges and actions.",
     "resources/js/lib/list-per-page.ts": "externa-core keeps the rows-per-page helpers in lib/pagination.ts, where the registry's list-per-page.ts was extracted from.",
-    "resources/js/components/layout/chat-layout.tsx": "externa-core is the source of chat-layout: /ai and /chat still have the list column, thread and composer frame inline; the registry extracted them into this file.",
     "resources/js/components/ui/popover.tsx": "PopoverContent keeps externa-core's align=\"start\" default (shadcn: center), so existing popovers do not move; the rest is the registry file."
 }

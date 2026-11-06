@@ -6,13 +6,13 @@ import {
     Paperclip,
     Pin,
     Reply,
-    ArrowUp,
     Smile,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
@@ -61,18 +61,10 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { PermissionEnum } from '@/enums/permission-enum';
-import { useAutosizeTextarea } from '@/hooks/use-autosize-textarea';
 import { useCan } from '@/hooks/use-can';
 import { avatarColorForId, avatarStyleForId } from '@/lib/avatar-color';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
-import {
-    COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
-    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-    composerFrameClass,
-    composerTextareaClass,
-    composerToolbarClass,
-} from '@/lib/composer-chrome';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import { formatDateTime, initialsFromName } from '@/lib/format';
 import {
@@ -367,7 +359,6 @@ export function ItemChatDrawer({
     const [replyTo, setReplyTo] = useState<ItemChatMessage | null>(null);
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-    useAutosizeTextarea(textareaRef, draft);
     const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const scrollerRef = useRef<ChatMessageScrollerHandle | null>(null);
@@ -2486,150 +2477,117 @@ export function ItemChatDrawer({
                             </Button>
                         </div>
                     ) : null}
-                    <div className={composerFrameClass}>
-                        <div className="relative">
-                            {mentionsEnabled &&
-                            mentionOpen &&
-                            mentionHits.length > 0 &&
-                            !attachDialogOpen ? (
-                                <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                    {mentionHits.map((hit, index) => (
-                                        <button
-                                            key={`${hit.type}-${hit.id}`}
-                                            type="button"
-                                            className={
-                                                index === mentionHighlight
-                                                    ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                    : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                            }
-                                            onMouseEnter={() =>
-                                                setMentionHighlight(index)
-                                            }
-                                            onClick={() => pickMention(hit)}
-                                        >
-                                            <span>
-                                                {hit.type === 'collection'
-                                                    ? collectionMentionLabel(
-                                                          hit,
-                                                      )
-                                                    : hit.name}
-                                            </span>
-                                            {hit.type === 'user' &&
-                                            hit.email ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    {hit.email}
+                    <ChatComposer
+                        textareaRef={textareaRef}
+                        value={draft}
+                        onValueChange={onComposerChange}
+                        onSubmit={send}
+                        canSubmit={draft.trim() !== '' && !attachDialogOpen}
+                        placeholder={t('collections.itemChat.placeholder')}
+                        label={t('collections.itemChat.placeholder')}
+                        sendLabel={t('collections.itemChat.send')}
+                        textareaTestId="item-chat-composer"
+                        submitTestId="item-chat-send"
+                        popup={
+                            <>
+                                {mentionsEnabled &&
+                                mentionOpen &&
+                                mentionHits.length > 0 &&
+                                !attachDialogOpen ? (
+                                    <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
+                                        {mentionHits.map((hit, index) => (
+                                            <button
+                                                key={`${hit.type}-${hit.id}`}
+                                                type="button"
+                                                className={
+                                                    index === mentionHighlight
+                                                        ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
+                                                        : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
+                                                }
+                                                onMouseEnter={() =>
+                                                    setMentionHighlight(index)
+                                                }
+                                                onClick={() => pickMention(hit)}
+                                            >
+                                                <span>
+                                                    {hit.type === 'collection'
+                                                        ? collectionMentionLabel(
+                                                              hit,
+                                                          )
+                                                        : hit.name}
                                                 </span>
-                                            ) : hit.type === 'collection' ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    collection
-                                                </span>
-                                            ) : null}
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : null}
-                            <textarea
-                                ref={textareaRef}
-                                value={draft}
-                                rows={1}
-                                className={composerTextareaClass}
-                                style={{
-                                    minHeight: COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-                                    maxHeight: COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
-                                }}
-                                placeholder={t(
-                                    'collections.itemChat.placeholder',
-                                )}
-                                aria-label={t(
-                                    'collections.itemChat.placeholder',
-                                )}
-                                data-test="item-chat-composer"
-                                onChange={(event) =>
-                                    onComposerChange(
-                                        event.target.value,
-                                        event.target.selectionStart,
-                                    )
+                                                {hit.type === 'user' &&
+                                                hit.email ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {hit.email}
+                                                    </span>
+                                                ) : hit.type ===
+                                                  'collection' ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        collection
+                                                    </span>
+                                                ) : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </>
+                        }
+                        onKeyDown={(event) => {
+                            if (
+                                mentionsEnabled &&
+                                mentionOpen &&
+                                mentionHits.length > 0
+                            ) {
+                                if (event.key === 'ArrowDown') {
+                                    event.preventDefault();
+                                    setMentionHighlight(
+                                        (index) =>
+                                            (index + 1) % mentionHits.length,
+                                    );
+
+                                    return;
                                 }
-                                onKeyDown={(event) => {
-                                    if (event.nativeEvent.isComposing) {
-                                        return;
-                                    }
 
-                                    if (
-                                        mentionsEnabled &&
-                                        mentionOpen &&
-                                        mentionHits.length > 0
-                                    ) {
-                                        if (event.key === 'ArrowDown') {
-                                            event.preventDefault();
-                                            setMentionHighlight(
-                                                (index) =>
-                                                    (index + 1) %
-                                                    mentionHits.length,
-                                            );
+                                if (event.key === 'ArrowUp') {
+                                    event.preventDefault();
+                                    setMentionHighlight(
+                                        (index) =>
+                                            (index - 1 + mentionHits.length) %
+                                            mentionHits.length,
+                                    );
 
-                                            return;
-                                        }
+                                    return;
+                                }
 
-                                        if (event.key === 'ArrowUp') {
-                                            event.preventDefault();
-                                            setMentionHighlight(
-                                                (index) =>
-                                                    (index -
-                                                        1 +
-                                                        mentionHits.length) %
-                                                    mentionHits.length,
-                                            );
+                                if (
+                                    event.key === 'Enter' &&
+                                    !event.shiftKey &&
+                                    !event.metaKey &&
+                                    !event.ctrlKey
+                                ) {
+                                    event.preventDefault();
+                                    pickMention(mentionHits[mentionHighlight]!);
 
-                                            return;
-                                        }
+                                    return;
+                                }
 
-                                        if (
-                                            event.key === 'Enter' &&
-                                            !event.shiftKey &&
-                                            !event.metaKey &&
-                                            !event.ctrlKey
-                                        ) {
-                                            event.preventDefault();
-                                            pickMention(
-                                                mentionHits[mentionHighlight]!,
-                                            );
+                                if (event.key === 'Escape') {
+                                    event.preventDefault();
+                                    setMentionOpen(false);
+                                    setMentionStart(null);
 
-                                            return;
-                                        }
+                                    return;
+                                }
+                            }
 
-                                        if (event.key === 'Escape') {
-                                            event.preventDefault();
-                                            setMentionOpen(false);
-                                            setMentionStart(null);
-
-                                            return;
-                                        }
-                                    }
-
-                                    if (
-                                        event.key === 'Enter' &&
-                                        event.shiftKey
-                                    ) {
-                                        return;
-                                    }
-
-                                    if (event.key === ' ' && event.shiftKey) {
-                                        event.preventDefault();
-                                        insertAtCaret('\n');
-
-                                        return;
-                                    }
-
-                                    if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        send();
-                                    }
-                                }}
-                            />
-                        </div>
-                        <div className={composerToolbarClass}>
-                            <div className="flex items-center gap-1">
+                            if (event.key === ' ' && event.shiftKey) {
+                                event.preventDefault();
+                                insertAtCaret('\n');
+                            }
+                        }}
+                        actions={
+                            <>
                                 {mentionsEnabled ? (
                                     <Button
                                         type="button"
@@ -2703,22 +2661,9 @@ export function ItemChatDrawer({
                                         event.target.value = '';
                                     }}
                                 />
-                            </div>
-                            <Button
-                                type="button"
-                                size="icon"
-                                className="rounded-full"
-                                disabled={
-                                    draft.trim() === '' || attachDialogOpen
-                                }
-                                aria-label={t('collections.itemChat.send')}
-                                onClick={send}
-                                data-test="item-chat-send"
-                            >
-                                <ArrowUp className="size-4" />
-                            </Button>
-                        </div>
-                    </div>
+                            </>
+                        }
+                    />
                 </DrawerFooter>
                 {composerDragOver ? (
                     <div
