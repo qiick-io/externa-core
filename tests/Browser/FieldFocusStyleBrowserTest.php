@@ -42,7 +42,9 @@ it('focuses a filter field with a ring border and an unclipped halo, no offset r
   input.focus();
   await new Promise((resolve) => setTimeout(resolve, 200));
 
-  const style = getComputedStyle(input);
+  // A search field is an InputGroup: the border and the halo sit on the group box.
+  const field = input.closest('[data-slot="input-group"]') ?? input;
+  const style = getComputedStyle(field);
   const probe = document.createElement('div');
   probe.style.color = 'var(--ring)';
   document.body.append(probe);
@@ -53,7 +55,7 @@ it('focuses a filter field with a ring border and an unclipped halo, no offset r
   const halo = visibleShadows.find((shadow) => shadow.trim().endsWith('0px 0px 0px 3px'));
 
   const row = input.closest('[data-slot="page-header"] .overflow-x-auto').getBoundingClientRect();
-  const box = input.getBoundingClientRect();
+  const box = field.getBoundingClientRect();
   const fitsRow = box.left - 3 >= row.left && box.top - 3 >= row.top && box.bottom + 3 <= row.bottom;
 
   return style.borderTopColor === ring && halo !== undefined && !style.boxShadow.includes('0px 0px 0px 4px') && fitsRow;
@@ -63,13 +65,13 @@ JS)
 });
 
 it('keeps the ring border on a Select trigger while its menu is open', function (): void {
-    $page = visit('/activity-logs');
+    $page = visit('/users');
 
-    $page->click('button[aria-label="Filter by action"]')
+    $page->click('button[aria-label="Sort by"]')
         ->wait(0.3)
         ->assertScript(<<<'JS'
 (() => {
-  const trigger = document.querySelector('button[aria-label="Filter by action"][data-state="open"]');
+  const trigger = document.querySelector('button[aria-label="Sort by"][data-state="open"]');
   const probe = document.createElement('div');
   probe.style.color = 'var(--ring)';
   document.body.append(probe);

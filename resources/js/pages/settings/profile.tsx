@@ -1,4 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { CircleCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationPreferencesController from '@/actions/App/Http/Controllers/Settings/NotificationPreferencesController';
@@ -6,6 +7,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -246,11 +248,18 @@ export default function Profile({
 
                                                 {status ===
                                                     'verification-link-sent' && (
-                                                    <div className="mt-2 text-sm font-medium text-success">
-                                                        {t(
-                                                            'settings.profile.linkSent',
-                                                        )}
-                                                    </div>
+                                                    <Alert
+                                                        variant="success"
+                                                        role="status"
+                                                        className="mt-2"
+                                                    >
+                                                        <CircleCheck />
+                                                        <AlertTitle className="line-clamp-none">
+                                                            {t(
+                                                                'settings.profile.linkSent',
+                                                            )}
+                                                        </AlertTitle>
+                                                    </Alert>
                                                 )}
                                             </div>
                                         )}
