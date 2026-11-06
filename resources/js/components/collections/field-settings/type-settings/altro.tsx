@@ -1,6 +1,6 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { parseHashFieldSettings } from '@/lib/collection-field-types';
 import type { SliderFieldSettings } from '@/lib/collection-field-types';
 
@@ -53,8 +53,8 @@ export function AltroSettings({
         return (
             <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="slider_min">Minimum</Label>
+                    <Field>
+                        <FieldLabel htmlFor="slider_min">Minimum</FieldLabel>
                         <Input
                             id="slider_min"
                             type="number"
@@ -67,9 +67,9 @@ export function AltroSettings({
                                 }))
                             }
                         />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="slider_max">Maximum</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="slider_max">Maximum</FieldLabel>
                         <Input
                             id="slider_max"
                             type="number"
@@ -82,9 +82,9 @@ export function AltroSettings({
                                 }))
                             }
                         />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="slider_step">Step</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="slider_step">Step</FieldLabel>
                         <Input
                             id="slider_step"
                             type="number"
@@ -98,9 +98,11 @@ export function AltroSettings({
                                 }))
                             }
                         />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="slider_default">Default value</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="slider_default">
+                            Default value
+                        </FieldLabel>
                         <Input
                             id="slider_default"
                             type="number"
@@ -113,7 +115,7 @@ export function AltroSettings({
                                 }))
                             }
                         />
-                    </div>
+                    </Field>
                 </div>
                 <SettingCheckbox
                     id="slider_show_value"

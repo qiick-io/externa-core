@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { FIELD_VALIDATION_OPERATORS } from '@/lib/collection-field-types';
 import type {
@@ -41,10 +41,12 @@ export function ValidationRuleBuilder({
                             key={index}
                             className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_auto]"
                         >
-                            <div className="grid gap-2">
-                                <Label htmlFor={`validation_operator_${index}`}>
+                            <Field>
+                                <FieldLabel
+                                    htmlFor={`validation_operator_${index}`}
+                                >
                                     Operator
-                                </Label>
+                                </FieldLabel>
                                 <NativeSelect
                                     id={`validation_operator_${index}`}
                                     value={rule.operator}
@@ -68,14 +70,14 @@ export function ValidationRuleBuilder({
                                         ),
                                     )}
                                 </NativeSelect>
-                            </div>
+                            </Field>
                             {meta?.needsValue ? (
-                                <div className="grid gap-2">
-                                    <Label
+                                <Field>
+                                    <FieldLabel
                                         htmlFor={`validation_value_${index}`}
                                     >
                                         Value
-                                    </Label>
+                                    </FieldLabel>
                                     <Input
                                         id={`validation_value_${index}`}
                                         value={
@@ -92,7 +94,7 @@ export function ValidationRuleBuilder({
                                             onRulesChange(next);
                                         }}
                                     />
-                                </div>
+                                </Field>
                             ) : (
                                 <div />
                             )}

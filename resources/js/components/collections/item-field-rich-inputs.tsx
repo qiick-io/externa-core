@@ -52,8 +52,11 @@ import { useTranslation } from 'react-i18next';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
+import { AutocompleteInput } from '@/components/collections/autocomplete-input';
+import { ShortcutKeys } from '@/components/collections/shortcut-keys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -69,8 +72,14 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -175,6 +184,7 @@ function ToolbarButton({
             variant={active ? 'default' : 'outline'}
             className="px-2"
             aria-label={label}
+            aria-pressed={active}
             title={label}
             disabled={disabled}
             onClick={onClick}
@@ -184,119 +194,196 @@ function ToolbarButton({
     );
 }
 
-function WysiwygToolbar({ editor }: { editor: Editor }) {
+/**
+ * Link editor for the WYSIWYG toolbar (was `window.prompt`): Popover with a
+ * URL Input. Apply (or Enter) sets the link on the selection; an empty URL
+ * or Remove clears it.
+ * @returns {JSX.Element}
+ */
+function WysiwygLinkPopover({ editor }: { editor: Editor }) {
     const { t } = useTranslation();
-    const setLink = (): void => {
-        const previous = editor.getAttributes('link').href as
-            string | undefined;
-        const url = window.prompt(
-            t('richText.linkUrl'),
-            previous ?? 'https://',
-        );
+    const [open, setOpen] = useState(false);
+    const [url, setUrl] = useState('');
+    const isActive = editor.isActive('link');
 
-        if (url === null) {
-            return;
+    const openChange = (next: boolean): void => {
+        if (next) {
+            const previous = editor.getAttributes('link').href as
+                string | undefined;
+            setUrl(previous ?? 'https://');
         }
 
+        setOpen(next);
+    };
+
+    const applyLink = (): void => {
         const trimmed = url.trim();
+        const chain = editor.chain().focus().extendMarkRange('link');
 
         if (trimmed === '') {
-            editor.chain().focus().extendMarkRange('link').unsetLink().run();
-
-            return;
+            chain.unsetLink().run();
+        } else {
+            chain.setLink({ href: trimmed }).run();
         }
 
-        editor
-            .chain()
-            .focus()
-            .extendMarkRange('link')
-            .setLink({ href: trimmed })
-            .run();
+        setOpen(false);
+    };
+
+    const removeLink = (): void => {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+        setOpen(false);
     };
 
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
-            <ToolbarButton
-                label={t('richText.bold')}
-                active={editor.isActive('bold')}
-                onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-                <Bold className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.italic')}
-                active={editor.isActive('italic')}
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-            >
-                <Italic className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.strikethrough')}
-                active={editor.isActive('strike')}
-                onClick={() => editor.chain().focus().toggleStrike().run()}
-            >
-                <Strikethrough className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.heading2')}
-                active={editor.isActive('heading', { level: 2 })}
-                onClick={() =>
-                    editor.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-            >
-                <Heading2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.heading3')}
-                active={editor.isActive('heading', { level: 3 })}
-                onClick={() =>
-                    editor.chain().focus().toggleHeading({ level: 3 }).run()
-                }
-            >
-                <Heading3 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.bulletList')}
-                active={editor.isActive('bulletList')}
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-            >
-                <List className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.orderedList')}
-                active={editor.isActive('orderedList')}
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            >
-                <ListOrdered className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.quote')}
-                active={editor.isActive('blockquote')}
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            >
-                <Quote className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.link')}
-                active={editor.isActive('link')}
-                onClick={setLink}
-            >
-                <Link2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.undo')}
-                disabled={!editor.can().undo()}
-                onClick={() => editor.chain().focus().undo().run()}
-            >
-                <Undo2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.redo')}
-                disabled={!editor.can().redo()}
-                onClick={() => editor.chain().focus().redo().run()}
-            >
-                <Redo2 className="size-3.5" />
-            </ToolbarButton>
+        <Popover open={open} onOpenChange={openChange}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant={isActive ? 'default' : 'outline'}
+                    className="px-2"
+                    aria-label={t('richText.link')}
+                    title={t('richText.link')}
+                    aria-pressed={isActive}
+                >
+                    <Link2 className="size-3.5" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80">
+                <Field>
+                    <FieldLabel htmlFor="wysiwyg-link-url">
+                        {t('richText.linkUrl')}
+                    </FieldLabel>
+                    <Input
+                        id="wysiwyg-link-url"
+                        type="url"
+                        value={url}
+                        onChange={(event) => setUrl(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                applyLink();
+                            }
+                        }}
+                        data-test="wysiwyg-link-url"
+                    />
+                </Field>
+                <div className="mt-3 flex justify-end gap-2">
+                    {isActive ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={removeLink}
+                        >
+                            {t('richText.removeLink')}
+                        </Button>
+                    ) : null}
+                    <Button
+                        type="button"
+                        onClick={applyLink}
+                        data-test="wysiwyg-link-apply"
+                    >
+                        {t('richText.applyLink')}
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+function WysiwygToolbar({ editor }: { editor: Editor }) {
+    const { t } = useTranslation();
+
+    return (
+        <div className="flex flex-wrap gap-2 border-b p-1.5">
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bold')}
+                    active={editor.isActive('bold')}
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                >
+                    <Bold className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.italic')}
+                    active={editor.isActive('italic')}
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                >
+                    <Italic className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.strikethrough')}
+                    active={editor.isActive('strike')}
+                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                >
+                    <Strikethrough className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.heading2')}
+                    active={editor.isActive('heading', { level: 2 })}
+                    onClick={() =>
+                        editor.chain().focus().toggleHeading({ level: 2 }).run()
+                    }
+                >
+                    <Heading2 className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.heading3')}
+                    active={editor.isActive('heading', { level: 3 })}
+                    onClick={() =>
+                        editor.chain().focus().toggleHeading({ level: 3 }).run()
+                    }
+                >
+                    <Heading3 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bulletList')}
+                    active={editor.isActive('bulletList')}
+                    onClick={() =>
+                        editor.chain().focus().toggleBulletList().run()
+                    }
+                >
+                    <List className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.orderedList')}
+                    active={editor.isActive('orderedList')}
+                    onClick={() =>
+                        editor.chain().focus().toggleOrderedList().run()
+                    }
+                >
+                    <ListOrdered className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.quote')}
+                    active={editor.isActive('blockquote')}
+                    onClick={() =>
+                        editor.chain().focus().toggleBlockquote().run()
+                    }
+                >
+                    <Quote className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <WysiwygLinkPopover editor={editor} />
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.undo')}
+                    disabled={!editor.can().undo()}
+                    onClick={() => editor.chain().focus().undo().run()}
+                >
+                    <Undo2 className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.redo')}
+                    disabled={!editor.can().redo()}
+                    onClick={() => editor.chain().focus().redo().run()}
+                >
+                    <Redo2 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
         </div>
     );
 }
@@ -459,7 +546,7 @@ function MarkdownToolbar({
     const { t } = useTranslation();
 
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
+        <div className="flex flex-wrap gap-2 border-b p-1.5">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
@@ -486,62 +573,68 @@ function MarkdownToolbar({
                             >
                                 {t('richText.headingLevel', { level })}
                                 <DropdownMenuShortcut>
-                                    ⌘⌥{level}
+                                    <ShortcutKeys
+                                        keys={['⌘', '⌥', String(level)]}
+                                    />
                                 </DropdownMenuShortcut>
                             </DropdownMenuItem>
                         );
                     })}
                 </DropdownMenuContent>
             </DropdownMenu>
-            <ToolbarButton
-                label={t('richText.bold')}
-                disabled={disabled}
-                onClick={() => onRun(commands.bold)}
-            >
-                <Bold className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.italic')}
-                disabled={disabled}
-                onClick={() => onRun(commands.italic)}
-            >
-                <Italic className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.strikethrough')}
-                disabled={disabled}
-                onClick={() => onRun(commands.strikethrough)}
-            >
-                <Strikethrough className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.bulletList')}
-                disabled={disabled}
-                onClick={() => onRun(commands.unorderedListCommand)}
-            >
-                <List className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.orderedList')}
-                disabled={disabled}
-                onClick={() => onRun(commands.orderedListCommand)}
-            >
-                <ListOrdered className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.quote')}
-                disabled={disabled}
-                onClick={() => onRun(commands.quote)}
-            >
-                <Quote className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.code')}
-                disabled={disabled}
-                onClick={() => onRun(commands.code)}
-            >
-                <Code2 className="size-3.5" />
-            </ToolbarButton>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bold')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.bold)}
+                >
+                    <Bold className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.italic')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.italic)}
+                >
+                    <Italic className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.strikethrough')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.strikethrough)}
+                >
+                    <Strikethrough className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bulletList')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.unorderedListCommand)}
+                >
+                    <List className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.orderedList')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.orderedListCommand)}
+                >
+                    <ListOrdered className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.quote')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.quote)}
+                >
+                    <Quote className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.code')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.code)}
+                >
+                    <Code2 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
             <ToolbarButton
                 label={t('richText.link')}
                 disabled={disabled}
@@ -1178,6 +1271,7 @@ export function TagChipInput({
     const tagSettings = parseTagFieldSettings(settings);
     const [tags, setTags] = useState<string[]>(defaultParts);
     const [draft, setDraft] = useState('');
+    const chipBoxRef = useRef<HTMLDivElement>(null);
 
     const addTag = (raw: string) => {
         const trimmed = raw.trim();
@@ -1198,7 +1292,10 @@ export function TagChipInput({
 
     return (
         <div className="space-y-2">
-            <div className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5">
+            <div
+                ref={chipBoxRef}
+                className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5"
+            >
                 {tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="gap-1">
                         {tag}
@@ -1220,33 +1317,41 @@ export function TagChipInput({
                     </Badge>
                 ))}
                 {!readonly ? (
-                    <Input
-                        value={draft}
-                        className="h-7 min-w-[120px] flex-1 border-0 shadow-none focus-visible:ring-0"
-                        placeholder={t('richText.addTag')}
-                        list={
-                            tagSettings.presets.length > 0
-                                ? `${nameBase}-presets`
-                                : undefined
-                        }
-                        onChange={(event) => setDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                                event.preventDefault();
-                                addTag(draft);
+                    <div className="min-w-[120px] flex-1">
+                        <AutocompleteInput
+                            anchorRef={chipBoxRef}
+                            value={draft}
+                            className="h-7 border-0 shadow-none focus-visible:ring-0"
+                            placeholder={t('richText.addTag')}
+                            suggestions={tagSettings.presets
+                                .filter(
+                                    (preset) =>
+                                        !tags.includes(preset) &&
+                                        preset
+                                            .toLowerCase()
+                                            .includes(
+                                                draft.trim().toLowerCase(),
+                                            ),
+                                )
+                                .map((preset) => ({
+                                    value: preset,
+                                    label: preset,
+                                }))}
+                            onSelectSuggestion={(suggestion) =>
+                                addTag(suggestion.value)
                             }
-                        }}
-                        onBlur={() => addTag(draft)}
-                    />
+                            onChange={(event) => setDraft(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    addTag(draft);
+                                }
+                            }}
+                            onBlur={() => addTag(draft)}
+                        />
+                    </div>
                 ) : null}
             </div>
-            {tagSettings.presets.length > 0 ? (
-                <datalist id={`${nameBase}-presets`}>
-                    {tagSettings.presets.map((preset) => (
-                        <option key={preset} value={preset} />
-                    ))}
-                </datalist>
-            ) : null}
             {tags.map((tag) => (
                 <input
                     key={tag}
@@ -1318,7 +1423,7 @@ export function ColorFieldInput({
             <div
                 className={cn(
                     colorFieldChrome,
-                    'w-auto max-w-[13rem] gap-2',
+                    'gap-2',
                     readonly && 'bg-muted/50',
                 )}
             >
@@ -1332,7 +1437,7 @@ export function ColorFieldInput({
         <div
             className={cn(
                 colorFieldChromeWithOpacity,
-                'w-auto max-w-xs space-y-2',
+                'space-y-2',
                 readonly && 'bg-muted/50',
             )}
         >

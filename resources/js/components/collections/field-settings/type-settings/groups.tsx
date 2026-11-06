@@ -1,5 +1,5 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { NativeSelect } from '@/components/ui/native-select';
 
 export type AccordionGroupSettings = {
@@ -76,8 +76,10 @@ export function GroupsSettings({
                         }))
                     }
                 />
-                <div className="grid gap-2">
-                    <Label htmlFor="accordion_start">Initial state</Label>
+                <Field>
+                    <FieldLabel htmlFor="accordion_start">
+                        Initial state
+                    </FieldLabel>
                     <NativeSelect
                         id="accordion_start"
                         value={
@@ -101,7 +103,7 @@ export function GroupsSettings({
                             </option>
                         ))}
                     </NativeSelect>
-                </div>
+                </Field>
                 <p className="text-sm text-muted-foreground">
                     Sections are typically Raw groups nested under this
                     accordion (two empty ones are created automatically). Use
@@ -115,8 +117,10 @@ export function GroupsSettings({
     if (fieldType === 'group_detail') {
         return (
             <div className="space-y-6">
-                <div className="grid gap-2">
-                    <Label htmlFor="detail_start">Initial state</Label>
+                <Field>
+                    <FieldLabel htmlFor="detail_start">
+                        Initial state
+                    </FieldLabel>
                     <NativeSelect
                         id="detail_start"
                         value={detailSettings.start}
@@ -132,7 +136,7 @@ export function GroupsSettings({
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
                     </NativeSelect>
-                </div>
+                </Field>
             </div>
         );
     }

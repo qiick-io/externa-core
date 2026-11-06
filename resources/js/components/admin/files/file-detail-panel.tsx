@@ -17,8 +17,21 @@ import { FilePreview } from '@/components/admin/files/file-preview';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemGroup,
+} from '@/components/ui/item';
 import {
     Select,
     SelectContent,
@@ -80,12 +93,13 @@ function SectionHeading({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex items-center gap-2">
-            <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                {children}
-            </h3>
-        </div>
+        <FieldLegend
+            variant="label"
+            className="mb-0 flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+        >
+            <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+            {children}
+        </FieldLegend>
     );
 }
 
@@ -446,15 +460,15 @@ export function FileDetailPanel({
                     )}
                 </div>
 
-                <div className="space-y-3">
-                    <div className="space-y-2">
-                        <Label
+                <FieldGroup className="gap-3">
+                    <Field className="gap-2">
+                        <FieldLabel
                             htmlFor="file-access"
                             className="flex items-center gap-2"
                         >
                             <Lock className="size-3.5" />
                             {t('files.detail.visibility')}
-                        </Label>
+                        </FieldLabel>
                         <Select
                             value={access}
                             disabled={!canUpdateMetadata}
@@ -479,7 +493,7 @@ export function FileDetailPanel({
                                 </SelectItem>
                             </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">
+                        <FieldDescription className="text-xs">
                             {file.type === 'folder'
                                 ? t('files.detail.folderVisibilityHint')
                                 : t('files.detail.fileVisibilityHint', {
@@ -488,23 +502,23 @@ export function FileDetailPanel({
                                               ? t('files.detail.private')
                                               : t('files.detail.public'),
                                   })}
-                        </p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="file-title">
+                        </FieldDescription>
+                    </Field>
+                    <Field className="gap-2">
+                        <FieldLabel htmlFor="file-title">
                             {t('files.detail.titleLabel')}
-                        </Label>
+                        </FieldLabel>
                         <Input
                             id="file-title"
                             value={title}
                             disabled={!canUpdateMetadata}
                             onChange={(event) => setTitle(event.target.value)}
                         />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="file-description">
+                    </Field>
+                    <Field className="gap-2">
+                        <FieldLabel htmlFor="file-description">
                             {t('files.detail.descriptionLabel')}
-                        </Label>
+                        </FieldLabel>
                         <Textarea
                             id="file-description"
                             value={description}
@@ -514,14 +528,14 @@ export function FileDetailPanel({
                             }
                             rows={3}
                         />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="file-tags">
+                    </Field>
+                    <Field className="gap-2">
+                        <FieldLabel htmlFor="file-tags">
                             {t('files.detail.tagsLabel')}
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
+                        </FieldLabel>
+                        <FieldDescription className="text-xs">
                             {t('files.detail.tagsHint')}
-                        </p>
+                        </FieldDescription>
                         <TagPicker
                             id="file-tags"
                             value={tags}
@@ -529,16 +543,16 @@ export function FileDetailPanel({
                             catalog={tagCatalog}
                             disabled={!canTag}
                         />
-                    </div>
+                    </Field>
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-2">
-                            <Label
+                        <Field className="gap-2">
+                            <FieldLabel
                                 htmlFor="file-location"
                                 className="flex items-center gap-2"
                             >
                                 <MapPin className="size-3.5" />
                                 {t('files.detail.location')}
-                            </Label>
+                            </FieldLabel>
                             <Input
                                 id="file-location"
                                 value={location}
@@ -547,30 +561,40 @@ export function FileDetailPanel({
                                     setLocation(event.target.value)
                                 }
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2">
+                        </Field>
+                        <Field className="gap-2">
+                            <FieldLabel
+                                htmlFor="file-storage"
+                                className="flex items-center gap-2"
+                            >
                                 <HardDrive className="size-3.5" />
                                 {t('files.detail.storage')}
-                            </Label>
-                            <Input value={file.disk} disabled />
-                        </div>
+                            </FieldLabel>
+                            <Input
+                                id="file-storage"
+                                value={file.disk}
+                                disabled
+                            />
+                        </Field>
                     </div>
-                    <div className="space-y-2">
-                        <Label>{t('files.detail.storagePath')}</Label>
+                    <Field className="gap-2">
+                        <FieldLabel htmlFor="file-storage-path">
+                            {t('files.detail.storagePath')}
+                        </FieldLabel>
                         <Input
+                            id="file-storage-path"
                             value={file.storage_path ?? ''}
                             disabled
                             className="font-mono"
                         />
-                    </div>
-                </div>
+                    </Field>
+                </FieldGroup>
 
                 <Separator />
 
                 {file.type === 'file' && (
                     <>
-                        <div className="space-y-3" data-test="file-where-used">
+                        <FieldSet className="gap-3" data-test="file-where-used">
                             <SectionHeading icon={Link2}>
                                 {t('files.detail.whereUsed')}
                             </SectionHeading>
@@ -611,26 +635,24 @@ export function FileDetailPanel({
                                                       },
                                                   )}
                                         </p>
-                                        <ul
-                                            className="-mx-1 divide-y divide-border/60"
+                                        <ItemGroup
+                                            className="-mx-1"
                                             data-test="file-where-used-list"
                                         >
                                             {whereUsedRefs
                                                 .slice(0, 20)
                                                 .map((ref) => (
-                                                    <li
+                                                    <Item
                                                         key={`${ref.collection_id}-${ref.item_id}-${ref.field}`}
+                                                        asChild
+                                                        size="sm"
+                                                        role="listitem"
+                                                        className="flex-nowrap gap-2 px-2 py-2 text-xs"
                                                     >
                                                         <a
-                                                            className={cn(
-                                                                'flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-2 text-xs',
-                                                                'text-foreground transition-colors',
-                                                                'hover:bg-accent hover:text-accent-foreground',
-                                                                'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                                                            )}
                                                             href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
                                                         >
-                                                            <span className="flex min-w-0 items-center gap-2">
+                                                            <ItemContent className="min-w-0 flex-row items-center gap-2">
                                                                 <span className="min-w-0 truncate font-medium">
                                                                     {
                                                                         ref.collection_name
@@ -642,15 +664,18 @@ export function FileDetailPanel({
                                                                         ref.item_id
                                                                     }
                                                                 </span>
-                                                            </span>
-                                                            <span className="shrink-0 text-muted-foreground">
+                                                            </ItemContent>
+                                                            <ItemActions className="shrink-0 text-muted-foreground">
                                                                 {ref.field}
-                                                            </span>
+                                                            </ItemActions>
                                                         </a>
-                                                    </li>
+                                                    </Item>
                                                 ))}
                                             {whereUsedRefs.length > 20 && (
-                                                <li className="w-full px-2 py-2 text-xs text-muted-foreground">
+                                                <p
+                                                    role="listitem"
+                                                    className="w-full px-2 py-2 text-xs text-muted-foreground"
+                                                >
                                                     {t(
                                                         'files.detail.moreRefs',
                                                         {
@@ -659,23 +684,23 @@ export function FileDetailPanel({
                                                                 20,
                                                         },
                                                     )}
-                                                </li>
+                                                </p>
                                             )}
-                                        </ul>
+                                        </ItemGroup>
                                     </div>
                                 )}
-                        </div>
+                        </FieldSet>
                         <Separator />
                     </>
                 )}
 
-                <div className="space-y-3">
+                <FieldSet className="gap-3">
                     <SectionHeading icon={ImageIcon}>
                         {t('files.detail.focalPoint')}
                     </SectionHeading>
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="focal-x">X</Label>
+                        <Field className="gap-2">
+                            <FieldLabel htmlFor="focal-x">X</FieldLabel>
                             <Input
                                 id="focal-x"
                                 type="number"
@@ -690,9 +715,9 @@ export function FileDetailPanel({
                                     setFocalX(event.target.value)
                                 }
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="focal-y">Y</Label>
+                        </Field>
+                        <Field className="gap-2">
+                            <FieldLabel htmlFor="focal-y">Y</FieldLabel>
                             <Input
                                 id="focal-y"
                                 type="number"
@@ -707,29 +732,32 @@ export function FileDetailPanel({
                                     setFocalY(event.target.value)
                                 }
                             />
-                        </div>
+                        </Field>
                     </div>
-                </div>
+                </FieldSet>
 
                 <Separator />
 
-                <div className="space-y-3">
+                <FieldSet className="gap-3">
                     <SectionHeading icon={FileText}>
                         {t('files.detail.fileNaming')}
                     </SectionHeading>
                     <div className="space-y-3">
-                        <div className="space-y-2">
-                            <Label>{t('files.detail.diskName')}</Label>
+                        <Field className="gap-2">
+                            <FieldLabel htmlFor="file-disk-name">
+                                {t('files.detail.diskName')}
+                            </FieldLabel>
                             <Input
+                                id="file-disk-name"
                                 value={file.name}
                                 disabled
                                 className="font-mono"
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="download-name">
+                        </Field>
+                        <Field className="gap-2">
+                            <FieldLabel htmlFor="download-name">
                                 {t('files.detail.downloadName')}
-                            </Label>
+                            </FieldLabel>
                             <Input
                                 id="download-name"
                                 value={downloadName}
@@ -738,25 +766,25 @@ export function FileDetailPanel({
                                     setDownloadName(event.target.value)
                                 }
                             />
-                        </div>
+                        </Field>
                     </div>
-                </div>
+                </FieldSet>
 
                 <Separator />
 
-                <div className="space-y-3">
+                <FieldSet className="gap-3">
                     <SectionHeading icon={Scaling}>
                         {t('files.detail.transforms')}
                     </SectionHeading>
                     <div className="space-y-3">
-                        <div className="space-y-2">
-                            <Label
+                        <Field className="gap-2">
+                            <FieldLabel
                                 htmlFor="translate-x"
                                 className="flex items-center gap-2"
                             >
                                 <MoveHorizontal className="size-3.5" />
                                 {t('files.detail.translateX')}
-                            </Label>
+                            </FieldLabel>
                             <Input
                                 id="translate-x"
                                 type="number"
@@ -769,15 +797,15 @@ export function FileDetailPanel({
                                     setTranslateX(event.target.value)
                                 }
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label
+                        </Field>
+                        <Field className="gap-2">
+                            <FieldLabel
                                 htmlFor="translate-y"
                                 className="flex items-center gap-2"
                             >
                                 <MoveVertical className="size-3.5" />
                                 {t('files.detail.translateY')}
-                            </Label>
+                            </FieldLabel>
                             <Input
                                 id="translate-y"
                                 type="number"
@@ -790,15 +818,15 @@ export function FileDetailPanel({
                                     setTranslateY(event.target.value)
                                 }
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label
+                        </Field>
+                        <Field className="gap-2">
+                            <FieldLabel
                                 htmlFor="file-scale"
                                 className="flex items-center gap-2"
                             >
                                 <Scaling className="size-3.5" />
                                 {t('files.detail.scale')}
-                            </Label>
+                            </FieldLabel>
                             <Input
                                 id="file-scale"
                                 type="number"
@@ -812,9 +840,9 @@ export function FileDetailPanel({
                                     setScale(event.target.value)
                                 }
                             />
-                        </div>
+                        </Field>
                     </div>
-                </div>
+                </FieldSet>
             </div>
 
             {canSave && (

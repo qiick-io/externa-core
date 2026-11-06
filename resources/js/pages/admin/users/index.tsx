@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import {
     ArrowDownAZ,
     ArrowUpAZ,
@@ -9,6 +10,12 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    DataTable,
+    dataTableSelectColumn,
+} from '@/components/admin/data-table';
+import type { DataTableSort } from '@/components/admin/data-table';
+import { DataTableColumnHeader } from '@/components/admin/data-table-column-header';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { TruncatedText } from '@/components/admin/truncated-text';
@@ -17,15 +24,9 @@ import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { EmptyStatus } from '@/components/empty-status';
-import {
-    PageLayout,
-    hasTablePaginationFooter,
-    TablePaginationFooter,
-    TablePanel,
-} from '@/components/layout/page-layout';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -34,14 +35,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -59,6 +52,22 @@ import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 type UserSortField =
     'first_name' | 'last_name' | 'email' | 'created_at' | 'updated_at';
 type UserSortDirection = 'asc' | 'desc';
+
+const USER_SORT_FIELDS: readonly UserSortField[] = [
+    'first_name',
+    'last_name',
+    'email',
+    'created_at',
+    'updated_at',
+];
+
+/**
+ * @param value - Candidate sort field (URL, Select, column header).
+ * @returns Whether the users list can sort by it.
+ */
+function isUserSortField(value: string): value is UserSortField {
+    return (USER_SORT_FIELDS as readonly string[]).includes(value);
+}
 
 type Filters = {
     search?: string;
@@ -100,7 +109,15 @@ export default function AdminUsersIndex({
     const [direction, setDirection] = useState<UserSortDirection>(
         filters.direction ?? 'desc',
     );
-    const [selected, setSelected] = useState<number[]>([]);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const selected = useMemo(
+        () =>
+            Object.keys(rowSelection)
+                .filter((id) => rowSelection[id])
+                .map(Number),
+        [rowSelection],
+    );
+
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<AdminUserRow | null>(null);
     const [pendingBulkAction, setPendingBulkAction] = useState<
@@ -180,17 +197,17 @@ export default function AdminUsersIndex({
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     useEffect(() => {
-        setSelected([]);
+        setRowSelection({});
     }, [isTrashed]);
 
-    const toggleAll = (checked: boolean): void => {
-        setSelected(checked ? users.data.map((u) => u.id) : []);
-    };
+    const changeSort = (nextSort: DataTableSort): void => {
+        if (!isUserSortField(nextSort.id)) {
+            return;
+        }
 
-    const toggleRow = (id: number): void => {
-        setSelected((prev) =>
-            prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id],
-        );
+        setSort(nextSort.id);
+        setDirection(nextSort.direction);
+        visit({ sort: nextSort.id, direction: nextSort.direction });
     };
 
     const openCreate = (): void => {
@@ -233,7 +250,7 @@ export default function AdminUsersIndex({
             { ids: selected, action },
             {
                 preserveScroll: true,
-                onSuccess: () => setSelected([]),
+                onSuccess: () => setRowSelection({}),
             },
         );
     };
@@ -250,6 +267,113 @@ export default function AdminUsersIndex({
     const selectedRows = users.data.filter((user) =>
         selected.includes(user.id),
     );
+
+    const columns: ColumnDef<AdminUserRow>[] = [
+        dataTableSelectColumn<AdminUserRow>({
+            selectAllLabel: t('a11y.selectAll'),
+            getRowLabel: (user) =>
+                t('a11y.selectRow', { name: userDisplayName(user) }),
+        }),
+        {
+            accessorKey: 'first_name',
+            enableSorting: true,
+            meta: { cellClassName: 'max-w-[12rem] font-medium' },
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('users.columns.name')}
+                />
+            ),
+            cell: ({ row }) => (
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <UserAvatar
+                        user={row.original}
+                        isOnline={onlineUsers.has(row.original.id)}
+                    />
+                    <TruncatedText text={userDisplayName(row.original)} />
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'email',
+            enableSorting: true,
+            meta: { cellClassName: 'max-w-[12rem] text-muted-foreground' },
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('users.columns.email')}
+                />
+            ),
+            cell: ({ row }) => <TruncatedText text={row.original.email} />,
+        },
+        {
+            id: 'roles',
+            header: t('users.columns.roles'),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {row.original.roles.map((role) => (
+                        <Badge key={role.id} variant="secondary">
+                            {role.name}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'groups',
+            header: t('users.columns.groups'),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {row.original.groups.map((group) => (
+                        <Badge key={group.id} variant="outline">
+                            {group.name}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'status',
+            header: t('users.columns.status'),
+            cell: ({ row }) =>
+                row.original.is_active ? (
+                    <Badge variant="success" className="gap-1.5">
+                        <span
+                            className="size-1.5 rounded-full bg-success"
+                            aria-hidden
+                        />
+                        {t('users.status.active')}
+                    </Badge>
+                ) : (
+                    <Badge variant="muted" className="gap-1.5">
+                        <span
+                            className="size-1.5 rounded-full bg-muted-foreground"
+                            aria-hidden
+                        />
+                        {t('users.status.inactive')}
+                    </Badge>
+                ),
+        },
+        {
+            id: 'actions',
+            header: t('users.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+                isRowClickIgnored: true,
+            },
+            cell: ({ row }) => (
+                <AskAiButton
+                    stopPropagation
+                    prompt={seedUserPrompt({
+                        id: row.original.id,
+                        name: userDisplayName(row.original),
+                        email: row.original.email,
+                    })}
+                />
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -282,7 +406,7 @@ export default function AdminUsersIndex({
                                         : t('users.searchPlaceholder')
                                 }
                                 selectedCount={selected.length}
-                                onClearSelection={() => setSelected([])}
+                                onClearSelection={() => setRowSelection({})}
                                 bulkActions={
                                     <>
                                         <AskAiButton
@@ -354,13 +478,7 @@ export default function AdminUsersIndex({
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
-                                        if (
-                                            value === 'first_name' ||
-                                            value === 'last_name' ||
-                                            value === 'email' ||
-                                            value === 'created_at' ||
-                                            value === 'updated_at'
-                                        ) {
+                                        if (isUserSortField(value)) {
                                             setSort(value);
                                             visit({ sort: value });
                                         }
@@ -494,156 +612,21 @@ export default function AdminUsersIndex({
                             }
                         />
                     ) : (
-                        <TablePanel
-                            footer={
-                                hasTablePaginationFooter(users) ? (
-                                    <TablePaginationFooter pagination={users} />
-                                ) : undefined
+                        <DataTable
+                            columns={columns}
+                            data={users.data}
+                            getRowId={(user) => String(user.id)}
+                            sort={{ id: sort, direction }}
+                            onSortChange={changeSort}
+                            rowSelection={rowSelection}
+                            onRowSelectionChange={setRowSelection}
+                            pagination={users}
+                            onRowClick={
+                                can(PermissionEnum.CanEditUsers)
+                                    ? openEdit
+                                    : undefined
                             }
-                        >
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-10">
-                                            <Checkbox
-                                                checked={
-                                                    users.data.length > 0 &&
-                                                    selected.length ===
-                                                        users.data.length
-                                                }
-                                                onCheckedChange={(c) =>
-                                                    toggleAll(c === true)
-                                                }
-                                                aria-label={t('a11y.selectAll')}
-                                            />
-                                        </TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Roles</TableHead>
-                                        <TableHead>Groups</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="w-[1%] text-right">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.data.map((user) => (
-                                        <TableRow
-                                            key={user.id}
-                                            className={
-                                                can(PermissionEnum.CanEditUsers)
-                                                    ? 'cursor-pointer'
-                                                    : undefined
-                                            }
-                                            onClick={() => openEdit(user)}
-                                        >
-                                            <TableCell
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <Checkbox
-                                                    checked={selected.includes(
-                                                        user.id,
-                                                    )}
-                                                    onCheckedChange={() =>
-                                                        toggleRow(user.id)
-                                                    }
-                                                    aria-label={`Select ${userDisplayName(user)}`}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="max-w-[12rem] font-medium">
-                                                <span className="inline-flex min-w-0 items-center gap-2">
-                                                    <UserAvatar
-                                                        user={user}
-                                                        isOnline={onlineUsers.has(
-                                                            user.id,
-                                                        )}
-                                                    />
-                                                    <TruncatedText
-                                                        text={userDisplayName(
-                                                            user,
-                                                        )}
-                                                    />
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="max-w-[12rem] text-muted-foreground">
-                                                <TruncatedText
-                                                    text={user.email}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {user.roles.map((r) => (
-                                                        <Badge
-                                                            key={r.id}
-                                                            variant="secondary"
-                                                        >
-                                                            {r.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {user.groups.map((g) => (
-                                                        <Badge
-                                                            key={g.id}
-                                                            variant="outline"
-                                                        >
-                                                            {g.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {user.is_active ? (
-                                                    <Badge
-                                                        variant="success"
-                                                        className="gap-1.5"
-                                                    >
-                                                        <span
-                                                            className="size-1.5 rounded-full bg-success"
-                                                            aria-hidden
-                                                        />
-                                                        Active
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge
-                                                        variant="muted"
-                                                        className="gap-1.5"
-                                                    >
-                                                        <span
-                                                            className="size-1.5 rounded-full bg-muted-foreground"
-                                                            aria-hidden
-                                                        />
-                                                        Inactive
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell
-                                                className="text-right"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <AskAiButton
-                                                    stopPropagation
-                                                    prompt={seedUserPrompt({
-                                                        id: user.id,
-                                                        name: userDisplayName(
-                                                            user,
-                                                        ),
-                                                        email: user.email,
-                                                    })}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TablePanel>
+                        />
                     )}
                 </PageLayout>
 
@@ -704,7 +687,7 @@ export default function AdminUsersIndex({
                             preserveScroll: true,
                             onFinish: () => setConfirmingBulk(false),
                             onSuccess: () => {
-                                setSelected([]);
+                                setRowSelection({});
                                 setPendingBulkAction(null);
                             },
                             onError: () => setPendingBulkAction(null),

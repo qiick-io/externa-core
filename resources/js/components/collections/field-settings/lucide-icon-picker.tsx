@@ -5,8 +5,8 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Popover,
     PopoverContent,
@@ -160,8 +160,8 @@ export function LucideIconPicker({
     }, [query]);
 
     return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
+        <Field>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
             <Popover
                 open={open}
                 onOpenChange={(next) => {
@@ -304,6 +304,6 @@ export function LucideIconPicker({
                     ) : null}
                 </PopoverContent>
             </Popover>
-        </div>
+        </Field>
     );
 }
