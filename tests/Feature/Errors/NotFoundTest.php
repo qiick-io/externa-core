@@ -1,9 +1,11 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Enums\RoleEnum;
 use App\Models\Collection;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 
@@ -33,6 +35,19 @@ test('authenticated 404 renders inertia page inside app layout', function () {
             ->component('errors/not-found')
             ->where('status', 404)
             ->where('homeUrl', '/dashboard'));
+});
+
+test('missing model 404 shares the app props so the page renders in the app layout', function () {
+    $this->seed(RoleSeeder::class);
+    $user = User::factory()->create();
+    $user->assignRole(RoleEnum::SuperAdmin->value);
+
+    $this->actingAs($user)
+        ->get(route('roles.edit', ['role' => 999999]))
+        ->assertNotFound()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('errors/not-found')
+            ->where('auth.user.id', $user->id));
 });
 
 test('missing collection redirects to collections list with flash error', function () {
