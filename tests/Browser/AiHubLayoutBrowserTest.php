@@ -127,7 +127,7 @@ JS;
     expect($assistant)->toBe($chat);
 });
 
-it('deletes a conversation from its row menu and keeps the pane header-less when one is open', function (): void {
+it('deletes a conversation from its row menu after confirming and keeps the pane header-less when one is open', function (): void {
     $conversationId = (string) Str::uuid7();
 
     Conversation::query()->create([
@@ -144,6 +144,9 @@ it('deletes a conversation from its row menu and keeps the pane header-less when
         ->hover('[data-test="ai-list"] [data-test="ai-conversation-menu"]')
         ->click('[data-test="ai-conversation-menu"]')
         ->click('[data-test="ai-conversation-delete"]')
+        ->assertVisible('[data-test="confirm-destructive"]')
+        ->assertSeeIn('[data-test="ai-list"]', 'Throwaway thread')
+        ->click('[data-test="confirm-destructive"]')
         ->wait(1)
         ->assertDontSeeIn('[data-test="ai-list"]', 'Throwaway thread')
         ->assertNoJavaScriptErrors();
