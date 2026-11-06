@@ -2,9 +2,19 @@ import { GripVertical, Search, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemGroup,
+    ItemMedia,
+    ItemTitle,
+} from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Select,
     SelectContent,
@@ -36,34 +46,39 @@ function LocaleRow({
     const meta = contentLocaleMeta(code);
 
     return (
-        <div
-            data-id={code}
-            className="flex items-center gap-2 rounded-md border px-3 py-2"
-        >
-            <button
-                type="button"
-                className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
-                aria-label={t('a11y.reorder')}
-            >
-                <GripVertical className="size-4" />
-            </button>
-            <ContentLocaleFlag region={meta.flag} title={meta.name} />
-            <span className="flex-1 text-sm">
-                <span className="font-medium">{meta.name}</span>
-                <span className="ml-2 font-mono text-xs text-muted-foreground">
+        <Item data-id={code} role="listitem" variant="outline" size="sm">
+            <ItemMedia>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="drag-handle cursor-grab touch-none text-muted-foreground"
+                    aria-label={t('a11y.reorder')}
+                >
+                    <GripVertical />
+                </Button>
+                <ContentLocaleFlag region={meta.flag} title={meta.name} />
+            </ItemMedia>
+            <ItemContent className="flex-row items-baseline gap-2">
+                <ItemTitle>{meta.name}</ItemTitle>
+                <span className="font-mono text-xs text-muted-foreground">
                     {code}
                 </span>
-            </span>
-            <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground disabled:opacity-40"
-                onClick={onRemove}
-                disabled={!canRemove}
-                aria-label={t('a11y.removeLocale', { code })}
-            >
-                <X className="size-4" />
-            </button>
-        </div>
+            </ItemContent>
+            <ItemActions>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground"
+                    onClick={onRemove}
+                    disabled={!canRemove}
+                    aria-label={t('a11y.removeLocale', { code })}
+                >
+                    <X />
+                </Button>
+            </ItemActions>
+        </Item>
     );
 }
 
@@ -180,46 +195,60 @@ export function ContentLocalesField({
                         className="pl-9"
                     />
                 </div>
-                <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-2">
-                    {filtered.map((entry) => {
-                        const checked = selected.has(entry.code);
+                <ScrollArea className="rounded-md border [&>[data-slot=scroll-area-viewport]]:max-h-56">
+                    <ItemGroup className="gap-1 p-2">
+                        {filtered.map((entry) => {
+                            const checked = selected.has(entry.code);
 
-                        return (
-                            <label
-                                key={entry.code}
-                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/50"
-                            >
-                                <Checkbox
-                                    checked={checked}
-                                    disabled={checked && value.length <= 1}
-                                    onCheckedChange={(state) =>
-                                        toggle(entry.code, state === true)
-                                    }
-                                />
-                                <ContentLocaleFlag
-                                    region={entry.flag}
-                                    title={entry.name}
-                                />
-                                <span className="flex-1 text-sm">
-                                    {entry.name}
-                                </span>
-                                <span className="font-mono text-xs text-muted-foreground">
-                                    {entry.code}
-                                </span>
-                            </label>
-                        );
-                    })}
-                    {filtered.length === 0 ? (
-                        <p className="px-2 py-3 text-sm text-muted-foreground">
-                            {t('settings.project.contentLocalesEmpty')}
-                        </p>
-                    ) : null}
-                </div>
+                            return (
+                                <Item
+                                    key={entry.code}
+                                    asChild
+                                    size="sm"
+                                    role="listitem"
+                                    className="cursor-pointer px-2 py-2 hover:bg-muted/50"
+                                >
+                                    <label>
+                                        <Checkbox
+                                            checked={checked}
+                                            disabled={
+                                                checked && value.length <= 1
+                                            }
+                                            onCheckedChange={(state) =>
+                                                toggle(
+                                                    entry.code,
+                                                    state === true,
+                                                )
+                                            }
+                                        />
+                                        <ContentLocaleFlag
+                                            region={entry.flag}
+                                            title={entry.name}
+                                        />
+                                        <ItemContent>
+                                            <ItemTitle className="font-normal">
+                                                {entry.name}
+                                            </ItemTitle>
+                                        </ItemContent>
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                            {entry.code}
+                                        </span>
+                                    </label>
+                                </Item>
+                            );
+                        })}
+                        {filtered.length === 0 ? (
+                            <p className="px-2 py-3 text-sm text-muted-foreground">
+                                {t('settings.project.contentLocalesEmpty')}
+                            </p>
+                        ) : null}
+                    </ItemGroup>
+                </ScrollArea>
             </div>
 
             <div className="grid gap-2">
                 <Label>{t('settings.project.contentLocalesSelected')}</Label>
-                <div ref={listRef} className="space-y-2">
+                <ItemGroup ref={listRef} className="gap-2">
                     {value.map((code) => (
                         <LocaleRow
                             key={code}
@@ -228,7 +257,7 @@ export function ContentLocalesField({
                             onRemove={() => toggle(code, false)}
                         />
                     ))}
-                </div>
+                </ItemGroup>
             </div>
 
             <div className="grid gap-2">
