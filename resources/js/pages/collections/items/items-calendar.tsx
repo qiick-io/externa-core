@@ -12,11 +12,13 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import { cn } from '@/lib/utils';
@@ -925,51 +927,56 @@ export function ItemsCalendar({
             data-view={view}
         >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                    <ButtonGroup>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t(
+                                'collections.itemsList.calendarPrevYear',
+                            )}
+                            data-test="calendar-prev-year"
+                            onClick={goPrevYear}
+                        >
+                            <ChevronsLeft className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t('collections.itemsList.calendarPrev')}
+                            data-test="calendar-prev"
+                            onClick={goPrev}
+                        >
+                            <ChevronLeft className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t('collections.itemsList.calendarNext')}
+                            data-test="calendar-next"
+                            onClick={goNext}
+                        >
+                            <ChevronRight className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t(
+                                'collections.itemsList.calendarNextYear',
+                            )}
+                            data-test="calendar-next-year"
+                            onClick={goNextYear}
+                        >
+                            <ChevronsRight className="size-4" />
+                        </Button>
+                    </ButtonGroup>
                     <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('collections.itemsList.calendarPrevYear')}
-                        data-test="calendar-prev-year"
-                        onClick={goPrevYear}
-                    >
-                        <ChevronsLeft className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('collections.itemsList.calendarPrev')}
-                        data-test="calendar-prev"
-                        onClick={goPrev}
-                    >
-                        <ChevronLeft className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('collections.itemsList.calendarNext')}
-                        data-test="calendar-next"
-                        onClick={goNext}
-                    >
-                        <ChevronRight className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('collections.itemsList.calendarNextYear')}
-                        data-test="calendar-next-year"
-                        onClick={goNextYear}
-                    >
-                        <ChevronsRight className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        className="ml-1"
+                        variant="outline"
                         data-test="calendar-today"
                         onClick={goToday}
                     >
@@ -990,26 +997,27 @@ export function ItemsCalendar({
                     {titleLabel}
                 </h2>
 
-                <div
-                    className="flex items-center gap-3 text-sm"
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    value={view}
+                    onValueChange={(next) => {
+                        if (next) {
+                            switchView(next as CalendarView);
+                        }
+                    }}
                     data-test="calendar-views"
                 >
                     {viewTabs.map((tab) => (
-                        <button
+                        <ToggleGroupItem
                             key={tab.id}
-                            type="button"
+                            value={tab.id}
                             data-test={`calendar-view-${tab.id}`}
-                            className={cn(
-                                'rounded-md px-2 py-0.5 text-muted-foreground transition-colors hover:text-foreground',
-                                view === tab.id &&
-                                    'bg-muted font-medium text-foreground',
-                            )}
-                            onClick={() => switchView(tab.id)}
                         >
                             {tab.label}
-                        </button>
+                        </ToggleGroupItem>
                     ))}
-                </div>
+                </ToggleGroup>
             </div>
 
             {total > items.length ? (
