@@ -982,7 +982,8 @@
             "sendingMedia": "Invio…",
             "retrySend": "Riprova",
             "removePendingFile": "Rimuovi file",
-            "scrollToBottom": "Vai in fondo"
+            "scrollToBottom": "Vai in fondo",
+            "mentionCollection": "Collezione"
         },
         "packs": {
             "createFromPack": "Crea da pack",

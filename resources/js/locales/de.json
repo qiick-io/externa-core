@@ -982,7 +982,8 @@
             "sendingMedia": "Senden…",
             "retrySend": "Erneut versuchen",
             "removePendingFile": "Datei entfernen",
-            "scrollToBottom": "Nach unten scrollen"
+            "scrollToBottom": "Nach unten scrollen",
+            "mentionCollection": "Sammlung"
         },
         "packs": {
             "createFromPack": "Aus Pack erstellen",
