@@ -2089,5 +2089,24 @@
         "table": "Table",
         "linkUrl": "Link URL",
         "headingLevel": "Heading {{level}}"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "Pending in queue: {{count}}",
+        "pendingTitle": "Pending (sample)",
+        "failedTitle": "Failed jobs",
+        "pendingEmpty": "No pending jobs.",
+        "failedEmpty": "No failed jobs.",
+        "scopeHint": "Domain job status (AI import, zip) remains in their existing UIs — this page monitors the Laravel queue tables only.",
+        "retry": "Retry",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Queue",
+            "attempts": "Attempts",
+            "failedAt": "Failed at",
+            "exception": "Exception",
+            "actions": "Actions"
+        }
     }
 }

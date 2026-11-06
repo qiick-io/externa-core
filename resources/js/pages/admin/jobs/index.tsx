@@ -1,15 +1,10 @@
 import { Head, router } from '@inertiajs/react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { useTranslation } from 'react-i18next';
+import { DataTable } from '@/components/admin/data-table';
 import { TruncatedText } from '@/components/admin/truncated-text';
-import { PageLayout, TablePanel } from '@/components/layout/page-layout';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editProfile } from '@/routes/profile';
@@ -47,158 +42,159 @@ export default function JobsIndex({
     failed: FailedJob[];
     can_manage: boolean;
 }) {
+    const { t } = useTranslation();
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Settings', href: editProfile() },
-        { title: 'Jobs', href: '/settings/jobs' },
+        { title: t('settings.layout.title'), href: editProfile() },
+        { title: t('jobs.title'), href: '/settings/jobs' },
+    ];
+
+    const pendingColumns: ColumnDef<PendingJob>[] = [
+        {
+            id: 'id',
+            header: t('jobs.columns.id'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right tabular-nums',
+            },
+            cell: ({ row }) => row.original.id,
+        },
+        {
+            id: 'job',
+            header: t('jobs.columns.job'),
+            meta: { cellClassName: 'max-w-[14rem] font-mono text-xs' },
+            cell: ({ row }) => (
+                <TruncatedText text={row.original.display_name} />
+            ),
+        },
+        {
+            id: 'queue',
+            header: t('jobs.columns.queue'),
+            cell: ({ row }) => row.original.queue,
+        },
+        {
+            id: 'attempts',
+            header: t('jobs.columns.attempts'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right tabular-nums',
+            },
+            cell: ({ row }) => row.original.attempts,
+        },
+    ];
+
+    const failedColumns: ColumnDef<FailedJob>[] = [
+        {
+            id: 'job',
+            header: t('jobs.columns.job'),
+            meta: { cellClassName: 'max-w-[14rem] font-mono text-xs' },
+            cell: ({ row }) => (
+                <TruncatedText text={row.original.display_name} />
+            ),
+        },
+        {
+            id: 'queue',
+            header: t('jobs.columns.queue'),
+            cell: ({ row }) => row.original.queue,
+        },
+        {
+            id: 'failed_at',
+            header: t('jobs.columns.failedAt'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right whitespace-nowrap tabular-nums',
+            },
+            cell: ({ row }) => row.original.failed_at,
+        },
+        {
+            id: 'exception',
+            header: t('jobs.columns.exception'),
+            meta: {
+                cellClassName:
+                    'max-w-md font-mono text-xs text-muted-foreground',
+            },
+            cell: ({ row }) => <TruncatedText text={row.original.exception} />,
+        },
+        {
+            id: 'actions',
+            header: t('jobs.columns.actions'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'space-x-2 text-right whitespace-nowrap',
+            },
+            cell: ({ row }) =>
+                can_manage ? (
+                    <>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                                router.post(
+                                    `/settings/jobs/${row.original.uuid}/retry`,
+                                )
+                            }
+                        >
+                            {t('jobs.retry')}
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            onClick={() =>
+                                router.delete(
+                                    `/settings/jobs/${row.original.uuid}`,
+                                )
+                            }
+                        >
+                            {t('common.delete')}
+                        </Button>
+                    </>
+                ) : null,
+        },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Jobs" />
+            <Head title={t('jobs.title')} />
             <SettingsLayout wide>
-                <PageLayout description={`Pending in queue: ${pending_count}`}>
+                <PageLayout
+                    description={t('jobs.pendingCount', {
+                        count: pending_count,
+                    })}
+                >
                     <div className="mb-8 space-y-3">
                         <h2 className="text-lg font-medium">
-                            Pending (sample)
+                            {t('jobs.pendingTitle')}
                         </h2>
-                        <TablePanel>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="text-right">
-                                            ID
-                                        </TableHead>
-                                        <TableHead>Job</TableHead>
-                                        <TableHead>Queue</TableHead>
-                                        <TableHead className="text-right">
-                                            Attempts
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {pending.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={4}
-                                                className="text-muted-foreground"
-                                            >
-                                                No pending jobs.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        pending.map((job) => (
-                                            <TableRow key={job.id}>
-                                                <TableCell className="text-right tabular-nums">
-                                                    {job.id}
-                                                </TableCell>
-                                                <TableCell className="max-w-[14rem] font-mono text-xs">
-                                                    <TruncatedText
-                                                        text={job.display_name}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {job.queue}
-                                                </TableCell>
-                                                <TableCell className="text-right tabular-nums">
-                                                    {job.attempts}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TablePanel>
+                        <DataTable
+                            columns={pendingColumns}
+                            data={pending}
+                            getRowId={(job) => String(job.id)}
+                            emptyState={
+                                <span className="text-muted-foreground">
+                                    {t('jobs.pendingEmpty')}
+                                </span>
+                            }
+                        />
                     </div>
 
                     <div className="space-y-3">
-                        <h2 className="text-lg font-medium">Failed jobs</h2>
-                        <TablePanel>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Job</TableHead>
-                                        <TableHead>Queue</TableHead>
-                                        <TableHead className="text-right">
-                                            Failed at
-                                        </TableHead>
-                                        <TableHead>Exception</TableHead>
-                                        <TableHead className="text-right">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {failed.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={5}
-                                                className="text-muted-foreground"
-                                            >
-                                                No failed jobs.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        failed.map((job) => (
-                                            <TableRow
-                                                key={job.uuid}
-                                                className="align-top"
-                                            >
-                                                <TableCell className="max-w-[14rem] font-mono text-xs">
-                                                    <TruncatedText
-                                                        text={job.display_name}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {job.queue}
-                                                </TableCell>
-                                                <TableCell className="text-right whitespace-nowrap tabular-nums">
-                                                    {job.failed_at}
-                                                </TableCell>
-                                                <TableCell className="max-w-md font-mono text-xs text-muted-foreground">
-                                                    <TruncatedText
-                                                        text={job.exception}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="space-x-2 text-right whitespace-nowrap">
-                                                    {can_manage ? (
-                                                        <>
-                                                            <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() =>
-                                                                    router.post(
-                                                                        `/settings/jobs/${job.uuid}/retry`,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Retry
-                                                            </Button>
-                                                            <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                variant="destructive"
-                                                                onClick={() =>
-                                                                    router.delete(
-                                                                        `/settings/jobs/${job.uuid}`,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Delete
-                                                            </Button>
-                                                        </>
-                                                    ) : null}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TablePanel>
+                        <h2 className="text-lg font-medium">
+                            {t('jobs.failedTitle')}
+                        </h2>
+                        <DataTable
+                            columns={failedColumns}
+                            data={failed}
+                            getRowId={(job) => job.uuid}
+                            getRowProps={() => ({ className: 'align-top' })}
+                            emptyState={
+                                <span className="text-muted-foreground">
+                                    {t('jobs.failedEmpty')}
+                                </span>
+                            }
+                        />
                         <p className="text-xs text-muted-foreground">
-                            Domain job status (AI import, zip) remains in their
-                            existing UIs — this page monitors the Laravel queue
-                            tables only.
+                            {t('jobs.scopeHint')}
                         </p>
                     </div>
                 </PageLayout>
