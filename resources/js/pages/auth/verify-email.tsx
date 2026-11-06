@@ -1,6 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
+import { CircleCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import TextLink from '@/components/text-link';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
@@ -21,9 +23,12 @@ export default function VerifyEmail({ status }: { status?: string }) {
             <Head title={t('auth.verifyEmail.head')} />
 
             {status === 'verification-link-sent' && (
-                <div className="mb-4 text-center text-sm font-medium text-success">
-                    {t('auth.verifyEmail.linkSent')}
-                </div>
+                <Alert variant="success" role="status" className="mb-4">
+                    <CircleCheck />
+                    <AlertTitle className="line-clamp-none">
+                        {t('auth.verifyEmail.linkSent')}
+                    </AlertTitle>
+                </Alert>
             )}
 
             <Form {...send.form()} className="space-y-6 text-center">

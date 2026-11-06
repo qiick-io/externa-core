@@ -32,7 +32,9 @@
         "active": "Active",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} of {{total}}",
-        "perPageOption": "{{count}} / page"
+        "perPageOption": "{{count}} / page",
+        "copy": "Copy",
+        "copied": "Copied"
     },
     "emptyState": {
         "collections": {
@@ -357,7 +359,8 @@
                 "revokeTitle": "Revoke API key “{{name}}”?",
                 "revokeDescription": "This key will stop working immediately.",
                 "revokeConfirm": "Revoke"
-            }
+            },
+            "secretValue": "New API key"
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -734,7 +737,8 @@
             "regenerate": "Regenerate codes",
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
-            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above.",
+            "setupKey": "Setup key"
         },
         "aiTools": {
             "breadcrumb": "AI write tools",
@@ -1829,7 +1833,8 @@
             "clearSelection": "Clear selection",
             "emptyTrash": "Empty trash",
             "emptyTrashTitle": "Empty the trash?",
-            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done."
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done.",
+            "uploadOptions": "More upload options"
         },
         "sort": {
             "name": "Name",
@@ -1980,7 +1985,15 @@
     },
     "confirmDestructive": {
         "typeToConfirm": "Type \"{{name}}\" to confirm",
-        "deletePermanently": "Delete permanently"
+        "deletePermanently": "Delete permanently",
+        "deleteAiChatTitle": "Delete this chat?",
+        "deleteAiChatDescription": "The conversation and all its messages will be deleted.",
+        "deletePromptTitle": "Delete prompt “{{name}}”?",
+        "deletePromptDescription": "The saved prompt will no longer be available to anyone.",
+        "deleteMessageTitle": "Delete this message?",
+        "deleteMessageDescription": "The message will be removed from the chat for everyone.",
+        "deleteDirectChatTitle": "Delete this chat?",
+        "deleteDirectChatDescription": "The chat will be removed from your chats."
     },
     "itemConfirm": {
         "deleteTitle": "Delete item “{{name}}”?",

@@ -1,7 +1,15 @@
 import { usePage } from '@inertiajs/react';
 import { Check, FolderOpen, ImageIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { FileDropzone } from '@/components/admin/file-dropzone';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
@@ -13,7 +21,14 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
@@ -257,30 +272,47 @@ export function FilePickerDrawer({
                         onChange={(event) => setSearch(event.target.value)}
                     />
 
-                    <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-                        <button
-                            type="button"
-                            className="hover:text-foreground"
-                            onClick={() => navigateTo(-1)}
-                        >
-                            Root
-                        </button>
-                        {breadcrumbs.map((crumb, index) => (
-                            <span
-                                key={crumb.id}
-                                className="flex items-center gap-1"
-                            >
-                                <span>/</span>
-                                <button
-                                    type="button"
-                                    className="hover:text-foreground"
-                                    onClick={() => navigateTo(index)}
-                                >
-                                    {crumb.name}
-                                </button>
-                            </span>
-                        ))}
-                    </nav>
+                    <Breadcrumb>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                {breadcrumbs.length === 0 ? (
+                                    <BreadcrumbPage>Root</BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigateTo(-1)}
+                                        >
+                                            Root
+                                        </button>
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
+                            {breadcrumbs.map((crumb, index) => (
+                                <Fragment key={crumb.id}>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        {index === breadcrumbs.length - 1 ? (
+                                            <BreadcrumbPage>
+                                                {crumb.name}
+                                            </BreadcrumbPage>
+                                        ) : (
+                                            <BreadcrumbLink asChild>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        navigateTo(index)
+                                                    }
+                                                >
+                                                    {crumb.name}
+                                                </button>
+                                            </BreadcrumbLink>
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            ))}
+                        </BreadcrumbList>
+                    </Breadcrumb>
 
                     <FileDropzone
                         compact
@@ -293,14 +325,25 @@ export function FilePickerDrawer({
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {loading && (
-                            <p className="col-span-full text-sm text-muted-foreground">
+                            <div className="col-span-full flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 Loading…
-                            </p>
+                            </div>
                         )}
                         {!loading && visibleFiles.length === 0 && (
-                            <p className="col-span-full text-sm text-muted-foreground">
-                                No files in this folder
-                            </p>
+                            <Empty className="col-span-full gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <FolderOpen />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        No files in this folder
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         )}
                         {visibleFiles.map((file) => {
                             const publicUrl = filePublicUrl(file);
@@ -369,7 +412,8 @@ export function FilePickerDrawer({
                             disabled={loading || loadingMore}
                             onClick={() => void loadFiles(page + 1, true)}
                         >
-                            {loadingMore ? 'Loading…' : 'Load more'}
+                            {loadingMore && <Spinner />}
+                            Load more
                         </Button>
                     )}
                 </DrawerBody>
