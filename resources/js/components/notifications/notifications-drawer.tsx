@@ -3,6 +3,15 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
+    Item,
+    ItemContent,
+    ItemDescription,
+    ItemFooter,
+    ItemGroup,
+    ItemTitle,
+} from '@/components/ui/item';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
     Sheet,
     SheetContent,
     SheetDescription,
@@ -206,116 +215,132 @@ export function NotificationsDrawer({
                     </Button>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4">
-                    {isLoading ? (
-                        <p className="text-sm text-muted-foreground">
-                            {t('notifications.loading')}
-                        </p>
-                    ) : null}
+                <ScrollArea className="min-h-0 flex-1">
+                    <ItemGroup className="gap-2 px-4 pb-4">
+                        {isLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                                {t('notifications.loading')}
+                            </p>
+                        ) : null}
 
-                    {!isLoading && notifications.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            {t('notifications.empty')}
-                        </p>
-                    ) : null}
+                        {!isLoading && notifications.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                {t('notifications.empty')}
+                            </p>
+                        ) : null}
 
-                    {notifications.map((notification) => {
-                        const folderId = notification.data.folder_id;
-                        const zipHref = zipDownloadHref(notification);
-                        const chatUrl = chatHref(notification);
-                        const isUnread = notification.read_at === null;
+                        {notifications.map((notification) => {
+                            const folderId = notification.data.folder_id;
+                            const zipHref = zipDownloadHref(notification);
+                            const chatUrl = chatHref(notification);
+                            const isUnread = notification.read_at === null;
 
-                        return (
-                            <div
-                                key={notification.id}
-                                className={cn(
-                                    'rounded-lg border p-3',
-                                    isUnread && 'bg-muted/40',
-                                )}
-                            >
-                                <p className="text-sm font-medium">
-                                    {notificationTitle(notification)}
-                                </p>
-                                {notificationBody(notification) ? (
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {notificationBody(notification)}
-                                    </p>
-                                ) : null}
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                    {new Date(
-                                        notification.created_at,
-                                    ).toLocaleString()}
-                                </p>
-                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    {typeof folderId === 'number' ? (
-                                        <Button
-                                            asChild
-                                            variant="link"
-                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <Link
-                                                href={files.index.url(folderId)}
-                                                onClick={() =>
-                                                    onOpenChange(false)
-                                                }
+                            return (
+                                <Item
+                                    key={notification.id}
+                                    role="listitem"
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(
+                                        'gap-1 p-3',
+                                        isUnread && 'bg-muted/40',
+                                    )}
+                                    data-unread={isUnread || undefined}
+                                >
+                                    <ItemContent>
+                                        <ItemTitle>
+                                            {notificationTitle(notification)}
+                                        </ItemTitle>
+                                        {notificationBody(notification) ? (
+                                            <ItemDescription className="line-clamp-none">
+                                                {notificationBody(notification)}
+                                            </ItemDescription>
+                                        ) : null}
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {new Date(
+                                                notification.created_at,
+                                            ).toLocaleString()}
+                                        </p>
+                                    </ItemContent>
+                                    <ItemFooter className="flex-wrap justify-start gap-x-3 gap-y-1">
+                                        {typeof folderId === 'number' ? (
+                                            <Button
+                                                asChild
+                                                variant="link"
+                                                className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                             >
-                                                {t('notifications.openFolder')}
-                                            </Link>
-                                        </Button>
-                                    ) : null}
-                                    {chatUrl ? (
-                                        <Button
-                                            asChild
-                                            variant="link"
-                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <Link
-                                                href={chatUrl}
-                                                onClick={() =>
-                                                    onOpenChange(false)
-                                                }
+                                                <Link
+                                                    href={files.index.url(
+                                                        folderId,
+                                                    )}
+                                                    onClick={() =>
+                                                        onOpenChange(false)
+                                                    }
+                                                >
+                                                    {t(
+                                                        'notifications.openFolder',
+                                                    )}
+                                                </Link>
+                                            </Button>
+                                        ) : null}
+                                        {chatUrl ? (
+                                            <Button
+                                                asChild
+                                                variant="link"
+                                                className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                             >
-                                                {t('notifications.openChat')}
-                                            </Link>
-                                        </Button>
-                                    ) : null}
-                                    {zipHref ? (
-                                        <Button
-                                            asChild
-                                            variant="link"
-                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <a
-                                                href={zipHref}
-                                                onClick={() =>
-                                                    onOpenChange(false)
-                                                }
+                                                <Link
+                                                    href={chatUrl}
+                                                    onClick={() =>
+                                                        onOpenChange(false)
+                                                    }
+                                                >
+                                                    {t(
+                                                        'notifications.openChat',
+                                                    )}
+                                                </Link>
+                                            </Button>
+                                        ) : null}
+                                        {zipHref ? (
+                                            <Button
+                                                asChild
+                                                variant="link"
+                                                className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                             >
-                                                {t('notifications.downloadZip')}
-                                            </a>
-                                        </Button>
-                                    ) : null}
-                                    {!isUnread ? (
-                                        <Button
-                                            type="button"
-                                            variant="link"
-                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
-                                            disabled={isMutating}
-                                            onClick={() =>
-                                                void handleMarkUnread(
-                                                    notification.id,
-                                                )
-                                            }
-                                            data-test="notifications-mark-unread"
-                                        >
-                                            {t('notifications.markUnread')}
-                                        </Button>
-                                    ) : null}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                                                <a
+                                                    href={zipHref}
+                                                    onClick={() =>
+                                                        onOpenChange(false)
+                                                    }
+                                                >
+                                                    {t(
+                                                        'notifications.downloadZip',
+                                                    )}
+                                                </a>
+                                            </Button>
+                                        ) : null}
+                                        {!isUnread ? (
+                                            <Button
+                                                type="button"
+                                                variant="link"
+                                                className="h-auto px-0 text-muted-foreground hover:text-foreground"
+                                                disabled={isMutating}
+                                                onClick={() =>
+                                                    void handleMarkUnread(
+                                                        notification.id,
+                                                    )
+                                                }
+                                                data-test="notifications-mark-unread"
+                                            >
+                                                {t('notifications.markUnread')}
+                                            </Button>
+                                        ) : null}
+                                    </ItemFooter>
+                                </Item>
+                            );
+                        })}
+                    </ItemGroup>
+                </ScrollArea>
             </SheetContent>
         </Sheet>
     );
