@@ -12,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
 
@@ -177,11 +178,13 @@ export function ApplyCollectionPackDialog({
                                               )
                                             : ''}
                                     </p>
-                                    <ul className="divide-y rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                                    <ItemGroup className="divide-y rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
                                         {selected.fields.map((field) => (
-                                            <li
+                                            <Item
                                                 key={field.name}
-                                                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                                                role="listitem"
+                                                size="sm"
+                                                className="justify-between rounded-none"
                                             >
                                                 <span className="font-mono text-xs">
                                                     {field.name}
@@ -197,12 +200,14 @@ export function ApplyCollectionPackDialog({
                                                           )
                                                         : ''}
                                                 </span>
-                                            </li>
+                                            </Item>
                                         ))}
                                         {selected.relations.map((relation) => (
-                                            <li
+                                            <Item
                                                 key={relation.field_name}
-                                                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                                                role="listitem"
+                                                size="sm"
+                                                className="justify-between rounded-none"
                                             >
                                                 <span className="font-mono text-xs">
                                                     {relation.field_name}
@@ -216,9 +221,9 @@ export function ApplyCollectionPackDialog({
                                                         ? ` → ${relation.related_pack}`
                                                         : ''}
                                                 </span>
-                                            </li>
+                                            </Item>
                                         ))}
-                                    </ul>
+                                    </ItemGroup>
                                 </div>
                             </div>
                         )}

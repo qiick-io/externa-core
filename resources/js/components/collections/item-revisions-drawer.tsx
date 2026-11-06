@@ -14,6 +14,7 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import { jsonRequestHeaders } from '@/lib/csrf';
 import { cn } from '@/lib/utils';
@@ -281,11 +282,13 @@ export function ItemRevisionsDrawer({
                                     : 'No revisions yet. Saves, draft edits, publish, and restores appear here.'}
                             </p>
                         ) : null}
-                        <ul className="divide-y rounded-xl border border-sidebar-border/70">
+                        <ItemGroup className="divide-y rounded-xl border border-sidebar-border/70">
                             {revisions.map((revision) => (
-                                <li
+                                <Item
                                     key={revision.id}
-                                    className="flex items-start gap-2 px-3 py-3"
+                                    role="listitem"
+                                    size="sm"
+                                    className="items-start rounded-none"
                                 >
                                     <button
                                         type="button"
@@ -330,9 +333,9 @@ export function ItemRevisionsDrawer({
                                             Hard
                                         </Button>
                                     ) : null}
-                                </li>
+                                </Item>
                             ))}
-                        </ul>
+                        </ItemGroup>
                         {meta?.has_more ? (
                             <Button
                                 type="button"

@@ -1,24 +1,19 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ChevronDown,
-    ChevronRight,
-    Download,
-    FileJson,
-    FileSpreadsheet,
-} from 'lucide-react';
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { ChevronDown, Download, FileJson, FileSpreadsheet } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    DataTable,
+    dataTableExpandColumn,
+} from '@/components/admin/data-table';
+import { DataTableFacetedFilter } from '@/components/admin/data-table-faceted-filter';
 import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { FilterSearch } from '@/components/layout/page-header';
-import {
-    PageLayout,
-    hasTablePaginationFooter,
-    TablePaginationFooter,
-    TablePanel,
-} from '@/components/layout/page-layout';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,21 +24,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import AppLayout from '@/layouts/app-layout';
 import { seedActivityLogPrompt } from '@/lib/ai-open';
@@ -56,12 +36,6 @@ import type {
     BreadcrumbItem,
     Paginated,
 } from '@/types';
-
-/**
- * Radix Select reserves the empty string for "no value", so the "All …"
- * option uses this sentinel and maps back to an unset filter.
- */
-const ALL_FILTER_VALUE = '__all__';
 
 type Filters = {
     search?: string;
@@ -117,7 +91,6 @@ export default function AdminActivityLogsIndex({
     const [logName, setLogName] = useState(filters.log_name ?? '');
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
-    const [expandedIds, setExpandedIds] = useState<number[]>([]);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
@@ -202,14 +175,6 @@ export default function AdminActivityLogsIndex({
 
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
-    const toggleExpanded = (id: number): void => {
-        setExpandedIds((previous) =>
-            previous.includes(id)
-                ? previous.filter((value) => value !== id)
-                : [...previous, id],
-        );
-    };
-
     const formatDate = (value: string): string =>
         new Date(value).toLocaleString();
 
@@ -249,6 +214,83 @@ export default function AdminActivityLogsIndex({
 
         return users.filter((user) => userIds.includes(user.id));
     }, [users, userIds]);
+
+    const columns: ColumnDef<AdminActivityLogRow>[] = [
+        dataTableExpandColumn<AdminActivityLogRow>({
+            expandLabel: t('activityLog.expand'),
+            collapseLabel: t('activityLog.collapse'),
+        }),
+        {
+            id: 'date',
+            header: t('activityLog.columns.date'),
+            meta: { cellClassName: 'text-sm whitespace-nowrap tabular-nums' },
+            cell: ({ row }) => formatDate(row.original.created_at),
+        },
+        {
+            id: 'user',
+            header: t('activityLog.columns.user'),
+            cell: ({ row }) =>
+                row.original.causer ? (
+                    <div className="text-sm">
+                        <div>{row.original.causer.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                            {row.original.causer.email}
+                        </div>
+                    </div>
+                ) : (
+                    <span className="text-sm text-muted-foreground">
+                        {t('activityLog.system')}
+                    </span>
+                ),
+        },
+        {
+            id: 'action',
+            header: t('activityLog.columns.action'),
+            cell: ({ row }) => (
+                <Badge variant="secondary">
+                    {eventLabel(row.original.event)}
+                </Badge>
+            ),
+        },
+        {
+            id: 'description',
+            header: t('activityLog.columns.description'),
+            meta: { cellClassName: 'max-w-xs text-sm' },
+            cell: ({ row }) => (
+                <TruncatedText text={row.original.description || '—'} />
+            ),
+        },
+        {
+            id: 'subject',
+            header: t('activityLog.columns.subject'),
+            meta: { cellClassName: 'text-sm' },
+            cell: ({ row }) =>
+                row.original.subject ? (
+                    <>
+                        {row.original.subject.type} {row.original.subject.label}
+                    </>
+                ) : (
+                    '—'
+                ),
+        },
+        {
+            id: 'actions',
+            header: t('activityLog.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+            },
+            cell: ({ row }) => (
+                <AskAiButton
+                    prompt={seedActivityLogPrompt({
+                        id: row.original.id,
+                        description: row.original.description,
+                        event: row.original.event,
+                    })}
+                />
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -310,63 +352,40 @@ export default function AdminActivityLogsIndex({
                                 initialUsers={initialSelectedUsers}
                                 className="h-auto min-h-control min-w-0"
                             />
-                            <Select
-                                value={event || ALL_FILTER_VALUE}
-                                onValueChange={(value) => {
-                                    const nextEvent =
-                                        value === ALL_FILTER_VALUE ? '' : value;
+                            <DataTableFacetedFilter
+                                title={t('activityLog.columns.action')}
+                                ariaLabel={t('activityLog.filterByAction')}
+                                isMultiple={false}
+                                className="w-full min-w-0"
+                                options={events.map((eventName) => ({
+                                    value: eventName,
+                                    label: eventLabel(eventName),
+                                }))}
+                                selectedValues={event ? [event] : []}
+                                onSelectedValuesChange={([nextEvent = '']) => {
                                     setEvent(nextEvent);
                                     visit({ event: nextEvent || undefined });
                                 }}
-                            >
-                                <SelectTrigger
-                                    className="w-full min-w-0"
-                                    aria-label={t('activityLog.filterByAction')}
-                                >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL_FILTER_VALUE}>
-                                        {t('activityLog.allActions')}
-                                    </SelectItem>
-                                    {events.map((eventName) => (
-                                        <SelectItem
-                                            key={eventName}
-                                            value={eventName}
-                                        >
-                                            {eventLabel(eventName)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select
-                                value={logName || ALL_FILTER_VALUE}
-                                onValueChange={(value) => {
-                                    const nextLogName =
-                                        value === ALL_FILTER_VALUE ? '' : value;
+                            />
+                            <DataTableFacetedFilter
+                                title={t('activityLog.logName')}
+                                ariaLabel={t('activityLog.filterByLog')}
+                                isMultiple={false}
+                                className="w-full min-w-0"
+                                options={logNames.map((name) => ({
+                                    value: name,
+                                    label: logNameLabel(name),
+                                }))}
+                                selectedValues={logName ? [logName] : []}
+                                onSelectedValuesChange={([
+                                    nextLogName = '',
+                                ]) => {
                                     setLogName(nextLogName);
                                     visit({
                                         log_name: nextLogName || undefined,
                                     });
                                 }}
-                            >
-                                <SelectTrigger
-                                    className="w-full min-w-0"
-                                    aria-label={t('activityLog.filterByLog')}
-                                >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL_FILTER_VALUE}>
-                                        {t('activityLog.allLogs')}
-                                    </SelectItem>
-                                    {logNames.map((name) => (
-                                        <SelectItem key={name} value={name}>
-                                            {logNameLabel(name)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            />
                             <DateRangePicker
                                 dataTest="activity-log-date-range"
                                 value={{ from: dateFrom, to: dateTo }}
@@ -386,190 +405,38 @@ export default function AdminActivityLogsIndex({
                     </div>
                 }
             >
-                <TablePanel
-                    footer={
-                        hasTablePaginationFooter(activityLogs) ? (
-                            <TablePaginationFooter pagination={activityLogs} />
-                        ) : undefined
+                <DataTable
+                    columns={columns}
+                    data={activityLogs.data ?? []}
+                    getRowId={(row) => String(row.id)}
+                    pagination={activityLogs}
+                    renderExpandedRow={(row) => (
+                        <div className="space-y-3 py-2">
+                            <div className="grid gap-2 text-sm sm:grid-cols-2">
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        {t('activityLog.logName')}:
+                                    </span>{' '}
+                                    {logNameLabel(row.log_name ?? 'default')}
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        IP:
+                                    </span>{' '}
+                                    {row.properties.ip ?? '—'}
+                                </div>
+                            </div>
+                            <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+                                {renderChanges(row)}
+                            </pre>
+                        </div>
+                    )}
+                    emptyState={
+                        <span className="text-muted-foreground">
+                            {t('activityLog.empty')}
+                        </span>
                     }
-                >
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-8" />
-                                <TableHead>
-                                    {t('activityLog.columns.date')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.user')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.action')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.description')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.subject')}
-                                </TableHead>
-                                <TableHead className="w-[1%] text-right">
-                                    {t('activityLog.columns.actions')}
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {(activityLogs.data ?? []).length === 0 ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={7}
-                                        className="text-muted-foreground"
-                                    >
-                                        {t('activityLog.empty')}
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                (activityLogs.data ?? []).map((row) => {
-                                    const isExpanded = expandedIds.includes(
-                                        row.id,
-                                    );
-
-                                    return (
-                                        <Fragment key={row.id}>
-                                            <TableRow>
-                                                <TableCell>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            toggleExpanded(
-                                                                row.id,
-                                                            )
-                                                        }
-                                                        className="text-muted-foreground hover:text-foreground"
-                                                        aria-label={
-                                                            isExpanded
-                                                                ? t(
-                                                                      'activityLog.collapse',
-                                                                  )
-                                                                : t(
-                                                                      'activityLog.expand',
-                                                                  )
-                                                        }
-                                                    >
-                                                        {isExpanded ? (
-                                                            <ChevronDown className="size-4" />
-                                                        ) : (
-                                                            <ChevronRight className="size-4" />
-                                                        )}
-                                                    </button>
-                                                </TableCell>
-                                                <TableCell className="text-sm whitespace-nowrap tabular-nums">
-                                                    {formatDate(row.created_at)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {row.causer ? (
-                                                        <div className="text-sm">
-                                                            <div>
-                                                                {
-                                                                    row.causer
-                                                                        .name
-                                                                }
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground">
-                                                                {
-                                                                    row.causer
-                                                                        .email
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {t(
-                                                                'activityLog.system',
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary">
-                                                        {eventLabel(row.event)}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="max-w-xs text-sm">
-                                                    <TruncatedText
-                                                        text={
-                                                            row.description ||
-                                                            '—'
-                                                        }
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-sm">
-                                                    {row.subject ? (
-                                                        <>
-                                                            {row.subject.type}{' '}
-                                                            {row.subject.label}
-                                                        </>
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <AskAiButton
-                                                        prompt={seedActivityLogPrompt(
-                                                            {
-                                                                id: row.id,
-                                                                description:
-                                                                    row.description,
-                                                                event: row.event,
-                                                            },
-                                                        )}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                            {isExpanded ? (
-                                                <TableRow
-                                                    key={`${row.id}-details`}
-                                                >
-                                                    <TableCell colSpan={7}>
-                                                        <div className="space-y-3 py-2">
-                                                            <div className="grid gap-2 text-sm sm:grid-cols-2">
-                                                                <div>
-                                                                    <span className="text-muted-foreground">
-                                                                        {t(
-                                                                            'activityLog.logName',
-                                                                        )}
-                                                                        :
-                                                                    </span>{' '}
-                                                                    {logNameLabel(
-                                                                        row.log_name ??
-                                                                            'default',
-                                                                    )}
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-muted-foreground">
-                                                                        IP:
-                                                                    </span>{' '}
-                                                                    {row
-                                                                        .properties
-                                                                        .ip ??
-                                                                        '—'}
-                                                                </div>
-                                                            </div>
-                                                            <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
-                                                                {renderChanges(
-                                                                    row,
-                                                                )}
-                                                            </pre>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ) : null}
-                                        </Fragment>
-                                    );
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </TablePanel>
+                />
             </PageLayout>
         </AppLayout>
     );

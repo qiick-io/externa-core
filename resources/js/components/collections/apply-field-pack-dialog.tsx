@@ -12,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
 
@@ -133,11 +134,13 @@ export function ApplyFieldPackDialog({
                                         count: selected.fields.length,
                                     })}
                                 </p>
-                                <ul className="divide-y rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                                <ItemGroup className="divide-y rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
                                     {selected.fields.map((field) => (
-                                        <li
+                                        <Item
                                             key={field.name}
-                                            className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                                            role="listitem"
+                                            size="sm"
+                                            className="justify-between rounded-none"
                                         >
                                             <span className="font-mono text-xs">
                                                 {field.name}
@@ -150,9 +153,9 @@ export function ApplyFieldPackDialog({
                                                       )
                                                     : ''}
                                             </span>
-                                        </li>
+                                        </Item>
                                     ))}
-                                </ul>
+                                </ItemGroup>
                             </div>
                         )}
                     </div>

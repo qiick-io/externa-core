@@ -1,7 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import TextLink from '@/components/text-link';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -10,6 +11,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
@@ -28,9 +30,12 @@ export default function ForgotPassword({ status }: { status?: string }) {
             <Head title={t('auth.forgotPassword.head')} />
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-success">
-                    {status}
-                </div>
+                <Alert variant="success" role="status" className="mb-4">
+                    <CircleCheck />
+                    <AlertTitle className="line-clamp-none">
+                        {status}
+                    </AlertTitle>
+                </Alert>
             )}
 
             <div className="space-y-6">
@@ -69,9 +74,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     disabled={processing}
                                     data-test="email-password-reset-link-button"
                                 >
-                                    {processing && (
-                                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                                    )}
+                                    {processing && <Spinner />}
                                     {t('auth.forgotPassword.submit')}
                                 </Button>
                             </div>
