@@ -1829,7 +1829,8 @@
             "clearSelection": "Clear selection",
             "emptyTrash": "Empty trash",
             "emptyTrashTitle": "Empty the trash?",
-            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done."
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done.",
+            "uploadOptions": "More upload options"
         },
         "sort": {
             "name": "Name",

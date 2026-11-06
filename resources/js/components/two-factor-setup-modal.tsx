@@ -12,7 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldError } from '@/components/ui/field';
+import { Field, FieldError, FieldSeparator } from '@/components/ui/field';
 import {
     InputOTP,
     InputOTPGroup,
@@ -105,12 +105,9 @@ function TwoFactorSetupStep({
                         </Button>
                     </div>
 
-                    <div className="relative flex w-full items-center justify-center">
-                        <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
-                        <span className="relative bg-card px-2 py-1">
-                            {t('settings.twoFactor.orEnterManually')}
-                        </span>
-                    </div>
+                    <FieldSeparator className="my-0 w-full">
+                        {t('settings.twoFactor.orEnterManually')}
+                    </FieldSeparator>
 
                     <div className="flex w-full space-x-2">
                         <div className="flex w-full items-stretch overflow-hidden rounded-xl border border-border">

@@ -1829,7 +1829,8 @@
             "clearSelection": "Auswahl aufheben",
             "emptyTrash": "Papierkorb leeren",
             "emptyTrashTitle": "Papierkorb leeren?",
-            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist."
+            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist.",
+            "uploadOptions": "Weitere Upload-Optionen"
         },
         "sort": {
             "name": "Name",

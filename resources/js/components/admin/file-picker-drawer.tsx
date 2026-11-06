@@ -1,7 +1,15 @@
 import { usePage } from '@inertiajs/react';
 import { Check, FolderOpen, ImageIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { FileDropzone } from '@/components/admin/file-dropzone';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
@@ -257,30 +265,47 @@ export function FilePickerDrawer({
                         onChange={(event) => setSearch(event.target.value)}
                     />
 
-                    <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-                        <button
-                            type="button"
-                            className="hover:text-foreground"
-                            onClick={() => navigateTo(-1)}
-                        >
-                            Root
-                        </button>
-                        {breadcrumbs.map((crumb, index) => (
-                            <span
-                                key={crumb.id}
-                                className="flex items-center gap-1"
-                            >
-                                <span>/</span>
-                                <button
-                                    type="button"
-                                    className="hover:text-foreground"
-                                    onClick={() => navigateTo(index)}
-                                >
-                                    {crumb.name}
-                                </button>
-                            </span>
-                        ))}
-                    </nav>
+                    <Breadcrumb>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                {breadcrumbs.length === 0 ? (
+                                    <BreadcrumbPage>Root</BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigateTo(-1)}
+                                        >
+                                            Root
+                                        </button>
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
+                            {breadcrumbs.map((crumb, index) => (
+                                <Fragment key={crumb.id}>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        {index === breadcrumbs.length - 1 ? (
+                                            <BreadcrumbPage>
+                                                {crumb.name}
+                                            </BreadcrumbPage>
+                                        ) : (
+                                            <BreadcrumbLink asChild>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        navigateTo(index)
+                                                    }
+                                                >
+                                                    {crumb.name}
+                                                </button>
+                                            </BreadcrumbLink>
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            ))}
+                        </BreadcrumbList>
+                    </Breadcrumb>
 
                     <FileDropzone
                         compact
