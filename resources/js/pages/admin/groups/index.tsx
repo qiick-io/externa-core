@@ -16,7 +16,7 @@ import { UserAvatar } from '@/components/admin/user-avatar';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarGroup } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
@@ -323,8 +323,8 @@ export default function AdminGroupsIndex({
                 return (
                     <span className="inline-flex items-center justify-end gap-2">
                         {members.length > 0 ? (
-                            <span
-                                className="flex gap-1"
+                            <AvatarGroup
+                                className="-space-x-1.5 [&_[data-slot=avatar]]:ring-2 [&_[data-slot=avatar]]:ring-background"
                                 data-test={`group-member-avatars-${row.original.id}`}
                             >
                                 {members
@@ -338,7 +338,7 @@ export default function AdminGroupsIndex({
                                             )}
                                         />
                                     ))}
-                            </span>
+                            </AvatarGroup>
                         ) : null}
                         {row.original.users_count ?? '—'}
                     </span>
