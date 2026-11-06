@@ -46,6 +46,7 @@ import {
     EmptyHeader,
     EmptyMedia,
 } from '@/components/ui/empty';
+import { Item } from '@/components/ui/item';
 import { useAiChat } from '@/hooks/use-ai-chat';
 import type { AiChatMessage } from '@/hooks/use-ai-chat';
 import AppLayout from '@/layouts/app-layout';
@@ -736,12 +737,19 @@ export default function AiIndexPage({
                                                         ) ?? 0;
 
                                                     return (
-                                                        <div
+                                                        <Item
                                                             key={
                                                                 conversation.id
                                                             }
+                                                            size="sm"
+                                                            variant={
+                                                                conversation.id ===
+                                                                chat.conversationId
+                                                                    ? 'muted'
+                                                                    : 'default'
+                                                            }
                                                             className={cn(
-                                                                'group mb-0.5 flex items-center gap-1 rounded-md',
+                                                                'group mb-0.5 flex-nowrap gap-1 p-0',
                                                                 conversation.id ===
                                                                     chat.conversationId
                                                                     ? 'bg-muted'
@@ -842,7 +850,7 @@ export default function AiIndexPage({
                                                                     </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
-                                                        </div>
+                                                        </Item>
                                                     );
                                                 },
                                             )}

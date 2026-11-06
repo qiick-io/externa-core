@@ -1007,7 +1007,10 @@
             "retrySend": "Riprova",
             "removePendingFile": "Rimuovi file",
             "scrollToBottom": "Vai in fondo",
-            "mentionCollection": "Collezione"
+            "mentionCollection": "Collezione",
+            "reactionToggle": "Reazione {{emoji}}: {{names}}",
+            "messageActions": "Azioni sul messaggio",
+            "react": "Reagisci"
         },
         "packs": {
             "createFromPack": "Crea da pack",
