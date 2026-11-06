@@ -1,6 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { KeyRound, Trash2 } from 'lucide-react';
+import { Check, Copy, KeyRound, TriangleAlert, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/components/admin/data-table';
@@ -8,6 +8,7 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import Heading from '@/components/heading';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,12 +29,19 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClipboard } from '@/hooks/use-clipboard';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { normalizePaginated } from '@/lib/pagination';
@@ -99,6 +107,8 @@ export default function AdminApiKeysIndex({
                       .plain_text_api_key ?? '',
               )
             : '');
+    const secretKey = plainTextKey || flashKey;
+    const [copiedSecret, copySecret] = useClipboard();
 
     const apiKeys = normalizePaginated(apiKeysProp);
     const rows = apiKeys.data ?? [];
@@ -301,21 +311,48 @@ export default function AdminApiKeysIndex({
                             description={t('settings.apiKeys.description')}
                         />
 
-                        {(flashKey || plainTextKey) && (
-                            <div
+                        {secretKey && (
+                            <Alert
+                                variant="warning"
                                 data-testid="api-key-secret"
-                                className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning"
                             >
-                                <p className="font-medium">
+                                <TriangleAlert />
+                                <AlertTitle>
                                     {t('settings.apiKeys.secretBanner')}
-                                </p>
-                                <code
-                                    data-testid="api-key-secret-value"
-                                    className="mt-2 block font-mono text-xs break-all"
-                                >
-                                    {plainTextKey || flashKey}
-                                </code>
-                            </div>
+                                </AlertTitle>
+                                <AlertDescription>
+                                    <InputGroup className="mt-1 w-full bg-background">
+                                        <InputGroupInput
+                                            readOnly
+                                            data-testid="api-key-secret-value"
+                                            aria-label={t(
+                                                'settings.apiKeys.secretValue',
+                                            )}
+                                            value={secretKey}
+                                            className="font-mono text-foreground"
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            <InputGroupButton
+                                                size="icon-xs"
+                                                aria-label={
+                                                    copiedSecret === secretKey
+                                                        ? t('common.copied')
+                                                        : t('common.copy')
+                                                }
+                                                onClick={() =>
+                                                    void copySecret(secretKey)
+                                                }
+                                            >
+                                                {copiedSecret === secretKey ? (
+                                                    <Check />
+                                                ) : (
+                                                    <Copy />
+                                                )}
+                                            </InputGroupButton>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                </AlertDescription>
+                            </Alert>
                         )}
 
                         {rows.length === 0 ? (
