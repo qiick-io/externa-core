@@ -1953,7 +1953,9 @@
             "placeholder": "Tag eingeben und Enter drücken",
             "exactMatch": "Exakte Übereinstimmung — bestehender Tag „{{name}}“ wird wiederverwendet",
             "existing": "Vorhandene Tags",
-            "moreTags": "{{count}} weitere Tags"
+            "moreTags": "{{count}} weitere Tags",
+            "create": "„{{name}}“ erstellen",
+            "remove": "Tag {{name}} entfernen"
         },
         "folderPicker": {
             "search": "Ordner suchen…",
