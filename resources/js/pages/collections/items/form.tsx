@@ -81,6 +81,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
@@ -2102,8 +2103,8 @@ export default function ItemsForm({
                                 Explain what the editor should fix before
                                 resubmitting.
                             </p>
-                            <textarea
-                                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            <Textarea
+                                className="min-h-24"
                                 value={rejectNote}
                                 onChange={(event) =>
                                     setRejectNote(event.target.value)

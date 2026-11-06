@@ -23,6 +23,7 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
+import { FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -150,14 +151,16 @@ function getPathValue(source: unknown, path: string): unknown {
 /**
  * Always reserves one line of vertical space below the control so half-width siblings stay aligned.
  */
+/**
+ * Field note under the control; the line is always reserved so half-width
+ * siblings stay aligned.
+ * @returns {JSX.Element}
+ */
 export function FieldNoteSlot({ note }: { note?: string }) {
     return (
-        <p
-            className="min-h-5 text-sm text-muted-foreground"
-            aria-hidden={!note}
-        >
+        <FieldDescription className="min-h-5" aria-hidden={!note}>
             {note || '\u00A0'}
-        </p>
+        </FieldDescription>
     );
 }
 
