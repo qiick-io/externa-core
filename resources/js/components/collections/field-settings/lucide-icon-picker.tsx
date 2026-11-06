@@ -43,11 +43,6 @@ function isLucideIconName(name: string): name is IconName {
     return Object.hasOwn(dynamicIconImports, name);
 }
 
-/** Flat list kept for callers that still expect a curated options array. */
-export const LUCIDE_ICON_OPTIONS: { name: string }[] = ICON_CATEGORIES.flatMap(
-    (category) => category.icons.map((name) => ({ name })),
-);
-
 /**
  * Converts kebab-case Lucide names (e.g. flask-conical) to PascalCase component names.
  */

@@ -33,18 +33,6 @@ export function isFieldHiddenInForm(
     return value === true || value === 1 || value === '1';
 }
 
-/**
- * Filter fields to those visible on the item form.
- *
- * @param fields - Field definitions with optional settings
- * @returns Fields that should render on item edit forms
- */
-export function fieldsVisibleInForm<
-    T extends { settings?: Record<string, unknown> | null },
->(fields: T[]): T[] {
-    return fields.filter((field) => !isFieldHiddenInForm(field.settings));
-}
-
 /** Grid column width token for collection field layout. */
 export type FieldLayoutWidth = 'half' | 'full' | 'fill';
 

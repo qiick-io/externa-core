@@ -93,16 +93,6 @@ export function removeFileUpload(uploadId: string): void {
 }
 
 /**
- * Drops completed uploads while keeping pending, uploading, and errored entries.
- *
- * @returns {void}
- */
-export function clearCompletedFileUploads(): void {
-    uploads = uploads.filter((entry) => entry.status !== 'complete');
-    notifyListeners();
-}
-
-/**
  * Clears all tracked uploads.
  *
  * @returns {void}

@@ -128,20 +128,3 @@ export function AltroSettings({
 
     return null;
 }
-
-/**
- * Serializes slider field settings for API submission.
- * @returns {*}
- */
-export function serializeSliderTypeSettings(
-    sliderSettings: SliderFieldSettings,
-    showValue: boolean,
-): Record<string, unknown> {
-    return {
-        min: sliderSettings.min,
-        max: sliderSettings.max,
-        step: sliderSettings.step,
-        default_value: sliderSettings.defaultValue,
-        show_value: showValue ? '1' : '0',
-    };
-}

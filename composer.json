@@ -46,7 +46,6 @@
         "spatie/laravel-google-cloud-storage": "^2.4",
         "spatie/laravel-permission": "^7.2",
         "spatie/laravel-tags": "^4.12",
-        "spatie/laravel-translatable": "^6.13",
         "symfony/html-sanitizer": "^8.1",
         "symfony/yaml": "^7.4|^8.0"
     },
@@ -56,7 +55,6 @@
         "laravel/boost": "^2.0",
         "laravel/pail": "^1.2.5",
         "laravel/pint": "^1.27",
-        "laravel/sail": "^1.53",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9",
         "pestphp/pest": "^4.4",

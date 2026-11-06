@@ -75,16 +75,6 @@ export function isImageFile(file: AdminFileRow): boolean {
 }
 
 /**
- * Is Video File.
- *
- * @param file - File manager row
- * @returns Whether the mime type indicates a video
- */
-export function isVideoFile(file: AdminFileRow): boolean {
-    return Boolean(file.mime_type?.startsWith('video/'));
-}
-
-/**
  * Is Playable Video.
  *
  * @param file - File manager row

@@ -30,7 +30,6 @@ import {
     getTreeNodeCheckState,
 } from '@/lib/checkbox-group-tree';
 import {
-    getFieldNote,
     getFieldPlaceholder,
     parseApiAutocompleteFieldSettings,
     parseBooleanFieldSettings,
@@ -144,25 +143,6 @@ export function FieldNoteSlot({ note }: { note?: string }) {
             {note || '\u00A0'}
         </p>
     );
-}
-
-export function FieldNote({
-    settings,
-    locales,
-    reserveSpace = false,
-}: {
-    settings?: Record<string, unknown> | null;
-    locales: string[];
-    /** When true, always render a one-line slot even if note is empty. */
-    reserveSpace?: boolean;
-}) {
-    const note = getFieldNote(settings, locales);
-
-    if (!note && !reserveSpace) {
-        return null;
-    }
-
-    return <FieldNoteSlot note={note} />;
 }
 
 /**
