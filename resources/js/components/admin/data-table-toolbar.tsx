@@ -2,7 +2,11 @@ import { Search, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 
@@ -62,17 +66,18 @@ export function DataTableToolbar({
                     ) : null}
                 </>
             ) : (
-                <div className="relative min-w-[8rem] flex-1 sm:max-w-xs">
-                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
+                <InputGroup className="min-w-[8rem] flex-1 sm:max-w-xs dark:bg-transparent">
+                    <InputGroupInput
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder={searchPlaceholder}
                         aria-label={searchPlaceholder}
                         maxLength={searchMaxLength}
-                        className="pl-8"
                     />
-                </div>
+                    <InputGroupAddon>
+                        <Search />
+                    </InputGroupAddon>
+                </InputGroup>
             )}
             {!hasSelection && trailing && (
                 <div className="flex shrink-0 flex-nowrap items-center gap-2">

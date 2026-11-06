@@ -190,7 +190,7 @@ export default function Security({
                                                 id="current_password"
                                                 ref={currentPasswordInput}
                                                 name="current_password"
-                                                className="mt-1 block w-full"
+                                                className="mt-1"
                                                 autoComplete="current-password"
                                                 placeholder={t(
                                                     'settings.security.currentPassword',
@@ -229,7 +229,7 @@ export default function Security({
                                                 id="password"
                                                 ref={passwordInput}
                                                 name="password"
-                                                className="mt-1 block w-full"
+                                                className="mt-1"
                                                 autoComplete="new-password"
                                                 placeholder={t(
                                                     'settings.security.newPassword',
@@ -265,7 +265,7 @@ export default function Security({
                                             <PasswordInput
                                                 id="password_confirmation"
                                                 name="password_confirmation"
-                                                className="mt-1 block w-full"
+                                                className="mt-1"
                                                 autoComplete="new-password"
                                                 placeholder={t(
                                                     'common.confirmPassword',
