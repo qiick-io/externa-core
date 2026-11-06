@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getInitialsFromParts } from '@/hooks/use-initials';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { cn } from '@/lib/utils';
 import type { AdminUserRow } from '@/types/admin';
 
@@ -23,8 +24,13 @@ export function UserAvatar({ user, isOnline, className }: UserAvatarProps) {
 
     return (
         <span className={cn('relative shrink-0', className)}>
-            <Avatar userId={user.id} className="size-7">
-                <AvatarFallback className="text-xs font-medium">
+            <Avatar className="size-7">
+                <AvatarFallback
+                    className={cn(
+                        avatarToneClass(user.id),
+                        'text-xs font-medium',
+                    )}
+                >
                     {initials}
                 </AvatarFallback>
             </Avatar>

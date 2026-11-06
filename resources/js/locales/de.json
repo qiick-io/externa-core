@@ -1984,7 +1984,15 @@
     },
     "confirmDestructive": {
         "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
-        "deletePermanently": "Endgültig löschen"
+        "deletePermanently": "Endgültig löschen",
+        "deleteAiChatTitle": "Diesen Chat löschen?",
+        "deleteAiChatDescription": "Die Unterhaltung und alle ihre Nachrichten werden gelöscht.",
+        "deletePromptTitle": "Prompt „{{name}}“ löschen?",
+        "deletePromptDescription": "Der gespeicherte Prompt steht danach niemandem mehr zur Verfügung.",
+        "deleteMessageTitle": "Diese Nachricht löschen?",
+        "deleteMessageDescription": "Die Nachricht wird für alle aus dem Chat entfernt.",
+        "deleteDirectChatTitle": "Diesen Chat löschen?",
+        "deleteDirectChatDescription": "Der Chat wird aus deinen Chats entfernt."
     },
     "itemConfirm": {
         "deleteTitle": "Item „{{name}}“ löschen?",

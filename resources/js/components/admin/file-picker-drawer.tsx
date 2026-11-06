@@ -13,7 +13,14 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
@@ -293,14 +300,25 @@ export function FilePickerDrawer({
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {loading && (
-                            <p className="col-span-full text-sm text-muted-foreground">
+                            <div className="col-span-full flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 Loading…
-                            </p>
+                            </div>
                         )}
                         {!loading && visibleFiles.length === 0 && (
-                            <p className="col-span-full text-sm text-muted-foreground">
-                                No files in this folder
-                            </p>
+                            <Empty className="col-span-full gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <FolderOpen />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        No files in this folder
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         )}
                         {visibleFiles.map((file) => {
                             const publicUrl = filePublicUrl(file);
@@ -369,7 +387,8 @@ export function FilePickerDrawer({
                             disabled={loading || loadingMore}
                             onClick={() => void loadFiles(page + 1, true)}
                         >
-                            {loadingMore ? 'Loading…' : 'Load more'}
+                            {loadingMore && <Spinner />}
+                            Load more
                         </Button>
                     )}
                 </DrawerBody>
