@@ -1718,6 +1718,12 @@
             "title": "Seite nicht gefunden",
             "description": "Die angeforderte Seite existiert nicht oder ist nicht mehr verfügbar.",
             "goHome": "Zur Startseite"
+        },
+        "boundary": {
+            "title": "Etwas ist schiefgelaufen",
+            "description": "In der Oberfläche ist ein unerwarteter Fehler aufgetreten. Lade die Seite neu, um es erneut zu versuchen.",
+            "tryAgain": "Erneut versuchen",
+            "reload": "Seite neu laden"
         }
     },
     "unsavedChanges": {

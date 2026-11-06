@@ -1718,6 +1718,12 @@
             "title": "Pagina non trovata",
             "description": "La pagina richiesta non esiste o non è più disponibile.",
             "goHome": "Vai alla home"
+        },
+        "boundary": {
+            "title": "Qualcosa è andato storto",
+            "description": "L’interfaccia ha incontrato un errore imprevisto. Puoi provare a ricaricare la pagina.",
+            "tryAgain": "Riprova",
+            "reload": "Ricarica la pagina"
         }
     },
     "unsavedChanges": {
