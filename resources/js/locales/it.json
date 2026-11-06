@@ -2089,5 +2089,13 @@
         "table": "Tabella",
         "linkUrl": "URL del link",
         "headingLevel": "Titolo {{level}}"
+    },
+    "permissions": {
+        "columns": {
+            "name": "Nome",
+            "guard": "Guard"
+        },
+        "empty": "Nessun permesso nel database. Esegui la sincronizzazione.",
+        "sync": "Sincronizza dall'enum"
     }
 }

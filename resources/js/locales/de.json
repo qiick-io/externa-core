@@ -2089,5 +2089,13 @@
         "table": "Tabelle",
         "linkUrl": "Link-URL",
         "headingLevel": "Überschrift {{level}}"
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "Keine Berechtigungen in der Datenbank. Synchronisierung ausführen.",
+        "sync": "Aus Enum synchronisieren"
     }
 }

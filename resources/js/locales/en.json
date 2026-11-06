@@ -2089,5 +2089,13 @@
         "table": "Table",
         "linkUrl": "Link URL",
         "headingLevel": "Heading {{level}}"
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "No permissions in database. Run sync.",
+        "sync": "Sync from enum"
     }
 }
