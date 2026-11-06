@@ -24,6 +24,7 @@ import {
     formatUserDisplayName,
     getInitialsFromParts,
 } from '@/hooks/use-initials';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import {
     fieldControlHeight,
     fieldFocusRing,
@@ -324,11 +325,15 @@ export function PaginatedMultiSelect({
                                             )}
                                             {showUserDetails ? (
                                                 <>
-                                                    <Avatar
-                                                        userId={option.id}
-                                                        className="size-8"
-                                                    >
-                                                        <AvatarFallback className="text-xs font-medium">
+                                                    <Avatar className="size-8">
+                                                        <AvatarFallback
+                                                            className={cn(
+                                                                avatarToneClass(
+                                                                    option.id,
+                                                                ),
+                                                                'text-xs font-medium',
+                                                            )}
+                                                        >
                                                             {getInitialsFromParts(
                                                                 option.first_name ??
                                                                     name,
