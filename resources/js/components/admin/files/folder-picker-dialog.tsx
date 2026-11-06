@@ -1,6 +1,14 @@
 import { ChevronRight, FolderOpen } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,7 +18,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { listFilesPage } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileBreadcrumb } from '@/types/files';
@@ -226,46 +241,75 @@ export function FolderPickerDialog({
                         data-testid="folder-picker-search"
                     />
 
-                    <nav
-                        className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
+                    <Breadcrumb
                         aria-label={t('files.folderPicker.breadcrumbs')}
                     >
-                        <button
-                            type="button"
-                            className="hover:text-foreground"
-                            disabled={submitting}
-                            onClick={() => navigateTo(-1)}
-                        >
-                            {t('files.root')}
-                        </button>
-                        {breadcrumbs.map((crumb, index) => (
-                            <span
-                                key={crumb.id}
-                                className="flex items-center gap-1"
-                            >
-                                <ChevronRight className="size-3.5" />
-                                <button
-                                    type="button"
-                                    className="hover:text-foreground"
-                                    disabled={submitting}
-                                    onClick={() => navigateTo(index)}
-                                >
-                                    {crumb.name}
-                                </button>
-                            </span>
-                        ))}
-                    </nav>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                {breadcrumbs.length === 0 ? (
+                                    <BreadcrumbPage>
+                                        {t('files.root')}
+                                    </BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink asChild>
+                                        <button
+                                            type="button"
+                                            disabled={submitting}
+                                            onClick={() => navigateTo(-1)}
+                                        >
+                                            {t('files.root')}
+                                        </button>
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
+                            {breadcrumbs.map((crumb, index) => (
+                                <Fragment key={crumb.id}>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        {index === breadcrumbs.length - 1 ? (
+                                            <BreadcrumbPage>
+                                                {crumb.name}
+                                            </BreadcrumbPage>
+                                        ) : (
+                                            <BreadcrumbLink asChild>
+                                                <button
+                                                    type="button"
+                                                    disabled={submitting}
+                                                    onClick={() =>
+                                                        navigateTo(index)
+                                                    }
+                                                >
+                                                    {crumb.name}
+                                                </button>
+                                            </BreadcrumbLink>
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            ))}
+                        </BreadcrumbList>
+                    </Breadcrumb>
 
                     <div className="max-h-72 min-h-40 overflow-y-auto rounded-lg border border-sidebar-border/70">
                         {loading && folders.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 p-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 {t('files.loading')}
-                            </p>
+                            </div>
                         ) : null}
                         {!loading && folders.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
-                                {t('files.folderPicker.empty')}
-                            </p>
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <FolderOpen />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        {t('files.folderPicker.empty')}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : null}
                         <ul className="divide-y divide-sidebar-border/70">
                             {folders.map((folder) => (
@@ -302,9 +346,8 @@ export function FolderPickerDialog({
                                         })
                                     }
                                 >
-                                    {loading
-                                        ? t('files.loading')
-                                        : t('files.loadMore')}
+                                    {loading && <Spinner />}
+                                    {t('files.loadMore')}
                                 </Button>
                             </div>
                         ) : null}
