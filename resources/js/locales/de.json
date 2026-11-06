@@ -2156,5 +2156,24 @@
         "meetsPolicy": "Erfüllt die Passwortrichtlinie des Projekts.",
         "keepGoing": "Weiter so, um die Passwortrichtlinie des Projekts zu erfüllen.",
         "generate": "Sicheres Passwort generieren"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "In der Warteschlange: {{count}}",
+        "pendingTitle": "Ausstehend (Stichprobe)",
+        "failedTitle": "Fehlgeschlagene Jobs",
+        "pendingEmpty": "Keine ausstehenden Jobs.",
+        "failedEmpty": "Keine fehlgeschlagenen Jobs.",
+        "scopeHint": "Der Status von Domain-Jobs (KI-Import, Zip) bleibt in den jeweiligen Oberflächen; diese Seite überwacht nur die Laravel-Queue-Tabellen.",
+        "retry": "Erneut versuchen",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Warteschlange",
+            "attempts": "Versuche",
+            "failedAt": "Fehlgeschlagen am",
+            "exception": "Ausnahme",
+            "actions": "Aktionen"
+        }
     }
 }

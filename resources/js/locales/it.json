@@ -2156,5 +2156,24 @@
         "meetsPolicy": "Rispetta la policy password del progetto.",
         "keepGoing": "Continua per rispettare la policy password del progetto.",
         "generate": "Genera una password sicura"
+    },
+    "jobs": {
+        "title": "Job",
+        "pendingCount": "In coda: {{count}}",
+        "pendingTitle": "In attesa (campione)",
+        "failedTitle": "Job falliti",
+        "pendingEmpty": "Nessun job in attesa.",
+        "failedEmpty": "Nessun job fallito.",
+        "scopeHint": "Lo stato dei job di dominio (import AI, zip) resta nelle rispettive interfacce: questa pagina monitora solo le tabelle della coda Laravel.",
+        "retry": "Riprova",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Coda",
+            "attempts": "Tentativi",
+            "failedAt": "Fallito il",
+            "exception": "Eccezione",
+            "actions": "Azioni"
+        }
     }
 }
