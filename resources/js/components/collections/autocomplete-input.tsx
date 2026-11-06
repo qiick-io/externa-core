@@ -1,5 +1,10 @@
 import { useRef, useState } from 'react';
-import type { ComponentProps, KeyboardEvent, ReactElement } from 'react';
+import type {
+    ComponentProps,
+    KeyboardEvent,
+    ReactElement,
+    RefObject,
+} from 'react';
 import {
     Command,
     CommandGroup,
@@ -29,6 +34,12 @@ type AutocompleteInputProps = Omit<ComponentProps<typeof Input>, 'list'> & {
     onOpenChange?: (open: boolean) => void;
     /** Wraps the input, e.g. `InputWithIcons`. The anchor stays the wrapper. */
     renderInput?: (input: ReactElement) => ReactElement;
+    /**
+     * Element the list is anchored to (and as wide as) instead of the input,
+     * e.g. a chip box whose input shrinks as chips are added: a resizing
+     * anchor makes the popper re-measure inside a ResizeObserver callback.
+     */
+    anchorRef?: RefObject<HTMLElement | null>;
 };
 
 /**
@@ -46,6 +57,7 @@ export function AutocompleteInput({
     open: controlledOpen,
     onOpenChange,
     renderInput = (input) => input,
+    anchorRef: externalAnchorRef,
     onKeyDown,
     onChange,
     onClick,
@@ -136,14 +148,26 @@ export function AutocompleteInput({
             className="h-auto overflow-visible rounded-none bg-transparent text-inherit"
         >
             <Popover open={isOpen} onOpenChange={setOpen}>
-                <PopoverAnchor asChild>
-                    <div ref={anchorRef}>{renderInput(input)}</div>
-                </PopoverAnchor>
+                {externalAnchorRef ? (
+                    <>
+                        <PopoverAnchor virtualRef={externalAnchorRef} />
+                        <div ref={anchorRef}>{renderInput(input)}</div>
+                    </>
+                ) : (
+                    <PopoverAnchor asChild>
+                        <div ref={anchorRef}>{renderInput(input)}</div>
+                    </PopoverAnchor>
+                )}
                 <PopoverContent
                     className="w-(--radix-popover-trigger-width) p-0"
                     onOpenAutoFocus={(event) => event.preventDefault()}
                     onInteractOutside={(event) => {
-                        if (anchorRef.current?.contains(event.target as Node)) {
+                        const target = event.target as Node;
+
+                        if (
+                            anchorRef.current?.contains(target) ||
+                            externalAnchorRef?.current?.contains(target)
+                        ) {
                             event.preventDefault();
                         }
                     }}
