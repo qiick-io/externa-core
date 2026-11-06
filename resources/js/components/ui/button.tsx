@@ -37,6 +37,10 @@ const buttonVariants = cva(
         default: "h-control px-4 has-[>svg]:px-3",
         lg: "h-control-lg px-6 has-[>svg]:px-4",
         "icon-sm": "size-control-sm [&_svg:not([class*='size-'])]:size-3.5",
+        // shadcn's xs sizes (used by attachment and other shadcn items) map to the
+        // smallest step of the qiick scale, the same as sm / icon-sm.
+        xs: "h-control-sm gap-1 px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        "icon-xs": "size-control-sm [&_svg:not([class*='size-'])]:size-3",
         icon: "size-control",
         "icon-lg": "size-control-lg",
       },
