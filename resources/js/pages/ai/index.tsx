@@ -16,6 +16,7 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
+import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -252,7 +253,6 @@ export default function AiIndexPage({
     const [importJobStatus, setImportJobStatus] =
         useState<AiImportJobStatus | null>(null);
 
-    const bottomRef = useRef<HTMLDivElement | null>(null);
     const lastSelectedIndexRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const importPollTimeoutRef = useRef<number | null>(null);
@@ -291,10 +291,6 @@ export default function AiIndexPage({
         // conversationsSyncKey is a content fingerprint of conversationsProp
         // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid resetting on prop identity alone
     }, [conversationsSyncKey]);
-
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chat.messages, chat.toolHint]);
 
     const conversationSections = useMemo(
         () => groupConversations(conversationItems),
@@ -868,7 +864,33 @@ export default function AiIndexPage({
                                 void chat.handleAttachmentFiles(files)
                             }
                         >
-                            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+                            <ChatMessageScroller
+                                empty={
+                                    chat.messages.length === 0 ? (
+                                        <Empty
+                                            data-test="ai-pane-empty"
+                                            className="m-auto"
+                                        >
+                                            <EmptyHeader>
+                                                <EmptyMedia
+                                                    variant="icon"
+                                                    className="bg-ai/10 text-ai"
+                                                >
+                                                    <Sparkles />
+                                                </EmptyMedia>
+                                                <EmptyDescription>
+                                                    {t('ai.paneEmpty')}
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                        </Empty>
+                                    ) : null
+                                }
+                                autoScroll={!chat.isStreaming}
+                                label={t('ai.conversationRegion')}
+                                contentClassName="px-4 py-4"
+                                // AiChatMessages announces finished answers itself.
+                                contentProps={{ 'aria-live': 'off' }}
+                            >
                                 <AiChatMessages
                                     messages={chat.messages}
                                     isStreaming={chat.isStreaming}
@@ -893,24 +915,6 @@ export default function AiIndexPage({
                                             approved,
                                         )
                                     }
-                                    emptyState={
-                                        <Empty
-                                            data-test="ai-pane-empty"
-                                            className="m-auto"
-                                        >
-                                            <EmptyHeader>
-                                                <EmptyMedia
-                                                    variant="icon"
-                                                    className="bg-ai/10 text-ai"
-                                                >
-                                                    <Sparkles />
-                                                </EmptyMedia>
-                                                <EmptyDescription>
-                                                    {t('ai.paneEmpty')}
-                                                </EmptyDescription>
-                                            </EmptyHeader>
-                                        </Empty>
-                                    }
                                 />
 
                                 {chat.toolHint ? (
@@ -929,8 +933,7 @@ export default function AiIndexPage({
                                         {importJobStatus.message}
                                     </p>
                                 ) : null}
-                                <div ref={bottomRef} />
-                            </div>
+                            </ChatMessageScroller>
 
                             <div className="border-t p-3">
                                 <input

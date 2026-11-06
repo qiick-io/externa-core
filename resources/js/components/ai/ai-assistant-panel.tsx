@@ -8,9 +8,9 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
+import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import {
     Drawer,
-    DrawerBody,
     DrawerContent,
     DrawerDescription,
     DrawerFooter,
@@ -153,7 +153,20 @@ export function AiAssistantPanel() {
                             void chat.handleAttachmentFiles(files)
                         }
                     >
-                        <DrawerBody className="gap-3">
+                        <ChatMessageScroller
+                            empty={
+                                chat.messages.length === 0 ? (
+                                    <p className="px-6 py-6 text-sm text-muted-foreground">
+                                        {t('ai.fabEmpty')}
+                                    </p>
+                                ) : null
+                            }
+                            autoScroll={!chat.isStreaming}
+                            label={t('ai.conversationRegion')}
+                            contentClassName="gap-3 px-6 py-6"
+                            // AiChatMessages announces finished answers itself.
+                            contentProps={{ 'aria-live': 'off' }}
+                        >
                             <AiChatMessages
                                 messages={chat.messages}
                                 isStreaming={chat.isStreaming}
@@ -179,18 +192,13 @@ export function AiAssistantPanel() {
                                         approved,
                                     )
                                 }
-                                emptyState={
-                                    <p className="text-sm text-muted-foreground">
-                                        {t('ai.fabEmpty')}
-                                    </p>
-                                }
                             />
                             {chat.toolHint ? (
                                 <p className="text-xs text-muted-foreground">
                                     {chat.toolHint}
                                 </p>
                             ) : null}
-                        </DrawerBody>
+                        </ChatMessageScroller>
 
                         <DrawerFooter className="gap-2">
                             <input

@@ -1557,7 +1557,8 @@
         "conversations": "Unterhaltungen",
         "searchConversations": "Unterhaltungen suchen…",
         "noConversationsMatch": "Keine Unterhaltung passt zur Suche.",
-        "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools."
+        "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools.",
+        "conversationRegion": "Unterhaltung"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1710,7 +1711,9 @@
         "showArchived": "Archivierte anzeigen",
         "showInbox": "Chats anzeigen",
         "deleteChat": "Chat löschen",
-        "deleteChatError": "Chat konnte nicht gelöscht werden."
+        "deleteChatError": "Chat konnte nicht gelöscht werden.",
+        "messagesRegion": "Nachrichten",
+        "scrollToLatest": "Zur neuesten Nachricht scrollen"
     },
     "errors": {
         "notFound": {

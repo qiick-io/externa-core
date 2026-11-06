@@ -1557,7 +1557,8 @@
         "conversations": "Conversazioni",
         "searchConversations": "Cerca conversazioni…",
         "noConversationsMatch": "Nessuna conversazione corrisponde alla ricerca.",
-        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti."
+        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti.",
+        "conversationRegion": "Conversazione"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1710,7 +1711,9 @@
         "showArchived": "Mostra archiviate",
         "showInbox": "Mostra chat",
         "deleteChat": "Elimina chat",
-        "deleteChatError": "Impossibile eliminare la chat."
+        "deleteChatError": "Impossibile eliminare la chat.",
+        "messagesRegion": "Messaggi",
+        "scrollToLatest": "Vai all’ultimo messaggio"
     },
     "errors": {
         "notFound": {

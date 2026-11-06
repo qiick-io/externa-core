@@ -1557,7 +1557,8 @@
         "conversations": "Conversations",
         "searchConversations": "Search conversations…",
         "noConversationsMatch": "No conversations match your search.",
-        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools."
+        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools.",
+        "conversationRegion": "Conversation"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1710,7 +1711,9 @@
         "showArchived": "Show archived",
         "showInbox": "Show chats",
         "deleteChat": "Delete chat",
-        "deleteChatError": "Could not delete chat."
+        "deleteChatError": "Could not delete chat.",
+        "messagesRegion": "Messages",
+        "scrollToLatest": "Scroll to the latest message"
     },
     "errors": {
         "notFound": {

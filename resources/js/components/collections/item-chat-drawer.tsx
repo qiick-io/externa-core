@@ -1,6 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    ChevronDown,
     Copy,
     FileText,
     MoreVertical,
@@ -16,6 +15,8 @@ import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
+import type { ChatMessageScrollerHandle } from '@/components/chat/chat-message-scroller';
 import { ChatOutgoingAttachPreview } from '@/components/chat/chat-outgoing-attach-preview';
 import type { PendingChatMessage } from '@/components/chat/chat-outgoing-attach-preview';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
@@ -37,12 +38,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    Drawer,
-    DrawerBody,
-    DrawerContent,
-    DrawerFooter,
-} from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerFooter } from '@/components/ui/drawer';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -55,6 +51,7 @@ import {
     MessageAvatar,
     MessageContent,
 } from '@/components/ui/message';
+import { MessageScrollerItem } from '@/components/ui/message-scroller';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
     Popover,
@@ -257,8 +254,6 @@ function commentTime(iso: string | null): string {
 /**
  * Chat drawer for a collection item.
  */
-const NEAR_BOTTOM_PX = 100;
-
 export function ItemChatDrawer({
     open,
     onOpenChange,
@@ -375,15 +370,11 @@ export function ItemChatDrawer({
     useAutosizeTextarea(textareaRef, draft);
     const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const messagesScrollRef = useRef<HTMLDivElement | null>(null);
+    const scrollerRef = useRef<ChatMessageScrollerHandle | null>(null);
+    // Own sends and own echoes jump to the latest message, even when scrolled up.
     const forceScrollBottomRef = useRef(false);
-    const scrollAnchorRef = useRef<{ height: number; top: number } | null>(
-        null,
-    );
-    const initialScrollDoneRef = useRef(false);
-    // Telegram: stick bottom unless user scrolled up on purpose.
-    const [pinnedToBottom, setPinnedToBottom] = useState(true);
-    const pinnedToBottomRef = useRef(true);
+    // Oldest loaded message before "Load older", to keep it in view after the prepend.
+    const olderAnchorIdRef = useRef<number | null>(null);
     const uploadGen = useRef(0);
     const pageLoadGen = useRef(0);
     const olderLoadGen = useRef(0);
@@ -405,34 +396,6 @@ export function ItemChatDrawer({
         pendingMessagesRef.current = pendingMessages;
     }, [pendingMessages]);
 
-    const syncPinnedToBottom = useCallback(() => {
-        const el = messagesScrollRef.current;
-
-        if (!el) {
-            return;
-        }
-
-        const near =
-            el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
-
-        pinnedToBottomRef.current = near;
-        setPinnedToBottom(near);
-    }, []);
-
-    const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-        requestAnimationFrame(() => {
-            const el = messagesScrollRef.current;
-
-            if (!el) {
-                return;
-            }
-
-            pinnedToBottomRef.current = true;
-            setPinnedToBottom(true);
-            el.scrollTo({ top: el.scrollHeight, behavior });
-        });
-    }, []);
-
     liveChatIdRef.current = liveChatId;
     chatCountRef.current = chatCount;
     onChatCountChangeRef.current = onChatCountChange;
@@ -445,71 +408,25 @@ export function ItemChatDrawer({
               : null;
 
     useEffect(() => {
-        initialScrollDoneRef.current = false;
-        pinnedToBottomRef.current = true;
-        setPinnedToBottom(true);
-    }, [scopeKey]);
-
-    useEffect(() => {
-        if (!open) {
-            initialScrollDoneRef.current = false;
-            pinnedToBottomRef.current = true;
-            setPinnedToBottom(true);
-
-            return;
-        }
-
-        // Wait until load-more finishes so soft-refresh cannot steal the anchor.
-        if (scrollAnchorRef.current && !loadingMore) {
-            const anchor = scrollAnchorRef.current;
-            scrollAnchorRef.current = null;
-            requestAnimationFrame(() => {
-                const el = messagesScrollRef.current;
-
-                if (el) {
-                    el.scrollTop = el.scrollHeight - anchor.height + anchor.top;
-                    syncPinnedToBottom();
-                }
-            });
-
-            return;
-        }
-
-        // Load-older prepend in flight — never fight the anchor.
-        if (scrollAnchorRef.current || loadingMore) {
-            return;
-        }
-
         if (forceScrollBottomRef.current) {
             forceScrollBottomRef.current = false;
-            scrollToBottom('smooth');
+            scrollerRef.current?.scrollToEnd({ behavior: 'smooth' });
+        }
+    }, [messages, pendingMessages]);
 
+    useEffect(() => {
+        const olderAnchorId = olderAnchorIdRef.current;
+
+        // Wait until load-more finishes so the prepend is in the DOM.
+        if (olderAnchorId === null || loadingMore) {
             return;
         }
 
-        if (!loading && messages.length > 0 && !initialScrollDoneRef.current) {
-            initialScrollDoneRef.current = true;
-            scrollToBottom('auto');
-
-            return;
-        }
-
-        if (
-            pinnedToBottomRef.current &&
-            !loading &&
-            (messages.length > 0 || pendingMessages.length > 0)
-        ) {
-            scrollToBottom('auto');
-        }
-    }, [
-        open,
-        loading,
-        loadingMore,
-        messages,
-        pendingMessages,
-        scrollToBottom,
-        syncPinnedToBottom,
-    ]);
+        olderAnchorIdRef.current = null;
+        scrollerRef.current?.scrollToMessage(String(olderAnchorId), {
+            align: 'start',
+        });
+    }, [loadingMore, messages]);
 
     const load = useCallback(
         (beforeId?: number): void => {
@@ -592,7 +509,7 @@ export function ItemChatDrawer({
                     }
 
                     if (beforeId) {
-                        scrollAnchorRef.current = null;
+                        olderAnchorIdRef.current = null;
                     }
 
                     setError(t('collections.itemChat.error'));
@@ -1610,9 +1527,10 @@ export function ItemChatDrawer({
     };
 
     const scrollToMessage = (id: number): void => {
-        document
-            .querySelector(`[data-message-id="${id}"]`)
-            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollerRef.current?.scrollToMessage(String(id), {
+            align: 'center',
+            behavior: 'smooth',
+        });
     };
 
     const copyMessageText = (message: ItemChatMessage): void => {
@@ -1895,10 +1813,34 @@ export function ItemChatDrawer({
                 onDrop={onComposerDrop}
             >
                 <div className="relative flex min-h-0 flex-1 flex-col">
-                    <DrawerBody
-                        ref={messagesScrollRef}
-                        className="flex flex-col gap-3 pb-8"
-                        onScroll={syncPinnedToBottom}
+                    <ChatMessageScroller
+                        key={scopeKey ?? 'none'}
+                        scrollerRef={scrollerRef}
+                        empty={
+                            !loading && messages.length === 0 ? (
+                                <p className="m-auto text-sm text-muted-foreground">
+                                    {t('collections.itemChat.empty')}
+                                </p>
+                            ) : null
+                        }
+                        contentClassName="gap-3 px-6 pt-6 pb-8"
+                        overlay={
+                            loading || typingLabel ? (
+                                <div className="flex flex-col items-center gap-1">
+                                    {loading ? (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Spinner className="size-4" />
+                                            {t('collections.itemChat.loading')}
+                                        </div>
+                                    ) : null}
+                                    {typingLabel ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            {typingLabel}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : null
+                        }
                     >
                         {hasMore ? (
                             <Button
@@ -1912,15 +1854,7 @@ export function ItemChatDrawer({
                                         return;
                                     }
 
-                                    const el = messagesScrollRef.current;
-
-                                    if (el) {
-                                        scrollAnchorRef.current = {
-                                            height: el.scrollHeight,
-                                            top: el.scrollTop,
-                                        };
-                                    }
-
+                                    olderAnchorIdRef.current = oldestId;
                                     load(oldestId);
                                 }}
                             >
@@ -1931,13 +1865,6 @@ export function ItemChatDrawer({
                         ) : null}
                         {error ? (
                             <p className="text-sm text-destructive">{error}</p>
-                        ) : null}
-                        {!loading && messages.length === 0 ? (
-                            <div className="flex flex-1 items-center justify-center">
-                                <p className="text-sm text-muted-foreground">
-                                    {t('collections.itemChat.empty')}
-                                </p>
-                            </div>
                         ) : null}
                         {pinned.length > 0 ? (
                             <div className="flex flex-col gap-1 rounded-md border bg-muted/40 p-2">
@@ -1994,16 +1921,16 @@ export function ItemChatDrawer({
                                 thisDay !== '' && thisDay !== prevDay;
 
                             return (
-                                <div key={comment.id}>
+                                <MessageScrollerItem
+                                    key={comment.id}
+                                    messageId={String(comment.id)}
+                                >
                                     {showDay ? (
                                         <p className="mb-2 text-center text-xs text-muted-foreground">
                                             {thisDay}
                                         </p>
                                     ) : null}
-                                    <div
-                                        data-message-id={comment.id}
-                                        className="flex items-start gap-2"
-                                    >
+                                    <div className="flex items-start gap-2">
                                         <Message align={mine ? 'end' : 'start'}>
                                             {!mine ? (
                                                 <MessageAvatar
@@ -2504,7 +2431,7 @@ export function ItemChatDrawer({
                                             </MessageContent>
                                         </Message>
                                     </div>
-                                </div>
+                                </MessageScrollerItem>
                             );
                         })}
                         {pendingMessages.map((pending) => (
@@ -2516,43 +2443,7 @@ export function ItemChatDrawer({
                                 onRemoveFile={removePendingFile}
                             />
                         ))}
-                    </DrawerBody>
-                    {!pinnedToBottom || loading || typingLabel ? (
-                        <div
-                            data-test="chat-thread-status"
-                            className="absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
-                        >
-                            {!pinnedToBottom ? (
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="secondary"
-                                    className="size-9 rounded-full shadow-md"
-                                    aria-label={t(
-                                        'collections.itemChat.scrollToBottom',
-                                    )}
-                                    onClick={() => scrollToBottom('smooth')}
-                                >
-                                    <ChevronDown className="size-4" />
-                                </Button>
-                            ) : null}
-                            {loading || typingLabel ? (
-                                <div className="pointer-events-none flex flex-col items-center gap-1">
-                                    {loading ? (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <Spinner className="size-4" />
-                                            {t('collections.itemChat.loading')}
-                                        </div>
-                                    ) : null}
-                                    {typingLabel ? (
-                                        <p className="text-xs text-muted-foreground">
-                                            {typingLabel}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            ) : null}
-                        </div>
-                    ) : null}
+                    </ChatMessageScroller>
                 </div>
                 <DrawerFooter
                     // In the hub pane, match the assistant page's composer inset.
