@@ -1,6 +1,8 @@
 import { ConnectionDot } from '@/components/realtime/connection-dot';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatUserDisplayName, useInitials } from '@/hooks/use-initials';
+import { avatarToneClass } from '@/lib/avatar-tone';
+import { cn } from '@/lib/utils';
 import type { User } from '@/types';
 
 /**
@@ -22,12 +24,14 @@ export function UserInfo({
     return (
         <>
             <span className="relative shrink-0">
-                <Avatar
-                    userId={user.id}
-                    className="h-8 w-8 overflow-hidden rounded-full"
-                >
+                <Avatar className="h-8 w-8 overflow-hidden rounded-full">
                     <AvatarImage src={user.avatar} alt={displayName} />
-                    <AvatarFallback className="rounded-lg text-xs font-medium">
+                    <AvatarFallback
+                        className={cn(
+                            avatarToneClass(user.id),
+                            'rounded-lg text-xs font-medium',
+                        )}
+                    >
                         {getInitials(user.first_name, user.last_name)}
                     </AvatarFallback>
                 </Avatar>
