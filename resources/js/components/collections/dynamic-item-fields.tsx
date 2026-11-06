@@ -46,6 +46,7 @@ import {
 import { LocalizedField } from '@/components/collections/localized-field';
 import { MapCoordinateInput } from '@/components/collections/map-coordinate-input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Collapsible,
     CollapsibleContent,
@@ -1425,11 +1426,11 @@ export function DynamicItemFields({
                 <div data-diff={isHighlighted ? '1' : undefined}>
                     {canSelectDiff ? (
                         <label className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                            <input
-                                type="checkbox"
-                                className="size-3.5 rounded border"
+                            <Checkbox
                                 checked={selectDiffFields.has(field.name)}
-                                onChange={() => onToggleDiffField(field.name)}
+                                onCheckedChange={() =>
+                                    onToggleDiffField(field.name)
+                                }
                                 data-test={`diff-select-${field.name}`}
                             />
                             Include in Apply

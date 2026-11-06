@@ -27,7 +27,7 @@ import {
     Tags,
     TextQuote,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -68,6 +68,7 @@ import {
 } from '@/components/collections/field-settings/type-settings/text-numbers';
 import { ValidationRuleBuilder } from '@/components/collections/field-settings/validation-rule-builder';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Command,
     CommandEmpty,
@@ -83,7 +84,15 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -554,8 +563,8 @@ function NestedRelationSettings({
                 Nested relations are stored as JSON links inside the block (not
                 junction tables).
             </p>
-            <div className="grid gap-2">
-                <Label>Related collection</Label>
+            <Field>
+                <FieldLabel>Related collection</FieldLabel>
                 <NativeSelect
                     value={relatedCollectionId}
                     onChange={(event) =>
@@ -578,9 +587,9 @@ function NestedRelationSettings({
                         </option>
                     ))}
                 </NativeSelect>
-            </div>
-            <div className="grid gap-2">
-                <Label>Display field</Label>
+            </Field>
+            <Field>
+                <FieldLabel>Display field</FieldLabel>
                 <Input
                     value={displayField}
                     onChange={(event) =>
@@ -591,10 +600,10 @@ function NestedRelationSettings({
                     }
                     placeholder="title"
                 />
-            </div>
+            </Field>
             {showJunctionFields ? (
-                <div className="grid gap-2">
-                    <Label>Junction meta fields (JSON)</Label>
+                <Field>
+                    <FieldLabel>Junction meta fields (JSON)</FieldLabel>
                     <textarea
                         value={junctionJson}
                         onChange={(event) => {
@@ -619,7 +628,7 @@ function NestedRelationSettings({
                         className="flex w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-xs"
                         placeholder='[{"name":"caption","type":"string"}]'
                     />
-                </div>
+                </Field>
             ) : null}
         </div>
     );
@@ -634,6 +643,7 @@ function NestedM2aSettings({
     relatedCollections: RelatedCollectionOption[];
     onChange: (next: Record<string, unknown>) => void;
 }) {
+    const idPrefix = useId();
     const allowedIds = parseAllowedCollectionIds(settings);
     const allowDuplicates =
         settings.allow_duplicates === true ||
@@ -642,60 +652,72 @@ function NestedM2aSettings({
 
     return (
         <div className="space-y-3 rounded-md bg-muted/30 p-3">
-            <div>
-                <Label>Allowed collections</Label>
-                <div className="mt-2 space-y-2">
+            <FieldSet className="gap-3">
+                <FieldLegend variant="label" className="mb-0">
+                    Allowed collections
+                </FieldLegend>
+                <div className="space-y-2">
                     {relatedCollections.map((relatedCollection) => {
                         const checked = allowedIds.includes(
                             relatedCollection.id,
                         );
+                        const checkboxId = `${idPrefix}_allowed_collection_${relatedCollection.id}`;
 
                         return (
-                            <label
+                            <Field
                                 key={relatedCollection.id}
-                                className="flex items-center gap-2 text-sm"
+                                orientation="horizontal"
                             >
-                                <input
-                                    type="checkbox"
+                                <Checkbox
+                                    id={checkboxId}
                                     checked={checked}
-                                    onChange={(event) => {
-                                        const nextIds = event.target.checked
-                                            ? [
-                                                  ...allowedIds,
-                                                  relatedCollection.id,
-                                              ]
-                                            : allowedIds.filter(
-                                                  (id) =>
-                                                      id !==
+                                    onCheckedChange={(isChecked) => {
+                                        const nextIds =
+                                            isChecked === true
+                                                ? [
+                                                      ...allowedIds,
                                                       relatedCollection.id,
-                                              );
+                                                  ]
+                                                : allowedIds.filter(
+                                                      (id) =>
+                                                          id !==
+                                                          relatedCollection.id,
+                                                  );
                                         onChange({
                                             ...settings,
                                             allowed_collection_ids: nextIds,
                                         });
                                     }}
-                                    className="size-4 rounded border"
                                 />
-                                {relatedCollection.name}
-                            </label>
+                                <FieldLabel
+                                    htmlFor={checkboxId}
+                                    className="font-normal"
+                                >
+                                    {relatedCollection.name}
+                                </FieldLabel>
+                            </Field>
                         );
                     })}
                 </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-                <input
-                    type="checkbox"
+            </FieldSet>
+            <Field orientation="horizontal">
+                <Checkbox
+                    id={`${idPrefix}_allow_duplicates`}
                     checked={allowDuplicates}
-                    onChange={(event) =>
+                    onCheckedChange={(isChecked) =>
                         onChange({
                             ...settings,
-                            allow_duplicates: event.target.checked ? '1' : '0',
+                            allow_duplicates: isChecked === true ? '1' : '0',
                         })
                     }
-                    className="size-4 rounded border"
                 />
-                Allow duplicate links
-            </label>
+                <FieldLabel
+                    htmlFor={`${idPrefix}_allow_duplicates`}
+                    className="font-normal"
+                >
+                    Allow duplicate links
+                </FieldLabel>
+            </Field>
         </div>
     );
 }
@@ -785,8 +807,10 @@ function BlocksSettingsEditor({
             </div>
 
             {depth === 1 && onMaxDepthChange ? (
-                <div className="grid max-w-xs gap-2">
-                    <Label htmlFor="max_blocks_depth">Max nesting depth</Label>
+                <Field className="max-w-xs">
+                    <FieldLabel htmlFor="max_blocks_depth">
+                        Max nesting depth
+                    </FieldLabel>
                     <Input
                         id="max_blocks_depth"
                         type="number"
@@ -811,11 +835,11 @@ function BlocksSettingsEditor({
                             );
                         }}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <FieldDescription>
                         Default {DEFAULT_BLOCKS_DEPTH}. Absolute ceiling{' '}
                         {MAX_BLOCKS_DEPTH}.
-                    </p>
-                </div>
+                    </FieldDescription>
+                </Field>
             ) : null}
 
             {blockTypes.map((blockType, blockIndex) => {
@@ -857,8 +881,8 @@ function BlocksSettingsEditor({
 
                         <div className={collapsed ? 'hidden' : 'space-y-4'}>
                             <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label>Key</Label>
+                                <Field>
+                                    <FieldLabel>Key</FieldLabel>
                                     <Input
                                         value={blockType.key}
                                         placeholder="rich_text"
@@ -868,9 +892,9 @@ function BlocksSettingsEditor({
                                             })
                                         }
                                     />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label>Label</Label>
+                                </Field>
+                                <Field>
+                                    <FieldLabel>Label</FieldLabel>
                                     <Input
                                         value={blockType.label}
                                         placeholder="Rich text"
@@ -880,7 +904,7 @@ function BlocksSettingsEditor({
                                             })
                                         }
                                     />
-                                </div>
+                                </Field>
                             </div>
 
                             <div className="space-y-3">
@@ -960,15 +984,16 @@ function BlocksSettingsEditor({
                                                 ))}
                                             </NativeSelect>
                                             <label className="flex items-center gap-2 text-sm">
-                                                <input
-                                                    type="checkbox"
+                                                <Checkbox
                                                     checked={field.translatable}
                                                     disabled={
                                                         !fieldTypeSupportsTranslatable(
                                                             field.type,
                                                         )
                                                     }
-                                                    onChange={(event) =>
+                                                    onCheckedChange={(
+                                                        isChecked,
+                                                    ) =>
                                                         updateBlock(
                                                             blockIndex,
                                                             {
@@ -982,16 +1007,14 @@ function BlocksSettingsEditor({
                                                                             ? {
                                                                                   ...entry,
                                                                                   translatable:
-                                                                                      event
-                                                                                          .target
-                                                                                          .checked,
+                                                                                      isChecked ===
+                                                                                      true,
                                                                               }
                                                                             : entry,
                                                                 ),
                                                             },
                                                         )
                                                     }
-                                                    className="size-4 rounded border"
                                                 />
                                                 I18n
                                             </label>
@@ -1667,54 +1690,41 @@ function TranslatableField({
     const isLocked = mode === 'edit' && Boolean(field?.has_stored_values);
     const isChecked = field?.translatable ?? false;
 
-    if (isLocked) {
-        return (
-            <div className="flex items-start gap-4">
-                <input
-                    type="hidden"
-                    name="translatable"
-                    value={isChecked ? '1' : '0'}
-                />
-                <input
-                    id={`translatable_${mode}`}
-                    type="checkbox"
-                    checked={isChecked}
-                    disabled
-                    aria-disabled="true"
-                    className="mt-1 size-4 shrink-0 rounded border opacity-60"
-                />
-                <div className="grid gap-2">
-                    <Label htmlFor={`translatable_${mode}`}>
-                        {t('collections.translatable')}
-                    </Label>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                        {t('collections.translatableLockedHintConvert')}
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    const checkboxId = `translatable_${mode}`;
 
     return (
-        <div className="flex items-start gap-4">
-            <input type="hidden" name="translatable" value="0" />
+        <Field
+            orientation="horizontal"
+            data-disabled={isLocked || undefined}
+            className="gap-4"
+        >
+            {/* Unchecked boxes submit nothing: the hidden input keeps "0" (and the locked value). */}
             <input
-                id={`translatable_${mode}`}
-                type="checkbox"
+                type="hidden"
                 name="translatable"
-                value="1"
-                defaultChecked={isChecked}
-                className="mt-1 size-4 shrink-0 rounded border"
+                value={isLocked && isChecked ? '1' : '0'}
             />
-            <div className="grid gap-2">
-                <Label htmlFor={`translatable_${mode}`}>
+            {isLocked ? (
+                <Checkbox id={checkboxId} checked={isChecked} disabled />
+            ) : (
+                <Checkbox
+                    id={checkboxId}
+                    name="translatable"
+                    value="1"
+                    defaultChecked={isChecked}
+                />
+            )}
+            <FieldContent>
+                <FieldLabel htmlFor={checkboxId}>
                     {t('collections.translatable')}
-                </Label>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                    {t('collections.translatableDescription')}
-                </p>
-            </div>
-        </div>
+                </FieldLabel>
+                <FieldDescription>
+                    {isLocked
+                        ? t('collections.translatableLockedHintConvert')
+                        : t('collections.translatableDescription')}
+                </FieldDescription>
+            </FieldContent>
+        </Field>
     );
 }
 

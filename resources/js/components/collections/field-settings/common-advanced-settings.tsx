@@ -1,6 +1,6 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import {
@@ -33,11 +33,13 @@ export function CommonAdvancedSettings({
     return (
         <div className="space-y-6">
             {!isGroup && (
-                <div className="grid gap-2">
-                    <Label htmlFor="field_layout_width">Field width</Label>
-                    <p className="text-sm text-muted-foreground">
+                <Field>
+                    <FieldLabel htmlFor="field_layout_width">
+                        Field width
+                    </FieldLabel>
+                    <FieldDescription>
                         How much horizontal space this field takes in the form.
-                    </p>
+                    </FieldDescription>
                     <NativeSelect
                         id="field_layout_width"
                         value={settings.layoutWidth}
@@ -56,7 +58,7 @@ export function CommonAdvancedSettings({
                             </option>
                         ))}
                     </NativeSelect>
-                </div>
+                </Field>
             )}
             {!isGroup && (
                 <SettingCheckbox
@@ -103,12 +105,14 @@ export function CommonAdvancedSettings({
                 }
             />
             {showDefault ? (
-                <div className="grid gap-2">
-                    <Label htmlFor="common_default_value">Default value</Label>
-                    <p className="text-sm text-muted-foreground">
+                <Field>
+                    <FieldLabel htmlFor="common_default_value">
+                        Default value
+                    </FieldLabel>
+                    <FieldDescription>
                         Applied when creating a new item if the field is left
                         empty.
-                    </p>
+                    </FieldDescription>
                     <Input
                         id="common_default_value"
                         value={
@@ -125,7 +129,7 @@ export function CommonAdvancedSettings({
                         }
                         placeholder="Applied on create when empty"
                     />
-                </div>
+                </Field>
             ) : null}
         </div>
     );
