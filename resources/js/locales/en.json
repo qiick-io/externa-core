@@ -37,6 +37,12 @@
         "copy": "Copy",
         "copied": "Copied"
     },
+    "picker": {
+        "search": "Search…",
+        "noResults": "No results.",
+        "loading": "Loading…",
+        "clearSelection": "Clear selection"
+    },
     "emptyState": {
         "collections": {
             "title": "No collections yet",
