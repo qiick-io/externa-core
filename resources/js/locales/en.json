@@ -983,7 +983,10 @@
             "retrySend": "Retry",
             "removePendingFile": "Remove file",
             "scrollToBottom": "Scroll to bottom",
-            "mentionCollection": "Collection"
+            "mentionCollection": "Collection",
+            "reactionToggle": "{{emoji}} reaction: {{names}}",
+            "messageActions": "Message actions",
+            "react": "React"
         },
         "packs": {
             "createFromPack": "Create from pack",

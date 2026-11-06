@@ -1,6 +1,11 @@
 import { UsersRound } from 'lucide-react';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarGroup,
+    AvatarGroupCount,
+} from '@/components/ui/avatar';
 import { avatarStyleForId, avatarTextColor } from '@/lib/avatar-color';
 import {
     chatAvatarStackPlan,
@@ -11,7 +16,6 @@ import type {
     ChatParticipantRef,
     ChatThreadIdentity,
 } from '@/lib/chat-thread-identity';
-import { cn } from '@/lib/utils';
 
 function FaceCircle({
     face,
@@ -34,23 +38,23 @@ function StackedFaces({ faces }: { faces: ChatParticipantRef[] }) {
     const visible = faces.slice(0, shown);
 
     return (
-        <span className="flex shrink-0 items-center" aria-hidden>
-            {visible.map((face, index) => (
+        <AvatarGroup
+            className="shrink-0 *:data-[slot=avatar]:ring-card"
+            aria-hidden
+        >
+            {visible.map((face) => (
                 <FaceCircle
                     key={`${face.type}-${face.id}`}
                     face={face}
-                    className={cn(
-                        'size-7 ring-2 ring-card',
-                        index > 0 && '-ml-2',
-                    )}
+                    className="size-7"
                 />
             ))}
             {overflow > 0 ? (
-                <span className="relative -ml-2 flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-2 ring-card">
+                <AvatarGroupCount className="size-7 text-xs font-medium ring-card">
                     +{overflow}
-                </span>
+                </AvatarGroupCount>
             ) : null}
-        </span>
+        </AvatarGroup>
     );
 }
 
