@@ -15,9 +15,13 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FieldError } from '@/components/ui/field';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
@@ -268,14 +272,17 @@ export function LocalizedField({
         otherLocales.length > 0;
 
     return (
-        <div className={cn('space-y-2', className)}>
+        <Field
+            className={cn('gap-2', className)}
+            data-invalid={errorMessage ? true : undefined}
+        >
             {/* min-h-control matches the default Button/ToggleGroup so half-width siblings align with/without headerActions */}
             <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
                     {label ? (
-                        <Label htmlFor={children ? undefined : controlId}>
+                        <FieldLabel htmlFor={children ? undefined : controlId}>
                             {label}
-                        </Label>
+                        </FieldLabel>
                     ) : null}
                     {labelAddon}
                 </div>
@@ -539,15 +546,15 @@ export function LocalizedField({
             </div>
 
             {reserveDescriptionSpace || description ? (
-                <p
-                    className="min-h-5 text-sm text-muted-foreground"
+                <FieldDescription
+                    className="min-h-5"
                     aria-hidden={!description}
                 >
                     {description || '\u00A0'}
-                </p>
+                </FieldDescription>
             ) : null}
 
             <FieldError id={errorId}>{errorMessage}</FieldError>
-        </div>
+        </Field>
     );
 }

@@ -26,6 +26,14 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemGroup,
+    ItemMedia,
+    ItemTitle,
+} from '@/components/ui/item';
+import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
@@ -535,19 +543,27 @@ export function FileFieldInput({
                         onClear={clear}
                     />
                 ) : (
-                    <div className="flex items-center gap-3 rounded-md border border-input p-3 shadow-xs">
-                        {preview ? (
-                            <FilePreview file={preview} size="sm" />
-                        ) : (
-                            <div className="size-12 shrink-0 rounded bg-muted" />
-                        )}
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                            {preview?.title ||
-                                preview?.name ||
-                                `File #${fileId}`}
-                        </span>
+                    <Item
+                        variant="outline"
+                        size="sm"
+                        className="flex-nowrap border-input p-3 shadow-xs"
+                    >
+                        <ItemMedia>
+                            {preview ? (
+                                <FilePreview file={preview} size="sm" />
+                            ) : (
+                                <div className="size-12 shrink-0 rounded bg-muted" />
+                            )}
+                        </ItemMedia>
+                        <ItemContent className="min-w-0">
+                            <ItemTitle className="w-full truncate">
+                                {preview?.title ||
+                                    preview?.name ||
+                                    `File #${fileId}`}
+                            </ItemTitle>
+                        </ItemContent>
                         {!readonly ? (
-                            <div className="flex shrink-0 gap-1">
+                            <ItemActions className="shrink-0 gap-1">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -574,9 +590,9 @@ export function FileFieldInput({
                                 >
                                     <X className="size-4" />
                                 </Button>
-                            </div>
+                            </ItemActions>
                         ) : null}
-                    </div>
+                    </Item>
                 )
             ) : readonly ? (
                 <p className="text-sm text-muted-foreground">
@@ -722,28 +738,37 @@ export function MultipleFilesFieldInput({
             ))}
 
             {fileIds.length > 0 ? (
-                <div className="flex flex-col gap-2">
+                <ItemGroup className="gap-2">
                     {fileIds.map((fileId) => {
                         const file = previews[fileId];
 
                         return (
-                            <div
+                            <Item
                                 key={fileId}
-                                className="flex items-center gap-3 rounded-md border border-input p-2 shadow-xs"
+                                role="listitem"
+                                variant="outline"
+                                size="sm"
+                                className="flex-nowrap border-input p-2 shadow-xs"
                             >
-                                {file ? (
-                                    <FilePreview file={file} size="sm" />
-                                ) : (
-                                    <div className="size-12 shrink-0 rounded bg-muted" />
-                                )}
-                                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                                    {file?.title ||
-                                        file?.name ||
-                                        `File #${fileId}`}
-                                </span>
+                                <ItemMedia>
+                                    {file ? (
+                                        <FilePreview file={file} size="sm" />
+                                    ) : (
+                                        <div className="size-12 shrink-0 rounded bg-muted" />
+                                    )}
+                                </ItemMedia>
+                                <ItemContent className="min-w-0">
+                                    <ItemTitle className="w-full truncate">
+                                        {file?.title ||
+                                            file?.name ||
+                                            `File #${fileId}`}
+                                    </ItemTitle>
+                                </ItemContent>
                                 {!readonly ? (
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="link"
+                                        size="sm"
                                         className="text-xs text-muted-foreground underline"
                                         onClick={() =>
                                             setFileIds((current) =>
@@ -755,12 +780,12 @@ export function MultipleFilesFieldInput({
                                         }
                                     >
                                         {t('collections.fileField.remove')}
-                                    </button>
+                                    </Button>
                                 ) : null}
-                            </div>
+                            </Item>
                         );
                     })}
-                </div>
+                </ItemGroup>
             ) : null}
 
             {!readonly ? (

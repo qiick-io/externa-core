@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 // pipeline — load styles with the map component so tiles/panes position correctly.
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Tooltip,
     TooltipContent,
@@ -25,7 +26,6 @@ import { parseMapFieldSettings } from '@/lib/collection-field-types/parsers';
 import type { MapFieldSettings } from '@/lib/collection-field-types/parsers';
 import { normalizeLatLng, parseMapPositions } from '@/lib/map-geometry';
 import type { MapLatLng } from '@/lib/map-geometry';
-import { cn } from '@/lib/utils';
 
 export type GeoJsonPoint = {
     type: 'Point';
@@ -371,69 +371,85 @@ export function MapCoordinateInput({
 
                 {!readonly && (
                     <TooltipProvider delayDuration={200}>
-                        <div
-                            className="absolute top-3 left-3 z-[1000] flex flex-col gap-1 rounded-md border bg-background/95 p-1 shadow-sm backdrop-blur-sm"
+                        <ButtonGroup
+                            orientation="vertical"
+                            className="absolute top-3 left-3 z-[1000] shadow-sm"
                             role="toolbar"
                             aria-label={t('collections.map.toolbar')}
                         >
-                            <ToolbarButton
-                                label={t('collections.map.zoomIn')}
-                                onClick={() => zoomBy(1)}
+                            <ButtonGroup
+                                orientation="vertical"
+                                className="rounded-md bg-background"
                             >
-                                <Plus className="size-4" />
-                            </ToolbarButton>
-                            <ToolbarButton
-                                label={t('collections.map.zoomOut')}
-                                onClick={() => zoomBy(-1)}
+                                {' '}
+                                <ToolbarButton
+                                    label={t('collections.map.zoomIn')}
+                                    onClick={() => zoomBy(1)}
+                                >
+                                    <Plus className="size-4" />
+                                </ToolbarButton>
+                                <ToolbarButton
+                                    label={t('collections.map.zoomOut')}
+                                    onClick={() => zoomBy(-1)}
+                                >
+                                    <Minus className="size-4" />
+                                </ToolbarButton>
+                            </ButtonGroup>
+                            <ButtonGroup
+                                orientation="vertical"
+                                className="rounded-md bg-background"
                             >
-                                <Minus className="size-4" />
-                            </ToolbarButton>
-                            <ToolbarSep />
-                            <ToolbarButton
-                                label={t('collections.map.locate')}
-                                onClick={geolocate}
-                                disabled={locating}
+                                <ToolbarButton
+                                    label={t('collections.map.locate')}
+                                    onClick={geolocate}
+                                    disabled={locating}
+                                >
+                                    <LocateFixed className="size-4" />
+                                </ToolbarButton>
+                                <ToolbarButton
+                                    label={t('collections.map.fit')}
+                                    onClick={fitToPoints}
+                                >
+                                    <Maximize2 className="size-4" />
+                                </ToolbarButton>
+                            </ButtonGroup>
+                            <ButtonGroup
+                                orientation="vertical"
+                                className="rounded-md bg-background"
                             >
-                                <LocateFixed className="size-4" />
-                            </ToolbarButton>
-                            <ToolbarButton
-                                label={t('collections.map.fit')}
-                                onClick={fitToPoints}
-                            >
-                                <Maximize2 className="size-4" />
-                            </ToolbarButton>
-                            <ToolbarSep />
-                            <ToolbarButton
-                                label={t('collections.map.addPoint')}
-                                pressed={tool === 'add'}
-                                onClick={() => setTool('add')}
-                            >
-                                <MapPinPlus className="size-4" />
-                            </ToolbarButton>
-                            {/* LineString / Polygon: hide until leaflet-geoman (or draw) is a dep. */}
-                            <ToolbarButton
-                                label={t('collections.map.delete')}
-                                pressed={tool === 'delete'}
-                                onClick={() => {
-                                    if (
-                                        tool === 'delete' &&
-                                        positions.length > 0
-                                    ) {
-                                        clearAll();
+                                <ToolbarButton
+                                    label={t('collections.map.addPoint')}
+                                    pressed={tool === 'add'}
+                                    onClick={() => setTool('add')}
+                                >
+                                    <MapPinPlus className="size-4" />
+                                </ToolbarButton>
+                                {/* LineString / Polygon: hide until leaflet-geoman (or draw) is a dep. */}
+                                <ToolbarButton
+                                    label={t('collections.map.delete')}
+                                    pressed={tool === 'delete'}
+                                    onClick={() => {
+                                        if (
+                                            tool === 'delete' &&
+                                            positions.length > 0
+                                        ) {
+                                            clearAll();
 
-                                        return;
+                                            return;
+                                        }
+
+                                        setTool('delete');
+                                    }}
+                                    disabled={
+                                        positions.length === 0 &&
+                                        tool !== 'delete'
                                     }
-
-                                    setTool('delete');
-                                }}
-                                disabled={
-                                    positions.length === 0 && tool !== 'delete'
-                                }
-                            >
-                                <Trash2 className="size-4" />
-                            </ToolbarButton>
-                            {/* Second click on trash while active clears all points. */}
-                        </div>
+                                >
+                                    <Trash2 className="size-4" />
+                                </ToolbarButton>
+                                {/* Second click on trash while active clears all points. */}
+                            </ButtonGroup>
+                        </ButtonGroup>
                     </TooltipProvider>
                 )}
             </div>
@@ -479,10 +495,6 @@ export function MapCoordinateInput({
     );
 }
 
-function ToolbarSep() {
-    return <div className="mx-1 my-0.5 h-px bg-border" aria-hidden />;
-}
-
 function ToolbarButton({
     label,
     onClick,
@@ -502,8 +514,8 @@ function ToolbarButton({
                 <Button
                     type="button"
                     size="icon"
-                    variant={pressed ? 'default' : 'ghost'}
-                    className={cn('shrink-0', pressed && 'shadow-xs')}
+                    variant={pressed ? 'default' : 'outline'}
+                    className="shrink-0"
                     aria-label={label}
                     aria-pressed={pressed}
                     disabled={disabled}

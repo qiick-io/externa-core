@@ -32,6 +32,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    Item,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
+} from '@/components/ui/item';
+import {
     halfPackingAwaitingPartnerThrough,
     intentForLayoutDrop,
     resolveHalfDropOnEnd,
@@ -754,13 +761,14 @@ function CollectionFieldRow({
     // Pattern: primary row action is a native <button> that opens edit;
     // overflow actions stay a sibling control (not nested inside the row button).
     return (
-        <div
+        <Item
+            variant={isGroup ? 'default' : 'outline'}
+            size="sm"
             className={cn(
-                'flex items-center gap-3 rounded-xl border px-3 py-3',
+                'flex-nowrap gap-3 rounded-xl px-3',
                 fillHeight && 'h-full',
-                isGroup ? 'border-transparent bg-transparent' : 'bg-card',
                 !isGroup &&
-                    'border-sidebar-border/70 dark:border-sidebar-border',
+                    'border-sidebar-border/70 bg-card dark:border-sidebar-border',
                 hiddenInForm && 'opacity-80',
             )}
         >
@@ -787,17 +795,20 @@ function CollectionFieldRow({
                 }}
                 className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-1 py-1 text-left hover:bg-muted/50"
             >
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/30">
+                <ItemMedia
+                    variant="icon"
+                    className="size-10 translate-y-0 self-center rounded-lg bg-muted/30"
+                >
                     <Icon
                         className="size-5 text-muted-foreground"
                         aria-hidden="true"
                     />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">
+                </ItemMedia>
+                <ItemContent className="min-w-0">
+                    <ItemTitle className="w-full truncate">
                         {getFieldDisplayName(field.settings, field.name)}
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">
+                    </ItemTitle>
+                    <ItemDescription className="truncate">
                         {fieldTypeLabel(field.type, t)}
                         {field.translatable
                             ? t('collections.translatableSuffix')
@@ -811,8 +822,8 @@ function CollectionFieldRow({
                         {layoutWidth !== 'full'
                             ? ` · ${fieldLayoutWidthLabel(layoutWidth)}`
                             : ''}
-                    </p>
-                </div>
+                    </ItemDescription>
+                </ItemContent>
             </button>
 
             <CollectionFieldRowActions
@@ -821,7 +832,7 @@ function CollectionFieldRow({
                 onEdit={onEdit}
                 allFields={allFields}
             />
-        </div>
+        </Item>
     );
 }
 

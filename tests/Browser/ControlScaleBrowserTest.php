@@ -156,8 +156,8 @@ it('keeps table row actions on the compact 24px size', function () {
         ->each->toEqual(24);
 });
 
-it('gives activity log filter selects the same dark background as the inputs', function () {
-    $page = visit('/activity-logs')->inDarkMode();
+it('gives list toolbar selects the same dark background as the inputs', function () {
+    $page = visit('/users')->inDarkMode();
 
     $page->assertNoJavaScriptErrors();
 
