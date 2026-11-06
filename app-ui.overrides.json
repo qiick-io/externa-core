@@ -1,7 +1,7 @@
 {
-    "resources/js/components/layout/page-header.tsx": "externa-core is the source of this item. It uses STRING_LIMITS.SEARCH for the search maxLength; the registry hard-codes 255 (same value).",
+    "resources/js/components/layout/page-header.tsx": "externa-core is the source of this item. It uses STRING_LIMITS.SEARCH for the search maxLength (the registry hard-codes 255, same value), and FilterSearch is on InputGroup (search icon as an inline-start addon) instead of an absolutely positioned icon; the registry should take this version.",
     "resources/js/components/layout/page-layout.tsx": "externa-core is the source of this item. It imports the rows-per-page helpers from lib/pagination.ts; the registry moved them to lib/list-per-page.ts.",
-    "resources/js/components/admin/data-table-toolbar.tsx": "externa-core is the source of this item. It uses STRING_LIMITS.SEARCH for the search maxLength; the registry hard-codes 255 (same value).",
+    "resources/js/components/admin/data-table-toolbar.tsx": "externa-core is the source of this item. It uses STRING_LIMITS.SEARCH for the search maxLength (the registry hard-codes 255, same value), and the search is on InputGroup (search icon as an inline-start addon) instead of an absolutely positioned icon; the registry should take this version.",
     "resources/js/components/settings-form-actions.tsx": "externa-core keeps the unsaved-changes toolbar; the registry item is Excubia's copy without it.",
     "resources/js/components/app-shell.tsx": "externa-core is the source of this item. It imports AppVariant from @/types; the registry declares the type in the file because shadcn rewrites @/types in Laravel apps.",
     "resources/js/components/app-content.tsx": "externa-core is the source of this item. It imports AppVariant from @/types; the registry declares the type in the file because shadcn rewrites @/types in Laravel apps.",

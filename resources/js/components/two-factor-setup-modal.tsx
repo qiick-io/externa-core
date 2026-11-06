@@ -14,6 +14,12 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldError, FieldSeparator } from '@/components/ui/field';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
     InputOTP,
     InputOTPGroup,
     InputOTPSlot,
@@ -110,28 +116,34 @@ function TwoFactorSetupStep({
                     </FieldSeparator>
 
                     <div className="flex w-full space-x-2">
-                        <div className="flex w-full items-stretch overflow-hidden rounded-xl border border-border">
-                            {!manualSetupKey ? (
-                                <div className="flex h-full w-full items-center justify-center bg-muted p-3">
-                                    <Spinner />
-                                </div>
-                            ) : (
-                                <>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={manualSetupKey}
-                                        className="h-full w-full bg-background p-3 text-foreground outline-none"
-                                    />
-                                    <button
+                        {!manualSetupKey ? (
+                            <div className="flex h-control w-full items-center justify-center rounded-md border bg-muted">
+                                <Spinner />
+                            </div>
+                        ) : (
+                            <InputGroup className="dark:bg-transparent">
+                                <InputGroupInput
+                                    readOnly
+                                    value={manualSetupKey}
+                                    aria-label={t(
+                                        'settings.twoFactor.setupKey',
+                                    )}
+                                />
+                                <InputGroupAddon align="inline-end">
+                                    <InputGroupButton
+                                        size="icon-xs"
+                                        aria-label={
+                                            copiedText === manualSetupKey
+                                                ? t('common.copied')
+                                                : t('common.copy')
+                                        }
                                         onClick={() => copy(manualSetupKey)}
-                                        className="border-l border-border px-3 hover:bg-muted"
                                     >
-                                        <IconComponent className="w-4" />
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                                        <IconComponent />
+                                    </InputGroupButton>
+                                </InputGroupAddon>
+                            </InputGroup>
+                        )}
                     </div>
                 </>
             ) : null}

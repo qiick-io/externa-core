@@ -32,7 +32,9 @@
         "active": "Active",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} of {{total}}",
-        "perPageOption": "{{count}} / page"
+        "perPageOption": "{{count}} / page",
+        "copy": "Copy",
+        "copied": "Copied"
     },
     "emptyState": {
         "collections": {
@@ -357,7 +359,8 @@
                 "revokeTitle": "Revoke API key “{{name}}”?",
                 "revokeDescription": "This key will stop working immediately.",
                 "revokeConfirm": "Revoke"
-            }
+            },
+            "secretValue": "New API key"
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -734,7 +737,8 @@
             "regenerate": "Regenerate codes",
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
-            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above.",
+            "setupKey": "Setup key"
         },
         "aiTools": {
             "breadcrumb": "AI write tools",
