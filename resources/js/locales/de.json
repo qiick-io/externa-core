@@ -32,7 +32,16 @@
         "active": "Aktiv",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} von {{total}}",
-        "perPageOption": "{{count}} / Seite"
+        "perPageOption": "{{count}} / Seite",
+        "noResults": "Keine Ergebnisse.",
+        "copy": "Kopieren",
+        "copied": "Kopiert"
+    },
+    "picker": {
+        "search": "Suchen…",
+        "noResults": "Keine Ergebnisse.",
+        "loading": "Wird geladen…",
+        "clearSelection": "Auswahl aufheben"
     },
     "emptyState": {
         "collections": {
@@ -225,7 +234,8 @@
         "fromDate": "Von Datum",
         "toDate": "Bis Datum",
         "removeRule": "Regel entfernen",
-        "removeLocale": "Locale {{code}} entfernen"
+        "removeLocale": "Locale {{code}} entfernen",
+        "selectRow": "{{name}} auswählen"
     },
     "auth": {
         "login": {
@@ -357,7 +367,20 @@
                 "revokeTitle": "API-Schlüssel „{{name}}“ widerrufen?",
                 "revokeDescription": "Dieser Schlüssel funktioniert sofort nicht mehr.",
                 "revokeConfirm": "Widerrufen"
-            }
+            },
+            "columns": {
+                "name": "Name",
+                "prefix": "Präfix",
+                "role": "Rolle",
+                "status": "Status",
+                "actions": "Aktionen"
+            },
+            "status": {
+                "active": "Aktiv",
+                "revoked": "Widerrufen"
+            },
+            "revoke": "Schlüssel widerrufen",
+            "secretValue": "Neuer API-Schlüssel"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -685,7 +708,8 @@
             "regenerate": "Codes neu generieren",
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
-            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>.",
+            "setupKey": "Einrichtungsschlüssel"
         },
         "performance": {
             "appDebug": "APP_DEBUG",
@@ -1803,6 +1827,12 @@
             "title": "Seite nicht gefunden",
             "description": "Die angeforderte Seite existiert nicht oder ist nicht mehr verfügbar.",
             "goHome": "Zur Startseite"
+        },
+        "boundary": {
+            "title": "Etwas ist schiefgelaufen",
+            "description": "In der Oberfläche ist ein unerwarteter Fehler aufgetreten. Lade die Seite neu, um es erneut zu versuchen.",
+            "tryAgain": "Erneut versuchen",
+            "reload": "Seite neu laden"
         }
     },
     "unsavedChanges": {
@@ -1914,7 +1944,8 @@
             "clearSelection": "Auswahl aufheben",
             "emptyTrash": "Papierkorb leeren",
             "emptyTrashTitle": "Papierkorb leeren?",
-            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist."
+            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist.",
+            "uploadOptions": "Weitere Upload-Optionen"
         },
         "sort": {
             "name": "Name",
@@ -2013,7 +2044,9 @@
             "placeholder": "Tag eingeben und Enter drücken",
             "exactMatch": "Exakte Übereinstimmung — bestehender Tag „{{name}}“ wird wiederverwendet",
             "existing": "Vorhandene Tags",
-            "moreTags": "{{count}} weitere Tags"
+            "moreTags": "{{count}} weitere Tags",
+            "create": "„{{name}}“ erstellen",
+            "remove": "Tag {{name}} entfernen"
         },
         "folderPicker": {
             "search": "Ordner suchen…",
@@ -2061,11 +2094,33 @@
             "select": "{{name}} auswählen",
             "privateBadge": "Privat",
             "privateTitle": "Privat — erfordert Read private auf API-Rollen"
+        },
+        "picker": {
+            "title": "Datei auswählen",
+            "descriptionMultiple": "Klicke auf Dateien, um sie auszuwählen, und bestätige dann unten",
+            "description": "Ordner durchsuchen oder eine neue Datei hochladen",
+            "empty": "Keine Dateien in diesem Ordner",
+            "chooseFiles": "Dateien auswählen",
+            "chooseCount": "{{count}} auswählen"
+        },
+        "dropzone": {
+            "dropToUpload": "Dateien hier ablegen, um sie hochzuladen",
+            "dropOrBrowse": "Dateien hier ablegen oder durchsuchen",
+            "chunkedHint": "Große Dateien werden automatisch in Teilen hochgeladen",
+            "chooseFiles": "Dateien auswählen"
         }
     },
     "confirmDestructive": {
         "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
-        "deletePermanently": "Endgültig löschen"
+        "deletePermanently": "Endgültig löschen",
+        "deleteAiChatTitle": "Diesen Chat löschen?",
+        "deleteAiChatDescription": "Die Unterhaltung und alle ihre Nachrichten werden gelöscht.",
+        "deletePromptTitle": "Prompt „{{name}}“ löschen?",
+        "deletePromptDescription": "Der gespeicherte Prompt steht danach niemandem mehr zur Verfügung.",
+        "deleteMessageTitle": "Diese Nachricht löschen?",
+        "deleteMessageDescription": "Die Nachricht wird für alle aus dem Chat entfernt.",
+        "deleteDirectChatTitle": "Diesen Chat löschen?",
+        "deleteDirectChatDescription": "Der Chat wird aus deinen Chats entfernt."
     },
     "itemConfirm": {
         "deleteTitle": "Item „{{name}}“ löschen?",
@@ -2108,7 +2163,16 @@
             "firstName": "Vorname",
             "email": "E-Mail",
             "created": "Erstellt",
-            "updated": "Aktualisiert"
+            "updated": "Aktualisiert",
+            "name": "Name",
+            "roles": "Rollen",
+            "groups": "Gruppen",
+            "status": "Status",
+            "actions": "Aktionen"
+        },
+        "status": {
+            "active": "Aktiv",
+            "inactive": "Inaktiv"
         }
     },
     "groups": {
@@ -2124,7 +2188,15 @@
         "newGroup": "Neue Gruppe",
         "searchPlaceholder": "Gruppen suchen…",
         "searchTrashPlaceholder": "Papierkorb durchsuchen…",
-        "sortBy": "Sortieren nach"
+        "sortBy": "Sortieren nach",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Rollen",
+            "members": "Mitglieder",
+            "actions": "Aktionen"
+        },
+        "empty": "Noch keine Gruppen."
     },
     "pendingToolCalls": {
         "head": "KI-Tool-Freigaben",
@@ -2162,6 +2234,41 @@
         "redo": "Wiederholen",
         "table": "Tabelle",
         "linkUrl": "Link-URL",
+        "applyLink": "Übernehmen",
+        "removeLink": "Link entfernen",
         "headingLevel": "Überschrift {{level}}"
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "Keine Berechtigungen in der Datenbank. Synchronisierung ausführen.",
+        "sync": "Aus Enum synchronisieren"
+    },
+    "passwordInput": {
+        "strength": "Passwortstärke",
+        "meetsPolicy": "Erfüllt die Passwortrichtlinie des Projekts.",
+        "keepGoing": "Weiter so, um die Passwortrichtlinie des Projekts zu erfüllen.",
+        "generate": "Sicheres Passwort generieren"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "In der Warteschlange: {{count}}",
+        "pendingTitle": "Ausstehend (Stichprobe)",
+        "failedTitle": "Fehlgeschlagene Jobs",
+        "pendingEmpty": "Keine ausstehenden Jobs.",
+        "failedEmpty": "Keine fehlgeschlagenen Jobs.",
+        "scopeHint": "Der Status von Domain-Jobs (KI-Import, Zip) bleibt in den jeweiligen Oberflächen; diese Seite überwacht nur die Laravel-Queue-Tabellen.",
+        "retry": "Erneut versuchen",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Warteschlange",
+            "attempts": "Versuche",
+            "failedAt": "Fehlgeschlagen am",
+            "exception": "Ausnahme",
+            "actions": "Aktionen"
+        }
     }
 }

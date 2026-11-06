@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -188,12 +189,10 @@ export function ItemRevisionCompareModal({
                     </DialogDescription>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                         <label className="flex items-center gap-2 text-sm">
-                            <input
-                                type="checkbox"
-                                className="size-3.5 rounded border"
+                            <Checkbox
                                 checked={showDiffOnly}
-                                onChange={(e) =>
-                                    setShowDiffOnly(e.target.checked)
+                                onCheckedChange={(isChecked) =>
+                                    setShowDiffOnly(isChecked === true)
                                 }
                                 data-test="show-differences-only"
                             />

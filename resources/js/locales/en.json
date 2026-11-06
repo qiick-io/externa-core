@@ -32,7 +32,16 @@
         "active": "Active",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} of {{total}}",
-        "perPageOption": "{{count}} / page"
+        "perPageOption": "{{count}} / page",
+        "noResults": "No results.",
+        "copy": "Copy",
+        "copied": "Copied"
+    },
+    "picker": {
+        "search": "Search…",
+        "noResults": "No results.",
+        "loading": "Loading…",
+        "clearSelection": "Clear selection"
     },
     "emptyState": {
         "collections": {
@@ -225,7 +234,8 @@
         "fromDate": "From date",
         "toDate": "To date",
         "removeRule": "Remove rule",
-        "removeLocale": "Remove locale {{code}}"
+        "removeLocale": "Remove locale {{code}}",
+        "selectRow": "Select {{name}}"
     },
     "auth": {
         "login": {
@@ -357,7 +367,20 @@
                 "revokeTitle": "Revoke API key “{{name}}”?",
                 "revokeDescription": "This key will stop working immediately.",
                 "revokeConfirm": "Revoke"
-            }
+            },
+            "columns": {
+                "name": "Name",
+                "prefix": "Prefix",
+                "role": "Role",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "status": {
+                "active": "Active",
+                "revoked": "Revoked"
+            },
+            "revoke": "Revoke key",
+            "secretValue": "New API key"
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -734,7 +757,8 @@
             "regenerate": "Regenerate codes",
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
-            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above.",
+            "setupKey": "Setup key"
         },
         "aiTools": {
             "breadcrumb": "AI write tools",
@@ -1803,6 +1827,12 @@
             "title": "Page not found",
             "description": "The page you requested does not exist or is no longer available.",
             "goHome": "Go to home"
+        },
+        "boundary": {
+            "title": "Something went wrong",
+            "description": "The interface hit an unexpected error. You can try reloading the page.",
+            "tryAgain": "Try again",
+            "reload": "Reload page"
         }
     },
     "unsavedChanges": {
@@ -1914,7 +1944,8 @@
             "clearSelection": "Clear selection",
             "emptyTrash": "Empty trash",
             "emptyTrashTitle": "Empty the trash?",
-            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done."
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done.",
+            "uploadOptions": "More upload options"
         },
         "sort": {
             "name": "Name",
@@ -2013,7 +2044,9 @@
             "placeholder": "Type a tag and press Enter",
             "exactMatch": "Exact match — will reuse existing tag “{{name}}”",
             "existing": "Existing tags",
-            "moreTags": "{{count}} more tags"
+            "moreTags": "{{count}} more tags",
+            "create": "Create “{{name}}”",
+            "remove": "Remove tag {{name}}"
         },
         "folderPicker": {
             "search": "Search folders…",
@@ -2061,11 +2094,33 @@
             "select": "Select {{name}}",
             "privateBadge": "Private",
             "privateTitle": "Private — requires Read private on API roles"
+        },
+        "picker": {
+            "title": "Choose file",
+            "descriptionMultiple": "Click files to select them, then confirm below",
+            "description": "Browse folders or upload a new file",
+            "empty": "No files in this folder",
+            "chooseFiles": "Choose files",
+            "chooseCount": "Choose {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Drop files here to upload",
+            "dropOrBrowse": "Drop files here or browse",
+            "chunkedHint": "Large files use chunked upload automatically",
+            "chooseFiles": "Choose files"
         }
     },
     "confirmDestructive": {
         "typeToConfirm": "Type \"{{name}}\" to confirm",
-        "deletePermanently": "Delete permanently"
+        "deletePermanently": "Delete permanently",
+        "deleteAiChatTitle": "Delete this chat?",
+        "deleteAiChatDescription": "The conversation and all its messages will be deleted.",
+        "deletePromptTitle": "Delete prompt “{{name}}”?",
+        "deletePromptDescription": "The saved prompt will no longer be available to anyone.",
+        "deleteMessageTitle": "Delete this message?",
+        "deleteMessageDescription": "The message will be removed from the chat for everyone.",
+        "deleteDirectChatTitle": "Delete this chat?",
+        "deleteDirectChatDescription": "The chat will be removed from your chats."
     },
     "itemConfirm": {
         "deleteTitle": "Delete item “{{name}}”?",
@@ -2108,7 +2163,16 @@
             "firstName": "First name",
             "email": "Email",
             "created": "Created",
-            "updated": "Updated"
+            "updated": "Updated",
+            "name": "Name",
+            "roles": "Roles",
+            "groups": "Groups",
+            "status": "Status",
+            "actions": "Actions"
+        },
+        "status": {
+            "active": "Active",
+            "inactive": "Inactive"
         }
     },
     "groups": {
@@ -2124,7 +2188,15 @@
         "newGroup": "New group",
         "searchPlaceholder": "Search groups…",
         "searchTrashPlaceholder": "Search trash…",
-        "sortBy": "Sort by"
+        "sortBy": "Sort by",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Roles",
+            "members": "Members",
+            "actions": "Actions"
+        },
+        "empty": "No groups yet."
     },
     "pendingToolCalls": {
         "head": "AI tool approvals",
@@ -2162,6 +2234,41 @@
         "redo": "Redo",
         "table": "Table",
         "linkUrl": "Link URL",
+        "applyLink": "Apply",
+        "removeLink": "Remove link",
         "headingLevel": "Heading {{level}}"
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "No permissions in database. Run sync.",
+        "sync": "Sync from enum"
+    },
+    "passwordInput": {
+        "strength": "Password strength",
+        "meetsPolicy": "Meets project password policy.",
+        "keepGoing": "Keep going to meet project password policy.",
+        "generate": "Generate secure password"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "Pending in queue: {{count}}",
+        "pendingTitle": "Pending (sample)",
+        "failedTitle": "Failed jobs",
+        "pendingEmpty": "No pending jobs.",
+        "failedEmpty": "No failed jobs.",
+        "scopeHint": "Domain job status (AI import, zip) remains in their existing UIs — this page monitors the Laravel queue tables only.",
+        "retry": "Retry",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Queue",
+            "attempts": "Attempts",
+            "failedAt": "Failed at",
+            "exception": "Exception",
+            "actions": "Actions"
+        }
     }
 }

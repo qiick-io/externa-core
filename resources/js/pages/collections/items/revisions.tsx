@@ -5,6 +5,7 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
     Table,
@@ -326,16 +327,18 @@ export default function ItemRevisions({
                             </p>
                         ) : (
                             <>
-                                <ul className="divide-y rounded-xl border border-sidebar-border/70">
+                                <ItemGroup className="divide-y rounded-xl border border-sidebar-border/70">
                                     {revisions.map((revision) => {
                                         const active = selected.includes(
                                             revision.id,
                                         );
 
                                         return (
-                                            <li
+                                            <Item
                                                 key={revision.id}
-                                                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                                                role="listitem"
+                                                size="sm"
+                                                className="justify-between rounded-none"
                                             >
                                                 <button
                                                     type="button"
@@ -376,10 +379,10 @@ export default function ItemRevisions({
                                                         Restore
                                                     </Button>
                                                 ) : null}
-                                            </li>
+                                            </Item>
                                         );
                                     })}
-                                </ul>
+                                </ItemGroup>
                                 {meta.has_more ? (
                                     <Button
                                         type="button"

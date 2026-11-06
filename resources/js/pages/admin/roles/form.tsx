@@ -26,6 +26,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Toggle } from '@/components/ui/toggle';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -613,23 +614,23 @@ export default function AdminRoleForm({
                                                         key={action.key}
                                                         className="text-center"
                                                     >
-                                                        <button
-                                                            type="button"
-                                                            aria-pressed={
-                                                                allowed
-                                                            }
+                                                        <Toggle
+                                                            variant="outline"
+                                                            pressed={allowed}
                                                             aria-label={`${action.label} for files: ${allowed ? 'allowed' : 'denied'}`}
                                                             title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
                                                             className={cn(
-                                                                'inline-flex size-control items-center justify-center rounded-md border transition-colors',
+                                                                'px-0',
                                                                 allowed
-                                                                    ? 'border-success/50 bg-success/15 text-success'
-                                                                    : 'border-destructive/50 bg-destructive/10 text-destructive',
+                                                                    ? 'border-success/50 bg-success/15 text-success hover:bg-success/25 hover:text-success data-[state=on]:bg-success/15 data-[state=on]:text-success'
+                                                                    : 'border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive',
                                                             )}
-                                                            onClick={() =>
+                                                            onPressedChange={(
+                                                                pressed,
+                                                            ) =>
                                                                 toggleFileAction(
                                                                     action.key,
-                                                                    !allowed,
+                                                                    pressed,
                                                                 )
                                                             }
                                                         >
@@ -650,7 +651,7 @@ export default function AdminRoleForm({
                                                                     aria-hidden
                                                                 />
                                                             )}
-                                                        </button>
+                                                        </Toggle>
                                                     </TableCell>
                                                 );
                                             })}
@@ -824,24 +825,26 @@ export default function AdminRoleForm({
                                                                                 }
                                                                                 className="text-center"
                                                                             >
-                                                                                <button
-                                                                                    type="button"
-                                                                                    aria-pressed={
+                                                                                <Toggle
+                                                                                    variant="outline"
+                                                                                    pressed={
                                                                                         allowed
                                                                                     }
                                                                                     aria-label={`${action.label} for ${collection.name}: ${allowed ? 'allowed' : 'denied'}`}
                                                                                     title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
                                                                                     className={cn(
-                                                                                        'inline-flex size-control items-center justify-center rounded-md border transition-colors',
+                                                                                        'px-0',
                                                                                         allowed
-                                                                                            ? 'border-success/50 bg-success/15 text-success'
-                                                                                            : 'border-destructive/50 bg-destructive/10 text-destructive',
+                                                                                            ? 'border-success/50 bg-success/15 text-success hover:bg-success/25 hover:text-success data-[state=on]:bg-success/15 data-[state=on]:text-success'
+                                                                                            : 'border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive',
                                                                                     )}
-                                                                                    onClick={() =>
+                                                                                    onPressedChange={(
+                                                                                        pressed,
+                                                                                    ) =>
                                                                                         toggleCollectionAction(
                                                                                             collection.id,
                                                                                             action.key,
-                                                                                            !allowed,
+                                                                                            pressed,
                                                                                         )
                                                                                     }
                                                                                 >
@@ -862,7 +865,7 @@ export default function AdminRoleForm({
                                                                                             aria-hidden
                                                                                         />
                                                                                     )}
-                                                                                </button>
+                                                                                </Toggle>
                                                                             </TableCell>
                                                                         );
                                                                     },

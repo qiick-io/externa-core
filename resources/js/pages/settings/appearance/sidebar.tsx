@@ -6,7 +6,9 @@ import { useTranslation } from 'react-i18next';
 import AppearanceSidebarSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSidebarSettingsController';
 import Heading from '@/components/heading';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Item, ItemGroup, ItemMedia } from '@/components/ui/item';
 import { Switch } from '@/components/ui/switch';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -55,14 +57,16 @@ function ModuleRowContent({
 }) {
     return (
         <>
-            {dragHandle ?? (
-                <span
-                    className="flex size-4 items-center justify-center text-muted-foreground/40"
-                    aria-hidden
-                >
-                    <Lock className="size-3.5" />
-                </span>
-            )}
+            <ItemMedia>
+                {dragHandle ?? (
+                    <span
+                        className="flex size-control-sm items-center justify-center text-muted-foreground/40"
+                        aria-hidden
+                    >
+                        <Lock className="size-3.5" />
+                    </span>
+                )}
+            </ItemMedia>
             <Switch
                 id={`module-${module.id}`}
                 checked={module.enabled}
@@ -93,13 +97,18 @@ function PinnedModuleRow({
     onToggle: (enabled: boolean) => void;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
+        <Item
+            role="listitem"
+            variant="muted"
+            size="sm"
+            className="border-border"
+        >
             <ModuleRowContent
                 module={module}
                 label={label}
                 onToggle={onToggle}
             />
-        </div>
+        </Item>
     );
 }
 
@@ -115,25 +124,24 @@ function ModuleRow({
     const { t } = useTranslation();
 
     return (
-        <div
-            data-id={module.id}
-            className="flex items-center gap-3 rounded-md border px-3 py-2"
-        >
+        <Item data-id={module.id} role="listitem" variant="outline" size="sm">
             <ModuleRowContent
                 module={module}
                 label={label}
                 onToggle={onToggle}
                 dragHandle={
-                    <button
+                    <Button
                         type="button"
-                        className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="drag-handle cursor-grab touch-none text-muted-foreground"
                         aria-label={t('a11y.reorder')}
                     >
-                        <GripVertical className="size-4" />
-                    </button>
+                        <GripVertical />
+                    </Button>
                 }
             />
-        </div>
+        </Item>
     );
 }
 
@@ -300,7 +308,7 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                             : undefined
                                     }
                                 >
-                                    <div className="space-y-2">
+                                    <ItemGroup className="gap-2">
                                         {pinnedModules.map((module) => (
                                             <PinnedModuleRow
                                                 key={module.id}
@@ -316,7 +324,8 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                         ))}
                                         <div
                                             ref={sortableModulesRef}
-                                            className="space-y-2"
+                                            role="presentation"
+                                            className="flex flex-col gap-2"
                                         >
                                             {sortableModules.map((module) => (
                                                 <ModuleRow
@@ -334,7 +343,7 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                                 />
                                             ))}
                                         </div>
-                                    </div>
+                                    </ItemGroup>
                                     <FieldError id="sidebar-modules-error">
                                         {errors.sidebar_modules}
                                     </FieldError>
