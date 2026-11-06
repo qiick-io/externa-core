@@ -12,6 +12,14 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemTitle,
+} from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -155,51 +163,59 @@ export function TransformPresetsField({
                 </Button>
             </div>
 
-            <div className="space-y-2">
+            <ItemGroup className="gap-2">
                 {presets.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         {t('settings.project.presetEmpty')}
                     </p>
                 ) : (
                     presets.map((preset, index) => (
-                        <div
+                        <Item
                             key={`${preset.key}-${index}`}
-                            className="flex items-center gap-3 rounded-md border px-3 py-2"
+                            role="listitem"
+                            variant="outline"
+                            size="sm"
                         >
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium">
+                            <ItemContent className="min-w-0">
+                                <ItemTitle className="w-full truncate">
                                     {preset.key}
-                                </p>
-                                <p className="truncate text-xs text-muted-foreground">
+                                </ItemTitle>
+                                <ItemDescription className="truncate text-xs">
                                     {summarizePreset(preset)}
                                     {preset.without_enlargement
                                         ? ` · ${t('settings.project.presetNoUpscaleShort')}`
                                         : ''}
-                                </p>
-                            </div>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openEdit(index)}
-                                aria-label={t('settings.project.presetEdit')}
-                            >
-                                <Pencil className="size-4" />
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removePreset(index)}
-                                disabled={presets.length <= 1}
-                                aria-label={t('settings.project.presetDelete')}
-                            >
-                                <Trash2 className="size-4" />
-                            </Button>
-                        </div>
+                                </ItemDescription>
+                            </ItemContent>
+                            <ItemActions>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEdit(index)}
+                                    aria-label={t(
+                                        'settings.project.presetEdit',
+                                    )}
+                                >
+                                    <Pencil className="size-4" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removePreset(index)}
+                                    disabled={presets.length <= 1}
+                                    aria-label={t(
+                                        'settings.project.presetDelete',
+                                    )}
+                                >
+                                    <Trash2 className="size-4" />
+                                </Button>
+                            </ItemActions>
+                        </Item>
                     ))
                 )}
-            </div>
+            </ItemGroup>
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
