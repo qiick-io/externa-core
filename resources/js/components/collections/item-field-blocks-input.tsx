@@ -16,6 +16,7 @@ import { FieldNoteSlot } from '@/components/collections/item-field-choice-inputs
 import { LocalizedField } from '@/components/collections/localized-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
@@ -484,30 +485,38 @@ export function BlocksFieldInput({
                                 </NativeSelect>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            disabled={index === 0}
-                                            aria-label={t('a11y.moveBlockUp')}
-                                            onClick={() =>
-                                                moveBlock(block.id, -1)
-                                            }
-                                        >
-                                            <ArrowUp className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            disabled={
-                                                index === blocks.length - 1
-                                            }
-                                            aria-label={t('a11y.moveBlockDown')}
-                                            onClick={() =>
-                                                moveBlock(block.id, 1)
-                                            }
-                                        >
-                                            <ArrowDown className="size-4" />
-                                        </Button>
+                                        <ButtonGroup>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={index === 0}
+                                                aria-label={t(
+                                                    'a11y.moveBlockUp',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, -1)
+                                                }
+                                            >
+                                                <ArrowUp className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={
+                                                    index === blocks.length - 1
+                                                }
+                                                aria-label={t(
+                                                    'a11y.moveBlockDown',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, 1)
+                                                }
+                                            >
+                                                <ArrowDown className="size-4" />
+                                            </Button>
+                                        </ButtonGroup>
                                         <Button
                                             type="button"
                                             variant="ghost"

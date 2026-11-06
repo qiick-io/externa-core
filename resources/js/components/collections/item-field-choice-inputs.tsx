@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import {
     Fragment,
     useCallback,
@@ -8,11 +8,29 @@ import {
     useState,
 } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { AutocompleteInput } from '@/components/collections/autocomplete-input';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
@@ -45,11 +63,10 @@ import {
     fieldControlChromeMulti,
     fieldControlChromeSingle,
     fieldControlHeight,
+    fieldFocusRing,
+    fieldOpenBorder,
 } from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background flex min-h-control w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none';
 
 /** Radix Select forbids empty string values — map allowNone ↔ sentinel. */
 const SELECT_NONE_VALUE = '__none__';
@@ -134,14 +151,16 @@ function getPathValue(source: unknown, path: string): unknown {
 /**
  * Always reserves one line of vertical space below the control so half-width siblings stay aligned.
  */
+/**
+ * Field note under the control; the line is always reserved so half-width
+ * siblings stay aligned.
+ * @returns {JSX.Element}
+ */
 export function FieldNoteSlot({ note }: { note?: string }) {
     return (
-        <p
-            className="min-h-5 text-sm text-muted-foreground"
-            aria-hidden={!note}
-        >
+        <FieldDescription className="min-h-5" aria-hidden={!note}>
             {note || '\u00A0'}
-        </p>
+        </FieldDescription>
     );
 }
 
@@ -267,6 +286,11 @@ export function BooleanToggleInput({
     );
 }
 
+/**
+ * Free-text input with suggestions from the field options (was `<datalist>`):
+ * the typed text is submitted, the options only help to fill it.
+ * @returns {JSX.Element}
+ */
 export function StaticAutocompleteInput({
     id,
     name,
@@ -282,36 +306,44 @@ export function StaticAutocompleteInput({
     defaultValue: string;
     readonly: boolean;
 }) {
-    const listId = useId();
     const stringSettings = parseStringFieldSettings(settings);
     const options = parseFieldOptions(settings).filter(
         (option) => option.value.trim() !== '',
     );
     const placeholder = getFieldPlaceholder(settings, locales);
+    const [text, setText] = useState(defaultValue);
+    const normalizedText = text.trim().toLowerCase();
+    const suggestions = options
+        .filter(
+            (option) =>
+                option.value !== text &&
+                (option.value.toLowerCase().includes(normalizedText) ||
+                    option.label.toLowerCase().includes(normalizedText)),
+        )
+        .map((option) => ({
+            value: option.value,
+            label: option.label || option.value,
+        }));
 
     return (
-        <InputWithIcons
-            iconLeft={stringSettings.iconLeft}
-            iconRight={stringSettings.iconRight}
-        >
-            <Input
-                id={id}
-                name={name}
-                list={listId}
-                defaultValue={defaultValue}
-                placeholder={placeholder}
-                readOnly={readonly}
-            />
-            <datalist id={listId}>
-                {options.map((option) => (
-                    <option
-                        key={option.value}
-                        value={option.value}
-                        label={option.label || option.value}
-                    />
-                ))}
-            </datalist>
-        </InputWithIcons>
+        <AutocompleteInput
+            id={id}
+            name={name}
+            value={text}
+            placeholder={placeholder}
+            readOnly={readonly}
+            suggestions={suggestions}
+            onChange={(event) => setText(event.target.value)}
+            onSelectSuggestion={(suggestion) => setText(suggestion.value)}
+            renderInput={(input) => (
+                <InputWithIcons
+                    iconLeft={stringSettings.iconLeft}
+                    iconRight={stringSettings.iconRight}
+                >
+                    {input}
+                </InputWithIcons>
+            )}
+        />
     );
 }
 
@@ -332,8 +364,6 @@ export function ApiAutocompleteInput({
     defaultValue: string;
     readonly: boolean;
 }) {
-    const listId = useId();
-    const containerRef = useRef<HTMLDivElement>(null);
     const apiSettings = parseApiAutocompleteFieldSettings(settings);
     // ponytail: primitives only — parseApiAutocompleteFieldSettings() returns a
     // new object each render; putting it in effect deps re-fired the debounce forever.
@@ -462,82 +492,35 @@ export function ApiAutocompleteInput({
         return () => window.clearTimeout(delayTimer);
     }, [url, trigger, rate, fetchSuggestions, query]);
 
-    useEffect(() => {
-        const onPointerDown = (event: MouseEvent) => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
-            ) {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', onPointerDown);
-
-        return () => document.removeEventListener('mousedown', onPointerDown);
-    }, []);
-
     return (
-        <div className="relative space-y-1" ref={containerRef}>
-            <InputWithIcons iconLeft={iconLeft} iconRight={iconRight}>
-                <Input
-                    id={id}
-                    name={name}
-                    role="combobox"
-                    aria-expanded={open}
-                    aria-controls={listId}
-                    aria-autocomplete="list"
-                    autoComplete="off"
-                    value={query}
-                    placeholder={placeholder}
-                    readOnly={readonly}
-                    onChange={(event) => {
-                        committedSelectionRef.current = null;
-                        setQuery(event.target.value);
-                        setOpen(true);
-                    }}
-                    onFocus={() => {
-                        if (suggestions.length > 0) {
-                            setOpen(true);
-                        }
-                    }}
-                    onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
-                            setOpen(false);
-                        }
-                    }}
-                />
-            </InputWithIcons>
-            {open && suggestions.length > 0 ? (
-                <ul
-                    id={listId}
-                    role="listbox"
-                    className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-popover p-1 text-sm shadow-md"
-                >
-                    {suggestions.map((suggestion) => (
-                        <li
-                            key={`${suggestion.value}-${suggestion.text}`}
-                            role="option"
-                            aria-selected={false}
-                        >
-                            <button
-                                type="button"
-                                className="flex w-full cursor-pointer rounded-sm px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => {
-                                    committedSelectionRef.current =
-                                        suggestion.value;
-                                    setQuery(suggestion.value);
-                                    setOpen(false);
-                                    setSuggestions([]);
-                                }}
-                            >
-                                {suggestion.text}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            ) : null}
+        <div className="space-y-1">
+            <AutocompleteInput
+                id={id}
+                name={name}
+                value={query}
+                placeholder={placeholder}
+                readOnly={readonly}
+                open={open}
+                onOpenChange={setOpen}
+                suggestions={suggestions.map((suggestion) => ({
+                    value: suggestion.value,
+                    label: suggestion.text,
+                }))}
+                onChange={(event) => {
+                    committedSelectionRef.current = null;
+                    setQuery(event.target.value);
+                }}
+                onSelectSuggestion={(suggestion) => {
+                    committedSelectionRef.current = suggestion.value;
+                    setQuery(suggestion.value);
+                    setSuggestions([]);
+                }}
+                renderInput={(input) => (
+                    <InputWithIcons iconLeft={iconLeft} iconRight={iconRight}>
+                        {input}
+                    </InputWithIcons>
+                )}
+            />
             {loading ? (
                 <p className="text-xs text-muted-foreground">Loading…</p>
             ) : null}
@@ -950,6 +933,7 @@ export function MultiselectWithOtherInput({
     readonly: boolean;
     allowOther: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialOther = defaultValues.find(
         (value) => !optionValues.includes(value),
@@ -959,7 +943,6 @@ export function MultiselectWithOtherInput({
     );
     const [otherValue, setOtherValue] = useState(initialOther ?? '');
     const [open, setOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     const stored = [
         ...selected,
@@ -969,119 +952,103 @@ export function MultiselectWithOtherInput({
     const toggle = (value: string): void => {
         setSelected((current) =>
             current.includes(value)
-                ? current.filter((v) => v !== value)
+                ? current.filter((selectedValue) => selectedValue !== value)
                 : [...current, value],
         );
     };
 
-    useEffect(() => {
-        const handleClickOutside = (event: Event): void => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
-            ) {
-                setOpen(false);
-            }
-        };
-
-        if (open) {
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('touchstart', handleClickOutside);
-
-            return () => {
-                document.removeEventListener('mousedown', handleClickOutside);
-                document.removeEventListener('touchstart', handleClickOutside);
-            };
-        }
-
-        return () => {};
-    }, [open]);
-
     return (
         <div className="space-y-2">
-            <div ref={containerRef} className="relative">
-                <button
-                    type="button"
-                    disabled={readonly}
-                    onClick={() => setOpen(!open)}
-                    className={cn(
-                        inputLike,
-                        'flex h-auto min-h-control w-full items-center justify-between gap-2 text-left',
-                    )}
-                >
-                    {selected.length === 0 ? (
-                        <span className="text-muted-foreground">
-                            Select options…
-                        </span>
-                    ) : (
-                        <div className="flex flex-wrap gap-1">
-                            {selected.map((value) => {
-                                const option = options.find(
-                                    (opt) => opt.value === value,
-                                );
-
-                                return (
-                                    <span
-                                        key={value}
-                                        className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-xs"
-                                    >
-                                        {option?.label || value}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
-                    <ChevronsUpDown
-                        className="size-4 shrink-0 text-muted-foreground"
-                        aria-hidden
-                    />
-                </button>
-                {open && !readonly && (
-                    <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
-                        {options.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
-                                No options available.
-                            </p>
-                        ) : (
-                            options.map((option) => {
-                                const checked = selected.includes(option.value);
-
-                                return (
-                                    <div
-                                        key={option.value}
-                                        role="option"
-                                        aria-selected={checked}
-                                        tabIndex={0}
-                                        className={cn(
-                                            'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent',
-                                            checked && 'bg-accent/50',
-                                        )}
-                                        onClick={() => toggle(option.value)}
-                                        onKeyDown={(event) => {
-                                            if (
-                                                event.key === 'Enter' ||
-                                                event.key === ' '
-                                            ) {
-                                                event.preventDefault();
-                                                toggle(option.value);
-                                            }
-                                        }}
-                                    >
-                                        <Checkbox
-                                            checked={checked}
-                                            tabIndex={-1}
-                                            className="pointer-events-none"
-                                        />
-                                        <span className="flex-1 truncate">
-                                            {option.label || option.value}
-                                        </span>
-                                    </div>
-                                );
-                            })
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        disabled={readonly}
+                        className={cn(
+                            'h-auto min-h-control w-full justify-between font-normal focus-visible:ring-offset-0',
+                            fieldFocusRing,
+                            fieldOpenBorder,
                         )}
-                    </div>
-                )}
-            </div>
+                    >
+                        <span className="flex flex-1 flex-wrap gap-1 text-left">
+                            {selected.length === 0 ? (
+                                <span className="text-muted-foreground">
+                                    Select options…
+                                </span>
+                            ) : (
+                                selected.map((value) => (
+                                    <Badge
+                                        key={value}
+                                        variant="secondary"
+                                        className="font-normal"
+                                    >
+                                        {options.find(
+                                            (option) => option.value === value,
+                                        )?.label || value}
+                                    </Badge>
+                                ))
+                            )}
+                        </span>
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    className="w-(--radix-popover-trigger-width) p-0"
+                    align="start"
+                >
+                    <Command>
+                        <CommandInput
+                            placeholder={t('picker.search')}
+                            aria-label={t('a11y.search')}
+                        />
+                        <CommandList>
+                            <CommandEmpty>
+                                {options.length === 0
+                                    ? 'No options available.'
+                                    : t('picker.noResults')}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {options.map((option) => {
+                                    const isSelected = selected.includes(
+                                        option.value,
+                                    );
+
+                                    return (
+                                        <CommandItem
+                                            key={option.value}
+                                            value={option.value}
+                                            keywords={[option.label]}
+                                            data-checked={isSelected}
+                                            onSelect={() =>
+                                                toggle(option.value)
+                                            }
+                                        >
+                                            <span
+                                                aria-hidden
+                                                className={cn(
+                                                    'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input',
+                                                    isSelected &&
+                                                        'border-primary bg-primary text-primary-foreground',
+                                                )}
+                                            >
+                                                {isSelected && (
+                                                    <Check className="size-3.5 text-primary-foreground" />
+                                                )}
+                                            </span>
+                                            <span className="flex-1 truncate">
+                                                {option.label || option.value}
+                                            </span>
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
             {allowOther ? (
                 <Input
                     value={otherValue}

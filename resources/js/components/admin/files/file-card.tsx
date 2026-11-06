@@ -9,6 +9,7 @@ import {
     FilePreview,
     hasCoverMedia,
 } from '@/components/admin/files/file-preview';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     ContextMenu,
@@ -131,33 +132,32 @@ export function FileCard({
                 className="flex w-full min-w-0 items-center justify-center gap-1 overflow-hidden"
                 onPointerDown={(event) => event.stopPropagation()}
             >
-                <span
+                <Badge
+                    variant="muted"
                     className={cn(
-                        'min-w-0 truncate rounded-md px-2 py-0.5 text-xs font-medium',
-                        useCoverLayout
-                            ? 'bg-background/80 text-foreground'
-                            : 'bg-muted text-muted-foreground',
+                        'block min-w-0 truncate',
+                        useCoverLayout && 'bg-background/80 text-foreground',
                     )}
                 >
                     {file.tags[0].name}
-                </span>
+                </Badge>
                 {file.tags.length > 1 && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <span
+                                <Badge
+                                    variant="muted"
                                     className={cn(
-                                        'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium',
-                                        useCoverLayout
-                                            ? 'bg-background/80 text-foreground'
-                                            : 'bg-muted text-muted-foreground',
+                                        'shrink-0 rounded-full px-1.5 tabular-nums',
+                                        useCoverLayout &&
+                                            'bg-background/80 text-foreground',
                                     )}
                                     aria-label={t('files.tags.moreTags', {
                                         count: file.tags.length - 1,
                                     })}
                                 >
                                     +{file.tags.length - 1}
-                                </span>
+                                </Badge>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {file.tags
@@ -303,12 +303,13 @@ export function FileCard({
                     )}
 
                     {file.effective_access === 'private' && (
-                        <span
-                            className="absolute bottom-2 left-2 z-20 rounded bg-background/90 px-2 py-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase shadow-sm"
+                        <Badge
+                            variant="outline"
+                            className="absolute bottom-2 left-2 z-20 bg-background/90 text-muted-foreground shadow-sm"
                             title={t('files.card.privateTitle')}
                         >
                             {t('files.card.privateBadge')}
-                        </span>
+                        </Badge>
                     )}
 
                     {useCoverLayout ? (
