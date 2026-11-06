@@ -69,6 +69,14 @@ import {
 import { ValidationRuleBuilder } from '@/components/collections/field-settings/validation-rule-builder';
 import { Button } from '@/components/ui/button';
 import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
     DrawerBody,
     DrawerDescription,
     DrawerFooter,
@@ -163,8 +171,6 @@ const FIELD_TYPE_ICONS: Record<
     group_tabs: LayoutTemplate,
 };
 
-const TYPES_PER_ROW = 4;
-
 function fieldTypeMatchesQuery(
     type: string,
     query: string,
@@ -201,83 +207,47 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
     }, [query, t]);
 
     return (
-        <div className="space-y-8">
-            <div className="relative">
-                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t('collections.searchFieldTypes')}
-                    maxLength={STRING_LIMITS.SEARCH}
-                    className="pl-9"
-                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
-                    autoFocus
-                />
-            </div>
-
-            {filteredGroups.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
+        <Command shouldFilter={false} className="h-auto overflow-visible">
+            <CommandInput
+                value={query}
+                onValueChange={setQuery}
+                placeholder={t('collections.searchFieldTypes')}
+                aria-label={t('collections.searchFieldTypes')}
+                maxLength={STRING_LIMITS.SEARCH}
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                autoFocus
+            />
+            <CommandList className="max-h-none overflow-visible">
+                <CommandEmpty className="py-12 text-center text-sm text-muted-foreground">
                     {t('collections.noMatchingFieldTypes')}
-                </p>
-            ) : (
-                <div className="space-y-12">
-                    {filteredGroups.map((group) => {
-                        const rows: string[][] = [];
+                </CommandEmpty>
+                {filteredGroups.map((group) => (
+                    <CommandGroup
+                        key={group.key}
+                        heading={t(fieldTypeGroupLabelKey(group.key))}
+                        className="pt-6 [&_[cmdk-group-items]]:grid [&_[cmdk-group-items]]:grid-cols-2 [&_[cmdk-group-items]]:gap-3 sm:[&_[cmdk-group-items]]:grid-cols-4"
+                    >
+                        {group.types.map((type) => {
+                            const Icon = FIELD_TYPE_ICONS[type] ?? Type;
 
-                        for (
-                            let index = 0;
-                            index < group.types.length;
-                            index += TYPES_PER_ROW
-                        ) {
-                            rows.push(
-                                group.types.slice(index, index + TYPES_PER_ROW),
+                            return (
+                                <CommandItem
+                                    key={type}
+                                    value={type}
+                                    onSelect={() => onSelect(type)}
+                                    className="flex-col gap-3 rounded-lg border border-border px-3 py-6 text-center data-[selected=true]:border-primary/40"
+                                >
+                                    <Icon className="size-6" />
+                                    <span className="text-xs leading-tight font-medium">
+                                        {fieldTypeLabel(type, t)}
+                                    </span>
+                                </CommandItem>
                             );
-                        }
-
-                        return (
-                            <div key={group.key}>
-                                <p className="mb-6 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                    {t(fieldTypeGroupLabelKey(group.key))}
-                                </p>
-                                <div className="flex flex-col gap-4">
-                                    {rows.map((rowTypes, rowIndex) => (
-                                        <div
-                                            key={rowIndex}
-                                            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-                                        >
-                                            {rowTypes.map((type) => {
-                                                const Icon =
-                                                    FIELD_TYPE_ICONS[type] ??
-                                                    Type;
-
-                                                return (
-                                                    <button
-                                                        key={type}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            onSelect(type)
-                                                        }
-                                                        className="flex flex-col items-center gap-3 rounded-lg border border-border px-3 py-6 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
-                                                    >
-                                                        <Icon className="size-6 text-muted-foreground" />
-                                                        <span className="text-xs leading-tight font-medium">
-                                                            {fieldTypeLabel(
-                                                                type,
-                                                                t,
-                                                            )}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
+                        })}
+                    </CommandGroup>
+                ))}
+            </CommandList>
+        </Command>
     );
 }
 
