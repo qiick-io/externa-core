@@ -15,6 +15,10 @@ import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import {
+    ChatMentionMenu,
+    handleMentionMenuKeyDown,
+} from '@/components/chat/chat-mention-menu';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import type { ChatMessageScrollerHandle } from '@/components/chat/chat-message-scroller';
 import { ChatOutgoingAttachPreview } from '@/components/chat/chat-outgoing-attach-preview';
@@ -1029,6 +1033,18 @@ export function ItemChatDrawer({
             const pos = start + label.length;
             el?.setSelectionRange(pos, pos);
         }, 0);
+    };
+
+    const mentionMenu = {
+        isOpen: mentionsEnabled && mentionOpen && !attachDialogOpen,
+        hits: mentionHits,
+        highlightIndex: mentionHighlight,
+        onHighlightChange: setMentionHighlight,
+        onPick: pickMention,
+        onDismiss: (): void => {
+            setMentionOpen(false);
+            setMentionStart(null);
+        },
     };
 
     const insertMentionTrigger = (): void => {
@@ -2482,193 +2498,116 @@ export function ItemChatDrawer({
                             </Button>
                         </div>
                     ) : null}
-                    <ChatComposer
+                    <ChatMentionMenu
+                        {...mentionMenu}
+                        open={mentionMenu.isOpen}
                         textareaRef={textareaRef}
-                        value={draft}
-                        onValueChange={onComposerChange}
-                        onSubmit={send}
-                        canSubmit={draft.trim() !== '' && !attachDialogOpen}
-                        placeholder={t('collections.itemChat.placeholder')}
-                        label={t('collections.itemChat.placeholder')}
-                        sendLabel={t('collections.itemChat.send')}
-                        textareaTestId="item-chat-composer"
-                        submitTestId="item-chat-send"
-                        popup={
-                            <>
-                                {mentionsEnabled &&
-                                mentionOpen &&
-                                mentionHits.length > 0 &&
-                                !attachDialogOpen ? (
-                                    <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                        {mentionHits.map((hit, index) => (
-                                            <button
-                                                key={`${hit.type}-${hit.id}`}
-                                                type="button"
-                                                className={
-                                                    index === mentionHighlight
-                                                        ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                        : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                                }
-                                                onMouseEnter={() =>
-                                                    setMentionHighlight(index)
-                                                }
-                                                onClick={() => pickMention(hit)}
-                                            >
-                                                <span>
-                                                    {hit.type === 'collection'
-                                                        ? collectionMentionLabel(
-                                                              hit,
-                                                          )
-                                                        : hit.name}
-                                                </span>
-                                                {hit.type === 'user' &&
-                                                hit.email ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {hit.email}
-                                                    </span>
-                                                ) : hit.type ===
-                                                  'collection' ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        collection
-                                                    </span>
-                                                ) : null}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : null}
-                            </>
-                        }
-                        onKeyDown={(event) => {
-                            if (
-                                mentionsEnabled &&
-                                mentionOpen &&
-                                mentionHits.length > 0
-                            ) {
-                                if (event.key === 'ArrowDown') {
-                                    event.preventDefault();
-                                    setMentionHighlight(
-                                        (index) =>
-                                            (index + 1) % mentionHits.length,
-                                    );
-
-                                    return;
-                                }
-
-                                if (event.key === 'ArrowUp') {
-                                    event.preventDefault();
-                                    setMentionHighlight(
-                                        (index) =>
-                                            (index - 1 + mentionHits.length) %
-                                            mentionHits.length,
-                                    );
-
-                                    return;
-                                }
-
+                    >
+                        <ChatComposer
+                            textareaRef={textareaRef}
+                            value={draft}
+                            onValueChange={onComposerChange}
+                            onSubmit={send}
+                            canSubmit={draft.trim() !== '' && !attachDialogOpen}
+                            placeholder={t('collections.itemChat.placeholder')}
+                            label={t('collections.itemChat.placeholder')}
+                            sendLabel={t('collections.itemChat.send')}
+                            textareaTestId="item-chat-composer"
+                            submitTestId="item-chat-send"
+                            onKeyDown={(event) => {
                                 if (
-                                    event.key === 'Enter' &&
-                                    !event.shiftKey &&
-                                    !event.metaKey &&
-                                    !event.ctrlKey
+                                    mentionsEnabled &&
+                                    handleMentionMenuKeyDown(event, mentionMenu)
                                 ) {
-                                    event.preventDefault();
-                                    pickMention(mentionHits[mentionHighlight]!);
-
                                     return;
                                 }
 
-                                if (event.key === 'Escape') {
+                                if (event.key === ' ' && event.shiftKey) {
                                     event.preventDefault();
-                                    setMentionOpen(false);
-                                    setMentionStart(null);
-
-                                    return;
+                                    insertAtCaret('\n');
                                 }
-                            }
-
-                            if (event.key === ' ' && event.shiftKey) {
-                                event.preventDefault();
-                                insertAtCaret('\n');
-                            }
-                        }}
-                        actions={
-                            <>
-                                {mentionsEnabled ? (
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        aria-label={t(
-                                            'collections.itemChat.mention',
-                                        )}
-                                        onClick={insertMentionTrigger}
-                                    >
-                                        @
-                                    </Button>
-                                ) : null}
-                                <Popover
-                                    open={emojiOpen}
-                                    onOpenChange={setEmojiOpen}
-                                >
-                                    <PopoverTrigger asChild>
+                            }}
+                            actions={
+                                <>
+                                    {mentionsEnabled ? (
                                         <Button
                                             type="button"
                                             size="icon"
                                             variant="ghost"
                                             aria-label={t(
-                                                'collections.itemChat.emoji',
+                                                'collections.itemChat.mention',
                                             )}
+                                            onClick={insertMentionTrigger}
                                         >
-                                            <Smile className="size-4" />
+                                            @
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="w-64 p-2"
-                                        align="start"
+                                    ) : null}
+                                    <Popover
+                                        open={emojiOpen}
+                                        onOpenChange={setEmojiOpen}
                                     >
-                                        <div className="grid grid-cols-8 gap-1">
-                                            {EMOJI_GRID.map((emoji) => (
-                                                <button
-                                                    key={emoji}
-                                                    type="button"
-                                                    className="rounded p-1 text-lg hover:bg-muted"
-                                                    onClick={() => {
-                                                        insertAtCaret(emoji);
-                                                        setEmojiOpen(false);
-                                                    }}
-                                                >
-                                                    {emoji}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    aria-label={t(
-                                        'collections.itemChat.attach',
-                                    )}
-                                    onClick={() =>
-                                        fileInputRef.current?.click()
-                                    }
-                                >
-                                    <Paperclip className="size-4" />
-                                </Button>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    className="hidden"
-                                    multiple
-                                    onChange={(event) => {
-                                        onPickFiles(event.target.files);
-                                        event.target.value = '';
-                                    }}
-                                />
-                            </>
-                        }
-                    />
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                aria-label={t(
+                                                    'collections.itemChat.emoji',
+                                                )}
+                                            >
+                                                <Smile className="size-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            className="w-64 p-2"
+                                            align="start"
+                                        >
+                                            <div className="grid grid-cols-8 gap-1">
+                                                {EMOJI_GRID.map((emoji) => (
+                                                    <button
+                                                        key={emoji}
+                                                        type="button"
+                                                        className="rounded p-1 text-lg hover:bg-muted"
+                                                        onClick={() => {
+                                                            insertAtCaret(
+                                                                emoji,
+                                                            );
+                                                            setEmojiOpen(false);
+                                                        }}
+                                                    >
+                                                        {emoji}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        aria-label={t(
+                                            'collections.itemChat.attach',
+                                        )}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                    >
+                                        <Paperclip className="size-4" />
+                                    </Button>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        multiple
+                                        onChange={(event) => {
+                                            onPickFiles(event.target.files);
+                                            event.target.value = '';
+                                        }}
+                                    />
+                                </>
+                            }
+                        />
+                    </ChatMentionMenu>
                 </DrawerFooter>
                 {composerDragOver ? (
                     <div

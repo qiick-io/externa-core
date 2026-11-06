@@ -1,10 +1,15 @@
 import { FileText, Paperclip, Smile, Trash2, X } from 'lucide-react';
-import type { DragEvent, Ref } from 'react';
+import type { DragEvent, RefObject } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
+import {
+    ChatMentionMenu,
+    handleMentionMenuKeyDown,
+} from '@/components/chat/chat-mention-menu';
+import type { ChatMentionHit } from '@/components/chat/chat-mention-menu';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -15,7 +20,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatBytes } from '@/lib/format';
 import type { ChatAttachment } from '@/lib/item-chat-api';
-import { collectionMentionLabel } from '@/lib/item-chat-mentions';
 
 export type SendAttachItem = {
     key: string;
@@ -25,9 +29,7 @@ export type SendAttachItem = {
     error: string | null;
 };
 
-export type AttachCaptionMentionHit =
-    | { type: 'user'; id: number; name: string; email?: string }
-    | { type: 'collection'; id: number; name: string };
+export type AttachCaptionMentionHit = ChatMentionHit;
 
 function isMediaFile(file: File): boolean {
     return file.type.startsWith('image/') || file.type.startsWith('video/');
@@ -44,7 +46,7 @@ type Props = {
     items: SendAttachItem[];
     caption: string;
     sending: boolean;
-    captionRef: Ref<HTMLTextAreaElement>;
+    captionRef: RefObject<HTMLTextAreaElement | null>;
     mentionOpen: boolean;
     mentionHits: AttachCaptionMentionHit[];
     mentionHighlight: number;
@@ -177,6 +179,15 @@ export function ChatSendAttachmentsDialog({
             : t('collections.itemChat.sendFiles', { count: n });
     }, [items, t]);
 
+    const mentionMenu = {
+        isOpen: showMentions && mentionOpen,
+        hits: mentionHits,
+        highlightIndex: mentionHighlight,
+        onHighlightChange: onMentionHighlight,
+        onPick: onPickMention,
+        onDismiss: onDismissMention,
+    };
+
     return (
         <Dialog
             open={open && items.length > 0}
@@ -290,174 +301,93 @@ export function ChatSendAttachmentsDialog({
                 </div>
 
                 <div className="shrink-0 border-t px-3 py-3">
-                    <ChatComposer
+                    <ChatMentionMenu
+                        {...mentionMenu}
+                        open={mentionMenu.isOpen}
                         textareaRef={captionRef}
-                        value={caption}
-                        onValueChange={onCaptionChange}
-                        onSubmit={onSend}
-                        canSubmit={canSend}
-                        isSubmitting={sending}
-                        disabled={sending}
-                        placeholder={t('collections.itemChat.addCaption')}
-                        label={t('collections.itemChat.addCaption')}
-                        sendLabel={t('collections.itemChat.send')}
-                        textareaTestId="chat-send-caption"
-                        submitTestId="chat-send-attachments-submit"
-                        popup={
-                            <>
-                                {showMentions &&
-                                mentionOpen &&
-                                mentionHits.length > 0 ? (
-                                    <div className="absolute inset-x-0 bottom-full z-30 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                        {mentionHits.map((hit, index) => (
-                                            <button
-                                                key={`${hit.type}-${hit.id}`}
-                                                type="button"
-                                                className={
-                                                    index === mentionHighlight
-                                                        ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                        : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                                }
-                                                onMouseEnter={() =>
-                                                    onMentionHighlight(index)
-                                                }
-                                                onClick={() =>
-                                                    onPickMention(hit)
-                                                }
-                                            >
-                                                <span>
-                                                    {hit.type === 'collection'
-                                                        ? collectionMentionLabel(
-                                                              hit,
-                                                          )
-                                                        : hit.name}
-                                                </span>
-                                                {hit.type === 'user' &&
-                                                hit.email ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {hit.email}
-                                                    </span>
-                                                ) : hit.type ===
-                                                  'collection' ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        collection
-                                                    </span>
-                                                ) : null}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : null}
-                            </>
-                        }
-                        onKeyDown={(event) => {
-                            if (
-                                showMentions &&
-                                mentionOpen &&
-                                mentionHits.length > 0
-                            ) {
-                                if (event.key === 'ArrowDown') {
-                                    event.preventDefault();
-                                    onMentionHighlight(
-                                        (mentionHighlight + 1) %
-                                            mentionHits.length,
+                        contentClassName="z-[80]"
+                    >
+                        <ChatComposer
+                            textareaRef={captionRef}
+                            value={caption}
+                            onValueChange={onCaptionChange}
+                            onSubmit={onSend}
+                            canSubmit={canSend}
+                            isSubmitting={sending}
+                            disabled={sending}
+                            placeholder={t('collections.itemChat.addCaption')}
+                            label={t('collections.itemChat.addCaption')}
+                            sendLabel={t('collections.itemChat.send')}
+                            textareaTestId="chat-send-caption"
+                            submitTestId="chat-send-attachments-submit"
+                            onKeyDown={(event) => {
+                                if (showMentions) {
+                                    handleMentionMenuKeyDown(
+                                        event,
+                                        mentionMenu,
                                     );
-
-                                    return;
                                 }
-
-                                if (event.key === 'ArrowUp') {
-                                    event.preventDefault();
-                                    onMentionHighlight(
-                                        (mentionHighlight -
-                                            1 +
-                                            mentionHits.length) %
-                                            mentionHits.length,
-                                    );
-
-                                    return;
-                                }
-
-                                if (
-                                    event.key === 'Enter' &&
-                                    !event.shiftKey &&
-                                    !event.metaKey &&
-                                    !event.ctrlKey
-                                ) {
-                                    event.preventDefault();
-                                    onPickMention(
-                                        mentionHits[mentionHighlight]!,
-                                    );
-
-                                    return;
-                                }
-
-                                if (event.key === 'Escape') {
-                                    event.preventDefault();
-                                    onDismissMention();
-
-                                    return;
-                                }
-                            }
-                        }}
-                        actions={
-                            <>
-                                {showMentions ? (
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        disabled={sending}
-                                        aria-label={t(
-                                            'collections.itemChat.mention',
-                                        )}
-                                        data-test="chat-send-caption-mention"
-                                        onClick={onInsertMentionTrigger}
-                                    >
-                                        @
-                                    </Button>
-                                ) : null}
-                                <Popover
-                                    modal={false}
-                                    open={emojiOpen}
-                                    onOpenChange={onEmojiOpenChange}
-                                >
-                                    <PopoverTrigger asChild>
+                            }}
+                            actions={
+                                <>
+                                    {showMentions ? (
                                         <Button
                                             type="button"
                                             size="icon"
                                             variant="ghost"
                                             disabled={sending}
                                             aria-label={t(
-                                                'collections.itemChat.emoji',
+                                                'collections.itemChat.mention',
                                             )}
-                                            data-test="chat-send-caption-emoji"
+                                            data-test="chat-send-caption-mention"
+                                            onClick={onInsertMentionTrigger}
                                         >
-                                            <Smile className="size-4" />
+                                            @
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="z-[80] w-64 p-2"
-                                        align="start"
+                                    ) : null}
+                                    <Popover
+                                        modal={false}
+                                        open={emojiOpen}
+                                        onOpenChange={onEmojiOpenChange}
                                     >
-                                        <div className="grid grid-cols-8 gap-1">
-                                            {emojis.map((emoji) => (
-                                                <button
-                                                    key={emoji}
-                                                    type="button"
-                                                    className="rounded p-1 text-lg hover:bg-muted"
-                                                    onClick={() =>
-                                                        onInsertEmoji(emoji)
-                                                    }
-                                                >
-                                                    {emoji}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                            </>
-                        }
-                    />
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                disabled={sending}
+                                                aria-label={t(
+                                                    'collections.itemChat.emoji',
+                                                )}
+                                                data-test="chat-send-caption-emoji"
+                                            >
+                                                <Smile className="size-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            className="z-[80] w-64 p-2"
+                                            align="start"
+                                        >
+                                            <div className="grid grid-cols-8 gap-1">
+                                                {emojis.map((emoji) => (
+                                                    <button
+                                                        key={emoji}
+                                                        type="button"
+                                                        className="rounded p-1 text-lg hover:bg-muted"
+                                                        onClick={() =>
+                                                            onInsertEmoji(emoji)
+                                                        }
+                                                    >
+                                                        {emoji}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </>
+                            }
+                        />
+                    </ChatMentionMenu>
                 </div>
 
                 {dragOver ? (

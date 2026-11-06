@@ -1,4 +1,5 @@
 import {
+    Check,
     File as FileIcon,
     FolderOpen,
     Library,
@@ -11,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import {
     Dialog,
     DialogContent,
@@ -21,7 +23,13 @@ import {
 } from '@/components/ui/dialog';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type {
@@ -49,6 +57,19 @@ type AiContextAttachDialogProps = {
     onAttach: (entries: AiPendingContextAttachment[]) => void;
     onPickUploadFiles?: () => void;
 };
+
+/** The check that marks a picked row, as in the shadcn combobox. */
+function SelectedCheck({ isSelected }: { isSelected: boolean }) {
+    return (
+        <Check
+            aria-hidden
+            className={cn(
+                'mt-0.5 ml-auto',
+                isSelected ? 'opacity-100' : 'opacity-0',
+            )}
+        />
+    );
+}
 
 type PromptDraft = {
     id?: number;
@@ -278,107 +299,120 @@ export function AiContextAttachDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <Tabs value={tab} onValueChange={setTab} className="min-h-0">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="items">
-                            {t('ai.context.tabs.items')}
-                        </TabsTrigger>
-                        <TabsTrigger value="files">
-                            {t('ai.context.tabs.files')}
-                        </TabsTrigger>
-                        <TabsTrigger value="prompts">
-                            {t('ai.context.tabs.prompts')}
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <div className="mt-1 flex flex-wrap gap-2">
-                        <div className="relative min-w-[12rem] flex-1">
-                            <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-                            <Input
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                className="pl-8"
-                                placeholder={t('ai.context.searchPlaceholder')}
-                                aria-label={t('ai.context.searchAria')}
-                            />
-                        </div>
-                        {tab === 'items' ? (
-                            <select
-                                className="h-control rounded-md border border-input bg-background px-2 text-sm"
-                                value={collectionId ?? ''}
-                                onChange={(event) =>
-                                    setCollectionId(
-                                        event.target.value
-                                            ? Number(event.target.value)
-                                            : null,
-                                    )
-                                }
-                                aria-label={t('ai.context.collectionAria')}
-                            >
-                                {collections.map((collection) => (
-                                    <option
-                                        key={collection.id}
-                                        value={collection.id}
-                                    >
-                                        {collection.name}
-                                    </option>
-                                ))}
-                            </select>
-                        ) : null}
-                        {tab === 'files' && onPickUploadFiles ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={onPickUploadFiles}
-                            >
-                                {t('ai.context.uploadImport')}
-                            </Button>
-                        ) : null}
-                        {tab === 'prompts' && canManagePrompts ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                    setPromptDraft({
-                                        name: '',
-                                        description: '',
-                                        body: '',
-                                    })
-                                }
-                            >
-                                <Plus className="size-4" />
-                                {t('ai.context.newPrompt')}
-                            </Button>
-                        ) : null}
-                    </div>
-
-                    <TabsContent
-                        value="items"
-                        className="mt-1 max-h-[40vh] overflow-y-auto"
+                {/* One cmdk root: arrows and Enter in the search move through and pick the list of the open tab. */}
+                <Command
+                    shouldFilter={false}
+                    className="h-auto min-h-0 overflow-visible bg-transparent"
+                >
+                    <Tabs
+                        value={tab}
+                        onValueChange={setTab}
+                        className="min-h-0"
                     >
-                        {loading ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.context.loading')}
-                            </p>
-                        ) : items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.context.emptyItems')}
-                            </p>
-                        ) : (
-                            <ul className="space-y-1">
-                                {items.map((item) => (
-                                    <li key={item.id}>
-                                        <button
-                                            type="button"
-                                            className={cn(
-                                                'flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left text-sm',
-                                                isSelected('item', item.id)
-                                                    ? 'border-primary bg-primary/5'
-                                                    : 'border-transparent hover:bg-muted',
-                                            )}
-                                            onClick={() =>
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="items">
+                                {t('ai.context.tabs.items')}
+                            </TabsTrigger>
+                            <TabsTrigger value="files">
+                                {t('ai.context.tabs.files')}
+                            </TabsTrigger>
+                            <TabsTrigger value="prompts">
+                                {t('ai.context.tabs.prompts')}
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <div className="mt-1 flex flex-wrap gap-2">
+                            <InputGroup className="min-w-[12rem] flex-1">
+                                <InputGroupAddon>
+                                    <Search />
+                                </InputGroupAddon>
+                                <InputGroupInput
+                                    value={search}
+                                    onChange={(event) =>
+                                        setSearch(event.target.value)
+                                    }
+                                    placeholder={t(
+                                        'ai.context.searchPlaceholder',
+                                    )}
+                                    aria-label={t('ai.context.searchAria')}
+                                />
+                            </InputGroup>
+                            {tab === 'items' ? (
+                                <NativeSelect
+                                    value={collectionId ?? ''}
+                                    // Keep arrow keys in the select, away from the cmdk list.
+                                    onKeyDown={(event) =>
+                                        event.stopPropagation()
+                                    }
+                                    onChange={(event) =>
+                                        setCollectionId(
+                                            event.target.value
+                                                ? Number(event.target.value)
+                                                : null,
+                                        )
+                                    }
+                                    aria-label={t('ai.context.collectionAria')}
+                                >
+                                    {collections.map((collection) => (
+                                        <option
+                                            key={collection.id}
+                                            value={collection.id}
+                                        >
+                                            {collection.name}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+                            ) : null}
+                            {tab === 'files' && onPickUploadFiles ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={onPickUploadFiles}
+                                >
+                                    {t('ai.context.uploadImport')}
+                                </Button>
+                            ) : null}
+                            {tab === 'prompts' && canManagePrompts ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() =>
+                                        setPromptDraft({
+                                            name: '',
+                                            description: '',
+                                            body: '',
+                                        })
+                                    }
+                                >
+                                    <Plus className="size-4" />
+                                    {t('ai.context.newPrompt')}
+                                </Button>
+                            ) : null}
+                        </div>
+
+                        <TabsContent
+                            value="items"
+                            className="mt-1 max-h-[40vh] overflow-y-auto"
+                        >
+                            {loading ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('ai.context.loading')}
+                                </p>
+                            ) : items.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('ai.context.emptyItems')}
+                                </p>
+                            ) : (
+                                <CommandList
+                                    label={t('ai.context.tabs.items')}
+                                    className="max-h-none"
+                                >
+                                    {items.map((item) => (
+                                        <CommandItem
+                                            key={item.id}
+                                            value={`item-${item.id}`}
+                                            className="items-start"
+                                            onSelect={() =>
                                                 toggleSelected({
                                                     kind: 'item',
                                                     id: item.id,
@@ -390,8 +424,8 @@ export function AiContextAttachDialog({
                                                 })
                                             }
                                         >
-                                            <Library className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                                            <span className="min-w-0">
+                                            <Library className="mt-0.5" />
+                                            <span className="min-w-0 flex-1">
                                                 <span className="block truncate font-medium">
                                                     {item.label}
                                                 </span>
@@ -400,38 +434,41 @@ export function AiContextAttachDialog({
                                                     {item.id}
                                                 </span>
                                             </span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </TabsContent>
+                                            <SelectedCheck
+                                                isSelected={isSelected(
+                                                    'item',
+                                                    item.id,
+                                                )}
+                                            />
+                                        </CommandItem>
+                                    ))}
+                                </CommandList>
+                            )}
+                        </TabsContent>
 
-                    <TabsContent
-                        value="files"
-                        className="mt-1 max-h-[40vh] overflow-y-auto"
-                    >
-                        {loading ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.context.loading')}
-                            </p>
-                        ) : files.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.context.emptyFiles')}
-                            </p>
-                        ) : (
-                            <ul className="space-y-1">
-                                {files.map((file) => (
-                                    <li key={file.id}>
-                                        <button
-                                            type="button"
-                                            className={cn(
-                                                'flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left text-sm',
-                                                isSelected('file', file.id)
-                                                    ? 'border-primary bg-primary/5'
-                                                    : 'border-transparent hover:bg-muted',
-                                            )}
-                                            onClick={() =>
+                        <TabsContent
+                            value="files"
+                            className="mt-1 max-h-[40vh] overflow-y-auto"
+                        >
+                            {loading ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('ai.context.loading')}
+                                </p>
+                            ) : files.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('ai.context.emptyFiles')}
+                                </p>
+                            ) : (
+                                <CommandList
+                                    label={t('ai.context.tabs.files')}
+                                    className="max-h-none"
+                                >
+                                    {files.map((file) => (
+                                        <CommandItem
+                                            key={file.id}
+                                            value={`file-${file.id}`}
+                                            className="items-start"
+                                            onSelect={() =>
                                                 toggleSelected({
                                                     kind: 'file',
                                                     id: file.id,
@@ -442,11 +479,11 @@ export function AiContextAttachDialog({
                                             }
                                         >
                                             {file.type === 'folder' ? (
-                                                <FolderOpen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                                                <FolderOpen className="mt-0.5" />
                                             ) : (
-                                                <FileIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                                                <FileIcon className="mt-0.5" />
                                             )}
-                                            <span className="min-w-0">
+                                            <span className="min-w-0 flex-1">
                                                 <span className="block truncate font-medium">
                                                     {file.name}
                                                 </span>
@@ -457,194 +494,216 @@ export function AiContextAttachDialog({
                                                         : ''}
                                                 </span>
                                             </span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </TabsContent>
+                                            <SelectedCheck
+                                                isSelected={isSelected(
+                                                    'file',
+                                                    file.id,
+                                                )}
+                                            />
+                                        </CommandItem>
+                                    ))}
+                                </CommandList>
+                            )}
+                        </TabsContent>
 
-                    <TabsContent
-                        value="prompts"
-                        className="mt-1 max-h-[40vh] overflow-y-auto"
-                    >
-                        {promptDraft ? (
-                            <div className="space-y-3 rounded-md border p-3">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="ai-prompt-name">
-                                        {t('ai.context.promptName')}
-                                    </Label>
-                                    <Input
-                                        id="ai-prompt-name"
-                                        value={promptDraft.name}
-                                        aria-invalid={
-                                            isPromptIncomplete &&
-                                            promptDraft.name.trim() === ''
-                                        }
-                                        aria-describedby={
-                                            isPromptIncomplete
-                                                ? 'ai-prompt-error'
-                                                : undefined
-                                        }
-                                        onChange={(event) => {
-                                            setPromptDraft({
-                                                ...promptDraft,
-                                                name: event.target.value,
-                                            });
-                                            setIsPromptIncomplete(false);
-                                        }}
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="ai-prompt-description">
-                                        {t('ai.context.promptDescription')}
-                                    </Label>
-                                    <Input
-                                        id="ai-prompt-description"
-                                        value={promptDraft.description}
-                                        onChange={(event) =>
-                                            setPromptDraft({
-                                                ...promptDraft,
-                                                description: event.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="ai-prompt-body">
-                                        {t('ai.context.promptBody')}
-                                    </Label>
-                                    <Textarea
-                                        id="ai-prompt-body"
-                                        rows={5}
-                                        value={promptDraft.body}
-                                        aria-invalid={
-                                            isPromptIncomplete &&
-                                            promptDraft.body.trim() === ''
-                                        }
-                                        aria-describedby={
-                                            isPromptIncomplete
-                                                ? 'ai-prompt-error'
-                                                : undefined
-                                        }
-                                        onChange={(event) => {
-                                            setPromptDraft({
-                                                ...promptDraft,
-                                                body: event.target.value,
-                                            });
-                                            setIsPromptIncomplete(false);
-                                        }}
-                                    />
-                                </div>
-                                {isPromptIncomplete ? (
-                                    <FieldError id="ai-prompt-error">
-                                        {t('ai.context.promptRequired')}
-                                    </FieldError>
-                                ) : null}
-                                <div className="flex justify-end gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setPromptDraft(null);
-                                            setIsPromptIncomplete(false);
-                                        }}
-                                    >
-                                        {t('ai.context.cancel')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        disabled={savingPrompt}
-                                        onClick={() => void handleSavePrompt()}
-                                    >
-                                        {t('ai.context.savePrompt')}
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : loading ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.context.loading')}
-                            </p>
-                        ) : prompts.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.context.emptyPrompts')}
-                            </p>
-                        ) : (
-                            <ul className="space-y-1">
-                                {prompts.map((prompt) => (
-                                    <li
-                                        key={prompt.id}
-                                        className={cn(
-                                            'flex items-start gap-2 rounded-md border px-3 py-2',
-                                            isSelected('prompt', prompt.id)
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-transparent hover:bg-muted',
-                                        )}
-                                    >
-                                        <button
-                                            type="button"
-                                            className="min-w-0 flex-1 text-left text-sm"
-                                            onClick={() =>
-                                                toggleSelected({
-                                                    kind: 'prompt',
-                                                    id: prompt.id,
-                                                    name: prompt.name,
+                        <TabsContent
+                            value="prompts"
+                            className="mt-1 max-h-[40vh] overflow-y-auto"
+                        >
+                            {promptDraft ? (
+                                <div
+                                    role="presentation"
+                                    className="space-y-3 rounded-md border p-3"
+                                    // Enter and arrows belong to the form fields, not the cmdk list.
+                                    onKeyDown={(event) =>
+                                        event.stopPropagation()
+                                    }
+                                >
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="ai-prompt-name">
+                                            {t('ai.context.promptName')}
+                                        </Label>
+                                        <Input
+                                            id="ai-prompt-name"
+                                            value={promptDraft.name}
+                                            aria-invalid={
+                                                isPromptIncomplete &&
+                                                promptDraft.name.trim() === ''
+                                            }
+                                            aria-describedby={
+                                                isPromptIncomplete
+                                                    ? 'ai-prompt-error'
+                                                    : undefined
+                                            }
+                                            onChange={(event) => {
+                                                setPromptDraft({
+                                                    ...promptDraft,
+                                                    name: event.target.value,
+                                                });
+                                                setIsPromptIncomplete(false);
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="ai-prompt-description">
+                                            {t('ai.context.promptDescription')}
+                                        </Label>
+                                        <Input
+                                            id="ai-prompt-description"
+                                            value={promptDraft.description}
+                                            onChange={(event) =>
+                                                setPromptDraft({
+                                                    ...promptDraft,
+                                                    description:
+                                                        event.target.value,
                                                 })
                                             }
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="ai-prompt-body">
+                                            {t('ai.context.promptBody')}
+                                        </Label>
+                                        <Textarea
+                                            id="ai-prompt-body"
+                                            rows={5}
+                                            value={promptDraft.body}
+                                            aria-invalid={
+                                                isPromptIncomplete &&
+                                                promptDraft.body.trim() === ''
+                                            }
+                                            aria-describedby={
+                                                isPromptIncomplete
+                                                    ? 'ai-prompt-error'
+                                                    : undefined
+                                            }
+                                            onChange={(event) => {
+                                                setPromptDraft({
+                                                    ...promptDraft,
+                                                    body: event.target.value,
+                                                });
+                                                setIsPromptIncomplete(false);
+                                            }}
+                                        />
+                                    </div>
+                                    {isPromptIncomplete ? (
+                                        <FieldError id="ai-prompt-error">
+                                            {t('ai.context.promptRequired')}
+                                        </FieldError>
+                                    ) : null}
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setPromptDraft(null);
+                                                setIsPromptIncomplete(false);
+                                            }}
                                         >
-                                            <span className="block truncate font-medium">
-                                                {prompt.name}
-                                            </span>
-                                            <span className="block truncate text-xs text-muted-foreground">
-                                                {prompt.description ||
-                                                    prompt.body}
-                                            </span>
-                                        </button>
-                                        {canManagePrompts ? (
-                                            <div className="flex shrink-0 gap-1">
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    aria-label={t(
-                                                        'ai.context.editPrompt',
+                                            {t('ai.context.cancel')}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            disabled={savingPrompt}
+                                            onClick={() =>
+                                                void handleSavePrompt()
+                                            }
+                                        >
+                                            {t('ai.context.savePrompt')}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : loading ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('ai.context.loading')}
+                                </p>
+                            ) : prompts.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('ai.context.emptyPrompts')}
+                                </p>
+                            ) : (
+                                <CommandList
+                                    label={t('ai.context.tabs.prompts')}
+                                    className="max-h-none"
+                                >
+                                    {prompts.map((prompt) => (
+                                        <div
+                                            key={prompt.id}
+                                            className="flex items-start gap-1"
+                                        >
+                                            <CommandItem
+                                                value={`prompt-${prompt.id}`}
+                                                className="min-w-0 flex-1 items-start"
+                                                onSelect={() =>
+                                                    toggleSelected({
+                                                        kind: 'prompt',
+                                                        id: prompt.id,
+                                                        name: prompt.name,
+                                                    })
+                                                }
+                                            >
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate font-medium">
+                                                        {prompt.name}
+                                                    </span>
+                                                    <span className="block truncate text-xs text-muted-foreground">
+                                                        {prompt.description ||
+                                                            prompt.body}
+                                                    </span>
+                                                </span>
+                                                <SelectedCheck
+                                                    isSelected={isSelected(
+                                                        'prompt',
+                                                        prompt.id,
                                                     )}
-                                                    onClick={() =>
-                                                        setPromptDraft({
-                                                            id: prompt.id,
-                                                            name: prompt.name,
-                                                            description:
-                                                                prompt.description ??
-                                                                '',
-                                                            body: prompt.body,
-                                                        })
-                                                    }
-                                                >
-                                                    <Pencil className="size-3.5" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    aria-label={t(
-                                                        'ai.context.deletePrompt',
-                                                    )}
-                                                    onClick={() =>
-                                                        setPromptPendingDelete(
-                                                            prompt,
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 className="size-3.5" />
-                                                </Button>
-                                            </div>
-                                        ) : null}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </TabsContent>
-                </Tabs>
+                                                />
+                                            </CommandItem>
+                                            {canManagePrompts ? (
+                                                <div className="flex shrink-0 gap-1">
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        aria-label={t(
+                                                            'ai.context.editPrompt',
+                                                        )}
+                                                        onClick={() =>
+                                                            setPromptDraft({
+                                                                id: prompt.id,
+                                                                name: prompt.name,
+                                                                description:
+                                                                    prompt.description ??
+                                                                    '',
+                                                                body: prompt.body,
+                                                            })
+                                                        }
+                                                    >
+                                                        <Pencil className="size-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        aria-label={t(
+                                                            'ai.context.deletePrompt',
+                                                        )}
+                                                        onClick={() =>
+                                                            setPromptPendingDelete(
+                                                                prompt,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="size-3.5" />
+                                                    </Button>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                </CommandList>
+                            )}
+                        </TabsContent>
+                    </Tabs>
+                </Command>
 
                 <DialogFooter className="gap-2 sm:gap-0">
                     <p className="mr-auto text-xs text-muted-foreground">
