@@ -2,6 +2,7 @@
 
 namespace App\Http\Exceptions;
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Support\Auth\HomePath;
@@ -31,10 +32,29 @@ final class RenderNotFoundResponse
             return $redirect;
         }
 
+        self::shareInertiaProps($request);
+
         return Inertia::render('errors/not-found', [
             'status' => 404,
             'homeUrl' => HomePath::for($request->user()),
         ])->toResponse($request)->setStatusCode(404);
+    }
+
+    /**
+     * Share the HandleInertiaRequests props (auth, sidebar, locale, …) for the 404 page.
+     *
+     * Route model binding throws before HandleInertiaRequests runs, so without this the
+     * page renders without `auth` and AppLayout crashes into the error boundary.
+     * Unmatched routes never start the session; those requests are guests here and
+     * were redirected to login above.
+     */
+    private static function shareInertiaProps(Request $request): void
+    {
+        if (! $request->hasSession()) {
+            return;
+        }
+
+        Inertia::share(app(HandleInertiaRequests::class)->share($request));
     }
 
     private static function shouldUseDefaultResponse(Request $request): bool

@@ -1,15 +1,15 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { KeyRound, Trash2 } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Check, Copy, KeyRound, TriangleAlert, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DataTable } from '@/components/admin/data-table';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import Heading from '@/components/heading';
-import {
-    hasTablePaginationFooter,
-    TablePaginationFooter,
-    TablePanel,
-} from '@/components/layout/page-layout';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -29,20 +29,19 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { useClipboard } from '@/hooks/use-clipboard';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { normalizePaginated } from '@/lib/pagination';
@@ -108,6 +107,8 @@ export default function AdminApiKeysIndex({
                       .plain_text_api_key ?? '',
               )
             : '');
+    const secretKey = plainTextKey || flashKey;
+    const [copiedSecret, copySecret] = useClipboard();
 
     const apiKeys = normalizePaginated(apiKeysProp);
     const rows = apiKeys.data ?? [];
@@ -202,6 +203,89 @@ export default function AdminApiKeysIndex({
         });
     };
 
+    const columns: ColumnDef<ApiKeyRow>[] = [
+        {
+            id: 'name',
+            header: t('settings.apiKeys.columns.name'),
+            meta: { cellClassName: 'font-medium' },
+            cell: ({ row }) => row.original.name,
+        },
+        {
+            id: 'prefix',
+            header: t('settings.apiKeys.columns.prefix'),
+            meta: { cellClassName: 'font-mono text-xs' },
+            cell: ({ row }) => `${row.original.key_prefix}…`,
+        },
+        {
+            id: 'role',
+            header: t('settings.apiKeys.columns.role'),
+            cell: ({ row }) => row.original.role?.name ?? '—',
+        },
+        {
+            id: 'owner',
+            header: t('settings.apiKeys.owner'),
+            cell: ({ row }) => row.original.owner?.name ?? '—',
+        },
+        {
+            id: 'scopes',
+            header: t('settings.apiKeys.scopes'),
+            meta: { cellClassName: 'text-xs text-muted-foreground' },
+            cell: ({ row }) => {
+                const key = row.original;
+
+                return (
+                    [
+                        key.read_only
+                            ? t('settings.apiKeys.readOnlyBadge')
+                            : null,
+                        key.files_scope && key.files_scope !== 'all'
+                            ? `files:${key.files_scope}`
+                            : null,
+                        key.collection_slugs?.length
+                            ? key.collection_slugs.join(', ')
+                            : null,
+                    ]
+                        .filter(Boolean)
+                        .join(' · ') || '—'
+                );
+            },
+        },
+        {
+            id: 'status',
+            header: t('settings.apiKeys.columns.status'),
+            cell: ({ row }) =>
+                row.original.revoked_at ? (
+                    <Badge variant="muted">
+                        {t('settings.apiKeys.status.revoked')}
+                    </Badge>
+                ) : (
+                    <Badge variant="success">
+                        {t('settings.apiKeys.status.active')}
+                    </Badge>
+                ),
+        },
+        {
+            id: 'actions',
+            header: t('settings.apiKeys.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+            },
+            cell: ({ row }) =>
+                row.original.revoked_at ? null : (
+                    <HeaderIconButton
+                        type="button"
+                        variant="destructive-ghost"
+                        size="icon-sm"
+                        label={t('settings.apiKeys.revoke')}
+                        onClick={() => setPendingRevokeKeyId(row.original.id)}
+                    >
+                        <Trash2 className="size-3.5" />
+                    </HeaderIconButton>
+                ),
+        },
+    ];
+
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
@@ -227,21 +311,48 @@ export default function AdminApiKeysIndex({
                             description={t('settings.apiKeys.description')}
                         />
 
-                        {(flashKey || plainTextKey) && (
-                            <div
+                        {secretKey && (
+                            <Alert
+                                variant="warning"
                                 data-testid="api-key-secret"
-                                className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning"
                             >
-                                <p className="font-medium">
+                                <TriangleAlert />
+                                <AlertTitle>
                                     {t('settings.apiKeys.secretBanner')}
-                                </p>
-                                <code
-                                    data-testid="api-key-secret-value"
-                                    className="mt-2 block font-mono text-xs break-all"
-                                >
-                                    {plainTextKey || flashKey}
-                                </code>
-                            </div>
+                                </AlertTitle>
+                                <AlertDescription>
+                                    <InputGroup className="mt-1 w-full bg-background">
+                                        <InputGroupInput
+                                            readOnly
+                                            data-testid="api-key-secret-value"
+                                            aria-label={t(
+                                                'settings.apiKeys.secretValue',
+                                            )}
+                                            value={secretKey}
+                                            className="font-mono text-foreground"
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            <InputGroupButton
+                                                size="icon-xs"
+                                                aria-label={
+                                                    copiedSecret === secretKey
+                                                        ? t('common.copied')
+                                                        : t('common.copy')
+                                                }
+                                                onClick={() =>
+                                                    void copySecret(secretKey)
+                                                }
+                                            >
+                                                {copiedSecret === secretKey ? (
+                                                    <Check />
+                                                ) : (
+                                                    <Copy />
+                                                )}
+                                            </InputGroupButton>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                </AlertDescription>
+                            </Alert>
                         )}
 
                         {rows.length === 0 ? (
@@ -265,95 +376,12 @@ export default function AdminApiKeysIndex({
                                 compact
                             />
                         ) : (
-                            <TablePanel
-                                footer={
-                                    hasTablePaginationFooter(apiKeys) ? (
-                                        <TablePaginationFooter
-                                            pagination={apiKeys}
-                                        />
-                                    ) : undefined
-                                }
-                            >
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Prefix</TableHead>
-                                            <TableHead>Role</TableHead>
-                                            <TableHead>
-                                                {t('settings.apiKeys.owner')}
-                                            </TableHead>
-                                            <TableHead>
-                                                {t('settings.apiKeys.scopes')}
-                                            </TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">
-                                                Actions
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {rows.map((key) => (
-                                            <TableRow key={key.id}>
-                                                <TableCell className="font-medium">
-                                                    {key.name}
-                                                </TableCell>
-                                                <TableCell className="font-mono text-xs">
-                                                    {key.key_prefix}…
-                                                </TableCell>
-                                                <TableCell>
-                                                    {key.role?.name ?? '—'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {key.owner?.name ?? '—'}
-                                                </TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">
-                                                    {[
-                                                        key.read_only
-                                                            ? t(
-                                                                  'settings.apiKeys.readOnlyBadge',
-                                                              )
-                                                            : null,
-                                                        key.files_scope &&
-                                                        key.files_scope !==
-                                                            'all'
-                                                            ? `files:${key.files_scope}`
-                                                            : null,
-                                                        key.collection_slugs
-                                                            ?.length
-                                                            ? key.collection_slugs.join(
-                                                                  ', ',
-                                                              )
-                                                            : null,
-                                                    ]
-                                                        .filter(Boolean)
-                                                        .join(' · ') || '—'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {key.revoked_at
-                                                        ? 'Revoked'
-                                                        : 'Active'}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {!key.revoked_at && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                setPendingRevokeKeyId(
-                                                                    key.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TablePanel>
+                            <DataTable
+                                columns={columns}
+                                data={rows}
+                                getRowId={(key) => String(key.id)}
+                                pagination={apiKeys}
+                            />
                         )}
                     </div>
                 </div>

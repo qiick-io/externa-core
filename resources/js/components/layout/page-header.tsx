@@ -1,6 +1,10 @@
 import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 
@@ -81,22 +85,23 @@ export function FilterSearch({
     dataTest,
 }: FilterSearchProps) {
     return (
-        <div
+        <InputGroup
             className={cn(
-                'relative min-w-[8rem] flex-1 sm:max-w-xs',
+                'min-w-[8rem] flex-1 sm:max-w-xs dark:bg-transparent',
                 className,
             )}
         >
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <InputGroupInput
                 id={id}
                 data-test={dataTest}
                 value={value}
                 onChange={(changeEvent) => onChange(changeEvent.target.value)}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                className="pl-8"
             />
-        </div>
+            <InputGroupAddon>
+                <Search />
+            </InputGroupAddon>
+        </InputGroup>
     );
 }
