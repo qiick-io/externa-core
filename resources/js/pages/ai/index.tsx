@@ -8,7 +8,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
@@ -16,11 +16,6 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
-import {
-    fileCardsFromToolResult,
-    fileCardsFromToolResults,
-} from '@/components/ai/ai-file-cards';
-import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -45,36 +40,20 @@ import {
     EmptyHeader,
     EmptyMedia,
 } from '@/components/ui/empty';
+import { useAiChat } from '@/hooks/use-ai-chat';
+import type { AiChatMessage } from '@/hooks/use-ai-chat';
 import AppLayout from '@/layouts/app-layout';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
     AI_CHAT_ATTACHMENT_MAX_COUNT,
-    awaitingApprovalContent,
     bulkDeleteAiConversations,
     createAiConversation,
     deleteAiConversation,
     fetchAiImportJobStatus,
     fetchAiConversationsPage,
-    getSpeechRecognitionConstructor,
-    isAbortError,
-    pickAiChatAttachmentFiles,
-    stopSpeaking,
-    streamAiChat,
     toggleAiConversationPin,
-    truncateAiConversationFrom,
-    truncateLastUserMessageIfMatches,
-    uploadAiAttachment,
 } from '@/lib/ai-chat';
-import type {
-    AiApprovalDecision,
-    AiChatAttachment,
-    AiConversationSummary,
-    AiImportJobStatus,
-    AiPendingApproval,
-} from '@/lib/ai-chat';
-import type { AiPendingContextAttachment } from '@/lib/ai-context';
-import { contextIdsFromPending } from '@/lib/ai-context';
-import { speechRecognitionLang } from '@/lib/format';
+import type { AiConversationSummary, AiImportJobStatus } from '@/lib/ai-chat';
 import i18n from '@/lib/i18n';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
@@ -86,53 +65,11 @@ import type { Paginated } from '@/types/admin';
 
 type ConversationSummary = AiConversationSummary;
 
-type ChatMessage = {
-    id: string;
-    role: string;
-    content: string;
-    isError?: boolean;
-    toolHint?: string | null;
-    attachments?: AiChatAttachment[];
-    toolNames?: string[];
-    fileCards?: AiFileCardItem[];
-    tool_calls?: Array<{ name?: string; function?: { name?: string } }>;
-    tool_results?: Array<{
-        name?: string;
-        tool_name?: string;
-        result?: unknown;
-    }>;
-    pending_approvals?: AiPendingApproval[];
-};
-
-type InFlightTurn = {
-    prompt: string;
-    attachments: AiChatAttachment[];
-    userMessageId: string;
-    assistantMessageId: string;
-};
-
-function toolFallbackContent(
-    toolsUsed: string[] = [],
-    toolCalls?: ChatMessage['tool_calls'],
-): string {
-    const namesFromCalls =
-        toolCalls
-            ?.map((toolCall) => toolCall.name ?? toolCall.function?.name)
-            .filter(
-                (name): name is string =>
-                    typeof name === 'string' && name !== '',
-            ) ?? [];
-    const uniqueTools = [...new Set([...toolsUsed, ...namesFromCalls])];
-    const toolLabel = uniqueTools.length > 0 ? uniqueTools.join(', ') : 'tool';
-
-    return `Completed via ${toolLabel}. Ask me to verify the result if needed.`;
-}
-
 type Props = {
     conversations:
         LaravelPaginated<ConversationSummary> | Paginated<ConversationSummary>;
     selectedConversation: ConversationSummary | null;
-    messages: ChatMessage[];
+    messages: AiChatMessage[];
 };
 
 type ConversationSection = {
@@ -140,15 +77,6 @@ type ConversationSection = {
     label: string;
     conversations: ConversationSummary[];
 };
-
-function isPersistedMessageId(messageId: string): boolean {
-    return !messageId.startsWith('local-');
-}
-
-/** Secure-context-safe id — crypto.randomUUID is unavailable on http://*.test */
-function createLocalMessageId(prefix: string): string {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function importJobIdFromToolResult(result: unknown): string | null {
     const parsed =
@@ -289,24 +217,23 @@ export default function AiIndexPage({
     selectedConversation,
     messages: initialMessages,
 }: Props) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const page = usePage();
     const initialPaginated = normalizePaginated(conversationsProp);
-    const [composer, setComposer] = useState('');
-    const [isStreaming, setIsStreaming] = useState(false);
-    const [toolHint, setToolHint] = useState<string | null>(null);
-    const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-    const [conversationId, setConversationId] = useState<string | null>(
-        selectedConversation?.id ?? null,
-    );
-    const [editingMessageId, setEditingMessageId] = useState<string | null>(
-        null,
-    );
-    const [editingDraft, setEditingDraft] = useState('');
-    const [isListening, setIsListening] = useState(false);
-    const [speechSupported] = useState(
-        () => getSpeechRecognitionConstructor() !== null,
-    );
+    const chat = useAiChat({
+        initialConversationId: selectedConversation?.id ?? null,
+        initialMessages,
+        onTurnSettled: (resolvedConversationId) =>
+            reloadConversation(resolvedConversationId),
+        onToolResult: (_toolName, result) => {
+            const jobId = importJobIdFromToolResult(result);
+
+            if (jobId) {
+                startImportPoll(jobId);
+            }
+        },
+    });
+    const { loadConversation } = chat;
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -320,26 +247,11 @@ export default function AiIndexPage({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [conversationQuery, setConversationQuery] = useState('');
     const hasSearchedConversationsRef = useRef(false);
-    const [pendingAttachments, setPendingAttachments] = useState<
-        AiChatAttachment[]
-    >([]);
-    const [pendingContextAttachments, setPendingContextAttachments] = useState<
-        AiPendingContextAttachment[]
-    >([]);
     const [contextAttachOpen, setContextAttachOpen] = useState(false);
-    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-    const [dryRunMode, setDryRunMode] = useState(false);
     const [presetsOpen, setPresetsOpen] = useState(false);
     const [importJobStatus, setImportJobStatus] =
         useState<AiImportJobStatus | null>(null);
 
-    const conversationIdRef = useRef<string | null>(
-        selectedConversation?.id ?? null,
-    );
-    const isStreamingRef = useRef(false);
-    const abortControllerRef = useRef<AbortController | null>(null);
-    const inFlightTurnRef = useRef<InFlightTurn | null>(null);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const lastSelectedIndexRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -349,42 +261,8 @@ export default function AiIndexPage({
 
     // Sync Inertia props when the selected conversation changes — never while streaming.
     useEffect(() => {
-        if (isStreamingRef.current) {
-            return;
-        }
-
-        // Tool-only turns: prefer server summary; never keep a permanently blank assistant bubble.
-        const syncedMessages = initialMessages.flatMap((message) => {
-            const fileCards = fileCardsFromToolResults(message.tool_results);
-            const withCards =
-                fileCards.length > 0 ? { ...message, fileCards } : message;
-
-            if (
-                withCards.role !== 'assistant' ||
-                withCards.content.trim() !== '' ||
-                withCards.isError
-            ) {
-                return [withCards];
-            }
-
-            if ((withCards.tool_calls?.length ?? 0) > 0) {
-                return [
-                    {
-                        ...withCards,
-                        content: toolFallbackContent([], withCards.tool_calls),
-                    },
-                ];
-            }
-
-            return [];
-        });
-
-        setMessages(syncedMessages);
-        setConversationId(selectedConversation?.id ?? null);
-        conversationIdRef.current = selectedConversation?.id ?? null;
-        setEditingMessageId(null);
-        setEditingDraft('');
-    }, [initialMessages, selectedConversation?.id, page.url]);
+        loadConversation(initialMessages, selectedConversation?.id ?? null);
+    }, [initialMessages, selectedConversation?.id, page.url, loadConversation]);
 
     // Fingerprint server list content so a new props object with the same rows
     // cannot wipe optimistic local removals (fetch-delete leaves Inertia props stale).
@@ -416,15 +294,7 @@ export default function AiIndexPage({
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, toolHint]);
-
-    useEffect(() => {
-        return () => {
-            abortControllerRef.current?.abort();
-            recognitionRef.current?.abort();
-            stopSpeaking();
-        };
-    }, []);
+    }, [chat.messages, chat.toolHint]);
 
     const conversationSections = useMemo(
         () => groupConversations(conversationItems),
@@ -452,12 +322,7 @@ export default function AiIndexPage({
     const hasMoreConversations = listPage < listLastPage;
 
     const selectConversation = (id: string) => {
-        if (isStreamingRef.current) {
-            abortControllerRef.current?.abort();
-            abortControllerRef.current = null;
-            isStreamingRef.current = false;
-            setIsStreaming(false);
-        }
+        chat.abortStream();
 
         router.get(
             conversationUrl(id),
@@ -522,7 +387,7 @@ export default function AiIndexPage({
             await deleteAiConversation(id);
             toast.success(t('ai.chatDeleted'));
             removeConversationsFromSidebar([id]);
-            refreshConversationsAfterDelete(conversationId === id);
+            refreshConversationsAfterDelete(chat.conversationId === id);
         } catch {
             toast.error(t('ai.unableDeleteChat'));
         }
@@ -671,7 +536,8 @@ export default function AiIndexPage({
             setConfirmBulkDeleteOpen(false);
 
             const selectedWasDeleted =
-                conversationId !== null && ids.includes(String(conversationId));
+                chat.conversationId !== null &&
+                ids.includes(String(chat.conversationId));
 
             refreshConversationsAfterDelete(selectedWasDeleted);
         } catch {
@@ -682,10 +548,6 @@ export default function AiIndexPage({
     };
 
     const reloadConversation = (resolvedConversationId: string | null) => {
-        // Clear abort handle before Inertia navigation so unmount cleanup cannot
-        // race-abort a just-finished stream or confuse follow-up sends.
-        abortControllerRef.current = null;
-
         router.get(
             conversationUrl(resolvedConversationId),
             {},
@@ -696,56 +558,6 @@ export default function AiIndexPage({
                 only: ['conversations', 'selectedConversation', 'messages'],
             },
         );
-    };
-
-    const handleStop = () => {
-        const inFlightTurn = inFlightTurnRef.current;
-        const abortController = abortControllerRef.current;
-
-        // Mark streaming finished before abort so late onDone/onToken see the flag.
-        isStreamingRef.current = false;
-        setIsStreaming(false);
-        setToolHint(null);
-
-        abortController?.abort();
-        abortControllerRef.current = null;
-
-        if (!inFlightTurn) {
-            // Drop empty in-flight assistant bubble so stop never leaves a blank card.
-            setMessages((current) =>
-                current.filter(
-                    (entry) =>
-                        !(
-                            entry.role === 'assistant' &&
-                            entry.content.trim() === '' &&
-                            !entry.isError
-                        ),
-                ),
-            );
-
-            return;
-        }
-
-        inFlightTurnRef.current = null;
-        setComposer(inFlightTurn.prompt);
-        setPendingAttachments(inFlightTurn.attachments);
-        setMessages((current) =>
-            current.filter(
-                (entry) =>
-                    entry.id !== inFlightTurn.userMessageId &&
-                    entry.id !== inFlightTurn.assistantMessageId,
-            ),
-        );
-
-        const conversationIdToTruncate = conversationIdRef.current;
-
-        if (conversationIdToTruncate) {
-            // Best-effort: remove the persisted user turn if the server already saved it.
-            void truncateLastUserMessageIfMatches(
-                conversationIdToTruncate,
-                inFlightTurn.prompt,
-            );
-        }
     };
 
     const clearImportPoll = (): void => {
@@ -821,689 +633,6 @@ export default function AiIndexPage({
             importPollActiveRef.current = false;
         };
     }, []);
-
-    const markAssistantError = (
-        assistantMessageId: string,
-        message: string,
-    ) => {
-        setMessages((current) =>
-            current.map((entry) =>
-                entry.id === assistantMessageId
-                    ? {
-                          ...entry,
-                          content: message,
-                          isError: true,
-                      }
-                    : entry,
-            ),
-        );
-    };
-
-    const runStream = async (
-        message: string,
-        options: {
-            conversationIdForStream: string | null;
-            baseMessages: ChatMessage[];
-            attachments?: AiChatAttachment[];
-            contextAttachments?: AiPendingContextAttachment[];
-            approvals?: AiApprovalDecision[];
-        },
-    ): Promise<boolean> => {
-        const attachmentsForMessage = options.attachments ?? [];
-        const contextForMessage = options.contextAttachments ?? [];
-        const contextIds = contextIdsFromPending(contextForMessage);
-        const approvalDecisions = options.approvals ?? [];
-        const isResume = approvalDecisions.length > 0;
-        let approvalsRequested: AiPendingApproval[] = [];
-        const userMessageId = createLocalMessageId('local-user');
-        const assistantMessageId = createLocalMessageId('local-assistant');
-        const userMessage: ChatMessage = {
-            id: userMessageId,
-            role: 'user',
-            content: message,
-            attachments: attachmentsForMessage,
-        };
-        let completed = false;
-        let toolsCalled = false;
-        const toolsUsed: string[] = [];
-
-        // A resume has no user turn of its own, so Stop only drops the empty assistant bubble.
-        inFlightTurnRef.current = isResume
-            ? null
-            : {
-                  prompt: message,
-                  attachments: attachmentsForMessage,
-                  userMessageId,
-                  assistantMessageId,
-              };
-
-        setMessages([
-            ...options.baseMessages,
-            ...(isResume ? [] : [userMessage]),
-            { id: assistantMessageId, role: 'assistant', content: '' },
-        ]);
-        isStreamingRef.current = true;
-        setIsStreaming(true);
-        setToolHint(null);
-        stopSpeaking();
-
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
-        try {
-            await streamAiChat(
-                message,
-                options.conversationIdForStream,
-                {
-                    signal: abortController.signal,
-                    onToken: (token) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        setMessages((current) =>
-                            current.map((entry) =>
-                                entry.id === assistantMessageId
-                                    ? {
-                                          ...entry,
-                                          content: entry.content + token,
-                                          isError: false,
-                                      }
-                                    : entry,
-                            ),
-                        );
-                    },
-                    onTool: (toolName) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        toolsCalled = true;
-                        toolsUsed.push(toolName);
-                        setToolHint(`Chiamata ${toolName}…`);
-                    },
-                    onToolResult: (toolName, result) => {
-                        const jobId = importJobIdFromToolResult(result);
-
-                        if (jobId) {
-                            startImportPoll(jobId);
-                        }
-
-                        const cards = fileCardsFromToolResult(toolName, result);
-
-                        if (cards.length === 0) {
-                            return;
-                        }
-
-                        setMessages((current) =>
-                            current.map((entry) => {
-                                if (entry.id !== assistantMessageId) {
-                                    return entry;
-                                }
-
-                                const byId = new Map(
-                                    (entry.fileCards ?? []).map((file) => [
-                                        file.id,
-                                        file,
-                                    ]),
-                                );
-
-                                for (const file of cards) {
-                                    byId.set(file.id, file);
-                                }
-
-                                return {
-                                    ...entry,
-                                    fileCards: [...byId.values()],
-                                };
-                            }),
-                        );
-                    },
-                    onApprovalRequest: (approvals) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        approvalsRequested = [
-                            ...approvalsRequested,
-                            ...approvals,
-                        ];
-                        setMessages((current) =>
-                            current.map((entry) =>
-                                entry.id === assistantMessageId
-                                    ? {
-                                          ...entry,
-                                          pending_approvals: approvalsRequested,
-                                      }
-                                    : entry,
-                            ),
-                        );
-                    },
-                    onConversationId: (id) => {
-                        // Keep conversation id even after stop so truncate cleanup can run.
-                        conversationIdRef.current = id;
-                        setConversationId(id);
-                    },
-                    onDone: (fullText) => {
-                        // Stop already rolled back UI; never reload/navigate after abort.
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        completed = true;
-                        inFlightTurnRef.current = null;
-                        abortControllerRef.current = null;
-                        setToolHint(null);
-                        isStreamingRef.current = false;
-                        setIsStreaming(false);
-
-                        const trimmed = fullText.trim();
-
-                        if (approvalsRequested.length > 0) {
-                            setMessages((current) =>
-                                current.map((entry) =>
-                                    entry.id === assistantMessageId
-                                        ? {
-                                              ...entry,
-                                              content:
-                                                  trimmed !== ''
-                                                      ? fullText
-                                                      : awaitingApprovalContent(
-                                                            approvalsRequested,
-                                                        ),
-                                              isError: false,
-                                              pending_approvals:
-                                                  approvalsRequested,
-                                          }
-                                        : entry,
-                                ),
-                            );
-                            reloadConversation(conversationIdRef.current);
-
-                            return;
-                        }
-
-                        if (trimmed === '') {
-                            // Tool-only turns often end with no final text tokens from local models.
-                            if (toolsCalled) {
-                                const fallback = toolFallbackContent(toolsUsed);
-                                setMessages((current) =>
-                                    current.map((entry) =>
-                                        entry.id === assistantMessageId
-                                            ? {
-                                                  ...entry,
-                                                  content: fallback,
-                                                  isError: false,
-                                                  toolNames: [
-                                                      ...new Set(toolsUsed),
-                                                  ],
-                                              }
-                                            : entry,
-                                    ),
-                                );
-                                // Reload so backfilled server summary (if any) replaces the local fallback.
-                                reloadConversation(conversationIdRef.current);
-
-                                return;
-                            }
-
-                            markAssistantError(
-                                assistantMessageId,
-                                t('ai.responseTryAgain'),
-                            );
-                            toast.error(t('ai.noResponse'));
-
-                            return;
-                        }
-
-                        setMessages((current) =>
-                            current.map((entry) =>
-                                entry.id === assistantMessageId
-                                    ? {
-                                          ...entry,
-                                          content: fullText,
-                                          isError: false,
-                                          toolNames: [...new Set(toolsUsed)],
-                                      }
-                                    : entry,
-                            ),
-                        );
-
-                        reloadConversation(conversationIdRef.current);
-                    },
-                    onError: (error) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        inFlightTurnRef.current = null;
-                        abortControllerRef.current = null;
-                        isStreamingRef.current = false;
-                        setIsStreaming(false);
-                        setToolHint(null);
-                        markAssistantError(
-                            assistantMessageId,
-                            error.message || i18n.t('ai.responseError'),
-                        );
-                    },
-                },
-                attachmentsForMessage.map((attachment) => attachment.id),
-                approvalDecisions,
-                {
-                    itemIds: contextIds.contextItemIds,
-                    fileIds: contextIds.contextFileIds,
-                    promptIds: contextIds.contextPromptIds,
-                },
-            );
-
-            // Stop: streamAiChat swallows AbortError; handleStop already rolled back UI.
-            if (abortController.signal.aborted) {
-                return false;
-            }
-
-            // Stream ended without onDone (truncated body) — settle empty bubbles.
-            if (!completed) {
-                inFlightTurnRef.current = null;
-                setMessages((current) => {
-                    const assistant = current.find(
-                        (entry) => entry.id === assistantMessageId,
-                    );
-
-                    if (
-                        assistant &&
-                        assistant.content.trim() === '' &&
-                        !assistant.isError
-                    ) {
-                        if (toolsCalled) {
-                            return current.map((entry) =>
-                                entry.id === assistantMessageId
-                                    ? {
-                                          ...entry,
-                                          content:
-                                              toolFallbackContent(toolsUsed),
-                                          isError: false,
-                                      }
-                                    : entry,
-                            );
-                        }
-
-                        return current.map((entry) =>
-                            entry.id === assistantMessageId
-                                ? {
-                                      ...entry,
-                                      content: t('ai.responseTryAgain'),
-                                      isError: true,
-                                  }
-                                : entry,
-                        );
-                    }
-
-                    return current;
-                });
-                isStreamingRef.current = false;
-                setIsStreaming(false);
-                setToolHint(null);
-            }
-
-            return completed;
-        } catch (error) {
-            if (isAbortError(error) || abortController.signal.aborted) {
-                // handleStop owns rollback + composer restore; avoid error toasts.
-                abortControllerRef.current = null;
-                isStreamingRef.current = false;
-                setIsStreaming(false);
-                setToolHint(null);
-
-                return false;
-            }
-
-            inFlightTurnRef.current = null;
-            abortControllerRef.current = null;
-            isStreamingRef.current = false;
-            setIsStreaming(false);
-            setToolHint(null);
-
-            const messageText =
-                error instanceof Error ? error.message : t('ai.responseError');
-
-            markAssistantError(assistantMessageId, messageText);
-            toast.error(messageText);
-
-            return false;
-        }
-    };
-
-    const handlePickAttachment = () => {
-        setContextAttachOpen(true);
-    };
-
-    const handleAttachmentFiles = async (files: FileList | File[]) => {
-        const { files: filesToUpload, error } = pickAiChatAttachmentFiles(
-            files,
-            pendingAttachments.length,
-        );
-
-        if (error) {
-            toast.error(error);
-        }
-
-        if (filesToUpload.length === 0) {
-            return;
-        }
-
-        setIsUploadingAttachment(true);
-
-        try {
-            for (const file of filesToUpload) {
-                const attachment = await uploadAiAttachment(file);
-                setPendingAttachments((current) => [...current, attachment]);
-            }
-        } catch (uploadError) {
-            toast.error(
-                uploadError instanceof Error
-                    ? uploadError.message
-                    : t('ai.attachmentUploadFailed'),
-            );
-        } finally {
-            setIsUploadingAttachment(false);
-        }
-    };
-
-    const handleAttachmentSelected = async (
-        event: ChangeEvent<HTMLInputElement>,
-    ) => {
-        const selectedFiles = event.target.files;
-        event.target.value = '';
-
-        if (!selectedFiles || selectedFiles.length === 0) {
-            return;
-        }
-
-        await handleAttachmentFiles(selectedFiles);
-    };
-
-    const removePendingAttachment = (attachmentId: string) => {
-        setPendingAttachments((current) =>
-            current.filter((attachment) => attachment.id !== attachmentId),
-        );
-    };
-
-    const removePendingContextAttachment = (
-        kind: AiPendingContextAttachment['kind'],
-        id: number,
-    ) => {
-        setPendingContextAttachments((current) =>
-            current.filter(
-                (attachment) =>
-                    !(attachment.kind === kind && attachment.id === id),
-            ),
-        );
-    };
-
-    const handleSend = async () => {
-        const message = composer.trim();
-
-        if (
-            (!message &&
-                pendingAttachments.length === 0 &&
-                pendingContextAttachments.length === 0) ||
-            isStreamingRef.current ||
-            isUploadingAttachment
-        ) {
-            return;
-        }
-
-        if (!message) {
-            toast.error(t('ai.writeMessageWithAttachments'));
-
-            return;
-        }
-
-        const attachmentsToSend = pendingAttachments;
-        const contextToSend = pendingContextAttachments;
-        const prompt = dryRunMode
-            ? `[SIMULATION MODE] Run dry_run=true only; do not write data.\n\n${message}`
-            : message;
-        setComposer('');
-        setPendingAttachments([]);
-        setPendingContextAttachments([]);
-
-        try {
-            await runStream(prompt, {
-                conversationIdForStream: conversationIdRef.current,
-                baseMessages: messages,
-                attachments: attachmentsToSend,
-                contextAttachments: contextToSend,
-            });
-        } catch (error) {
-            const messageText =
-                error instanceof Error ? error.message : t('ai.sendError');
-            toast.error(messageText);
-        }
-    };
-
-    const handleResolveApprovals = async (
-        messageId: string,
-        approved: boolean,
-    ): Promise<void> => {
-        const pausedMessage = messages.find((entry) => entry.id === messageId);
-        const pending = pausedMessage?.pending_approvals ?? [];
-
-        if (isStreamingRef.current || pending.length === 0) {
-            return;
-        }
-
-        await runStream('', {
-            conversationIdForStream: conversationIdRef.current,
-            baseMessages: messages.map((entry) =>
-                entry.id === messageId
-                    ? { ...entry, pending_approvals: [] }
-                    : entry,
-            ),
-            approvals: pending.map((approval) => ({
-                id: approval.id,
-                approved,
-            })),
-        });
-    };
-
-    const findPrecedingUserMessage = (
-        assistantMessageId: string,
-    ): ChatMessage | null => {
-        const assistantIndex = messages.findIndex(
-            (entry) => entry.id === assistantMessageId,
-        );
-
-        if (assistantIndex <= 0) {
-            return null;
-        }
-
-        for (let index = assistantIndex - 1; index >= 0; index--) {
-            if (messages[index]?.role === 'user') {
-                return messages[index] ?? null;
-            }
-        }
-
-        return null;
-    };
-
-    const handleRegenerate = async (
-        assistantMessageId: string,
-        options: { asRetry?: boolean } = {},
-    ): Promise<void> => {
-        if (isStreamingRef.current) {
-            return;
-        }
-
-        const userMessage = findPrecedingUserMessage(assistantMessageId);
-
-        if (!userMessage) {
-            toast.error(t('ai.noUserMessageToRegenerate'));
-
-            return;
-        }
-
-        const prompt = userMessage.content.trim();
-
-        if (!prompt) {
-            return;
-        }
-
-        let baseMessages = messages.slice(
-            0,
-            messages.findIndex((entry) => entry.id === userMessage.id),
-        );
-
-        if (conversationId && isPersistedMessageId(userMessage.id)) {
-            try {
-                await truncateAiConversationFrom(
-                    conversationId,
-                    userMessage.id,
-                );
-            } catch {
-                toast.error(t('ai.unablePrepareRegeneration'));
-
-                return;
-            }
-        } else {
-            baseMessages = messages.slice(
-                0,
-                messages.findIndex((entry) => entry.id === userMessage.id),
-            );
-        }
-
-        const succeeded = await runStream(prompt, {
-            conversationIdForStream: conversationIdRef.current,
-            baseMessages,
-        });
-
-        if (succeeded && options.asRetry) {
-            toast.success(t('ai.messageResent'));
-        }
-    };
-
-    const startEditing = (message: ChatMessage) => {
-        if (isStreamingRef.current) {
-            handleStop();
-        }
-
-        setEditingMessageId(message.id);
-        setEditingDraft(message.content);
-    };
-
-    const cancelEditing = () => {
-        setEditingMessageId(null);
-        setEditingDraft('');
-    };
-
-    const handleResendEdited = async (messageId: string) => {
-        const draft = editingDraft.trim();
-
-        if (!draft) {
-            toast.error(t('ai.messageCannotBeEmpty'));
-
-            return;
-        }
-
-        if (isStreamingRef.current) {
-            handleStop();
-        }
-
-        const messageIndex = messages.findIndex(
-            (entry) => entry.id === messageId,
-        );
-
-        if (messageIndex < 0) {
-            return;
-        }
-
-        const baseMessages = messages.slice(0, messageIndex);
-
-        if (conversationId && isPersistedMessageId(messageId)) {
-            try {
-                await truncateAiConversationFrom(conversationId, messageId);
-            } catch {
-                toast.error(t('ai.unableEditMessage'));
-
-                return;
-            }
-        }
-
-        setEditingMessageId(null);
-        setEditingDraft('');
-
-        await runStream(draft, {
-            conversationIdForStream: conversationIdRef.current,
-            baseMessages,
-        });
-    };
-
-    const toggleVoiceInput = () => {
-        const Recognition = getSpeechRecognitionConstructor();
-
-        if (!Recognition) {
-            toast.error(t('ai.dictationUnsupported'));
-
-            return;
-        }
-
-        if (isListening && recognitionRef.current) {
-            recognitionRef.current.stop();
-            setIsListening(false);
-
-            return;
-        }
-
-        const recognition = new Recognition();
-        recognition.lang = speechRecognitionLang(i18n.language);
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognitionRef.current = recognition;
-
-        recognition.addEventListener('result', (event) => {
-            let transcript = '';
-
-            for (
-                let index = event.resultIndex;
-                index < event.results.length;
-                index++
-            ) {
-                const result = event.results[index];
-
-                if (result?.isFinal) {
-                    transcript += result[0]?.transcript ?? '';
-                }
-            }
-
-            if (transcript.trim() !== '') {
-                setComposer((current) => {
-                    const prefix =
-                        current.trim() === '' ? '' : `${current.trim()} `;
-
-                    return `${prefix}${transcript.trim()}`;
-                });
-            }
-        });
-
-        recognition.addEventListener('error', () => {
-            setIsListening(false);
-            recognitionRef.current = null;
-            toast.error(t('ai.dictationError'));
-        });
-
-        recognition.addEventListener('end', () => {
-            setIsListening(false);
-            recognitionRef.current = null;
-        });
-
-        try {
-            recognition.start();
-            setIsListening(true);
-        } catch {
-            setIsListening(false);
-            toast.error(t('ai.unableStartDictation'));
-        }
-    };
 
     return (
         <AppLayout
@@ -1605,7 +734,7 @@ export default function AiIndexPage({
                                                             className={cn(
                                                                 'group mb-0.5 flex items-center gap-1 rounded-md',
                                                                 conversation.id ===
-                                                                    conversationId
+                                                                    chat.conversationId
                                                                     ? 'bg-muted'
                                                                     : 'hover:bg-muted/60',
                                                             )}
@@ -1732,32 +861,34 @@ export default function AiIndexPage({
 
                     <section className="flex min-w-0 flex-1 flex-col">
                         <AiChatDropZone
-                            disabled={isStreaming || isUploadingAttachment}
+                            disabled={
+                                chat.isStreaming || chat.isUploadingAttachment
+                            }
                             onFilesSelected={(files) =>
-                                void handleAttachmentFiles(files)
+                                void chat.handleAttachmentFiles(files)
                             }
                         >
                             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
                                 <AiChatMessages
-                                    messages={messages}
-                                    isStreaming={isStreaming}
-                                    editingMessageId={editingMessageId}
-                                    editingDraft={editingDraft}
-                                    onEditingDraftChange={setEditingDraft}
-                                    onCancelEdit={cancelEditing}
-                                    onStartEdit={startEditing}
+                                    messages={chat.messages}
+                                    isStreaming={chat.isStreaming}
+                                    editingMessageId={chat.editingMessageId}
+                                    editingDraft={chat.editingDraft}
+                                    onEditingDraftChange={chat.setEditingDraft}
+                                    onCancelEdit={chat.cancelEditing}
+                                    onStartEdit={chat.startEditing}
                                     onResendEdited={(messageId) =>
-                                        void handleResendEdited(messageId)
+                                        void chat.handleResendEdited(messageId)
                                     }
                                     onRegenerate={(messageId, options) =>
-                                        void handleRegenerate(
+                                        void chat.handleRegenerate(
                                             messageId,
                                             options,
                                         )
                                     }
-                                    onSuggestedAction={setComposer}
+                                    onSuggestedAction={chat.setComposer}
                                     onResolveApprovals={(messageId, approved) =>
-                                        void handleResolveApprovals(
+                                        void chat.handleResolveApprovals(
                                             messageId,
                                             approved,
                                         )
@@ -1782,9 +913,9 @@ export default function AiIndexPage({
                                     }
                                 />
 
-                                {toolHint ? (
+                                {chat.toolHint ? (
                                     <p className="text-xs text-muted-foreground">
-                                        {toolHint}
+                                        {chat.toolHint}
                                     </p>
                                 ) : null}
                                 {importJobStatus ? (
@@ -1809,36 +940,40 @@ export default function AiIndexPage({
                                     multiple
                                     className="hidden"
                                     onChange={(event) =>
-                                        void handleAttachmentSelected(event)
+                                        void chat.handleAttachmentSelected(
+                                            event,
+                                        )
                                     }
                                 />
                                 <AiComposer
-                                    value={composer}
-                                    onChange={setComposer}
-                                    onSubmit={() => void handleSend()}
-                                    onStop={handleStop}
-                                    isStreaming={isStreaming}
-                                    attachments={pendingAttachments}
-                                    onRemoveAttachment={removePendingAttachment}
+                                    value={chat.composer}
+                                    onChange={chat.setComposer}
+                                    onSubmit={() => void chat.handleSend()}
+                                    onStop={chat.handleStop}
+                                    isStreaming={chat.isStreaming}
+                                    attachments={chat.pendingAttachments}
+                                    onRemoveAttachment={
+                                        chat.removePendingAttachment
+                                    }
                                     contextAttachments={
-                                        pendingContextAttachments
+                                        chat.pendingContextAttachments
                                     }
                                     onRemoveContextAttachment={
-                                        removePendingContextAttachment
+                                        chat.removePendingContextAttachment
                                     }
-                                    onAttach={handlePickAttachment}
+                                    onAttach={() => setContextAttachOpen(true)}
                                     isUploadingAttachment={
-                                        isUploadingAttachment
+                                        chat.isUploadingAttachment
                                     }
                                     attachDisabled={
-                                        pendingAttachments.length >=
+                                        chat.pendingAttachments.length >=
                                         AI_CHAT_ATTACHMENT_MAX_COUNT
                                     }
-                                    speechSupported={speechSupported}
-                                    isListening={isListening}
-                                    onToggleVoice={toggleVoiceInput}
-                                    dryRunMode={dryRunMode}
-                                    onDryRunModeChange={setDryRunMode}
+                                    speechSupported={chat.speechSupported}
+                                    isListening={chat.isListening}
+                                    onToggleVoice={chat.toggleVoiceInput}
+                                    dryRunMode={chat.dryRunMode}
+                                    onDryRunModeChange={chat.setDryRunMode}
                                     onOpenPresets={() => setPresetsOpen(true)}
                                 />
                             </div>
@@ -1850,25 +985,7 @@ export default function AiIndexPage({
             <AiContextAttachDialog
                 open={contextAttachOpen}
                 onOpenChange={setContextAttachOpen}
-                onAttach={(entries) => {
-                    setPendingContextAttachments((current) => {
-                        const next = [...current];
-
-                        for (const entry of entries) {
-                            if (
-                                !next.some(
-                                    (row) =>
-                                        row.kind === entry.kind &&
-                                        row.id === entry.id,
-                                )
-                            ) {
-                                next.push(entry);
-                            }
-                        }
-
-                        return next;
-                    });
-                }}
+                onAttach={chat.addContextAttachments}
                 onPickUploadFiles={() => {
                     setContextAttachOpen(false);
                     fileInputRef.current?.click();
@@ -1878,7 +995,7 @@ export default function AiIndexPage({
             <AiActionPresetsDrawer
                 open={presetsOpen}
                 onOpenChange={setPresetsOpen}
-                onSelect={(prompt) => setComposer(prompt)}
+                onSelect={(prompt) => chat.setComposer(prompt)}
             />
 
             <Dialog

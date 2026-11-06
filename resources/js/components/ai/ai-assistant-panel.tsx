@@ -1,13 +1,11 @@
 import { router, usePage } from '@inertiajs/react';
 import { Maximize2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
-import type { AiChatMessageView } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
 import {
@@ -20,41 +18,14 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { useAiAvailability } from '@/hooks/use-ai-availability';
+import { useAiChat } from '@/hooks/use-ai-chat';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
     AI_CHAT_ATTACHMENT_MAX_COUNT,
-    awaitingApprovalContent,
-    getSpeechRecognitionConstructor,
-    isAbortError,
-    pickAiChatAttachmentFiles,
-    stopSpeaking,
-    streamAiChat,
-    truncateLastUserMessageIfMatches,
-    uploadAiAttachment,
 } from '@/lib/ai-chat';
-import type {
-    AiApprovalDecision,
-    AiChatAttachment,
-    AiPendingApproval,
-} from '@/lib/ai-chat';
-import type { AiPendingContextAttachment } from '@/lib/ai-context';
-import { contextIdsFromPending } from '@/lib/ai-context';
 import { AI_OPEN_EVENT, AI_TOGGLE_EVENT } from '@/lib/ai-open';
 import type { AiOpenDetail } from '@/lib/ai-open';
-import { speechRecognitionLang } from '@/lib/format';
-import { toast } from '@/lib/toast';
 import { index as aiIndex, show as aiShow } from '@/routes/ai';
-
-type ChatLine = AiChatMessageView & {
-    role: 'user' | 'assistant';
-};
-
-type InFlightTurn = {
-    prompt: string;
-    attachments: AiChatAttachment[];
-    userMessageId: string;
-    assistantMessageId: string;
-};
 
 /**
  * AI assistant side panel available on every page except `/ai`. It opens from
@@ -63,7 +34,7 @@ type InFlightTurn = {
  * @returns {JSX.Element | null}
  */
 export function AiAssistantPanel() {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const page = usePage();
     // One shared /ai/status probe for the panel and every Ask AI button.
     const { canUseAi, isAvailable: isAiAvailable } = useAiAvailability();
@@ -74,48 +45,11 @@ export function AiAssistantPanel() {
 
     const [open, setOpen] = useState(false);
     const [presetsOpen, setPresetsOpen] = useState(false);
-    const [composer, setComposer] = useState('');
-    const [isStreaming, setIsStreaming] = useState(false);
-    const [toolHint, setToolHint] = useState<string | null>(null);
-    const [conversationId, setConversationId] = useState<string | null>(null);
-    const [messages, setMessages] = useState<ChatLine[]>([]);
-    const [pendingAttachments, setPendingAttachments] = useState<
-        AiChatAttachment[]
-    >([]);
-    const [pendingContextAttachments, setPendingContextAttachments] = useState<
-        AiPendingContextAttachment[]
-    >([]);
     const [contextAttachOpen, setContextAttachOpen] = useState(false);
-    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-    const [isListening, setIsListening] = useState(false);
-    const [speechSupported] = useState(
-        () => getSpeechRecognitionConstructor() !== null,
-    );
-    const [editingMessageId, setEditingMessageId] = useState<string | null>(
-        null,
-    );
-    const [editingDraft, setEditingDraft] = useState('');
-    const abortControllerRef = useRef<AbortController | null>(null);
-    const conversationIdRef = useRef<string | null>(null);
-    const inFlightTurnRef = useRef<InFlightTurn | null>(null);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-    useEffect(() => {
-        conversationIdRef.current = conversationId;
-    }, [conversationId]);
-
-    useEffect(() => {
-        if (!canUseAi) {
-            return;
-        }
-
-        return () => {
-            abortControllerRef.current?.abort();
-            recognitionRef.current?.abort();
-            stopSpeaking();
-        };
-    }, [canUseAi]);
+    const offline = !isAiAvailable;
+    const chat = useAiChat({ isOffline: offline });
+    const { startNewDraft } = chat;
 
     useEffect(() => {
         if (!canUseAi || isAiRoute) {
@@ -131,18 +65,7 @@ export function AiAssistantPanel() {
             }
 
             // Seed a fresh draft chat so contextual prompts don't append to an old thread.
-            abortControllerRef.current?.abort();
-            abortControllerRef.current = null;
-            inFlightTurnRef.current = null;
-            setIsStreaming(false);
-            setToolHint(null);
-            setConversationId(null);
-            conversationIdRef.current = null;
-            setMessages([]);
-            setPendingAttachments([]);
-            setEditingMessageId(null);
-            setEditingDraft('');
-            setComposer(prompt);
+            startNewDraft(prompt);
             setOpen(true);
         };
 
@@ -168,514 +91,11 @@ export function AiAssistantPanel() {
             window.removeEventListener(AI_TOGGLE_EVENT, onToggle);
             window.removeEventListener('keydown', onKeyDown);
         };
-    }, [canUseAi, isAiRoute]);
+    }, [canUseAi, isAiRoute, startNewDraft]);
 
     if (!canUseAi || isAiRoute) {
         return null;
     }
-
-    const offline = !isAiAvailable;
-
-    const handleStop = () => {
-        const inFlightTurn = inFlightTurnRef.current;
-        const abortController = abortControllerRef.current;
-
-        setIsStreaming(false);
-        setToolHint(null);
-
-        abortController?.abort();
-        abortControllerRef.current = null;
-
-        if (!inFlightTurn) {
-            setMessages((current) =>
-                current.filter(
-                    (entry) =>
-                        !(
-                            entry.role === 'assistant' &&
-                            entry.content.trim() === '' &&
-                            !entry.isError
-                        ),
-                ),
-            );
-
-            return;
-        }
-
-        inFlightTurnRef.current = null;
-        setComposer(inFlightTurn.prompt);
-        setPendingAttachments(inFlightTurn.attachments);
-        setMessages((current) =>
-            current.filter(
-                (entry) =>
-                    entry.id !== inFlightTurn.userMessageId &&
-                    entry.id !== inFlightTurn.assistantMessageId,
-            ),
-        );
-
-        const conversationIdToTruncate = conversationIdRef.current;
-
-        if (conversationIdToTruncate) {
-            void truncateLastUserMessageIfMatches(
-                conversationIdToTruncate,
-                inFlightTurn.prompt,
-            );
-        }
-    };
-
-    const findPrecedingUserMessage = (
-        assistantMessageId: string,
-    ): ChatLine | null => {
-        const assistantIndex = messages.findIndex(
-            (entry) => entry.id === assistantMessageId,
-        );
-
-        if (assistantIndex <= 0) {
-            return null;
-        }
-
-        for (let index = assistantIndex - 1; index >= 0; index--) {
-            if (messages[index]?.role === 'user') {
-                return messages[index] ?? null;
-            }
-        }
-
-        return null;
-    };
-
-    const runStream = async (
-        message: string,
-        baseMessages: ChatLine[],
-        attachments: AiChatAttachment[] = [],
-        approvals: AiApprovalDecision[] = [],
-        contextAttachments: AiPendingContextAttachment[] = [],
-    ): Promise<boolean> => {
-        const userMessageId = `user-${Date.now()}`;
-        const assistantId = `assistant-${Date.now()}`;
-        const isResume = approvals.length > 0;
-        const contextIds = contextIdsFromPending(contextAttachments);
-        let completed = false;
-        let approvalsRequested: AiPendingApproval[] = [];
-
-        inFlightTurnRef.current = isResume
-            ? null
-            : {
-                  prompt: message,
-                  attachments,
-                  userMessageId,
-                  assistantMessageId: assistantId,
-              };
-
-        setMessages([
-            ...baseMessages,
-            ...(isResume
-                ? []
-                : [
-                      {
-                          id: userMessageId,
-                          role: 'user' as const,
-                          content: message,
-                          attachments,
-                      },
-                  ]),
-            { id: assistantId, role: 'assistant', content: '' },
-        ]);
-        setIsStreaming(true);
-        setToolHint(null);
-        stopSpeaking();
-
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
-        try {
-            await streamAiChat(
-                message,
-                conversationIdRef.current,
-                {
-                    signal: abortController.signal,
-                    onToken: (token) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        setMessages((current) =>
-                            current.map((entry) =>
-                                entry.id === assistantId
-                                    ? {
-                                          ...entry,
-                                          content: entry.content + token,
-                                          isError: false,
-                                      }
-                                    : entry,
-                            ),
-                        );
-                    },
-                    onTool: (toolName) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        setToolHint(`Chiamata ${toolName}…`);
-                    },
-                    onApprovalRequest: (pending) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        approvalsRequested = [
-                            ...approvalsRequested,
-                            ...pending,
-                        ];
-                    },
-                    onConversationId: (id) => {
-                        conversationIdRef.current = id;
-                        setConversationId(id);
-                    },
-                    onDone: (fullText) => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        if (approvalsRequested.length > 0) {
-                            setMessages((current) =>
-                                current.map((entry) =>
-                                    entry.id === assistantId
-                                        ? {
-                                              ...entry,
-                                              content:
-                                                  fullText.trim() !== ''
-                                                      ? fullText
-                                                      : awaitingApprovalContent(
-                                                            approvalsRequested,
-                                                        ),
-                                              pending_approvals:
-                                                  approvalsRequested,
-                                          }
-                                        : entry,
-                                ),
-                            );
-                        }
-
-                        completed = true;
-                        inFlightTurnRef.current = null;
-                        abortControllerRef.current = null;
-                        setIsStreaming(false);
-                        setToolHint(null);
-                    },
-                    onError: () => {
-                        if (abortController.signal.aborted) {
-                            return;
-                        }
-
-                        inFlightTurnRef.current = null;
-                        abortControllerRef.current = null;
-                        setIsStreaming(false);
-                        setToolHint(null);
-                    },
-                },
-                attachments.map((attachment) => attachment.id),
-                approvals,
-                {
-                    itemIds: contextIds.contextItemIds,
-                    fileIds: contextIds.contextFileIds,
-                    promptIds: contextIds.contextPromptIds,
-                },
-            );
-
-            if (abortController.signal.aborted) {
-                return false;
-            }
-
-            return completed;
-        } catch (error) {
-            abortControllerRef.current = null;
-            setIsStreaming(false);
-            setToolHint(null);
-
-            if (isAbortError(error) || abortController.signal.aborted) {
-                // handleStop owns rollback + composer restore; avoid error toasts.
-                return false;
-            }
-
-            inFlightTurnRef.current = null;
-
-            const messageText =
-                error instanceof Error ? error.message : t('ai.responseError');
-
-            setMessages((current) =>
-                current.map((entry) =>
-                    entry.id === assistantId
-                        ? { ...entry, content: messageText, isError: true }
-                        : entry,
-                ),
-            );
-            toast.error(messageText);
-
-            return false;
-        }
-    };
-
-    const handleResolveApprovals = async (
-        messageId: string,
-        approved: boolean,
-    ): Promise<void> => {
-        const pending =
-            messages.find((entry) => entry.id === messageId)
-                ?.pending_approvals ?? [];
-
-        if (isStreaming || pending.length === 0) {
-            return;
-        }
-
-        await runStream(
-            '',
-            messages.map((entry) =>
-                entry.id === messageId
-                    ? { ...entry, pending_approvals: [] }
-                    : entry,
-            ),
-            [],
-            pending.map((approval) => ({ id: approval.id, approved })),
-        );
-    };
-
-    const handleAttachmentFiles = async (files: FileList | File[]) => {
-        const { files: filesToUpload, error } = pickAiChatAttachmentFiles(
-            files,
-            pendingAttachments.length,
-        );
-
-        if (error) {
-            toast.error(error);
-        }
-
-        if (filesToUpload.length === 0) {
-            return;
-        }
-
-        setIsUploadingAttachment(true);
-
-        try {
-            for (const file of filesToUpload) {
-                const attachment = await uploadAiAttachment(file);
-                setPendingAttachments((current) => [...current, attachment]);
-            }
-        } catch (uploadError) {
-            toast.error(
-                uploadError instanceof Error
-                    ? uploadError.message
-                    : t('ai.attachmentUploadFailed'),
-            );
-        } finally {
-            setIsUploadingAttachment(false);
-        }
-    };
-
-    const handleAttachmentSelected = async (
-        event: ChangeEvent<HTMLInputElement>,
-    ) => {
-        const selectedFiles = event.target.files;
-        event.target.value = '';
-
-        if (!selectedFiles || selectedFiles.length === 0) {
-            return;
-        }
-
-        await handleAttachmentFiles(selectedFiles);
-    };
-
-    const removePendingAttachment = (attachmentId: string) => {
-        setPendingAttachments((current) =>
-            current.filter((attachment) => attachment.id !== attachmentId),
-        );
-    };
-
-    const removePendingContextAttachment = (
-        kind: AiPendingContextAttachment['kind'],
-        id: number,
-    ) => {
-        setPendingContextAttachments((current) =>
-            current.filter(
-                (attachment) =>
-                    !(attachment.kind === kind && attachment.id === id),
-            ),
-        );
-    };
-
-    const handleSend = async () => {
-        const message = composer.trim();
-
-        if (!message || isStreaming || offline || isUploadingAttachment) {
-            return;
-        }
-
-        const attachmentsToSend = pendingAttachments;
-        const contextToSend = pendingContextAttachments;
-        setComposer('');
-        setPendingAttachments([]);
-        setPendingContextAttachments([]);
-        await runStream(
-            message,
-            messages,
-            attachmentsToSend,
-            [],
-            contextToSend,
-        );
-    };
-
-    const handleRegenerate = async (
-        assistantMessageId: string,
-        options: { asRetry?: boolean } = {},
-    ): Promise<void> => {
-        if (isStreaming || offline) {
-            return;
-        }
-
-        const userMessage = findPrecedingUserMessage(assistantMessageId);
-
-        if (!userMessage) {
-            toast.error(t('ai.noUserMessageToRegenerate'));
-
-            return;
-        }
-
-        const prompt = userMessage.content.trim();
-
-        if (!prompt) {
-            return;
-        }
-
-        if (options.asRetry) {
-            // Keep the failed prompt in the composer for optional edit/resend.
-            setComposer(prompt);
-        }
-
-        const baseMessages = messages.slice(
-            0,
-            messages.findIndex((entry) => entry.id === userMessage.id),
-        );
-
-        const succeeded = await runStream(
-            prompt,
-            baseMessages,
-            userMessage.attachments ?? [],
-        );
-
-        if (succeeded && options.asRetry) {
-            setComposer('');
-            toast.success(t('ai.messageResent'));
-        }
-    };
-
-    const startEditing = (message: AiChatMessageView) => {
-        if (isStreaming) {
-            handleStop();
-        }
-
-        setEditingMessageId(message.id);
-        setEditingDraft(message.content);
-    };
-
-    const cancelEditing = () => {
-        setEditingMessageId(null);
-        setEditingDraft('');
-    };
-
-    const handleResendEdited = async (messageId: string) => {
-        const draft = editingDraft.trim();
-
-        if (!draft) {
-            toast.error(t('ai.messageCannotBeEmpty'));
-
-            return;
-        }
-
-        if (isStreaming || offline) {
-            return;
-        }
-
-        const messageIndex = messages.findIndex(
-            (entry) => entry.id === messageId,
-        );
-
-        if (messageIndex < 0) {
-            return;
-        }
-
-        const prior = messages[messageIndex];
-        const baseMessages = messages.slice(0, messageIndex);
-
-        setEditingMessageId(null);
-        setEditingDraft('');
-
-        await runStream(draft, baseMessages, prior?.attachments ?? []);
-    };
-
-    const toggleVoiceInput = () => {
-        const Recognition = getSpeechRecognitionConstructor();
-
-        if (!Recognition) {
-            toast.error(t('ai.dictationUnsupported'));
-
-            return;
-        }
-
-        if (isListening && recognitionRef.current) {
-            recognitionRef.current.stop();
-            setIsListening(false);
-
-            return;
-        }
-
-        const recognition = new Recognition();
-        recognition.lang = speechRecognitionLang(i18n.language);
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognitionRef.current = recognition;
-
-        recognition.addEventListener('result', (event) => {
-            let transcript = '';
-
-            for (
-                let index = event.resultIndex;
-                index < event.results.length;
-                index++
-            ) {
-                const result = event.results[index];
-
-                if (result?.isFinal) {
-                    transcript += result[0]?.transcript ?? '';
-                }
-            }
-
-            if (transcript.trim() !== '') {
-                setComposer((current) => {
-                    const prefix =
-                        current.trim() === '' ? '' : `${current.trim()} `;
-
-                    return `${prefix}${transcript.trim()}`;
-                });
-            }
-        });
-
-        recognition.addEventListener('error', () => {
-            setIsListening(false);
-            recognitionRef.current = null;
-            toast.error(t('ai.dictationError'));
-        });
-
-        recognition.addEventListener('end', () => {
-            setIsListening(false);
-            recognitionRef.current = null;
-        });
-
-        try {
-            recognition.start();
-            setIsListening(true);
-        } catch {
-            setIsListening(false);
-            toast.error(t('ai.unableStartDictation'));
-        }
-    };
 
     return (
         <>
@@ -713,8 +133,8 @@ export function AiAssistantPanel() {
                             onClick={() => {
                                 setOpen(false);
                                 router.visit(
-                                    conversationId
-                                        ? aiShow.url(conversationId)
+                                    chat.conversationId
+                                        ? aiShow.url(chat.conversationId)
                                         : aiIndex.url(),
                                 );
                             }}
@@ -725,31 +145,36 @@ export function AiAssistantPanel() {
 
                     <AiChatDropZone
                         disabled={
-                            offline || isStreaming || isUploadingAttachment
+                            offline ||
+                            chat.isStreaming ||
+                            chat.isUploadingAttachment
                         }
                         onFilesSelected={(files) =>
-                            void handleAttachmentFiles(files)
+                            void chat.handleAttachmentFiles(files)
                         }
                     >
                         <DrawerBody className="gap-3">
                             <AiChatMessages
-                                messages={messages}
-                                isStreaming={isStreaming}
+                                messages={chat.messages}
+                                isStreaming={chat.isStreaming}
                                 actionsDisabled={offline}
-                                editingMessageId={editingMessageId}
-                                editingDraft={editingDraft}
-                                onEditingDraftChange={setEditingDraft}
-                                onCancelEdit={cancelEditing}
-                                onStartEdit={startEditing}
+                                editingMessageId={chat.editingMessageId}
+                                editingDraft={chat.editingDraft}
+                                onEditingDraftChange={chat.setEditingDraft}
+                                onCancelEdit={chat.cancelEditing}
+                                onStartEdit={chat.startEditing}
                                 onResendEdited={(messageId) =>
-                                    void handleResendEdited(messageId)
+                                    void chat.handleResendEdited(messageId)
                                 }
                                 onRegenerate={(messageId, options) =>
-                                    void handleRegenerate(messageId, options)
+                                    void chat.handleRegenerate(
+                                        messageId,
+                                        options,
+                                    )
                                 }
-                                onSuggestedAction={setComposer}
+                                onSuggestedAction={chat.setComposer}
                                 onResolveApprovals={(messageId, approved) =>
-                                    void handleResolveApprovals(
+                                    void chat.handleResolveApprovals(
                                         messageId,
                                         approved,
                                     )
@@ -760,9 +185,9 @@ export function AiAssistantPanel() {
                                     </p>
                                 }
                             />
-                            {toolHint ? (
+                            {chat.toolHint ? (
                                 <p className="text-xs text-muted-foreground">
-                                    {toolHint}
+                                    {chat.toolHint}
                                 </p>
                             ) : null}
                         </DrawerBody>
@@ -775,36 +200,42 @@ export function AiAssistantPanel() {
                                 multiple
                                 className="hidden"
                                 onChange={(event) =>
-                                    void handleAttachmentSelected(event)
+                                    void chat.handleAttachmentSelected(event)
                                 }
                             />
                             <AiComposer
-                                value={composer}
-                                onChange={setComposer}
-                                onSubmit={() => void handleSend()}
-                                onStop={handleStop}
-                                isStreaming={isStreaming}
+                                value={chat.composer}
+                                onChange={chat.setComposer}
+                                onSubmit={() => void chat.handleSend()}
+                                onStop={chat.handleStop}
+                                isStreaming={chat.isStreaming}
                                 disabled={offline}
                                 placeholder={
                                     offline
                                         ? t('ai.offlinePlaceholder')
                                         : t('ai.askSomething')
                                 }
-                                attachments={pendingAttachments}
-                                onRemoveAttachment={removePendingAttachment}
-                                contextAttachments={pendingContextAttachments}
+                                attachments={chat.pendingAttachments}
+                                onRemoveAttachment={
+                                    chat.removePendingAttachment
+                                }
+                                contextAttachments={
+                                    chat.pendingContextAttachments
+                                }
                                 onRemoveContextAttachment={
-                                    removePendingContextAttachment
+                                    chat.removePendingContextAttachment
                                 }
                                 onAttach={() => setContextAttachOpen(true)}
-                                isUploadingAttachment={isUploadingAttachment}
+                                isUploadingAttachment={
+                                    chat.isUploadingAttachment
+                                }
                                 attachDisabled={
-                                    pendingAttachments.length >=
+                                    chat.pendingAttachments.length >=
                                     AI_CHAT_ATTACHMENT_MAX_COUNT
                                 }
-                                speechSupported={speechSupported}
-                                isListening={isListening}
-                                onToggleVoice={toggleVoiceInput}
+                                speechSupported={chat.speechSupported}
+                                isListening={chat.isListening}
+                                onToggleVoice={chat.toggleVoiceInput}
                                 onOpenPresets={() => setPresetsOpen(true)}
                                 attachTooltip={t('ai.attachTooltip')}
                             />
@@ -816,25 +247,7 @@ export function AiAssistantPanel() {
             <AiContextAttachDialog
                 open={contextAttachOpen}
                 onOpenChange={setContextAttachOpen}
-                onAttach={(entries) => {
-                    setPendingContextAttachments((current) => {
-                        const next = [...current];
-
-                        for (const entry of entries) {
-                            if (
-                                !next.some(
-                                    (row) =>
-                                        row.kind === entry.kind &&
-                                        row.id === entry.id,
-                                )
-                            ) {
-                                next.push(entry);
-                            }
-                        }
-
-                        return next;
-                    });
-                }}
+                onAttach={chat.addContextAttachments}
                 onPickUploadFiles={() => {
                     setContextAttachOpen(false);
                     fileInputRef.current?.click();
@@ -845,7 +258,7 @@ export function AiAssistantPanel() {
                 nested
                 open={presetsOpen}
                 onOpenChange={setPresetsOpen}
-                onSelect={(prompt) => setComposer(prompt)}
+                onSelect={(prompt) => chat.setComposer(prompt)}
             />
         </>
     );
