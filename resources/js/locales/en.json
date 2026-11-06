@@ -2143,6 +2143,20 @@
         "linkUrl": "Link URL",
         "headingLevel": "Heading {{level}}"
     },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "No permissions in database. Run sync.",
+        "sync": "Sync from enum"
+    },
+    "passwordInput": {
+        "strength": "Password strength",
+        "meetsPolicy": "Meets project password policy.",
+        "keepGoing": "Keep going to meet project password policy.",
+        "generate": "Generate secure password"
+    },
     "jobs": {
         "title": "Jobs",
         "pendingCount": "Pending in queue: {{count}}",
@@ -2161,11 +2175,5 @@
             "exception": "Exception",
             "actions": "Actions"
         }
-    },
-    "passwordInput": {
-        "strength": "Password strength",
-        "meetsPolicy": "Meets project password policy.",
-        "keepGoing": "Keep going to meet project password policy.",
-        "generate": "Generate secure password"
     }
 }
