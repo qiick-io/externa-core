@@ -65,13 +65,13 @@ JS)
 });
 
 it('keeps the ring border on a Select trigger while its menu is open', function (): void {
-    $page = visit('/activity-logs');
+    $page = visit('/users');
 
-    $page->click('button[aria-label="Filter by action"]')
+    $page->click('button[aria-label="Sort by"]')
         ->wait(0.3)
         ->assertScript(<<<'JS'
 (() => {
-  const trigger = document.querySelector('button[aria-label="Filter by action"][data-state="open"]');
+  const trigger = document.querySelector('button[aria-label="Sort by"][data-state="open"]');
   const probe = document.createElement('div');
   probe.style.color = 'var(--ring)';
   document.body.append(probe);
