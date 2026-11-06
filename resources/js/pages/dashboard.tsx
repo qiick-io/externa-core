@@ -8,15 +8,7 @@ import {
     LayoutGrid,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { PageLayout } from '@/components/layout/page-layout';
 import { StatCard } from '@/components/stat-card';
@@ -29,6 +21,13 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+} from '@/components/ui/chart';
+import type { ChartConfig } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
     Table,
     TableBody,
     TableCell,
@@ -39,7 +38,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { formatBytes } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import activityLogs from '@/routes/activity-logs';
 import dashboardRoutes from '@/routes/dashboard';
@@ -366,35 +364,15 @@ export default function Dashboard({
                                                 className="h-full border-0"
                                             />
                                         ) : (
-                                            <ResponsiveContainer
-                                                width="100%"
-                                                height="100%"
-                                            >
-                                                <BarChart data={activityLast7}>
-                                                    <CartesianGrid
-                                                        strokeDasharray="3 3"
-                                                        vertical={false}
-                                                    />
-                                                    <XAxis
-                                                        dataKey="date"
-                                                        tick={{ fontSize: 11 }}
-                                                        tickFormatter={(
-                                                            value: string,
-                                                        ) => value.slice(5)}
-                                                    />
-                                                    <YAxis
-                                                        allowDecimals={false}
-                                                        tick={{ fontSize: 11 }}
-                                                        width={32}
-                                                    />
-                                                    <Tooltip />
-                                                    <Bar
-                                                        dataKey="count"
-                                                        fill="var(--color-primary)"
-                                                        radius={[4, 4, 0, 0]}
-                                                    />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                            <DashboardBarChart
+                                                data={activityLast7}
+                                                categoryKey="date"
+                                                label={t('dashboard.events')}
+                                                color="var(--color-primary)"
+                                                tickFormatter={(value) =>
+                                                    value.slice(5)
+                                                }
+                                            />
                                         )}
                                     </div>
                                 </CardContent>
@@ -426,34 +404,12 @@ export default function Dashboard({
                                                 className="h-full border-0"
                                             />
                                         ) : (
-                                            <ResponsiveContainer
-                                                width="100%"
-                                                height="100%"
-                                            >
-                                                <BarChart
-                                                    data={eventBreakdownChart}
-                                                >
-                                                    <CartesianGrid
-                                                        strokeDasharray="3 3"
-                                                        vertical={false}
-                                                    />
-                                                    <XAxis
-                                                        dataKey="event"
-                                                        tick={{ fontSize: 11 }}
-                                                    />
-                                                    <YAxis
-                                                        allowDecimals={false}
-                                                        tick={{ fontSize: 11 }}
-                                                        width={32}
-                                                    />
-                                                    <Tooltip />
-                                                    <Bar
-                                                        dataKey="count"
-                                                        fill="var(--color-chart-2, var(--color-primary))"
-                                                        radius={[4, 4, 0, 0]}
-                                                    />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                            <DashboardBarChart
+                                                data={eventBreakdownChart}
+                                                categoryKey="event"
+                                                label={t('dashboard.events')}
+                                                color="var(--color-chart-2, var(--color-primary))"
+                                            />
                                         )}
                                     </div>
                                 </CardContent>
@@ -606,9 +562,7 @@ export default function Dashboard({
                                             <Deferred
                                                 data="largestFiles"
                                                 fallback={
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {t('dashboard.loading')}
-                                                    </div>
+                                                    <DashboardTableSkeleton />
                                                 }
                                             >
                                                 <div
@@ -728,9 +682,7 @@ export default function Dashboard({
                                             <Deferred
                                                 data="storageTrend"
                                                 fallback={
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {t('dashboard.loading')}
-                                                    </div>
+                                                    <DashboardTableSkeleton />
                                                 }
                                             >
                                                 <div
@@ -1098,9 +1050,7 @@ export default function Dashboard({
                                         <Deferred
                                             data="fileStatsByDisk"
                                             fallback={
-                                                <div className="text-sm text-muted-foreground">
-                                                    {t('dashboard.loading')}
-                                                </div>
+                                                <DashboardTableSkeleton />
                                             }
                                         >
                                             <div className="overflow-x-auto">
@@ -1273,6 +1223,38 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
             count: health.slow_queries_24h,
         },
     ];
+    const pulseContext = health.pulse_enabled
+        ? t('dashboard.healthPulseDesc', { ingest: health.pulse_ingest })
+        : t('dashboard.healthPulseOff');
+    const horizonStats = [
+        {
+            label: t('dashboard.healthHorizonStatus'),
+            value:
+                horizon.status === 'running'
+                    ? t('dashboard.healthHorizonRunning')
+                    : t('dashboard.healthHorizonStopped'),
+        },
+        {
+            label: t('dashboard.healthHorizonPending'),
+            value: horizon.pending.toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthHorizonFailed'),
+            value: horizon.failed.toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthHorizonProcesses'),
+            value: horizon.processes.toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthHorizonThroughput'),
+            value: (horizon.jobs_per_minute ?? 0).toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthFailedJobs'),
+            value: health.failed_jobs.toLocaleString(),
+        },
+    ];
 
     return (
         <div className="flex flex-col gap-4" data-test="dashboard-health">
@@ -1306,61 +1288,47 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                 />
             </section>
 
+            {health.pulse_available ? (
+                <section
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12"
+                    aria-label={t('dashboard.healthPulseTitle')}
+                >
+                    {pulseChart.map((row) => (
+                        <StatCard
+                            key={row.metric}
+                            className="xl:col-span-4"
+                            label={row.metric}
+                            value={row.count.toLocaleString()}
+                            context={pulseContext}
+                        />
+                    ))}
+                </section>
+            ) : null}
+
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                <Card className="xl:col-span-5">
-                    <CardHeader className="pb-3">
-                        <CardTitle>{t('dashboard.healthPulseTitle')}</CardTitle>
-                        <CardDescription>
-                            {health.pulse_enabled
-                                ? t('dashboard.healthPulseDesc', {
-                                      ingest: health.pulse_ingest,
-                                  })
-                                : t('dashboard.healthPulseOff')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {!health.pulse_available ? (
+                {!health.pulse_available ? (
+                    <Card className="xl:col-span-5">
+                        <CardHeader className="pb-3">
+                            <CardTitle>
+                                {t('dashboard.healthPulseTitle')}
+                            </CardTitle>
+                            <CardDescription>{pulseContext}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
                             <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthPulseEmpty')}
                             </p>
-                        ) : (
-                            <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthExceptions')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            health.exceptions_24h > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        {health.exceptions_24h.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthSlowJobs')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {health.slow_jobs_24h.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthSlowQueries')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {health.slow_queries_24h.toLocaleString()}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                ) : null}
 
-                <Card className="xl:col-span-7">
+                <Card
+                    className={
+                        health.pulse_available
+                            ? 'xl:col-span-12'
+                            : 'xl:col-span-7'
+                    }
+                >
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthPulseChartTitle')}
@@ -1382,135 +1350,59 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                     className="h-full border-0"
                                 />
                             ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={pulseChart}>
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            vertical={false}
-                                        />
-                                        <XAxis
-                                            dataKey="metric"
-                                            tick={{ fontSize: 11 }}
-                                        />
-                                        <YAxis
-                                            allowDecimals={false}
-                                            tick={{ fontSize: 11 }}
-                                            width={32}
-                                        />
-                                        <Tooltip />
-                                        <Bar
-                                            dataKey="count"
-                                            fill="var(--color-primary)"
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <DashboardBarChart
+                                    data={pulseChart}
+                                    categoryKey="metric"
+                                    label={t('dashboard.events')}
+                                    color="var(--color-primary)"
+                                />
                             )}
                         </div>
                     </CardContent>
                 </Card>
             </section>
 
+            {horizon.available ? (
+                <section
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12"
+                    aria-label={t('dashboard.healthHorizonTitle')}
+                >
+                    {horizonStats.map((stat) => (
+                        <StatCard
+                            key={stat.label}
+                            className="xl:col-span-4"
+                            label={stat.label}
+                            value={stat.value}
+                            context={t('dashboard.healthHorizonTitle')}
+                        />
+                    ))}
+                </section>
+            ) : null}
+
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                <Card className="xl:col-span-5">
-                    <CardHeader className="pb-3">
-                        <CardTitle>
-                            {t('dashboard.healthHorizonTitle')}
-                        </CardTitle>
-                        <CardDescription>
-                            {horizon.available
-                                ? t('dashboard.healthHorizonDesc')
-                                : t('dashboard.healthHorizonUnavailable')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {!horizon.available ? (
+                {!horizon.available ? (
+                    <Card className="xl:col-span-5">
+                        <CardHeader className="pb-3">
+                            <CardTitle>
+                                {t('dashboard.healthHorizonTitle')}
+                            </CardTitle>
+                            <CardDescription>
+                                {t('dashboard.healthHorizonUnavailable')}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
                             <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthHorizonEmpty')}
                             </p>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonStatus')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            horizon.status === 'running'
-                                                ? 'text-success'
-                                                : 'text-destructive',
-                                        )}
-                                    >
-                                        {horizon.status === 'running'
-                                            ? t(
-                                                  'dashboard.healthHorizonRunning',
-                                              )
-                                            : t(
-                                                  'dashboard.healthHorizonStopped',
-                                              )}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonPending')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {horizon.pending.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonFailed')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            horizon.failed > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        {horizon.failed.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonProcesses')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {horizon.processes.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonThroughput')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {(
-                                            horizon.jobs_per_minute ?? 0
-                                        ).toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthFailedJobs')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            health.failed_jobs > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        {health.failed_jobs.toLocaleString()}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                ) : null}
 
-                <Card className="xl:col-span-7">
+                <Card
+                    className={
+                        horizon.available ? 'xl:col-span-12' : 'xl:col-span-7'
+                    }
+                >
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthWorkloadsTitle')}
@@ -1582,6 +1474,75 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     </CardContent>
                 </Card>
             </section>
+        </div>
+    );
+}
+
+/**
+ * One-series bar chart on the shadcn ChartContainer: theme-coloured bars and the chart
+ * tooltip (ChartTooltipContent) instead of recharts' default one. `data` rows carry a
+ * `count` and the category under `categoryKey`.
+ */
+function DashboardBarChart({
+    data,
+    categoryKey,
+    label,
+    color,
+    tickFormatter,
+}: {
+    data: Array<Record<string, unknown>>;
+    categoryKey: string;
+    label: string;
+    color: string;
+    tickFormatter?: (value: string) => string;
+}) {
+    const chartConfig = { count: { label, color } } satisfies ChartConfig;
+
+    return (
+        <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-full w-full"
+        >
+            <BarChart data={data} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                    dataKey={categoryKey}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={tickFormatter}
+                />
+                <YAxis
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    width={32}
+                />
+                <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent />}
+                />
+                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+            </BarChart>
+        </ChartContainer>
+    );
+}
+
+/**
+ * Placeholder rows for a deferred dashboard table while its data loads.
+ */
+function DashboardTableSkeleton() {
+    const { t } = useTranslation();
+
+    return (
+        <div
+            role="status"
+            aria-label={t('dashboard.loading')}
+            className="flex flex-col gap-2"
+        >
+            {Array.from({ length: 4 }, (_, index) => (
+                <Skeleton key={index} className="h-8 w-full" />
+            ))}
         </div>
     );
 }

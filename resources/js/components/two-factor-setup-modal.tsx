@@ -12,7 +12,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldError } from '@/components/ui/field';
+import { Field, FieldError, FieldSeparator } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     InputOTP,
     InputOTPGroup,
@@ -105,36 +111,39 @@ function TwoFactorSetupStep({
                         </Button>
                     </div>
 
-                    <div className="relative flex w-full items-center justify-center">
-                        <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
-                        <span className="relative bg-card px-2 py-1">
-                            {t('settings.twoFactor.orEnterManually')}
-                        </span>
-                    </div>
+                    <FieldSeparator className="my-0 w-full">
+                        {t('settings.twoFactor.orEnterManually')}
+                    </FieldSeparator>
 
                     <div className="flex w-full space-x-2">
-                        <div className="flex w-full items-stretch overflow-hidden rounded-xl border border-border">
-                            {!manualSetupKey ? (
-                                <div className="flex h-full w-full items-center justify-center bg-muted p-3">
-                                    <Spinner />
-                                </div>
-                            ) : (
-                                <>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={manualSetupKey}
-                                        className="h-full w-full bg-background p-3 text-foreground outline-none"
-                                    />
-                                    <button
+                        {!manualSetupKey ? (
+                            <div className="flex h-control w-full items-center justify-center rounded-md border bg-muted">
+                                <Spinner />
+                            </div>
+                        ) : (
+                            <InputGroup className="dark:bg-transparent">
+                                <InputGroupInput
+                                    readOnly
+                                    value={manualSetupKey}
+                                    aria-label={t(
+                                        'settings.twoFactor.setupKey',
+                                    )}
+                                />
+                                <InputGroupAddon align="inline-end">
+                                    <InputGroupButton
+                                        size="icon-xs"
+                                        aria-label={
+                                            copiedText === manualSetupKey
+                                                ? t('common.copied')
+                                                : t('common.copy')
+                                        }
                                         onClick={() => copy(manualSetupKey)}
-                                        className="border-l border-border px-3 hover:bg-muted"
                                     >
-                                        <IconComponent className="w-4" />
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                                        <IconComponent />
+                                    </InputGroupButton>
+                                </InputGroupAddon>
+                            </InputGroup>
+                        )}
                     </div>
                 </>
             ) : null}
