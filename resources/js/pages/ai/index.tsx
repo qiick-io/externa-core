@@ -16,6 +16,10 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
+import {
+    AiImportJobMarker,
+    AiToolRunningMarker,
+} from '@/components/ai/ai-run-status';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
@@ -917,22 +921,10 @@ export default function AiIndexPage({
                                     }
                                 />
 
-                                {chat.toolHint ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        {chat.toolHint}
-                                    </p>
-                                ) : null}
-                                {importJobStatus ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        Importazione {importJobStatus.status}:{' '}
-                                        {importJobStatus.processed}
-                                        {importJobStatus.total !== null
-                                            ? `/${importJobStatus.total}`
-                                            : ''}
-                                        {' — '}
-                                        {importJobStatus.message}
-                                    </p>
-                                ) : null}
+                                <AiToolRunningMarker
+                                    toolName={chat.runningToolName}
+                                />
+                                <AiImportJobMarker status={importJobStatus} />
                             </ChatMessageScroller>
 
                             <div className="border-t p-3">

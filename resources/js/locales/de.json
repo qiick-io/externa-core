@@ -1559,7 +1559,63 @@
         "searchConversations": "Unterhaltungen suchen…",
         "noConversationsMatch": "Keine Unterhaltung passt zur Suche.",
         "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools.",
-        "conversationRegion": "Unterhaltung"
+        "conversationRegion": "Unterhaltung",
+        "tool": {
+            "state": {
+                "input-streaming": "Ausstehend",
+                "input-available": "Läuft",
+                "approval-requested": "Wartet auf Freigabe",
+                "approval-responded": "Beantwortet",
+                "output-available": "Abgeschlossen",
+                "output-error": "Fehler",
+                "output-denied": "Abgelehnt"
+            },
+            "parameters": "Parameter",
+            "result": "Ergebnis",
+            "error": "Fehler"
+        },
+        "approval": {
+            "request": "Der Assistent möchte {{tools}} ausführen.",
+            "approve": "Freigeben",
+            "reject": "Ablehnen"
+        },
+        "actions": {
+            "copy": "Kopieren",
+            "copied": "Kopiert",
+            "edit": "Bearbeiten"
+        },
+        "retry": "Erneut versuchen",
+        "sendAgain": "Erneut senden",
+        "assistantMessagePdfTitle": "Assistentennachricht",
+        "callingTool": "{{tool}} wird aufgerufen…",
+        "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "in Warteschlange",
+            "running": "läuft",
+            "done": "abgeschlossen",
+            "failed": "fehlgeschlagen"
+        },
+        "markdown": {
+            "copyCode": "Code kopieren",
+            "downloadFile": "Datei herunterladen",
+            "viewFullscreen": "Vollbild",
+            "exitFullscreen": "Vollbild beenden",
+            "copyTable": "Tabelle kopieren",
+            "copyTableAsMarkdown": "Tabelle als Markdown kopieren",
+            "copyTableAsCsv": "Tabelle als CSV kopieren",
+            "copyTableAsTsv": "Tabelle als TSV kopieren",
+            "downloadTable": "Tabelle herunterladen",
+            "downloadTableAsCsv": "Tabelle als CSV herunterladen",
+            "downloadTableAsMarkdown": "Tabelle als Markdown herunterladen",
+            "imageNotAvailable": "Bild nicht verfügbar",
+            "downloadImage": "Bild herunterladen",
+            "openExternalLink": "Externen Link öffnen?",
+            "externalLinkWarning": "Sie sind dabei, eine externe Website zu besuchen.",
+            "close": "Schließen",
+            "copyLink": "Link kopieren",
+            "copied": "Kopiert",
+            "openLink": "Link öffnen"
+        }
     },
     "dashboard": {
         "title": "Dashboard",

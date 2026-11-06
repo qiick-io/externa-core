@@ -1559,7 +1559,63 @@
         "searchConversations": "Cerca conversazioni…",
         "noConversationsMatch": "Nessuna conversazione corrisponde alla ricerca.",
         "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti.",
-        "conversationRegion": "Conversazione"
+        "conversationRegion": "Conversazione",
+        "tool": {
+            "state": {
+                "input-streaming": "In attesa",
+                "input-available": "In esecuzione",
+                "approval-requested": "In attesa di approvazione",
+                "approval-responded": "Risposto",
+                "output-available": "Completato",
+                "output-error": "Errore",
+                "output-denied": "Rifiutato"
+            },
+            "parameters": "Parametri",
+            "result": "Risultato",
+            "error": "Errore"
+        },
+        "approval": {
+            "request": "L’assistente vuole eseguire {{tools}}.",
+            "approve": "Approva",
+            "reject": "Rifiuta"
+        },
+        "actions": {
+            "copy": "Copia",
+            "copied": "Copiato",
+            "edit": "Modifica"
+        },
+        "retry": "Riprova",
+        "sendAgain": "Invia di nuovo",
+        "assistantMessagePdfTitle": "Messaggio dell’assistente",
+        "callingTool": "Chiamata {{tool}}…",
+        "importStatus": "Importazione {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "in coda",
+            "running": "in corso",
+            "done": "completata",
+            "failed": "non riuscita"
+        },
+        "markdown": {
+            "copyCode": "Copia codice",
+            "downloadFile": "Scarica file",
+            "viewFullscreen": "Schermo intero",
+            "exitFullscreen": "Esci da schermo intero",
+            "copyTable": "Copia tabella",
+            "copyTableAsMarkdown": "Copia tabella come Markdown",
+            "copyTableAsCsv": "Copia tabella come CSV",
+            "copyTableAsTsv": "Copia tabella come TSV",
+            "downloadTable": "Scarica tabella",
+            "downloadTableAsCsv": "Scarica tabella come CSV",
+            "downloadTableAsMarkdown": "Scarica tabella come Markdown",
+            "imageNotAvailable": "Immagine non disponibile",
+            "downloadImage": "Scarica immagine",
+            "openExternalLink": "Aprire il link esterno?",
+            "externalLinkWarning": "Stai per visitare un sito esterno.",
+            "close": "Chiudi",
+            "copyLink": "Copia link",
+            "copied": "Copiato",
+            "openLink": "Apri link"
+        }
     },
     "dashboard": {
         "title": "Dashboard",

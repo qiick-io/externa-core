@@ -265,7 +265,7 @@ describe('useAiChat', () => {
         });
     });
 
-    it('shows the tool hint while a tool runs', async () => {
+    it('reports the running tool until the turn ends', async () => {
         let releaseStream: () => void = () => {};
         scriptStream(async (handlers) => {
             handlers.onTool?.('search_items');
@@ -283,13 +283,13 @@ describe('useAiChat', () => {
         });
 
         await waitFor(() =>
-            expect(result.current.toolHint).toContain('search_items'),
+            expect(result.current.runningToolName).toBe('search_items'),
         );
         releaseStream();
         await act(async () => {
             await sending;
         });
-        expect(result.current.toolHint).toBeNull();
+        expect(result.current.runningToolName).toBeNull();
     });
 
     it('pauses for approval and resumes with the decision', async () => {
