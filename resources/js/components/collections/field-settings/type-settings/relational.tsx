@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
 import {
     parseFilesFieldSettings,
     parseImageFieldSettings,
@@ -240,10 +241,10 @@ export function RelationalSettings({
                     <FieldLabel htmlFor="relation_filter">
                         Filter (JSON)
                     </FieldLabel>
-                    <textarea
+                    <Textarea
                         id="relation_filter"
                         name="settings[filter]"
-                        className="min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
+                        className="min-h-18 font-mono"
                         defaultValue={relationSettings.filterJson}
                         placeholder='{"status": "published"}'
                     />
@@ -280,10 +281,10 @@ export function RelationalSettings({
                         <FieldLabel htmlFor="junction_fields">
                             Junction fields (JSON)
                         </FieldLabel>
-                        <textarea
+                        <Textarea
                             id="junction_fields"
                             name="settings[junction_fields]"
-                            className="min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
+                            className="min-h-22 font-mono"
                             defaultValue={relationSettings.junctionFieldsJson}
                             placeholder='[{"name":"sort","type":"number"}]'
                         />

@@ -96,6 +96,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import {
     DEFAULT_BLOCKS_DEPTH,
@@ -604,7 +605,7 @@ function NestedRelationSettings({
             {showJunctionFields ? (
                 <Field>
                     <FieldLabel>Junction meta fields (JSON)</FieldLabel>
-                    <textarea
+                    <Textarea
                         value={junctionJson}
                         onChange={(event) => {
                             const raw = event.target.value;
@@ -624,8 +625,7 @@ function NestedRelationSettings({
                                 });
                             }
                         }}
-                        rows={3}
-                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-xs"
+                        className="min-h-18 font-mono text-xs md:text-xs"
                         placeholder='[{"name":"caption","type":"string"}]'
                     />
                 </Field>

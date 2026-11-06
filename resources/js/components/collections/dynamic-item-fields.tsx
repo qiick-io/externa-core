@@ -53,9 +53,9 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { FieldError } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
@@ -100,9 +100,6 @@ import { cn } from '@/lib/utils';
 import type { CollectionFieldRow, FieldDef } from '@/types';
 
 const ITEM_FORM_ID = 'collection-item-form';
-
-const inputLike =
-    'border-input bg-background flex min-h-control w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none read-only:cursor-default read-only:bg-muted/50 read-only:opacity-100';
 
 type DefaultValue =
     | string
@@ -320,17 +317,14 @@ function renderFieldControl(context: FieldRenderContext) {
             );
         case 'textarea':
             return (
-                <textarea
+                <Textarea
                     id={id}
                     name={name}
-                    className={cn(
-                        inputLike,
-                        'min-h-[120px] py-2',
-                        hasError &&
-                            'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
-                    )}
+                    // field-sizing-content grows with the text; `rows` sets the starting height.
+                    style={{
+                        minHeight: `calc(${textareaSettings.rows}lh + 1rem)`,
+                    }}
                     defaultValue={String(defaultValue ?? '')}
-                    rows={textareaSettings.rows}
                     placeholder={resolveTranslatedText(
                         textareaSettings.placeholder,
                         locales,
@@ -1024,9 +1018,10 @@ function NonTranslatableItemField({
     };
 
     return (
-        <div
+        <Field
             key={remountKey}
-            className="space-y-2"
+            className="gap-2"
+            data-invalid={errorMessage ? true : undefined}
             onChange={(event) => {
                 onMarkDirty();
                 const target = event.target as
@@ -1048,9 +1043,9 @@ function NonTranslatableItemField({
             <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
                     {labelText ? (
-                        <Label htmlFor={`data_${field.name}`}>
+                        <FieldLabel htmlFor={`data_${field.name}`}>
                             {labelText}
-                        </Label>
+                        </FieldLabel>
                     ) : null}
                     {showFieldNameHeading ? (
                         <ItemFieldLabelMenu
@@ -1096,7 +1091,7 @@ function NonTranslatableItemField({
             <FieldError id={`data_${field.name}-error`}>
                 {errorMessage}
             </FieldError>
-        </div>
+        </Field>
     );
 }
 
