@@ -32,7 +32,8 @@
         "active": "Active",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} of {{total}}",
-        "perPageOption": "{{count}} / page"
+        "perPageOption": "{{count}} / page",
+        "noResults": "No results."
     },
     "emptyState": {
         "collections": {
@@ -1928,7 +1929,9 @@
             "placeholder": "Type a tag and press Enter",
             "exactMatch": "Exact match — will reuse existing tag “{{name}}”",
             "existing": "Existing tags",
-            "moreTags": "{{count}} more tags"
+            "moreTags": "{{count}} more tags",
+            "create": "Create “{{name}}”",
+            "remove": "Remove tag {{name}}"
         },
         "folderPicker": {
             "search": "Search folders…",

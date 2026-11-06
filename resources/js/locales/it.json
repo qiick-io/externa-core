@@ -32,7 +32,8 @@
         "active": "Attivo",
         "name": "Nome",
         "pageRange": "{{from}}–{{to}} di {{total}}",
-        "perPageOption": "{{count}} / pagina"
+        "perPageOption": "{{count}} / pagina",
+        "noResults": "Nessun risultato."
     },
     "emptyState": {
         "collections": {
@@ -1928,7 +1929,9 @@
             "placeholder": "Digita un tag e premi Invio",
             "exactMatch": "Corrispondenza esatta — verrà riusato il tag “{{name}}”",
             "existing": "Tag esistenti",
-            "moreTags": "{{count}} altri tag"
+            "moreTags": "{{count}} altri tag",
+            "create": "Crea “{{name}}”",
+            "remove": "Rimuovi tag {{name}}"
         },
         "folderPicker": {
             "search": "Cerca cartelle…",
