@@ -52,6 +52,7 @@ import { useTranslation } from 'react-i18next';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
+import { AutocompleteInput } from '@/components/collections/autocomplete-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -1178,6 +1179,7 @@ export function TagChipInput({
     const tagSettings = parseTagFieldSettings(settings);
     const [tags, setTags] = useState<string[]>(defaultParts);
     const [draft, setDraft] = useState('');
+    const chipBoxRef = useRef<HTMLDivElement>(null);
 
     const addTag = (raw: string) => {
         const trimmed = raw.trim();
@@ -1198,7 +1200,10 @@ export function TagChipInput({
 
     return (
         <div className="space-y-2">
-            <div className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5">
+            <div
+                ref={chipBoxRef}
+                className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5"
+            >
                 {tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="gap-1">
                         {tag}
@@ -1220,33 +1225,41 @@ export function TagChipInput({
                     </Badge>
                 ))}
                 {!readonly ? (
-                    <Input
-                        value={draft}
-                        className="h-7 min-w-[120px] flex-1 border-0 shadow-none focus-visible:ring-0"
-                        placeholder={t('richText.addTag')}
-                        list={
-                            tagSettings.presets.length > 0
-                                ? `${nameBase}-presets`
-                                : undefined
-                        }
-                        onChange={(event) => setDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                                event.preventDefault();
-                                addTag(draft);
+                    <div className="min-w-[120px] flex-1">
+                        <AutocompleteInput
+                            anchorRef={chipBoxRef}
+                            value={draft}
+                            className="h-7 border-0 shadow-none focus-visible:ring-0"
+                            placeholder={t('richText.addTag')}
+                            suggestions={tagSettings.presets
+                                .filter(
+                                    (preset) =>
+                                        !tags.includes(preset) &&
+                                        preset
+                                            .toLowerCase()
+                                            .includes(
+                                                draft.trim().toLowerCase(),
+                                            ),
+                                )
+                                .map((preset) => ({
+                                    value: preset,
+                                    label: preset,
+                                }))}
+                            onSelectSuggestion={(suggestion) =>
+                                addTag(suggestion.value)
                             }
-                        }}
-                        onBlur={() => addTag(draft)}
-                    />
+                            onChange={(event) => setDraft(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    addTag(draft);
+                                }
+                            }}
+                            onBlur={() => addTag(draft)}
+                        />
+                    </div>
                 ) : null}
             </div>
-            {tagSettings.presets.length > 0 ? (
-                <datalist id={`${nameBase}-presets`}>
-                    {tagSettings.presets.map((preset) => (
-                        <option key={preset} value={preset} />
-                    ))}
-                </datalist>
-            ) : null}
             {tags.map((tag) => (
                 <input
                     key={tag}
