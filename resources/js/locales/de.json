@@ -362,6 +362,18 @@
                 "revokeDescription": "Dieser Schlüssel funktioniert sofort nicht mehr.",
                 "revokeConfirm": "Widerrufen"
             },
+            "columns": {
+                "name": "Name",
+                "prefix": "Präfix",
+                "role": "Rolle",
+                "status": "Status",
+                "actions": "Aktionen"
+            },
+            "status": {
+                "active": "Aktiv",
+                "revoked": "Widerrufen"
+            },
+            "revoke": "Schlüssel widerrufen",
             "secretValue": "Neuer API-Schlüssel"
         },
         "notificationSounds": {
