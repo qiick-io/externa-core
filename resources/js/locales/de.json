@@ -1722,6 +1722,12 @@
             "title": "Seite nicht gefunden",
             "description": "Die angeforderte Seite existiert nicht oder ist nicht mehr verfügbar.",
             "goHome": "Zur Startseite"
+        },
+        "boundary": {
+            "title": "Etwas ist schiefgelaufen",
+            "description": "In der Oberfläche ist ein unerwarteter Fehler aufgetreten. Lade die Seite neu, um es erneut zu versuchen.",
+            "tryAgain": "Erneut versuchen",
+            "reload": "Seite neu laden"
         }
     },
     "unsavedChanges": {
@@ -1999,7 +2005,15 @@
     },
     "confirmDestructive": {
         "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
-        "deletePermanently": "Endgültig löschen"
+        "deletePermanently": "Endgültig löschen",
+        "deleteAiChatTitle": "Diesen Chat löschen?",
+        "deleteAiChatDescription": "Die Unterhaltung und alle ihre Nachrichten werden gelöscht.",
+        "deletePromptTitle": "Prompt „{{name}}“ löschen?",
+        "deletePromptDescription": "Der gespeicherte Prompt steht danach niemandem mehr zur Verfügung.",
+        "deleteMessageTitle": "Diese Nachricht löschen?",
+        "deleteMessageDescription": "Die Nachricht wird für alle aus dem Chat entfernt.",
+        "deleteDirectChatTitle": "Diesen Chat löschen?",
+        "deleteDirectChatDescription": "Der Chat wird aus deinen Chats entfernt."
     },
     "itemConfirm": {
         "deleteTitle": "Item „{{name}}“ löschen?",
