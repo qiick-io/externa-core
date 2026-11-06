@@ -359,7 +359,19 @@
                 "revokeTitle": "Revocare la API key “{{name}}”?",
                 "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
                 "revokeConfirm": "Revoca"
-            }
+            },
+            "columns": {
+                "name": "Nome",
+                "prefix": "Prefisso",
+                "role": "Ruolo",
+                "status": "Stato",
+                "actions": "Azioni"
+            },
+            "status": {
+                "active": "Attiva",
+                "revoked": "Revocata"
+            },
+            "revoke": "Revoca chiave"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
