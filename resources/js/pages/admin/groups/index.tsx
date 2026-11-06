@@ -19,6 +19,7 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { Avatar, AvatarFallback, AvatarGroup } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -366,7 +367,10 @@ export default function AdminGroupsIndex({
                 }
 
                 return (
-                    <div className="inline-flex gap-1">
+                    <ButtonGroup
+                        aria-label={t('groups.columns.actions')}
+                        className="ml-auto"
+                    >
                         {can(PermissionEnum.CanRestoreGroups) && (
                             <Button
                                 type="button"
@@ -397,7 +401,7 @@ export default function AdminGroupsIndex({
                                 {t('common.deletePermanently')}
                             </Button>
                         )}
-                    </div>
+                    </ButtonGroup>
                 );
             },
         },
