@@ -55,6 +55,7 @@ import {
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -1467,138 +1468,137 @@ export function DynamicItemFields({
         );
     };
 
-    const visibleGroups =
-        tabs.length === 0
-            ? groups
-            : groups.filter((group) => {
-                  const tabId = group.section?.tab_id ?? null;
+    const renderLegacyGroup = (
+        group: (typeof groups)[number],
+        index: number,
+    ): ReactNode => {
+        const section = group.section;
 
-                  if (activeTabId === null) {
-                      return true;
-                  }
+        if (!section || (section.id === 'unsectioned' && !layout)) {
+            return (
+                <Fragment key={`flat-${index}`}>
+                    {renderFieldGrid(group.fields)}
+                </Fragment>
+            );
+        }
 
-                  return tabId === activeTabId || tabId === null;
-              });
+        const title = resolveFormLayoutLabel(section.label, locales, 'Section');
+
+        if (!section.collapsible) {
+            return (
+                <section key={section.id} className="space-y-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground">
+                        {title}
+                    </h3>
+                    {renderFieldGrid(group.fields)}
+                </section>
+            );
+        }
+
+        return (
+            <Collapsible
+                key={section.id}
+                defaultOpen={!section.collapsed}
+                className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
+            >
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-semibold text-muted-foreground">
+                    {title}
+                    <ChevronDown className="size-4" />
+                </CollapsibleTrigger>
+                {/* forceMount: collapsed fields stay in the form and are saved. */}
+                <CollapsibleContent
+                    forceMount
+                    className="data-[state=closed]:hidden"
+                >
+                    {renderFieldGrid(group.fields)}
+                </CollapsibleContent>
+            </Collapsible>
+        );
+    };
 
     return (
         <ContentLocaleProvider locales={locales} defaultLocale={defaultLocale}>
             <div className="space-y-4">
-                {tabs.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 border-b pb-2">
-                        {tabs.map((tab) => {
-                            const label = resolveFormLayoutLabel(
-                                tab.label,
-                                locales,
-                                tab.id,
+                {fieldTree !== null ? (
+                    renderGroupFieldTree({
+                        tree: fieldTree,
+                        locales,
+                        renderField: renderOneField,
+                        renderFields: renderFieldGrid,
+                        checkHidden: (field) => {
+                            const flags = evaluateFieldFlags(
+                                field.settings,
+                                formValues,
                             );
-                            const isActive = activeTabId === tab.id;
+
+                            return flags.hidden;
+                        },
+                        renderGroupMenu: (field) => {
+                            if (forceReadonly || !canEditFieldSchema) {
+                                return null;
+                            }
 
                             return (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    className={cn(
-                                        'rounded-md px-3 py-2 text-sm',
-                                        isActive
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted text-muted-foreground',
-                                    )}
-                                    onClick={() => setActiveTabId(tab.id)}
-                                >
-                                    {label}
-                                </button>
+                                <ItemFieldLabelMenu
+                                    schemaOnly
+                                    canEditFieldSchema
+                                    menuAlign={
+                                        field.type === 'group_tabs'
+                                            ? 'end'
+                                            : 'start'
+                                    }
+                                    onEditField={() =>
+                                        setEditField(
+                                            field as CollectionFieldRow,
+                                        )
+                                    }
+                                />
                             );
-                        })}
-                    </div>
-                ) : null}
-
-                {fieldTree !== null
-                    ? renderGroupFieldTree({
-                          tree: fieldTree,
-                          locales,
-                          renderField: renderOneField,
-                          renderFields: renderFieldGrid,
-                          checkHidden: (field) => {
-                              const flags = evaluateFieldFlags(
-                                  field.settings,
-                                  formValues,
-                              );
-
-                              return flags.hidden;
-                          },
-                          renderGroupMenu: (field) => {
-                              if (forceReadonly || !canEditFieldSchema) {
-                                  return null;
-                              }
-
-                              return (
-                                  <ItemFieldLabelMenu
-                                      schemaOnly
-                                      canEditFieldSchema
-                                      menuAlign={
-                                          field.type === 'group_tabs'
-                                              ? 'end'
-                                              : 'start'
-                                      }
-                                      onEditField={() =>
-                                          setEditField(
-                                              field as CollectionFieldRow,
-                                          )
-                                      }
-                                  />
-                              );
-                          },
-                      })
-                    : visibleGroups.map((group, index) => {
-                          const section = group.section;
-
-                          if (
-                              !section ||
-                              (section.id === 'unsectioned' && !layout)
-                          ) {
-                              return (
-                                  <Fragment key={`flat-${index}`}>
-                                      {renderFieldGrid(group.fields)}
-                                  </Fragment>
-                              );
-                          }
-
-                          const title = resolveFormLayoutLabel(
-                              section.label,
-                              locales,
-                              'Section',
-                          );
-
-                          if (!section.collapsible) {
-                              return (
-                                  <section
-                                      key={section.id}
-                                      className="space-y-3"
-                                  >
-                                      <h3 className="text-sm font-semibold text-muted-foreground">
-                                          {title}
-                                      </h3>
-                                      {renderFieldGrid(group.fields)}
-                                  </section>
-                              );
-                          }
-
-                          return (
-                              <Collapsible
-                                  key={section.id}
-                                  defaultOpen={!section.collapsed}
-                                  className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
-                              >
-                                  <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-semibold text-muted-foreground">
-                                      {title}
-                                      <ChevronDown className="size-4" />
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent>
-                                      {renderFieldGrid(group.fields)}
-                                  </CollapsibleContent>
-                              </Collapsible>
-                          );
-                      })}
+                        },
+                    })
+                ) : tabs.length === 0 ? (
+                    groups.map(renderLegacyGroup)
+                ) : (
+                    <Tabs
+                        value={activeTabId ?? tabs[0].id}
+                        onValueChange={setActiveTabId}
+                        className="gap-4"
+                    >
+                        <TabsList variant="line">
+                            {tabs.map((tab) => (
+                                <TabsTrigger key={tab.id} value={tab.id}>
+                                    {resolveFormLayoutLabel(
+                                        tab.label,
+                                        locales,
+                                        tab.id,
+                                    )}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        {groups
+                            .filter(
+                                (group) =>
+                                    (group.section?.tab_id ?? null) === null,
+                            )
+                            .map(renderLegacyGroup)}
+                        {/* forceMount: off-tab fields stay in the form, so edits survive a tab switch and are saved. */}
+                        {tabs.map((tab) => (
+                            <TabsContent
+                                key={tab.id}
+                                value={tab.id}
+                                forceMount
+                                className="space-y-4 data-[state=inactive]:hidden"
+                            >
+                                {groups
+                                    .filter(
+                                        (group) =>
+                                            group.section?.tab_id === tab.id,
+                                    )
+                                    .map(renderLegacyGroup)}
+                            </TabsContent>
+                        ))}
+                    </Tabs>
+                )}
             </div>
 
             <Drawer
