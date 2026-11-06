@@ -1,23 +1,24 @@
 import { Head, router } from '@inertiajs/react';
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ArrowDownAZ, ArrowUpAZ, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    DataTable,
+    dataTableSelectColumn,
+} from '@/components/admin/data-table';
+import type { DataTableSort } from '@/components/admin/data-table';
+import { DataTableColumnHeader } from '@/components/admin/data-table-column-header';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserAvatar } from '@/components/admin/user-avatar';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import {
-    PageLayout,
-    hasTablePaginationFooter,
-    TablePaginationFooter,
-    TablePanel,
-} from '@/components/layout/page-layout';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { PageLayout } from '@/components/layout/page-layout';
+import { Avatar, AvatarFallback, AvatarGroup } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -26,14 +27,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -43,8 +36,10 @@ import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import { cn } from '@/lib/utils';
 import groupsRoutes from '@/routes/groups';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
 
@@ -53,6 +48,20 @@ const MEMBER_AVATAR_LIMIT = 3;
 
 type GroupSortField = 'name' | 'created_at' | 'updated_at';
 type GroupSortDirection = 'asc' | 'desc';
+
+const GROUP_SORT_FIELDS: readonly GroupSortField[] = [
+    'name',
+    'created_at',
+    'updated_at',
+];
+
+/**
+ * @param value - Candidate sort field (URL, Select, column header).
+ * @returns Whether the groups list can sort by it.
+ */
+function isGroupSortField(value: string): value is GroupSortField {
+    return (GROUP_SORT_FIELDS as readonly string[]).includes(value);
+}
 
 type Filters = {
     search?: string;
@@ -88,7 +97,14 @@ export default function AdminGroupsIndex({
     const [direction, setDirection] = useState<GroupSortDirection>(
         filters.direction ?? 'asc',
     );
-    const [selected, setSelected] = useState<number[]>([]);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const selected = useMemo(
+        () =>
+            Object.keys(rowSelection)
+                .filter((id) => rowSelection[id])
+                .map(Number),
+        [rowSelection],
+    );
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<AdminGroupRow | null>(null);
     const [pendingBulkAction, setPendingBulkAction] = useState<
@@ -171,8 +187,18 @@ export default function AdminGroupsIndex({
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     useEffect(() => {
-        setSelected([]);
+        setRowSelection({});
     }, [isTrashed]);
+
+    const changeSort = (nextSort: DataTableSort): void => {
+        if (!isGroupSortField(nextSort.id)) {
+            return;
+        }
+
+        setSort(nextSort.id);
+        setDirection(nextSort.direction);
+        visit({ sort: nextSort.id, direction: nextSort.direction });
+    };
 
     const openCreate = (): void => {
         setEditing(null);
@@ -214,7 +240,7 @@ export default function AdminGroupsIndex({
             { ids: selected, action },
             {
                 preserveScroll: true,
-                onSuccess: () => setSelected([]),
+                onSuccess: () => setRowSelection({}),
             },
         );
     };
@@ -224,6 +250,158 @@ export default function AdminGroupsIndex({
     const selectedRows = groups.data.filter((group) =>
         selected.includes(group.id),
     );
+
+    const columns: ColumnDef<AdminGroupRow>[] = [
+        dataTableSelectColumn<AdminGroupRow>({
+            selectAllLabel: t('a11y.selectAll'),
+            getRowLabel: (group) => t('a11y.selectRow', { name: group.name }),
+        }),
+        {
+            accessorKey: 'name',
+            enableSorting: true,
+            meta: { cellClassName: 'max-w-[14rem] font-medium' },
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('groups.columns.name')}
+                />
+            ),
+            cell: ({ row }) => (
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <Avatar
+                        className="size-7"
+                        data-test="group-avatar"
+                        aria-hidden
+                    >
+                        <AvatarFallback
+                            className={cn(
+                                avatarToneClass(`group-${row.original.id}`),
+                                'text-xs font-medium',
+                            )}
+                        >
+                            {row.original.name.trim().charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <TruncatedText text={row.original.name} />
+                </span>
+            ),
+        },
+        {
+            id: 'slug',
+            header: t('groups.columns.slug'),
+            meta: { cellClassName: 'max-w-[14rem]' },
+            cell: ({ row }) => (
+                <TruncatedText
+                    text={row.original.slug}
+                    className="font-mono text-xs text-muted-foreground"
+                />
+            ),
+        },
+        {
+            id: 'roles',
+            header: t('groups.columns.roles'),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {(row.original.roles ?? []).map((role) => (
+                        <Badge key={role.id} variant="secondary">
+                            {role.name}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'members',
+            header: t('groups.columns.members'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right tabular-nums',
+            },
+            cell: ({ row }) => {
+                const members = row.original.users ?? [];
+
+                return (
+                    <span className="inline-flex items-center justify-end gap-2">
+                        {members.length > 0 ? (
+                            <AvatarGroup
+                                className="-space-x-1.5 [&_[data-slot=avatar]]:ring-2 [&_[data-slot=avatar]]:ring-background"
+                                data-test={`group-member-avatars-${row.original.id}`}
+                            >
+                                {members
+                                    .slice(0, MEMBER_AVATAR_LIMIT)
+                                    .map((member) => (
+                                        <UserAvatar
+                                            key={member.id}
+                                            user={member}
+                                            isOnline={onlineUsers.has(
+                                                member.id,
+                                            )}
+                                        />
+                                    ))}
+                            </AvatarGroup>
+                        ) : null}
+                        {row.original.users_count ?? '—'}
+                    </span>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            header: t('groups.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+                isRowClickIgnored: true,
+            },
+            cell: ({ row }) => {
+                const group = row.original;
+
+                if (!isTrashed) {
+                    return (
+                        <AskAiButton
+                            stopPropagation
+                            prompt={seedGroupPrompt(group)}
+                        />
+                    );
+                }
+
+                return (
+                    <div className="inline-flex gap-1">
+                        {can(PermissionEnum.CanRestoreGroups) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                data-test={`group-row-restore-${group.id}`}
+                                onClick={() =>
+                                    router.post(
+                                        groupsRoutes.restore.url(group.id),
+                                        {},
+                                        { preserveScroll: true },
+                                    )
+                                }
+                            >
+                                {t('common.restore')}
+                            </Button>
+                        )}
+                        {can(PermissionEnum.CanForceDeleteGroups) && (
+                            <Button
+                                type="button"
+                                variant="destructive-outline"
+                                size="sm"
+                                data-test={`group-row-force-delete-${group.id}`}
+                                onClick={() =>
+                                    setPendingForceDeleteGroupId(group.id)
+                                }
+                            >
+                                {t('common.deletePermanently')}
+                            </Button>
+                        )}
+                    </div>
+                );
+            },
+        },
+    ];
 
     const pendingForceDeleteGroup = groups.data.find(
         (group) => group.id === pendingForceDeleteGroupId,
@@ -259,7 +437,7 @@ export default function AdminGroupsIndex({
                                     : t('groups.searchPlaceholder')
                             }
                             selectedCount={selected.length}
-                            onClearSelection={() => setSelected([])}
+                            onClearSelection={() => setRowSelection({})}
                             bulkActions={
                                 <>
                                     <AskAiButton
@@ -320,11 +498,7 @@ export default function AdminGroupsIndex({
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
-                                        if (
-                                            value === 'name' ||
-                                            value === 'created_at' ||
-                                            value === 'updated_at'
-                                        ) {
+                                        if (isGroupSortField(value)) {
                                             setSort(value);
                                             visit({ sort: value });
                                         }
@@ -353,8 +527,8 @@ export default function AdminGroupsIndex({
                                     size="icon"
                                     aria-label={
                                         direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
+                                            ? t('common.sortAscending')
+                                            : t('common.sortDescending')
                                     }
                                     onClick={() => {
                                         const nextDirection =
@@ -404,238 +578,26 @@ export default function AdminGroupsIndex({
                         )
                     }
                 >
-                    <TablePanel
-                        footer={
-                            hasTablePaginationFooter(groups) ? (
-                                <TablePaginationFooter pagination={groups} />
-                            ) : undefined
+                    <DataTable
+                        columns={columns}
+                        data={groups.data}
+                        getRowId={(group) => String(group.id)}
+                        sort={{ id: sort, direction }}
+                        onSortChange={changeSort}
+                        rowSelection={rowSelection}
+                        onRowSelectionChange={setRowSelection}
+                        pagination={groups}
+                        onRowClick={
+                            can(PermissionEnum.CanEditGroups) && !isTrashed
+                                ? openEdit
+                                : undefined
                         }
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-10">
-                                        <Checkbox
-                                            checked={
-                                                groups.data.length > 0 &&
-                                                selected.length ===
-                                                    groups.data.length
-                                            }
-                                            onCheckedChange={(c) =>
-                                                setSelected(
-                                                    c === true
-                                                        ? groups.data.map(
-                                                              (g) => g.id,
-                                                          )
-                                                        : [],
-                                                )
-                                            }
-                                        />
-                                    </TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Slug</TableHead>
-                                    <TableHead>Roles</TableHead>
-                                    <TableHead className="text-right">
-                                        Members
-                                    </TableHead>
-                                    <TableHead className="w-[1%] text-right">
-                                        Actions
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {groups.data.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={6}
-                                            className="text-muted-foreground"
-                                        >
-                                            No groups yet.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    groups.data.map((group) => (
-                                        <TableRow
-                                            key={group.id}
-                                            className={
-                                                can(
-                                                    PermissionEnum.CanEditGroups,
-                                                ) && !isTrashed
-                                                    ? 'cursor-pointer'
-                                                    : undefined
-                                            }
-                                            onClick={() => openEdit(group)}
-                                        >
-                                            <TableCell
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <Checkbox
-                                                    checked={selected.includes(
-                                                        group.id,
-                                                    )}
-                                                    onCheckedChange={() =>
-                                                        setSelected((prev) =>
-                                                            prev.includes(
-                                                                group.id,
-                                                            )
-                                                                ? prev.filter(
-                                                                      (id) =>
-                                                                          id !==
-                                                                          group.id,
-                                                                  )
-                                                                : [
-                                                                      ...prev,
-                                                                      group.id,
-                                                                  ],
-                                                        )
-                                                    }
-                                                />
-                                            </TableCell>
-                                            <TableCell className="max-w-[14rem] font-medium">
-                                                <span className="inline-flex min-w-0 items-center gap-2">
-                                                    <Avatar
-                                                        userId={`group-${group.id}`}
-                                                        className="size-7"
-                                                        data-test="group-avatar"
-                                                        aria-hidden
-                                                    >
-                                                        <AvatarFallback className="text-xs font-medium">
-                                                            {group.name
-                                                                .trim()
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <TruncatedText
-                                                        text={group.name}
-                                                    />
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="max-w-[14rem]">
-                                                <TruncatedText
-                                                    text={group.slug}
-                                                    className="font-mono text-xs text-muted-foreground"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {(group.roles ?? []).map(
-                                                        (r) => (
-                                                            <Badge
-                                                                key={r.id}
-                                                                variant="secondary"
-                                                            >
-                                                                {r.name}
-                                                            </Badge>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                <span className="inline-flex items-center justify-end gap-2">
-                                                    {(group.users ?? [])
-                                                        .length > 0 ? (
-                                                        <span
-                                                            className="flex gap-1"
-                                                            data-test={`group-member-avatars-${group.id}`}
-                                                        >
-                                                            {(group.users ?? [])
-                                                                .slice(
-                                                                    0,
-                                                                    MEMBER_AVATAR_LIMIT,
-                                                                )
-                                                                .map(
-                                                                    (
-                                                                        member,
-                                                                    ) => (
-                                                                        <UserAvatar
-                                                                            key={
-                                                                                member.id
-                                                                            }
-                                                                            user={
-                                                                                member
-                                                                            }
-                                                                            isOnline={onlineUsers.has(
-                                                                                member.id,
-                                                                            )}
-                                                                        />
-                                                                    ),
-                                                                )}
-                                                        </span>
-                                                    ) : null}
-                                                    {group.users_count ?? '—'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell
-                                                className="text-right"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                {isTrashed ? (
-                                                    <div className="inline-flex gap-1">
-                                                        {can(
-                                                            PermissionEnum.CanRestoreGroups,
-                                                        ) && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                data-test={`group-row-restore-${group.id}`}
-                                                                onClick={() =>
-                                                                    router.post(
-                                                                        groupsRoutes.restore.url(
-                                                                            group.id,
-                                                                        ),
-                                                                        {},
-                                                                        {
-                                                                            preserveScroll: true,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            >
-                                                                {t(
-                                                                    'common.restore',
-                                                                )}
-                                                            </Button>
-                                                        )}
-                                                        {can(
-                                                            PermissionEnum.CanForceDeleteGroups,
-                                                        ) && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="destructive-outline"
-                                                                size="sm"
-                                                                data-test={`group-row-force-delete-${group.id}`}
-                                                                onClick={() =>
-                                                                    setPendingForceDeleteGroupId(
-                                                                        group.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                {t(
-                                                                    'common.deletePermanently',
-                                                                )}
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <AskAiButton
-                                                        stopPropagation
-                                                        prompt={seedGroupPrompt(
-                                                            group,
-                                                        )}
-                                                    />
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TablePanel>
+                        emptyState={
+                            <span className="text-muted-foreground">
+                                {t('groups.empty')}
+                            </span>
+                        }
+                    />
                 </PageLayout>
 
                 <GroupFormDrawer
@@ -695,7 +657,7 @@ export default function AdminGroupsIndex({
                             preserveScroll: true,
                             onFinish: () => setConfirmingDestructive(false),
                             onSuccess: () => {
-                                setSelected([]);
+                                setRowSelection({});
                                 setPendingBulkAction(null);
                             },
                             onError: () => setPendingBulkAction(null),

@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { initialsFromName } from '@/lib/format';
 import type { ItemPresenceUser } from '@/lib/item-presence';
+import { cn } from '@/lib/utils';
 
 /**
  * Avatars + soft-lock take-over for other editors on the same item.
@@ -35,10 +37,14 @@ export function ItemEditingPresence({
                         {editors.slice(0, 4).map((editor) => (
                             <Avatar
                                 key={editor.id}
-                                userId={editor.id}
                                 className="size-7 border-2 border-background"
                             >
-                                <AvatarFallback className="text-xs">
+                                <AvatarFallback
+                                    className={cn(
+                                        avatarToneClass(editor.id),
+                                        'text-xs',
+                                    )}
+                                >
                                     {initialsFromName(
                                         editor.name ?? `User ${editor.id}`,
                                     )}
