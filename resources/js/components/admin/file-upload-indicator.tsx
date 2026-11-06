@@ -1,13 +1,6 @@
 import type { TFunction } from 'i18next';
-import {
-    CheckCircle2,
-    ChevronDown,
-    ChevronUp,
-    Loader2,
-    X,
-    XCircle,
-} from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, ChevronDown, ChevronUp, X, XCircle } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +8,18 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemSeparator,
+    ItemTitle,
+} from '@/components/ui/item';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { FileUploadProgress } from '@/types/files';
 
@@ -165,8 +170,8 @@ export function FileUploadIndicator({
                 <div className="overflow-hidden rounded-xl border bg-card shadow-xl">
                     <div className="flex items-center gap-2 border-b px-3 py-3">
                         {activeCount > 0 ? (
-                            <Loader2
-                                className="size-4 shrink-0 animate-spin text-primary"
+                            <Spinner
+                                className="shrink-0 text-primary"
                                 aria-hidden="true"
                             />
                         ) : uploads.some(
@@ -219,82 +224,89 @@ export function FileUploadIndicator({
                     </div>
 
                     <CollapsibleContent>
-                        <ul className="max-h-64 space-y-0 overflow-y-auto">
-                            {uploads.map((upload) => {
-                                const progress = uploadProgressPercent(upload);
-
-                                return (
-                                    <li
-                                        key={upload.uploadId}
-                                        className="border-b px-3 py-3 last:border-b-0"
-                                    >
-                                        <div className="mb-2 flex items-start justify-between gap-2">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium">
+                        <ScrollArea className="max-h-64 [&>[data-slot=scroll-area-viewport]]:max-h-64">
+                            <ItemGroup>
+                                {uploads.map((upload, index) => (
+                                    <Fragment key={upload.uploadId}>
+                                        {index > 0 ? <ItemSeparator /> : null}
+                                        <Item
+                                            size="sm"
+                                            role="listitem"
+                                            className="rounded-none px-3"
+                                        >
+                                            <ItemContent className="min-w-0">
+                                                <ItemTitle className="w-full truncate">
                                                     {upload.fileName}
-                                                </p>
-                                                <p
+                                                </ItemTitle>
+                                                <ItemDescription
                                                     className={cn(
                                                         'text-xs',
                                                         upload.status ===
-                                                            'error'
-                                                            ? 'text-destructive'
-                                                            : 'text-muted-foreground',
+                                                            'error' &&
+                                                            'text-destructive',
                                                     )}
                                                 >
                                                     {uploadStatusLabel(
                                                         upload,
                                                         t,
                                                     )}
-                                                </p>
-                                            </div>
-                                            {upload.status === 'complete' && (
-                                                <CheckCircle2 className="size-4 shrink-0 text-success" />
-                                            )}
-                                            {upload.status === 'error' && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    className="shrink-0"
-                                                    aria-label={t(
-                                                        'a11y.dismissUpload',
-                                                    )}
-                                                    onClick={() =>
-                                                        onDismiss(
-                                                            upload.uploadId,
-                                                        )
-                                                    }
-                                                >
-                                                    <X className="size-4" />
-                                                </Button>
-                                            )}
-                                            {(upload.status === 'pending' ||
-                                                upload.status ===
-                                                    'uploading') && (
-                                                <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-                                            )}
-                                        </div>
-                                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                                            <div
+                                                </ItemDescription>
+                                            </ItemContent>
+                                            <ItemActions>
+                                                {upload.status ===
+                                                    'complete' && (
+                                                    <CheckCircle2
+                                                        className="size-4 shrink-0 text-success"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                                {upload.status === 'error' && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        className="shrink-0"
+                                                        aria-label={t(
+                                                            'a11y.dismissUpload',
+                                                        )}
+                                                        onClick={() =>
+                                                            onDismiss(
+                                                                upload.uploadId,
+                                                            )
+                                                        }
+                                                    >
+                                                        <X className="size-4" />
+                                                    </Button>
+                                                )}
+                                                {(upload.status === 'pending' ||
+                                                    upload.status ===
+                                                        'uploading') && (
+                                                    <Spinner
+                                                        className="shrink-0 text-muted-foreground"
+                                                        aria-hidden="true"
+                                                    />
+                                                )}
+                                            </ItemActions>
+                                            <Progress
+                                                value={uploadProgressPercent(
+                                                    upload,
+                                                )}
+                                                aria-label={upload.fileName}
                                                 className={cn(
-                                                    'h-full transition-all',
+                                                    'h-1.5 basis-full bg-muted',
                                                     upload.status === 'error'
-                                                        ? 'bg-destructive'
+                                                        ? '[&>[data-slot=progress-indicator]]:bg-destructive'
                                                         : upload.status ===
                                                             'complete'
-                                                          ? 'bg-success'
-                                                          : 'bg-primary',
+                                                          ? '[&>[data-slot=progress-indicator]]:bg-success'
+                                                          : null,
                                                 )}
-                                                style={{
-                                                    width: `${progress}%`,
-                                                }}
                                             />
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                                        </Item>
+                                    </Fragment>
+                                ))}
+                            </ItemGroup>
+                        </ScrollArea>
                     </CollapsibleContent>
                 </div>
             </Collapsible>

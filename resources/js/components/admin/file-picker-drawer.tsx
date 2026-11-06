@@ -1,7 +1,16 @@
 import { usePage } from '@inertiajs/react';
 import { Check, FolderOpen, ImageIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileDropzone } from '@/components/admin/file-dropzone';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
@@ -13,7 +22,14 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
@@ -34,6 +50,7 @@ type FilePickerDrawerProps = {
     acceptImagesOnly?: boolean;
     /** Toggle multi-select; confirm via footer instead of closing on first click. */
     multiple?: boolean;
+    /** Drawer title; defaults to the translated "Choose file". */
     title?: string;
 };
 
@@ -46,8 +63,9 @@ export function FilePickerDrawer({
     onSelect,
     acceptImagesOnly = false,
     multiple = false,
-    title = 'Choose file',
+    title,
 }: FilePickerDrawerProps) {
+    const { t } = useTranslation();
     const { projectSettings } = usePage().props;
     const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
     const [parentId, setParentId] = useState<number | null>(null);
@@ -241,46 +259,67 @@ export function FilePickerDrawer({
         <Drawer open={open} onOpenChange={onOpenChange} direction="right">
             <DrawerContent className="max-w-lg">
                 <DrawerHeader>
-                    <DrawerTitle>{title}</DrawerTitle>
+                    <DrawerTitle>
+                        {title ?? t('files.picker.title')}
+                    </DrawerTitle>
                     <DrawerDescription>
                         {multiple
-                            ? 'Click files to select them, then confirm below'
-                            : 'Browse folders or upload a new file'}
+                            ? t('files.picker.descriptionMultiple')
+                            : t('files.picker.description')}
                     </DrawerDescription>
                 </DrawerHeader>
 
                 <DrawerBody className="space-y-4">
                     <Input
-                        placeholder="Search files…"
+                        placeholder={t('files.toolbar.searchFiles')}
                         value={search}
                         maxLength={STRING_LIMITS.SEARCH}
                         onChange={(event) => setSearch(event.target.value)}
                     />
 
-                    <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-                        <button
-                            type="button"
-                            className="hover:text-foreground"
-                            onClick={() => navigateTo(-1)}
-                        >
-                            Root
-                        </button>
-                        {breadcrumbs.map((crumb, index) => (
-                            <span
-                                key={crumb.id}
-                                className="flex items-center gap-1"
-                            >
-                                <span>/</span>
-                                <button
-                                    type="button"
-                                    className="hover:text-foreground"
-                                    onClick={() => navigateTo(index)}
-                                >
-                                    {crumb.name}
-                                </button>
-                            </span>
-                        ))}
-                    </nav>
+                    <Breadcrumb>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                {breadcrumbs.length === 0 ? (
+                                    <BreadcrumbPage>
+                                        {t('files.root')}
+                                    </BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigateTo(-1)}
+                                        >
+                                            {t('files.root')}
+                                        </button>
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
+                            {breadcrumbs.map((crumb, index) => (
+                                <Fragment key={crumb.id}>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        {index === breadcrumbs.length - 1 ? (
+                                            <BreadcrumbPage>
+                                                {crumb.name}
+                                            </BreadcrumbPage>
+                                        ) : (
+                                            <BreadcrumbLink asChild>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        navigateTo(index)
+                                                    }
+                                                >
+                                                    {crumb.name}
+                                                </button>
+                                            </BreadcrumbLink>
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            ))}
+                        </BreadcrumbList>
+                    </Breadcrumb>
 
                     <FileDropzone
                         compact
@@ -293,14 +332,25 @@ export function FilePickerDrawer({
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {loading && (
-                            <p className="col-span-full text-sm text-muted-foreground">
-                                Loading…
-                            </p>
+                            <div className="col-span-full flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
+                                {t('files.loading')}
+                            </div>
                         )}
                         {!loading && visibleFiles.length === 0 && (
-                            <p className="col-span-full text-sm text-muted-foreground">
-                                No files in this folder
-                            </p>
+                            <Empty className="col-span-full gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <FolderOpen />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        {t('files.picker.empty')}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         )}
                         {visibleFiles.map((file) => {
                             const publicUrl = filePublicUrl(file);
@@ -369,7 +419,8 @@ export function FilePickerDrawer({
                             disabled={loading || loadingMore}
                             onClick={() => void loadFiles(page + 1, true)}
                         >
-                            {loadingMore ? 'Loading…' : 'Load more'}
+                            {loadingMore && <Spinner />}
+                            {t('files.loadMore')}
                         </Button>
                     )}
                 </DrawerBody>
@@ -377,7 +428,7 @@ export function FilePickerDrawer({
                 <DrawerFooter>
                     <DrawerClose asChild>
                         <Button type="button" variant="outline">
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                     </DrawerClose>
                     {multiple ? (
@@ -387,8 +438,10 @@ export function FilePickerDrawer({
                             onClick={confirmSelection}
                         >
                             {selected.length === 0
-                                ? 'Choose files'
-                                : `Choose ${selected.length}`}
+                                ? t('files.picker.chooseFiles')
+                                : t('files.picker.chooseCount', {
+                                      count: selected.length,
+                                  })}
                         </Button>
                     ) : null}
                 </DrawerFooter>
