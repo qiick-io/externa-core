@@ -6,7 +6,6 @@ import {
     AvatarGroup,
     AvatarGroupCount,
 } from '@/components/ui/avatar';
-import { avatarStyleForId, avatarTextColor } from '@/lib/avatar-color';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import {
     chatAvatarStackPlan,
@@ -17,6 +16,7 @@ import type {
     ChatParticipantRef,
     ChatThreadIdentity,
 } from '@/lib/chat-thread-identity';
+import { contrastingForeground } from '@/lib/contrasting-foreground';
 import { cn } from '@/lib/utils';
 
 function FaceCircle({
@@ -79,13 +79,21 @@ export function ChatThreadAvatar({
                 .trim()
                 .charAt(0)
                 .toUpperCase() || '?';
+        // The collection's own colour setting wins; otherwise a theme avatar tone.
         const style = color
-            ? { backgroundColor: color, color: avatarTextColor(color) }
-            : avatarStyleForId(thread.collection_id ?? thread.id);
+            ? {
+                  backgroundColor: color,
+                  color: contrastingForeground(color) ?? undefined,
+              }
+            : undefined;
 
         return (
             <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium"
+                className={cn(
+                    'flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium',
+                    !color &&
+                        avatarToneClass(thread.collection_id ?? thread.id),
+                )}
                 style={style}
                 aria-hidden
             >
@@ -105,12 +113,12 @@ export function ChatThreadAvatar({
     const others = otherUserFaces(thread.participants, viewerId);
 
     if (others.length === 0) {
-        const style = avatarStyleForId(thread.id);
-
         return (
             <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-full"
-                style={style}
+                className={cn(
+                    'flex size-10 shrink-0 items-center justify-center rounded-full',
+                    avatarToneClass(thread.id),
+                )}
                 aria-hidden
             >
                 <UsersRound className="size-5" />

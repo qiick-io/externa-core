@@ -32,6 +32,7 @@ import type { PendingChatMessage } from '@/components/chat/chat-outgoing-attach-
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,6 +55,8 @@ import {
     Message,
     MessageAvatar,
     MessageContent,
+    MessageGroup,
+    MessageHeader,
 } from '@/components/ui/message';
 import { MessageScrollerItem } from '@/components/ui/message-scroller';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -66,7 +69,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
-import { avatarColorForId, avatarStyleForId } from '@/lib/avatar-color';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
@@ -1799,6 +1802,41 @@ export function ItemChatDrawer({
         onPickFiles(event.dataTransfer.files);
     };
 
+    /**
+     * Consecutive messages from one sender on one day form a group: the name
+     * and avatar show once, on the first message.
+     */
+    const messageGroups = useMemo(() => {
+        const groups: Array<{
+            key: number;
+            items: Array<{
+                comment: ItemChatMessage;
+                index: number;
+                isGroupStart: boolean;
+            }>;
+        }> = [];
+
+        messages.forEach((comment, index) => {
+            const previous = messages[index - 1];
+            const isGroupStart =
+                !previous ||
+                previous.user?.id !== comment.user?.id ||
+                dayLabel(previous.created_at) !== dayLabel(comment.created_at);
+
+            if (isGroupStart) {
+                groups.push({ key: comment.id, items: [] });
+            }
+
+            groups[groups.length - 1]!.items.push({
+                comment,
+                index,
+                isGroupStart,
+            });
+        });
+
+        return groups;
+    }, [messages]);
+
     const typingLabel = useMemo(() => {
         if (typingNames.length === 0) {
             return null;
@@ -1909,8 +1947,6 @@ export function ItemChatDrawer({
                         {pinned.length > 0 ? (
                             <div className="flex flex-col gap-1 rounded-md border bg-muted/40 p-2">
                                 {pinned.map((row) => {
-                                    const pinnedUserId = row.user?.id ?? 0;
-
                                     return (
                                         <button
                                             key={row.id}
@@ -1922,14 +1958,7 @@ export function ItemChatDrawer({
                                         >
                                             <Pin className="size-3 shrink-0 text-muted-foreground" />
                                             <span className="min-w-0 truncate">
-                                                <span
-                                                    className="font-medium"
-                                                    style={{
-                                                        color: avatarColorForId(
-                                                            pinnedUserId,
-                                                        ),
-                                                    }}
-                                                >
+                                                <span className="font-medium text-foreground">
                                                     {row.user?.name ?? ''}
                                                 </span>
                                                 {row.body !== '' ? (
@@ -1950,438 +1979,459 @@ export function ItemChatDrawer({
                                 })}
                             </div>
                         ) : null}
-                        {messages.map((comment, index) => {
-                            const userId = comment.user?.id ?? 0;
-                            const mine = comment.user?.id === viewerId;
-                            const prevDay = dayLabel(
-                                messages[index - 1]?.created_at ?? null,
-                            );
-                            const thisDay = dayLabel(comment.created_at);
-                            const showDay =
-                                thisDay !== '' && thisDay !== prevDay;
+                        {messageGroups.map((group) => (
+                            <MessageGroup
+                                key={group.key}
+                                data-test="chat-message-group"
+                                className="gap-1"
+                            >
+                                {group.items.map(
+                                    ({ comment, index, isGroupStart }) => {
+                                        const userId = comment.user?.id ?? 0;
+                                        const mine =
+                                            comment.user?.id === viewerId;
+                                        const prevDay = dayLabel(
+                                            messages[index - 1]?.created_at ??
+                                                null,
+                                        );
+                                        const thisDay = dayLabel(
+                                            comment.created_at,
+                                        );
+                                        const showDay =
+                                            thisDay !== '' &&
+                                            thisDay !== prevDay;
 
-                            return (
-                                <MessageScrollerItem
-                                    key={comment.id}
-                                    messageId={String(comment.id)}
-                                >
-                                    {showDay ? (
-                                        <Marker
-                                            variant="separator"
-                                            role="separator"
-                                            aria-label={thisDay}
-                                            className="mb-2 text-xs"
-                                        >
-                                            <MarkerContent>
-                                                {thisDay}
-                                            </MarkerContent>
-                                        </Marker>
-                                    ) : null}
-                                    <div className="flex items-start gap-2">
-                                        <Message align={mine ? 'end' : 'start'}>
-                                            {!mine ? (
-                                                <MessageAvatar
-                                                    className="size-8 text-xs font-medium"
-                                                    style={avatarStyleForId(
-                                                        userId,
-                                                    )}
-                                                >
-                                                    {initialsFromName(
-                                                        comment.user?.name ??
-                                                            '?',
-                                                    )}
-                                                </MessageAvatar>
-                                            ) : null}
-                                            <MessageContent>
-                                                <div className="flex min-w-0 items-end gap-1 group-data-[align=end]/message:flex-row-reverse">
-                                                    <ChatMessageContextMenu
-                                                        actions={messageActionsFor(
-                                                            comment,
-                                                        )}
+                                        return (
+                                            <MessageScrollerItem
+                                                key={comment.id}
+                                                messageId={String(comment.id)}
+                                            >
+                                                {showDay ? (
+                                                    <Marker
+                                                        variant="separator"
+                                                        role="separator"
+                                                        aria-label={thisDay}
+                                                        className="mb-2 text-xs"
                                                     >
-                                                        <Bubble
-                                                            variant="muted"
-                                                            align={
-                                                                mine
-                                                                    ? 'end'
-                                                                    : 'start'
-                                                            }
-                                                            className={cn(
-                                                                comment.attachments.some(
-                                                                    isChatMediaAttachment,
-                                                                ) &&
-                                                                    'min-w-[16rem]',
-                                                                // BubbleReactions overhang the bubble's bottom edge.
-                                                                comment
-                                                                    .reactions
-                                                                    .length >
-                                                                    0 && 'mb-4',
-                                                            )}
-                                                        >
-                                                            <BubbleContent
-                                                                className={cn(
-                                                                    'flex w-full flex-col gap-1',
-                                                                    mine &&
-                                                                        'text-foreground',
-                                                                    // Media album needs definite min width:
-                                                                    // Bubble is w-fit; min-w-0 + author
-                                                                    // label collapses the grid for !mine.
-                                                                    comment.attachments.some(
-                                                                        isChatMediaAttachment,
-                                                                    )
-                                                                        ? 'min-w-[16rem] gap-0 p-0'
-                                                                        : 'min-w-0',
-                                                                )}
-                                                            >
-                                                                {(() => {
-                                                                    const mediaAttachments =
-                                                                        comment.attachments.filter(
-                                                                            isChatMediaAttachment,
-                                                                        );
-                                                                    const fileAttachments =
-                                                                        comment.attachments.filter(
-                                                                            (
-                                                                                attachment,
-                                                                            ) =>
-                                                                                !isChatMediaAttachment(
-                                                                                    attachment,
-                                                                                ),
-                                                                        );
-                                                                    const hasMedia =
-                                                                        mediaAttachments.length >
-                                                                        0;
-                                                                    const pad =
-                                                                        hasMedia
-                                                                            ? 'px-3'
-                                                                            : undefined;
-                                                                    const onAttachmentSaved =
-                                                                        (
-                                                                            next: ChatAttachment,
-                                                                        ): void => {
-                                                                            const id =
-                                                                                liveChatIdRef.current;
-
-                                                                            if (
-                                                                                !id
-                                                                            ) {
-                                                                                return;
-                                                                            }
-
-                                                                            mapMessages(
-                                                                                id,
-                                                                                (
-                                                                                    prev,
-                                                                                ) =>
-                                                                                    prev.map(
-                                                                                        (
-                                                                                            row,
-                                                                                        ) =>
-                                                                                            row.id ===
-                                                                                            comment.id
-                                                                                                ? {
-                                                                                                      ...row,
-                                                                                                      attachments:
-                                                                                                          row.attachments.map(
-                                                                                                              (
-                                                                                                                  item,
-                                                                                                              ) =>
-                                                                                                                  item.id ===
-                                                                                                                  next.id
-                                                                                                                      ? next
-                                                                                                                      : item,
-                                                                                                          ),
-                                                                                                  }
-                                                                                                : row,
-                                                                                    ),
-                                                                            );
-                                                                        };
-
-                                                                    return (
-                                                                        <>
-                                                                            {!mine ||
-                                                                            comment.reply_to ? (
-                                                                                <div
-                                                                                    className={cn(
-                                                                                        'flex flex-col gap-1',
-                                                                                        pad,
-                                                                                        hasMedia &&
-                                                                                            'pt-2',
-                                                                                    )}
-                                                                                >
-                                                                                    {!mine ? (
-                                                                                        <div
-                                                                                            className="text-xs font-bold"
-                                                                                            style={{
-                                                                                                color: avatarColorForId(
-                                                                                                    userId,
-                                                                                                ),
-                                                                                            }}
-                                                                                        >
-                                                                                            {
-                                                                                                comment
-                                                                                                    .user
-                                                                                                    ?.name
-                                                                                            }
-                                                                                        </div>
-                                                                                    ) : null}
-                                                                                    {comment.reply_to ? (
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            className="w-full rounded-md bg-black/5 px-2 py-1 text-left dark:bg-white/5"
-                                                                                            style={{
-                                                                                                borderLeftWidth: 2,
-                                                                                                borderLeftColor:
-                                                                                                    avatarColorForId(
-                                                                                                        comment
-                                                                                                            .reply_to
-                                                                                                            .user
-                                                                                                            ?.id ??
-                                                                                                            0,
-                                                                                                    ),
-                                                                                            }}
-                                                                                            onClick={() =>
-                                                                                                scrollToMessage(
-                                                                                                    comment
-                                                                                                        .reply_to!
-                                                                                                        .id,
-                                                                                                )
-                                                                                            }
-                                                                                        >
-                                                                                            <div
-                                                                                                className="text-xs font-medium"
-                                                                                                style={{
-                                                                                                    color: avatarColorForId(
-                                                                                                        comment
-                                                                                                            .reply_to
-                                                                                                            .user
-                                                                                                            ?.id ??
-                                                                                                            0,
-                                                                                                    ),
-                                                                                                }}
-                                                                                            >
-                                                                                                {
-                                                                                                    comment
-                                                                                                        .reply_to
-                                                                                                        .user
-                                                                                                        ?.name
-                                                                                                }
-                                                                                            </div>
-                                                                                            <div className="truncate text-xs text-muted-foreground">
-                                                                                                {
-                                                                                                    comment
-                                                                                                        .reply_to
-                                                                                                        .body
-                                                                                                }
-                                                                                            </div>
-                                                                                        </button>
-                                                                                    ) : null}
-                                                                                </div>
-                                                                            ) : null}
-                                                                            {hasMedia ? (
-                                                                                <ChatMediaGallery
-                                                                                    items={
-                                                                                        mediaAttachments
-                                                                                    }
-                                                                                    scope={
-                                                                                        scope!
-                                                                                    }
-                                                                                    canCreateFiles={
-                                                                                        canCreateFiles
-                                                                                    }
-                                                                                    hasFileFields={
-                                                                                        fileFields.length >
-                                                                                        0
-                                                                                    }
-                                                                                    onSaved={
-                                                                                        onAttachmentSaved
-                                                                                    }
-                                                                                    onAddToField={(
-                                                                                        attachment,
-                                                                                    ) => {
-                                                                                        setAddFieldFor(
-                                                                                            attachment,
-                                                                                        );
-                                                                                        setAddFieldName(
-                                                                                            fileFields[0]
-                                                                                                ?.name ??
-                                                                                                '',
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                            ) : null}
-                                                                            <div
-                                                                                className={cn(
-                                                                                    'flex flex-col gap-1',
-                                                                                    pad,
-                                                                                    hasMedia &&
-                                                                                        'pt-1 pb-2',
-                                                                                )}
-                                                                            >
-                                                                                {editingId ===
-                                                                                comment.id ? (
-                                                                                    <div className="flex min-w-[12rem] flex-col gap-2">
-                                                                                        <Textarea
-                                                                                            value={
-                                                                                                editingDraft
-                                                                                            }
-                                                                                            onChange={(
-                                                                                                event,
-                                                                                            ) =>
-                                                                                                setEditingDraft(
-                                                                                                    event
-                                                                                                        .target
-                                                                                                        .value,
-                                                                                                )
-                                                                                            }
-                                                                                            rows={
-                                                                                                3
-                                                                                            }
-                                                                                        />
-                                                                                        <div className="flex gap-2">
-                                                                                            <Button
-                                                                                                type="button"
-                                                                                                onClick={() =>
-                                                                                                    saveEdit(
-                                                                                                        comment,
-                                                                                                    )
-                                                                                                }
-                                                                                            >
-                                                                                                {t(
-                                                                                                    'common.save',
-                                                                                                )}
-                                                                                            </Button>
-                                                                                            <Button
-                                                                                                type="button"
-                                                                                                variant="ghost"
-                                                                                                onClick={() =>
-                                                                                                    setEditingId(
-                                                                                                        null,
-                                                                                                    )
-                                                                                                }
-                                                                                            >
-                                                                                                {t(
-                                                                                                    'common.cancel',
-                                                                                                )}
-                                                                                            </Button>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                ) : comment.body !==
-                                                                                  '' ? (
-                                                                                    <div className="whitespace-pre-wrap">
-                                                                                        {renderMessageBody(
-                                                                                            comment.body,
-                                                                                            comment.mentioned_users,
-                                                                                            comment.mentioned_collections,
-                                                                                        )}
-                                                                                    </div>
-                                                                                ) : null}
-                                                                                {fileAttachments.length >
-                                                                                0 ? (
-                                                                                    <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-2 overflow-y-auto">
-                                                                                        {fileAttachments.map(
-                                                                                            (
-                                                                                                attachment,
-                                                                                            ) => (
-                                                                                                <li
-                                                                                                    key={
-                                                                                                        attachment.id
-                                                                                                    }
-                                                                                                    className="w-full min-w-0"
-                                                                                                >
-                                                                                                    <AttachmentRow
-                                                                                                        attachment={
-                                                                                                            attachment
-                                                                                                        }
-                                                                                                        scope={
-                                                                                                            scope!
-                                                                                                        }
-                                                                                                        canCreateFiles={
-                                                                                                            canCreateFiles
-                                                                                                        }
-                                                                                                        hasFileFields={
-                                                                                                            fileFields.length >
-                                                                                                            0
-                                                                                                        }
-                                                                                                        onSaved={
-                                                                                                            onAttachmentSaved
-                                                                                                        }
-                                                                                                        onAddToField={() => {
-                                                                                                            setAddFieldFor(
-                                                                                                                attachment,
-                                                                                                            );
-                                                                                                            setAddFieldName(
-                                                                                                                fileFields[0]
-                                                                                                                    ?.name ??
-                                                                                                                    '',
-                                                                                                            );
-                                                                                                        }}
-                                                                                                    />
-                                                                                                </li>
-                                                                                            ),
-                                                                                        )}
-                                                                                    </ul>
-                                                                                ) : null}
-                                                                                <div className="flex items-center gap-1 self-end">
-                                                                                    {comment.is_pinned ? (
-                                                                                        <Pin
-                                                                                            className="size-2.5 shrink-0 text-muted-foreground"
-                                                                                            aria-hidden
-                                                                                        />
-                                                                                    ) : null}
-                                                                                    <time
-                                                                                        className="text-xs leading-none text-muted-foreground tabular-nums"
-                                                                                        dateTime={
-                                                                                            comment.created_at ??
-                                                                                            undefined
-                                                                                        }
-                                                                                    >
-                                                                                        {commentTime(
-                                                                                            comment.created_at,
-                                                                                        )}
-                                                                                    </time>
-                                                                                </div>
-                                                                            </div>
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                            </BubbleContent>
-                                                            <ChatMessageReactions
-                                                                reactions={
-                                                                    comment.reactions
-                                                                }
-                                                                align={
-                                                                    mine
-                                                                        ? 'end'
-                                                                        : 'start'
-                                                                }
-                                                                onToggle={(
-                                                                    emoji,
-                                                                ) =>
-                                                                    onReact(
-                                                                        comment,
-                                                                        emoji,
-                                                                    )
-                                                                }
-                                                            />
-                                                        </Bubble>
-                                                    </ChatMessageContextMenu>
-                                                    <ChatMessageActionsButton
-                                                        actions={messageActionsFor(
-                                                            comment,
-                                                        )}
+                                                        <MarkerContent>
+                                                            {thisDay}
+                                                        </MarkerContent>
+                                                    </Marker>
+                                                ) : null}
+                                                <div className="flex items-start gap-2">
+                                                    <Message
                                                         align={
                                                             mine
                                                                 ? 'end'
                                                                 : 'start'
                                                         }
-                                                    />
+                                                    >
+                                                        {!mine ? (
+                                                            isGroupStart ? (
+                                                                <MessageAvatar className="self-start bg-transparent">
+                                                                    <Avatar>
+                                                                        {comment
+                                                                            .user
+                                                                            ?.avatar ? (
+                                                                            <AvatarImage
+                                                                                src={
+                                                                                    comment
+                                                                                        .user
+                                                                                        .avatar
+                                                                                }
+                                                                                alt=""
+                                                                            />
+                                                                        ) : null}
+                                                                        <AvatarFallback
+                                                                            className={cn(
+                                                                                avatarToneClass(
+                                                                                    userId,
+                                                                                ),
+                                                                                'text-xs font-medium',
+                                                                            )}
+                                                                        >
+                                                                            {initialsFromName(
+                                                                                comment
+                                                                                    .user
+                                                                                    ?.name ??
+                                                                                    '?',
+                                                                            )}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                </MessageAvatar>
+                                                            ) : (
+                                                                // Keeps grouped bubbles aligned under the first one.
+                                                                <div
+                                                                    className="w-8 shrink-0"
+                                                                    aria-hidden
+                                                                />
+                                                            )
+                                                        ) : null}
+                                                        <MessageContent>
+                                                            {!mine &&
+                                                            isGroupStart ? (
+                                                                <MessageHeader className="font-medium text-foreground">
+                                                                    {
+                                                                        comment
+                                                                            .user
+                                                                            ?.name
+                                                                    }
+                                                                </MessageHeader>
+                                                            ) : null}
+                                                            <div className="flex min-w-0 items-end gap-1 group-data-[align=end]/message:flex-row-reverse">
+                                                                <ChatMessageContextMenu
+                                                                    actions={messageActionsFor(
+                                                                        comment,
+                                                                    )}
+                                                                >
+                                                                    <Bubble
+                                                                        variant="muted"
+                                                                        align={
+                                                                            mine
+                                                                                ? 'end'
+                                                                                : 'start'
+                                                                        }
+                                                                        className={cn(
+                                                                            comment.attachments.some(
+                                                                                isChatMediaAttachment,
+                                                                            ) &&
+                                                                                'min-w-[16rem]',
+                                                                            // BubbleReactions overhang the bubble's bottom edge.
+                                                                            comment
+                                                                                .reactions
+                                                                                .length >
+                                                                                0 &&
+                                                                                'mb-4',
+                                                                        )}
+                                                                    >
+                                                                        <BubbleContent
+                                                                            className={cn(
+                                                                                'flex w-full flex-col gap-1',
+                                                                                mine &&
+                                                                                    'text-foreground',
+                                                                                // Media album needs definite min width:
+                                                                                // Bubble is w-fit; min-w-0 + author
+                                                                                // label collapses the grid for !mine.
+                                                                                comment.attachments.some(
+                                                                                    isChatMediaAttachment,
+                                                                                )
+                                                                                    ? 'min-w-[16rem] gap-0 p-0'
+                                                                                    : 'min-w-0',
+                                                                            )}
+                                                                        >
+                                                                            {(() => {
+                                                                                const mediaAttachments =
+                                                                                    comment.attachments.filter(
+                                                                                        isChatMediaAttachment,
+                                                                                    );
+                                                                                const fileAttachments =
+                                                                                    comment.attachments.filter(
+                                                                                        (
+                                                                                            attachment,
+                                                                                        ) =>
+                                                                                            !isChatMediaAttachment(
+                                                                                                attachment,
+                                                                                            ),
+                                                                                    );
+                                                                                const hasMedia =
+                                                                                    mediaAttachments.length >
+                                                                                    0;
+                                                                                const pad =
+                                                                                    hasMedia
+                                                                                        ? 'px-3'
+                                                                                        : undefined;
+                                                                                const onAttachmentSaved =
+                                                                                    (
+                                                                                        next: ChatAttachment,
+                                                                                    ): void => {
+                                                                                        const id =
+                                                                                            liveChatIdRef.current;
+
+                                                                                        if (
+                                                                                            !id
+                                                                                        ) {
+                                                                                            return;
+                                                                                        }
+
+                                                                                        mapMessages(
+                                                                                            id,
+                                                                                            (
+                                                                                                prev,
+                                                                                            ) =>
+                                                                                                prev.map(
+                                                                                                    (
+                                                                                                        row,
+                                                                                                    ) =>
+                                                                                                        row.id ===
+                                                                                                        comment.id
+                                                                                                            ? {
+                                                                                                                  ...row,
+                                                                                                                  attachments:
+                                                                                                                      row.attachments.map(
+                                                                                                                          (
+                                                                                                                              item,
+                                                                                                                          ) =>
+                                                                                                                              item.id ===
+                                                                                                                              next.id
+                                                                                                                                  ? next
+                                                                                                                                  : item,
+                                                                                                                      ),
+                                                                                                              }
+                                                                                                            : row,
+                                                                                                ),
+                                                                                        );
+                                                                                    };
+
+                                                                                return (
+                                                                                    <>
+                                                                                        {comment.reply_to ? (
+                                                                                            <div
+                                                                                                className={cn(
+                                                                                                    'flex flex-col gap-1',
+                                                                                                    pad,
+                                                                                                    hasMedia &&
+                                                                                                        'pt-2',
+                                                                                                )}
+                                                                                            >
+                                                                                                {comment.reply_to ? (
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        className="w-full rounded-md border-l-2 border-border bg-foreground/5 px-2 py-1 text-left"
+                                                                                                        onClick={() =>
+                                                                                                            scrollToMessage(
+                                                                                                                comment
+                                                                                                                    .reply_to!
+                                                                                                                    .id,
+                                                                                                            )
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <div className="text-xs font-medium text-foreground">
+                                                                                                            {
+                                                                                                                comment
+                                                                                                                    .reply_to
+                                                                                                                    .user
+                                                                                                                    ?.name
+                                                                                                            }
+                                                                                                        </div>
+                                                                                                        <div className="truncate text-xs text-muted-foreground">
+                                                                                                            {
+                                                                                                                comment
+                                                                                                                    .reply_to
+                                                                                                                    .body
+                                                                                                            }
+                                                                                                        </div>
+                                                                                                    </button>
+                                                                                                ) : null}
+                                                                                            </div>
+                                                                                        ) : null}
+                                                                                        {hasMedia ? (
+                                                                                            <ChatMediaGallery
+                                                                                                items={
+                                                                                                    mediaAttachments
+                                                                                                }
+                                                                                                scope={
+                                                                                                    scope!
+                                                                                                }
+                                                                                                canCreateFiles={
+                                                                                                    canCreateFiles
+                                                                                                }
+                                                                                                hasFileFields={
+                                                                                                    fileFields.length >
+                                                                                                    0
+                                                                                                }
+                                                                                                onSaved={
+                                                                                                    onAttachmentSaved
+                                                                                                }
+                                                                                                onAddToField={(
+                                                                                                    attachment,
+                                                                                                ) => {
+                                                                                                    setAddFieldFor(
+                                                                                                        attachment,
+                                                                                                    );
+                                                                                                    setAddFieldName(
+                                                                                                        fileFields[0]
+                                                                                                            ?.name ??
+                                                                                                            '',
+                                                                                                    );
+                                                                                                }}
+                                                                                            />
+                                                                                        ) : null}
+                                                                                        <div
+                                                                                            className={cn(
+                                                                                                'flex flex-col gap-1',
+                                                                                                pad,
+                                                                                                hasMedia &&
+                                                                                                    'pt-1 pb-2',
+                                                                                            )}
+                                                                                        >
+                                                                                            {editingId ===
+                                                                                            comment.id ? (
+                                                                                                <div className="flex min-w-[12rem] flex-col gap-2">
+                                                                                                    <Textarea
+                                                                                                        value={
+                                                                                                            editingDraft
+                                                                                                        }
+                                                                                                        onChange={(
+                                                                                                            event,
+                                                                                                        ) =>
+                                                                                                            setEditingDraft(
+                                                                                                                event
+                                                                                                                    .target
+                                                                                                                    .value,
+                                                                                                            )
+                                                                                                        }
+                                                                                                        rows={
+                                                                                                            3
+                                                                                                        }
+                                                                                                    />
+                                                                                                    <div className="flex gap-2">
+                                                                                                        <Button
+                                                                                                            type="button"
+                                                                                                            onClick={() =>
+                                                                                                                saveEdit(
+                                                                                                                    comment,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        >
+                                                                                                            {t(
+                                                                                                                'common.save',
+                                                                                                            )}
+                                                                                                        </Button>
+                                                                                                        <Button
+                                                                                                            type="button"
+                                                                                                            variant="ghost"
+                                                                                                            onClick={() =>
+                                                                                                                setEditingId(
+                                                                                                                    null,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        >
+                                                                                                            {t(
+                                                                                                                'common.cancel',
+                                                                                                            )}
+                                                                                                        </Button>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ) : comment.body !==
+                                                                                              '' ? (
+                                                                                                <div className="whitespace-pre-wrap">
+                                                                                                    {renderMessageBody(
+                                                                                                        comment.body,
+                                                                                                        comment.mentioned_users,
+                                                                                                        comment.mentioned_collections,
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            ) : null}
+                                                                                            {fileAttachments.length >
+                                                                                            0 ? (
+                                                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-2 overflow-y-auto">
+                                                                                                    {fileAttachments.map(
+                                                                                                        (
+                                                                                                            attachment,
+                                                                                                        ) => (
+                                                                                                            <li
+                                                                                                                key={
+                                                                                                                    attachment.id
+                                                                                                                }
+                                                                                                                className="w-full min-w-0"
+                                                                                                            >
+                                                                                                                <AttachmentRow
+                                                                                                                    attachment={
+                                                                                                                        attachment
+                                                                                                                    }
+                                                                                                                    scope={
+                                                                                                                        scope!
+                                                                                                                    }
+                                                                                                                    canCreateFiles={
+                                                                                                                        canCreateFiles
+                                                                                                                    }
+                                                                                                                    hasFileFields={
+                                                                                                                        fileFields.length >
+                                                                                                                        0
+                                                                                                                    }
+                                                                                                                    onSaved={
+                                                                                                                        onAttachmentSaved
+                                                                                                                    }
+                                                                                                                    onAddToField={() => {
+                                                                                                                        setAddFieldFor(
+                                                                                                                            attachment,
+                                                                                                                        );
+                                                                                                                        setAddFieldName(
+                                                                                                                            fileFields[0]
+                                                                                                                                ?.name ??
+                                                                                                                                '',
+                                                                                                                        );
+                                                                                                                    }}
+                                                                                                                />
+                                                                                                            </li>
+                                                                                                        ),
+                                                                                                    )}
+                                                                                                </ul>
+                                                                                            ) : null}
+                                                                                            <div className="flex items-center gap-1 self-end">
+                                                                                                {comment.is_pinned ? (
+                                                                                                    <Pin
+                                                                                                        className="size-2.5 shrink-0 text-muted-foreground"
+                                                                                                        aria-hidden
+                                                                                                    />
+                                                                                                ) : null}
+                                                                                                <time
+                                                                                                    className="text-xs leading-none text-muted-foreground tabular-nums"
+                                                                                                    dateTime={
+                                                                                                        comment.created_at ??
+                                                                                                        undefined
+                                                                                                    }
+                                                                                                >
+                                                                                                    {commentTime(
+                                                                                                        comment.created_at,
+                                                                                                    )}
+                                                                                                </time>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </>
+                                                                                );
+                                                                            })()}
+                                                                        </BubbleContent>
+                                                                        <ChatMessageReactions
+                                                                            reactions={
+                                                                                comment.reactions
+                                                                            }
+                                                                            align={
+                                                                                mine
+                                                                                    ? 'end'
+                                                                                    : 'start'
+                                                                            }
+                                                                            onToggle={(
+                                                                                emoji,
+                                                                            ) =>
+                                                                                onReact(
+                                                                                    comment,
+                                                                                    emoji,
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                    </Bubble>
+                                                                </ChatMessageContextMenu>
+                                                                <ChatMessageActionsButton
+                                                                    actions={messageActionsFor(
+                                                                        comment,
+                                                                    )}
+                                                                    align={
+                                                                        mine
+                                                                            ? 'end'
+                                                                            : 'start'
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </MessageContent>
+                                                    </Message>
                                                 </div>
-                                            </MessageContent>
-                                        </Message>
-                                    </div>
-                                </MessageScrollerItem>
-                            );
-                        })}
+                                            </MessageScrollerItem>
+                                        );
+                                    },
+                                )}
+                            </MessageGroup>
+                        ))}
                         {pendingMessages.map((pending) => (
                             <ChatOutgoingAttachPreview
                                 key={pending.clientId}
@@ -2399,22 +2449,8 @@ export function ItemChatDrawer({
                 >
                     {replyTo ? (
                         <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-2">
-                            <div
-                                className="min-w-0 flex-1 border-l-2 pl-2 text-xs"
-                                style={{
-                                    borderColor: avatarColorForId(
-                                        replyTo.user?.id ?? 0,
-                                    ),
-                                }}
-                            >
-                                <div
-                                    className="font-medium"
-                                    style={{
-                                        color: avatarColorForId(
-                                            replyTo.user?.id ?? 0,
-                                        ),
-                                    }}
-                                >
+                            <div className="min-w-0 flex-1 border-l-2 border-border pl-2 text-xs">
+                                <div className="font-medium text-foreground">
                                     {replyTo.user?.name}
                                 </div>
                                 <div className="truncate text-muted-foreground">
