@@ -34,6 +34,12 @@
         "pageRange": "{{from}}–{{to}} von {{total}}",
         "perPageOption": "{{count}} / Seite"
     },
+    "picker": {
+        "search": "Suchen…",
+        "noResults": "Keine Ergebnisse.",
+        "loading": "Wird geladen…",
+        "clearSelection": "Auswahl aufheben"
+    },
     "emptyState": {
         "collections": {
             "title": "Noch keine Collections",

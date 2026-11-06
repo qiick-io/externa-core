@@ -182,3 +182,39 @@ it('shows member avatars with initials next to the member count', function () {
         ->assertScript("document.querySelector('{$selector}').closest('td').textContent.trim().endsWith('4')")
         ->assertNoJavaScriptErrors();
 });
+
+it('adds a member with the keyboard through the server-searched user picker', function () {
+    $actor = grantBrowserGroupPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowGroups->value,
+        PermissionEnum::CanEditGroups->value,
+        PermissionEnum::CanShowUsers->value,
+    ]);
+
+    User::factory()->count(3)->create();
+    $member = User::factory()->create([
+        'first_name' => 'Picked',
+        'last_name' => 'Person',
+        'email' => 'picked-person@example.com',
+    ]);
+
+    $group = UserGroup::factory()->create(['name' => 'Picker Group']);
+
+    $this->actingAs($actor);
+
+    visit('/groups')
+        ->click('Picker Group')
+        ->wait(0.5)
+        ->click('Select users…')
+        ->assertPresent('[cmdk-input]')
+        ->type('[cmdk-input]', 'picked-person')
+        ->wait(1)
+        ->assertSee('picked-person@example.com')
+        ->keys('[cmdk-input]', 'Enter')
+        ->keys('[cmdk-input]', 'Escape')
+        ->assertSeeIn('[role="combobox"]', 'Picked Person')
+        ->click('Save')
+        ->wait(1)
+        ->assertNoJavaScriptErrors();
+
+    expect($group->users()->pluck('users.id')->all())->toBe([$member->id]);
+});
