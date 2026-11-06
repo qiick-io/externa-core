@@ -74,7 +74,7 @@ export default function PasswordInput({
     className,
     ref,
     showGenerateButton = false,
-    generateLabel = 'Generate secure password',
+    generateLabel,
     onGenerated,
     showStrength = false,
     strengthPolicy = 'medium',
@@ -124,8 +124,10 @@ export default function PasswordInput({
                                 onGenerated?.(generateSecurePassword())
                             }
                             disabled={props.disabled}
-                            aria-label={generateLabel}
-                            title={generateLabel}
+                            aria-label={
+                                generateLabel ?? t('passwordInput.generate')
+                            }
+                            title={generateLabel ?? t('passwordInput.generate')}
                         >
                             <WandSparkles />
                         </InputGroupButton>
@@ -145,7 +147,7 @@ export default function PasswordInput({
                 <div id={strengthId} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">
-                            Password strength
+                            {t('passwordInput.strength')}
                         </span>
                         <span className={cn('font-medium', strengthLabelColor)}>
                             {t(
@@ -173,8 +175,8 @@ export default function PasswordInput({
                             )}
                         >
                             {strength.meetsPolicy
-                                ? 'Meets project password policy.'
-                                : 'Keep going to meet project password policy.'}
+                                ? t('passwordInput.meetsPolicy')
+                                : t('passwordInput.keepGoing')}
                         </p>
                     )}
                 </div>

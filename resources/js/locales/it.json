@@ -1987,6 +1987,20 @@
             "select": "Seleziona {{name}}",
             "privateBadge": "Privato",
             "privateTitle": "Privato — richiede Read private sui ruoli API"
+        },
+        "picker": {
+            "title": "Scegli file",
+            "descriptionMultiple": "Fai clic sui file per selezionarli, poi conferma qui sotto",
+            "description": "Sfoglia le cartelle o carica un nuovo file",
+            "empty": "Nessun file in questa cartella",
+            "chooseFiles": "Scegli i file",
+            "chooseCount": "Scegli {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Rilascia qui i file per caricarli",
+            "dropOrBrowse": "Rilascia qui i file o sfoglia",
+            "chunkedHint": "I file grandi vengono caricati a blocchi automaticamente",
+            "chooseFiles": "Scegli i file"
         }
     },
     "confirmDestructive": {
@@ -2097,5 +2111,11 @@
         "table": "Tabella",
         "linkUrl": "URL del link",
         "headingLevel": "Titolo {{level}}"
+    },
+    "passwordInput": {
+        "strength": "Robustezza della password",
+        "meetsPolicy": "Rispetta la policy password del progetto.",
+        "keepGoing": "Continua per rispettare la policy password del progetto.",
+        "generate": "Genera una password sicura"
     }
 }
