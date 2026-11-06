@@ -1202,6 +1202,7 @@ export function TagChipInput({
     const tagSettings = parseTagFieldSettings(settings);
     const [tags, setTags] = useState<string[]>(defaultParts);
     const [draft, setDraft] = useState('');
+    const chipBoxRef = useRef<HTMLDivElement>(null);
 
     const addTag = (raw: string) => {
         const trimmed = raw.trim();
@@ -1222,7 +1223,10 @@ export function TagChipInput({
 
     return (
         <div className="space-y-2">
-            <div className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5">
+            <div
+                ref={chipBoxRef}
+                className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5"
+            >
                 {tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="gap-1">
                         {tag}
@@ -1246,6 +1250,7 @@ export function TagChipInput({
                 {!readonly ? (
                     <div className="min-w-[120px] flex-1">
                         <AutocompleteInput
+                            anchorRef={chipBoxRef}
                             value={draft}
                             className="h-7 border-0 shadow-none focus-visible:ring-0"
                             placeholder={t('richText.addTag')}
