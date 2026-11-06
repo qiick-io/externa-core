@@ -3,7 +3,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DataTable, dataTableSelectColumn } from './data-table';
+import {
+    DataTable,
+    dataTableExpandColumn,
+    dataTableSelectColumn,
+} from './data-table';
 import type { DataTableSort } from './data-table';
 import { DataTableColumnHeader } from './data-table-column-header';
 
@@ -120,5 +124,29 @@ describe('DataTable', () => {
         render(<Harness data={[]} />);
 
         expect(screen.getByText('common.noResults')).toBeInTheDocument();
+    });
+
+    it('shows the details row of an expanded row', () => {
+        render(
+            <DataTable
+                columns={[
+                    dataTableExpandColumn<Person>({
+                        expandLabel: 'Expand',
+                        collapseLabel: 'Collapse',
+                    }),
+                    ...columns.slice(1),
+                ]}
+                data={people}
+                getRowId={(person) => String(person.id)}
+                renderExpandedRow={(person) => `Details of ${person.name}`}
+            />,
+        );
+
+        expect(screen.queryByText('Details of Ada')).not.toBeInTheDocument();
+        fireEvent.click(screen.getAllByRole('button', { name: 'Expand' })[0]);
+        expect(screen.getByText('Details of Ada')).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Collapse' }),
+        ).toHaveAttribute('aria-expanded', 'true');
     });
 });

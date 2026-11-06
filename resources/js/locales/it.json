@@ -362,6 +362,18 @@
                 "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
                 "revokeConfirm": "Revoca"
             },
+            "columns": {
+                "name": "Nome",
+                "prefix": "Prefisso",
+                "role": "Ruolo",
+                "status": "Stato",
+                "actions": "Azioni"
+            },
+            "status": {
+                "active": "Attiva",
+                "revoked": "Revocata"
+            },
+            "revoke": "Revoca chiave",
             "secretValue": "Nuova chiave API"
         },
         "notificationSounds": {

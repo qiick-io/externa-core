@@ -362,6 +362,18 @@
                 "revokeDescription": "This key will stop working immediately.",
                 "revokeConfirm": "Revoke"
             },
+            "columns": {
+                "name": "Name",
+                "prefix": "Prefix",
+                "role": "Role",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "status": {
+                "active": "Active",
+                "revoked": "Revoked"
+            },
+            "revoke": "Revoke key",
             "secretValue": "New API key"
         },
         "notificationSounds": {

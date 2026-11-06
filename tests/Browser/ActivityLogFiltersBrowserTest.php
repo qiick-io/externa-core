@@ -75,17 +75,18 @@ it('lays out the filter controls without overlap at desktop and mobile widths', 
     'mobile 375px' => [375, 812],
 ]);
 
-it('uses shadcn selects instead of native selects for action and log filters', function () {
+it('filters action and log name with faceted Popover + Command filters', function () {
     $page = visit('/activity-logs');
 
     $page->assertNoJavaScriptErrors()
-        ->assertSee('All actions')
-        ->assertSee('All logs')
+        ->assertSeeIn('[aria-label="Filter by action"]', 'Action')
+        ->assertSeeIn('[aria-label="Filter by log name"]', 'Log name')
         ->assertScript('document.querySelectorAll(\'[data-testid="activity-log-filters"] select:not([aria-hidden="true"])\').length', 0)
         ->click('[aria-label="Filter by log name"]')
         ->click('[role="option"]:has-text("Authentication")')
         ->wait(1)
         ->assertQueryStringHas('log_name', 'auth')
+        ->assertSeeIn('[aria-label="Filter by log name"]', 'Authentication')
         ->assertNoJavaScriptErrors();
 });
 
