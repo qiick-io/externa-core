@@ -21,6 +21,7 @@ import {
     fileCardsFromToolResults,
 } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -309,6 +310,9 @@ export default function AiIndexPage({
     );
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
+    const [conversationIdPendingDelete, setConversationIdPendingDelete] =
+        useState<string | null>(null);
+    const [isDeletingConversation, setIsDeletingConversation] = useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [conversationItems, setConversationItems] = useState<
         ConversationSummary[]
@@ -518,13 +522,18 @@ export default function AiIndexPage({
     };
 
     const handleDelete = async (id: string) => {
+        setIsDeletingConversation(true);
+
         try {
             await deleteAiConversation(id);
             toast.success(t('ai.chatDeleted'));
+            setConversationIdPendingDelete(null);
             removeConversationsFromSidebar([id]);
             refreshConversationsAfterDelete(conversationId === id);
         } catch {
             toast.error(t('ai.unableDeleteChat'));
+        } finally {
+            setIsDeletingConversation(false);
         }
     };
 
@@ -1692,7 +1701,7 @@ export default function AiIndexPage({
                                                                         variant="destructive"
                                                                         data-test="ai-conversation-delete"
                                                                         onSelect={() =>
-                                                                            void handleDelete(
+                                                                            setConversationIdPendingDelete(
                                                                                 conversation.id,
                                                                             )
                                                                         }
@@ -1879,6 +1888,23 @@ export default function AiIndexPage({
                 open={presetsOpen}
                 onOpenChange={setPresetsOpen}
                 onSelect={(prompt) => setComposer(prompt)}
+            />
+
+            <ConfirmDestructiveDialog
+                open={conversationIdPendingDelete !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setConversationIdPendingDelete(null);
+                    }
+                }}
+                title={t('confirmDestructive.deleteAiChatTitle')}
+                description={t('confirmDestructive.deleteAiChatDescription')}
+                confirming={isDeletingConversation}
+                onConfirm={() => {
+                    if (conversationIdPendingDelete !== null) {
+                        void handleDelete(conversationIdPendingDelete);
+                    }
+                }}
             />
 
             <Dialog
