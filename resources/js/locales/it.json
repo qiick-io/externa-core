@@ -2149,6 +2149,8 @@
         "redo": "Ripeti",
         "table": "Tabella",
         "linkUrl": "URL del link",
+        "applyLink": "Applica",
+        "removeLink": "Rimuovi link",
         "headingLevel": "Titolo {{level}}"
     },
     "permissions": {
