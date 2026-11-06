@@ -10,7 +10,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { listFilesPage } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileBreadcrumb } from '@/types/files';
@@ -258,14 +265,25 @@ export function FolderPickerDialog({
 
                     <div className="max-h-72 min-h-40 overflow-y-auto rounded-lg border border-sidebar-border/70">
                         {loading && folders.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 p-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 {t('files.loading')}
-                            </p>
+                            </div>
                         ) : null}
                         {!loading && folders.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
-                                {t('files.folderPicker.empty')}
-                            </p>
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <FolderOpen />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        {t('files.folderPicker.empty')}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : null}
                         <ul className="divide-y divide-sidebar-border/70">
                             {folders.map((folder) => (
@@ -302,9 +320,8 @@ export function FolderPickerDialog({
                                         })
                                     }
                                 >
-                                    {loading
-                                        ? t('files.loading')
-                                        : t('files.loadMore')}
+                                    {loading && <Spinner />}
+                                    {t('files.loadMore')}
                                 </Button>
                             </div>
                         ) : null}

@@ -11,6 +11,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { regenerateRecoveryCodes } from '@/routes/two-factor';
 
 type Props = {
@@ -143,9 +144,9 @@ export default function TwoFactorRecoveryCodes({
                                             {Array.from(
                                                 { length: 8 },
                                                 (_, index) => (
-                                                    <div
+                                                    <Skeleton
                                                         key={index}
-                                                        className="h-4 animate-pulse rounded bg-muted-foreground/20"
+                                                        className="h-4"
                                                         aria-hidden="true"
                                                     />
                                                 ),
