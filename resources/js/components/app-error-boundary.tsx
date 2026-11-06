@@ -1,6 +1,16 @@
+import { TriangleAlert } from 'lucide-react';
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import i18n from '@/lib/i18n';
 
 type AppErrorBoundaryProps = {
     children: ReactNode;
@@ -12,7 +22,9 @@ type AppErrorBoundaryState = {
 };
 
 /**
- * Catches JavaScript errors in the child tree during render (class boundary per React docs).
+ * Catches JavaScript errors in the child tree during render (class boundary per React docs)
+ * and shows the shadcn Empty state with Try again / Reload page. A class component cannot
+ * use hooks, so the strings come from the i18n instance directly.
  * @see https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
  */
 export class AppErrorBoundary extends Component<
@@ -37,40 +49,52 @@ export class AppErrorBoundary extends Component<
     render(): ReactNode {
         if (this.state.hasError && this.state.error) {
             return (
-                <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-6">
-                    <div className="max-w-md space-y-2 text-center">
-                        <h1 className="text-xl font-semibold tracking-tight">
-                            Something went wrong
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            The interface hit an unexpected error. You can try
-                            reloading the page.
-                        </p>
-                        {import.meta.env.DEV && (
-                            <pre className="mt-4 max-h-40 overflow-auto rounded-lg bg-muted p-3 text-left text-xs">
-                                {this.state.error.message}
-                            </pre>
-                        )}
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-2">
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                this.setState({ hasError: false, error: null });
-                            }}
-                        >
-                            Try again
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                window.location.reload();
-                            }}
-                        >
-                            Reload page
-                        </Button>
-                    </div>
+                <div className="flex min-h-screen bg-background p-6">
+                    <Empty data-test="app-error-boundary">
+                        <EmptyHeader>
+                            <EmptyMedia
+                                variant="icon"
+                                className="bg-primary/10 text-primary"
+                            >
+                                <TriangleAlert />
+                            </EmptyMedia>
+                            <EmptyTitle>
+                                <h1>{i18n.t('errors.boundary.title')}</h1>
+                            </EmptyTitle>
+                            <EmptyDescription>
+                                {i18n.t('errors.boundary.description')}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
+                            {import.meta.env.DEV && (
+                                <pre className="max-h-40 w-full overflow-auto rounded-lg bg-muted p-3 text-left text-xs">
+                                    {this.state.error.message}
+                                </pre>
+                            )}
+                            <div className="flex flex-wrap justify-center gap-2">
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        this.setState({
+                                            hasError: false,
+                                            error: null,
+                                        });
+                                    }}
+                                >
+                                    {i18n.t('errors.boundary.tryAgain')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        window.location.reload();
+                                    }}
+                                >
+                                    {i18n.t('errors.boundary.reload')}
+                                </Button>
+                            </div>
+                        </EmptyContent>
+                    </Empty>
                 </div>
             );
         }
