@@ -11,6 +11,8 @@ import type {
     RowSelectionState,
     SortingState,
 } from '@tanstack/react-table';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Fragment } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -19,6 +21,7 @@ import {
     hasTablePaginationFooter,
 } from '@/components/layout/page-layout';
 import type { TablePaginationState } from '@/components/layout/page-layout';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -71,6 +74,8 @@ export type DataTableProps<TData> = {
     getRowProps?: (row: TData) => HTMLAttributes<HTMLTableRowElement> & {
         [dataAttribute: `data-${string}`]: string | undefined;
     };
+    /** Details shown in a full-width row under an expanded row (see {@link dataTableExpandColumn}). */
+    renderExpandedRow?: (row: TData) => ReactNode;
     /** Shown in the table body when `data` is empty. */
     emptyState?: ReactNode;
     className?: string;
@@ -99,6 +104,7 @@ export function DataTable<TData>({
     pagination,
     onRowClick,
     getRowProps,
+    renderExpandedRow,
     emptyState,
     className,
 }: DataTableProps<TData>) {
@@ -135,6 +141,7 @@ export function DataTable<TData>({
         manualFiltering: true,
         enableSortingRemoval: false,
         enableRowSelection: rowSelection !== undefined,
+        getRowCanExpand: () => renderExpandedRow !== undefined,
         defaultColumn: { enableSorting: false },
         pageCount: pagination?.last_page ?? 1,
         state: {
@@ -188,46 +195,65 @@ export function DataTable<TData>({
                             const rowProps = getRowProps?.(row.original);
 
                             return (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={
-                                        row.getIsSelected()
-                                            ? 'selected'
-                                            : undefined
-                                    }
-                                    {...rowProps}
-                                    className={cn(
-                                        onRowClick && 'cursor-pointer',
-                                        rowProps?.className,
-                                    )}
-                                    onClick={
-                                        onRowClick
-                                            ? () => handleRowClick(row)
-                                            : undefined
-                                    }
-                                >
-                                    {row.getVisibleCells().map((cell) => {
-                                        const meta = cell.column.columnDef.meta;
+                                <Fragment key={row.id}>
+                                    <TableRow
+                                        data-state={
+                                            row.getIsSelected()
+                                                ? 'selected'
+                                                : undefined
+                                        }
+                                        {...rowProps}
+                                        className={cn(
+                                            onRowClick && 'cursor-pointer',
+                                            rowProps?.className,
+                                        )}
+                                        onClick={
+                                            onRowClick
+                                                ? () => handleRowClick(row)
+                                                : undefined
+                                        }
+                                    >
+                                        {row.getVisibleCells().map((cell) => {
+                                            const meta =
+                                                cell.column.columnDef.meta;
 
-                                        return (
+                                            return (
+                                                <TableCell
+                                                    key={cell.id}
+                                                    className={
+                                                        meta?.cellClassName
+                                                    }
+                                                    onClick={
+                                                        meta?.isRowClickIgnored
+                                                            ? (event) =>
+                                                                  event.stopPropagation()
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {flexRender(
+                                                        cell.column.columnDef
+                                                            .cell,
+                                                        cell.getContext(),
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                    {row.getIsExpanded() &&
+                                    renderExpandedRow ? (
+                                        <TableRow className="hover:bg-transparent">
                                             <TableCell
-                                                key={cell.id}
-                                                className={meta?.cellClassName}
-                                                onClick={
-                                                    meta?.isRowClickIgnored
-                                                        ? (event) =>
-                                                              event.stopPropagation()
-                                                        : undefined
+                                                colSpan={
+                                                    row.getVisibleCells().length
                                                 }
                                             >
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext(),
+                                                {renderExpandedRow(
+                                                    row.original,
                                                 )}
                                             </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
+                                        </TableRow>
+                                    ) : null}
+                                </Fragment>
                             );
                         })
                     ) : (
@@ -291,5 +317,47 @@ export function dataTableSelectColumn<TData>({
                 aria-label={getRowLabel(row.original)}
             />
         ),
+    };
+}
+
+/**
+ * Expand toggle column for a {@link DataTable} with `renderExpandedRow`.
+ *
+ * @param options.expandLabel - Accessible name while collapsed.
+ * @param options.collapseLabel - Accessible name while expanded.
+ * @returns {ColumnDef<TData, unknown>}
+ */
+export function dataTableExpandColumn<TData>({
+    expandLabel,
+    collapseLabel,
+}: {
+    expandLabel: string;
+    collapseLabel: string;
+}): ColumnDef<TData, unknown> {
+    return {
+        id: 'expand',
+        meta: { headerClassName: 'w-8', isRowClickIgnored: true },
+        header: () => null,
+        cell: ({ row }) => {
+            const isExpanded = row.getIsExpanded();
+
+            return (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground"
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? collapseLabel : expandLabel}
+                    onClick={row.getToggleExpandedHandler()}
+                >
+                    {isExpanded ? (
+                        <ChevronDown aria-hidden="true" />
+                    ) : (
+                        <ChevronRight aria-hidden="true" />
+                    )}
+                </Button>
+            );
+        },
     };
 }
