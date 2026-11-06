@@ -119,10 +119,6 @@ export function ensureEcho(realtimeEnabled: boolean): EchoInstance | null {
     return echoInstance;
 }
 
-export function getEcho(): EchoInstance | null {
-    return echoInstance;
-}
-
 export function getEchoConnectionState(): EchoConnectionState {
     return connectionState;
 }

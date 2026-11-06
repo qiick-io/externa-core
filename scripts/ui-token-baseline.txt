@@ -9,16 +9,10 @@ resources/js/components/admin/files/file-card.tsx:palette:text-amber-400:1
 resources/js/components/admin/files/file-preview.tsx:palette:text-amber-500:1
 resources/js/components/admin/files/folder-picker-dialog.tsx:palette:text-amber-500:1
 resources/js/components/ai/ai-file-cards.tsx:palette:text-amber-500:1
-resources/js/components/app-header.tsx:palette:bg-neutral-800:1
-resources/js/components/app-header.tsx:palette:text-neutral-100:1
-resources/js/components/app-header.tsx:palette:text-neutral-500:1
-resources/js/components/app-header.tsx:palette:text-neutral-900:1
 resources/js/components/chat/chat-outgoing-attach-preview.tsx:palette:bg-emerald-500/80:1
 resources/js/components/collections/dynamic-item-fields.tsx:palette:text-amber-500:1
 resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-400:1
 resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-700:1
-resources/js/components/input-error.tsx:palette:text-red-400:1
-resources/js/components/input-error.tsx:palette:text-red-600:1
 resources/js/components/nav-footer.tsx:palette:text-neutral-100:1
 resources/js/components/nav-footer.tsx:palette:text-neutral-300:1
 resources/js/components/nav-footer.tsx:palette:text-neutral-600:1

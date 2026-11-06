@@ -35,10 +35,6 @@ export function isVisibleTab(): boolean {
     return win.document.visibilityState === 'visible';
 }
 
-export function isNotificationSoundUnlocked(): boolean {
-    return unlocked;
-}
-
 function ensureAudioContext(): AudioContext | null {
     const win = browserWindow();
 
