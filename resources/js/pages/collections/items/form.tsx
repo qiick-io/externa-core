@@ -40,6 +40,7 @@ import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-a
 import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
 import type { RevisionSnapshot } from '@/components/collections/item-revision-compare-modal';
 import { ItemRevisionsDrawer } from '@/components/collections/item-revisions-drawer';
+import { ShortcutKeys } from '@/components/collections/shortcut-keys';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FilterSearch } from '@/components/layout/page-header';
 import {
@@ -50,6 +51,10 @@ import {
 import type { TablePaginationLink } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    ButtonGroup,
+    ButtonGroupSeparator,
+} from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -167,16 +172,17 @@ function withActivityViewParam(
     });
 }
 
-function itemSaveShortcut(shift: boolean): string {
+/** Keys of the save shortcut, one entry per key cap. */
+function itemSaveShortcut(shift: boolean): string[] {
     const isMac =
         typeof navigator !== 'undefined' &&
         /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
     if (isMac) {
-        return shift ? '⌘⇧S' : '⌘S';
+        return shift ? ['⌘', '⇧', 'S'] : ['⌘', 'S'];
     }
 
-    return shift ? 'Ctrl+Shift+S' : 'Ctrl+S';
+    return shift ? ['Ctrl', 'Shift', 'S'] : ['Ctrl', 'S'];
 }
 
 function setItemSaveAction(action: ItemSaveAction): HTMLFormElement | null {
@@ -946,14 +952,10 @@ export default function ItemsForm({
                         className="flex items-center gap-2"
                     />
                     {hasFields && !formReadonly && (
-                        <div
-                            className="flex items-stretch"
-                            data-test="item-save-split"
-                        >
+                        <ButtonGroup data-test="item-save-split">
                             <Button
                                 type="submit"
                                 form={COLLECTION_ITEM_FORM_ID}
-                                className="rounded-r-none"
                                 onClick={() => setItemSaveAction('stay')}
                             >
                                 <Save className="size-4" />
@@ -964,12 +966,12 @@ export default function ItemsForm({
                                       ? t('collections.itemSave.saveDraft')
                                       : t('collections.itemSave.save')}
                             </Button>
+                            <ButtonGroupSeparator className="bg-primary-foreground/25" />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
                                         size="icon"
-                                        className="rounded-l-none border-l border-primary-foreground/25"
                                         aria-label={t(
                                             'collections.itemSave.more',
                                         )}
@@ -985,7 +987,9 @@ export default function ItemsForm({
                                         <Check className="size-4" />
                                         {t('collections.itemSave.stay')}
                                         <DropdownMenuShortcut>
-                                            {itemSaveShortcut(false)}
+                                            <ShortcutKeys
+                                                keys={itemSaveShortcut(false)}
+                                            />
                                         </DropdownMenuShortcut>
                                     </DropdownMenuItem>
                                     {showCreateNew ? (
@@ -999,7 +1003,11 @@ export default function ItemsForm({
                                                 'collections.itemSave.createNew',
                                             )}
                                             <DropdownMenuShortcut>
-                                                {itemSaveShortcut(true)}
+                                                <ShortcutKeys
+                                                    keys={itemSaveShortcut(
+                                                        true,
+                                                    )}
+                                                />
                                             </DropdownMenuShortcut>
                                         </DropdownMenuItem>
                                     ) : null}
@@ -1020,7 +1028,7 @@ export default function ItemsForm({
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </div>
+                        </ButtonGroup>
                     )}
                 </>
             }

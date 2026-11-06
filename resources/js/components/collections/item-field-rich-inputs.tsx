@@ -53,8 +53,10 @@ import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { AutocompleteInput } from '@/components/collections/autocomplete-input';
+import { ShortcutKeys } from '@/components/collections/shortcut-keys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -176,6 +178,7 @@ function ToolbarButton({
             variant={active ? 'default' : 'outline'}
             className="px-2"
             aria-label={label}
+            aria-pressed={active}
             title={label}
             disabled={disabled}
             onClick={onClick}
@@ -216,67 +219,79 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
     };
 
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
-            <ToolbarButton
-                label={t('richText.bold')}
-                active={editor.isActive('bold')}
-                onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-                <Bold className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.italic')}
-                active={editor.isActive('italic')}
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-            >
-                <Italic className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.strikethrough')}
-                active={editor.isActive('strike')}
-                onClick={() => editor.chain().focus().toggleStrike().run()}
-            >
-                <Strikethrough className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.heading2')}
-                active={editor.isActive('heading', { level: 2 })}
-                onClick={() =>
-                    editor.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-            >
-                <Heading2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.heading3')}
-                active={editor.isActive('heading', { level: 3 })}
-                onClick={() =>
-                    editor.chain().focus().toggleHeading({ level: 3 }).run()
-                }
-            >
-                <Heading3 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.bulletList')}
-                active={editor.isActive('bulletList')}
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-            >
-                <List className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.orderedList')}
-                active={editor.isActive('orderedList')}
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            >
-                <ListOrdered className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.quote')}
-                active={editor.isActive('blockquote')}
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            >
-                <Quote className="size-3.5" />
-            </ToolbarButton>
+        <div className="flex flex-wrap gap-2 border-b p-1.5">
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bold')}
+                    active={editor.isActive('bold')}
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                >
+                    <Bold className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.italic')}
+                    active={editor.isActive('italic')}
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                >
+                    <Italic className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.strikethrough')}
+                    active={editor.isActive('strike')}
+                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                >
+                    <Strikethrough className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.heading2')}
+                    active={editor.isActive('heading', { level: 2 })}
+                    onClick={() =>
+                        editor.chain().focus().toggleHeading({ level: 2 }).run()
+                    }
+                >
+                    <Heading2 className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.heading3')}
+                    active={editor.isActive('heading', { level: 3 })}
+                    onClick={() =>
+                        editor.chain().focus().toggleHeading({ level: 3 }).run()
+                    }
+                >
+                    <Heading3 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bulletList')}
+                    active={editor.isActive('bulletList')}
+                    onClick={() =>
+                        editor.chain().focus().toggleBulletList().run()
+                    }
+                >
+                    <List className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.orderedList')}
+                    active={editor.isActive('orderedList')}
+                    onClick={() =>
+                        editor.chain().focus().toggleOrderedList().run()
+                    }
+                >
+                    <ListOrdered className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.quote')}
+                    active={editor.isActive('blockquote')}
+                    onClick={() =>
+                        editor.chain().focus().toggleBlockquote().run()
+                    }
+                >
+                    <Quote className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
             <ToolbarButton
                 label={t('richText.link')}
                 active={editor.isActive('link')}
@@ -284,20 +299,22 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
             >
                 <Link2 className="size-3.5" />
             </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.undo')}
-                disabled={!editor.can().undo()}
-                onClick={() => editor.chain().focus().undo().run()}
-            >
-                <Undo2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.redo')}
-                disabled={!editor.can().redo()}
-                onClick={() => editor.chain().focus().redo().run()}
-            >
-                <Redo2 className="size-3.5" />
-            </ToolbarButton>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.undo')}
+                    disabled={!editor.can().undo()}
+                    onClick={() => editor.chain().focus().undo().run()}
+                >
+                    <Undo2 className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.redo')}
+                    disabled={!editor.can().redo()}
+                    onClick={() => editor.chain().focus().redo().run()}
+                >
+                    <Redo2 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
         </div>
     );
 }
@@ -460,7 +477,7 @@ function MarkdownToolbar({
     const { t } = useTranslation();
 
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
+        <div className="flex flex-wrap gap-2 border-b p-1.5">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
@@ -487,62 +504,68 @@ function MarkdownToolbar({
                             >
                                 {t('richText.headingLevel', { level })}
                                 <DropdownMenuShortcut>
-                                    ⌘⌥{level}
+                                    <ShortcutKeys
+                                        keys={['⌘', '⌥', String(level)]}
+                                    />
                                 </DropdownMenuShortcut>
                             </DropdownMenuItem>
                         );
                     })}
                 </DropdownMenuContent>
             </DropdownMenu>
-            <ToolbarButton
-                label={t('richText.bold')}
-                disabled={disabled}
-                onClick={() => onRun(commands.bold)}
-            >
-                <Bold className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.italic')}
-                disabled={disabled}
-                onClick={() => onRun(commands.italic)}
-            >
-                <Italic className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.strikethrough')}
-                disabled={disabled}
-                onClick={() => onRun(commands.strikethrough)}
-            >
-                <Strikethrough className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.bulletList')}
-                disabled={disabled}
-                onClick={() => onRun(commands.unorderedListCommand)}
-            >
-                <List className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.orderedList')}
-                disabled={disabled}
-                onClick={() => onRun(commands.orderedListCommand)}
-            >
-                <ListOrdered className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.quote')}
-                disabled={disabled}
-                onClick={() => onRun(commands.quote)}
-            >
-                <Quote className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label={t('richText.code')}
-                disabled={disabled}
-                onClick={() => onRun(commands.code)}
-            >
-                <Code2 className="size-3.5" />
-            </ToolbarButton>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bold')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.bold)}
+                >
+                    <Bold className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.italic')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.italic)}
+                >
+                    <Italic className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.strikethrough')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.strikethrough)}
+                >
+                    <Strikethrough className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bulletList')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.unorderedListCommand)}
+                >
+                    <List className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.orderedList')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.orderedListCommand)}
+                >
+                    <ListOrdered className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.quote')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.quote)}
+                >
+                    <Quote className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.code')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.code)}
+                >
+                    <Code2 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
             <ToolbarButton
                 label={t('richText.link')}
                 disabled={disabled}
