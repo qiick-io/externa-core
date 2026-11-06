@@ -32,6 +32,10 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
+    ButtonGroup,
+    ButtonGroupSeparator,
+} from '@/components/ui/button-group';
+import {
     Dialog,
     DialogContent,
     DialogFooter,
@@ -1543,33 +1547,51 @@ export default function AdminFilesIndex({
                                 } as React.InputHTMLAttributes<HTMLInputElement>)}
                                 onChange={handleUploadInputChange}
                             />
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button type="button">
-                                        <Upload className="mr-1 size-4" />
-                                        {t('files.toolbar.upload')}
-                                        <ChevronDown className="ml-1 size-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                    >
-                                        <Upload className="size-4" />
-                                        {t('files.toolbar.uploadFile')}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            folderInputRef.current?.click()
-                                        }
-                                    >
-                                        <FolderOpen className="size-4" />
-                                        {t('files.toolbar.uploadFolder')}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ButtonGroup>
+                                <Button
+                                    type="button"
+                                    data-test="files-upload"
+                                    onClick={() =>
+                                        fileInputRef.current?.click()
+                                    }
+                                >
+                                    <Upload />
+                                    {t('files.toolbar.upload')}
+                                </Button>
+                                <ButtonGroupSeparator />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            data-test="files-upload-menu"
+                                            aria-label={t(
+                                                'files.toolbar.uploadOptions',
+                                            )}
+                                        >
+                                            <ChevronDown />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                fileInputRef.current?.click()
+                                            }
+                                        >
+                                            <Upload className="size-4" />
+                                            {t('files.toolbar.uploadFile')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                folderInputRef.current?.click()
+                                            }
+                                        >
+                                            <FolderOpen className="size-4" />
+                                            {t('files.toolbar.uploadFolder')}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </ButtonGroup>
                         </>
                     )}
                 </>

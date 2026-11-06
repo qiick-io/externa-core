@@ -1833,7 +1833,8 @@
             "clearSelection": "Deseleziona",
             "emptyTrash": "Svuota cestino",
             "emptyTrashTitle": "Svuotare il cestino?",
-            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine."
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine.",
+            "uploadOptions": "Altre opzioni di caricamento"
         },
         "sort": {
             "name": "Nome",
