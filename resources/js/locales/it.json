@@ -1642,7 +1642,29 @@
             "copyLink": "Copia link",
             "copied": "Copiato",
             "openLink": "Apri link"
-        }
+        },
+        "errors": {
+            "tooManyAttachments": "Puoi allegare al massimo 5 file per messaggio.",
+            "unsupportedAttachment": "Sono ammessi solo file CSV, TXT, XLSX o PDF.",
+            "attachmentTooLarge": "Il file supera il limite di 5 MB.",
+            "attachmentUploadFailed": "Caricamento dell’allegato non riuscito",
+            "connectionInterrupted": "La connessione al server AI si è interrotta (timeout, proxy o crash del modello). Controlla il provider AI e riprova con un prompt più breve.",
+            "network": "Errore di rete",
+            "noResponseStream": "Nessuno stream di risposta",
+            "stream": "Errore durante lo stream AI",
+            "streamInterrupted": "Connessione allo stream AI interrotta (timeout del proxy o modello lento). Controlla il provider AI e che fastcgi_read_timeout sia almeno 600 s, poi riprova.",
+            "loadConversations": "Impossibile caricare le conversazioni",
+            "truncate": "Impossibile troncare la conversazione",
+            "popupBlocked": "Popup bloccato: consenti le finestre popup per esportare il PDF."
+        },
+        "awaitingApproval": "In attesa della tua approvazione per eseguire {{tools}}.",
+        "aTool": "uno strumento",
+        "toolFallback": "Completato con {{tools}}. Chiedimi di verificare il risultato se serve.",
+        "pinned": "Fissate",
+        "selectConversation": "Seleziona {{title}}",
+        "bulkDeleteTitle": "Eliminare le chat selezionate?",
+        "bulkDeleteDescription_one": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare."
     },
     "dashboard": {
         "title": "Dashboard",

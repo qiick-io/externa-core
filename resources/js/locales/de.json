@@ -1642,7 +1642,29 @@
             "copyLink": "Link kopieren",
             "copied": "Kopiert",
             "openLink": "Link öffnen"
-        }
+        },
+        "errors": {
+            "tooManyAttachments": "Sie können höchstens 5 Dateien pro Nachricht anhängen.",
+            "unsupportedAttachment": "Nur CSV-, TXT-, XLSX- oder PDF-Dateien sind erlaubt.",
+            "attachmentTooLarge": "Die Datei ist größer als 5 MB.",
+            "attachmentUploadFailed": "Hochladen des Anhangs fehlgeschlagen",
+            "connectionInterrupted": "Die Verbindung zum KI-Server wurde unterbrochen (Timeout, Proxy oder Absturz des Modells). Prüfen Sie den KI-Anbieter und versuchen Sie es mit einem kürzeren Prompt erneut.",
+            "network": "Netzwerkfehler",
+            "noResponseStream": "Kein Antwort-Stream",
+            "stream": "Fehler im KI-Stream",
+            "streamInterrupted": "Verbindung zum KI-Stream unterbrochen (Proxy-Timeout oder langsames Modell). Prüfen Sie den KI-Anbieter und dass fastcgi_read_timeout mindestens 600 s beträgt, dann erneut versuchen.",
+            "loadConversations": "Unterhaltungen konnten nicht geladen werden",
+            "truncate": "Die Unterhaltung konnte nicht gekürzt werden",
+            "popupBlocked": "Pop-up blockiert: Erlauben Sie Pop-ups, um das PDF zu exportieren."
+        },
+        "awaitingApproval": "Wartet auf Ihre Freigabe, um {{tools}} auszuführen.",
+        "aTool": "ein Werkzeug",
+        "toolFallback": "Erledigt mit {{tools}}. Bitten Sie mich bei Bedarf, das Ergebnis zu prüfen.",
+        "pinned": "Angeheftet",
+        "selectConversation": "{{title}} auswählen",
+        "bulkDeleteTitle": "Ausgewählte Chats löschen?",
+        "bulkDeleteDescription_one": "Sie löschen {{count}} Chat. Dies kann nicht rückgängig gemacht werden.",
+        "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden."
     },
     "dashboard": {
         "title": "Dashboard",

@@ -7,29 +7,28 @@ import {
     PopoverAnchor,
     PopoverContent,
 } from '@/components/ui/popover';
-import { collectionMentionLabel } from '@/lib/item-chat-mentions';
 import { cn } from '@/lib/utils';
 
-/** A user or collection offered after `@` in a chat composer. */
-export type ChatMentionHit =
-    | { type: 'user'; id: number; name: string; email?: string }
-    | { type: 'collection'; id: number; name: string };
+/** Anything offered after `@`: it needs a type and an id for its key. */
+export type ChatMentionCandidate = { type: string; id: number | string };
 
-type ChatMentionMenuProps = {
+type ChatMentionMenuProps<Hit extends ChatMentionCandidate> = {
     /** The composer the list opens above. */
     children: ReactNode;
     open: boolean;
-    hits: ChatMentionHit[];
+    hits: Hit[];
     highlightIndex: number;
     onHighlightChange: (index: number) => void;
-    onPick: (hit: ChatMentionHit) => void;
+    onPick: (hit: Hit) => void;
+    /** One option's content (name, secondary line). */
+    renderHit: (hit: Hit) => ReactNode;
     onDismiss: () => void;
     /** The composer textarea, which keeps the focus while the list is open. */
     textareaRef?: RefObject<HTMLTextAreaElement | null>;
     contentClassName?: string;
 };
 
-function hitValue(hit: ChatMentionHit): string {
+function hitValue(hit: ChatMentionCandidate): string {
     return `${hit.type}-${hit.id}`;
 }
 
@@ -40,14 +39,14 @@ function hitValue(hit: ChatMentionHit): string {
  *
  * @returns Whether the key was taken
  */
-export function handleMentionMenuKeyDown(
+export function handleMentionMenuKeyDown<Hit>(
     event: KeyboardEvent<HTMLTextAreaElement>,
     menu: {
         isOpen: boolean;
-        hits: ChatMentionHit[];
+        hits: Hit[];
         highlightIndex: number;
         onHighlightChange: (index: number) => void;
-        onPick: (hit: ChatMentionHit) => void;
+        onPick: (hit: Hit) => void;
         onDismiss: () => void;
     },
 ): boolean {
@@ -101,17 +100,18 @@ export function handleMentionMenuKeyDown(
  * which drives the highlight with {@link handleMentionMenuKeyDown} and points
  * at the highlighted option with `aria-activedescendant`.
  */
-export function ChatMentionMenu({
+export function ChatMentionMenu<Hit extends ChatMentionCandidate>({
     children,
     open,
     hits,
     highlightIndex,
     onHighlightChange,
     onPick,
+    renderHit,
     onDismiss,
     textareaRef,
     contentClassName,
-}: ChatMentionMenuProps) {
+}: ChatMentionMenuProps<Hit>) {
     const { t } = useTranslation();
     const contentRef = useRef<HTMLDivElement | null>(null);
     const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -206,22 +206,7 @@ export function ChatMentionMenu({
                                 className="flex-col items-start gap-0"
                                 onSelect={() => onPick(hit)}
                             >
-                                <span>
-                                    {hit.type === 'collection'
-                                        ? collectionMentionLabel(hit)
-                                        : hit.name}
-                                </span>
-                                {hit.type === 'user' && hit.email ? (
-                                    <span className="text-xs text-muted-foreground">
-                                        {hit.email}
-                                    </span>
-                                ) : hit.type === 'collection' ? (
-                                    <span className="text-xs text-muted-foreground">
-                                        {t(
-                                            'collections.itemChat.mentionCollection',
-                                        )}
-                                    </span>
-                                ) : null}
+                                {renderHit(hit)}
                             </CommandItem>
                         ))}
                     </CommandList>

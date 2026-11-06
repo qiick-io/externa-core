@@ -25,6 +25,7 @@ import type {
 import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { contextIdsFromPending } from '@/lib/ai-context';
 import { speechRecognitionLang } from '@/lib/format';
+import i18n from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 
 /** One line of an AI conversation, as streamed locally or loaded from the server. */
@@ -98,9 +99,13 @@ export function toolFallbackContent(
                     typeof name === 'string' && name !== '',
             ) ?? [];
     const uniqueTools = [...new Set([...toolsUsed, ...namesFromCalls])];
-    const toolLabel = uniqueTools.length > 0 ? uniqueTools.join(', ') : 'tool';
 
-    return `Completed via ${toolLabel}. Ask me to verify the result if needed.`;
+    return i18n.t('ai.toolFallback', {
+        tools:
+            uniqueTools.length > 0
+                ? uniqueTools.join(', ')
+                : i18n.t('ai.aTool'),
+    });
 }
 
 /**

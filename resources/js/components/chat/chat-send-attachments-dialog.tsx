@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
+import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
+import type { ChatMentionHit } from '@/components/chat/chat-mention-hit';
 import {
     ChatMentionMenu,
     handleMentionMenuKeyDown,
 } from '@/components/chat/chat-mention-menu';
-import type { ChatMentionHit } from '@/components/chat/chat-mention-menu';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -304,6 +305,7 @@ export function ChatSendAttachmentsDialog({
                     <ChatMentionMenu
                         {...mentionMenu}
                         open={mentionMenu.isOpen}
+                        renderHit={(hit) => <ChatMentionHitLabel hit={hit} />}
                         textareaRef={captionRef}
                         contentClassName="z-[80]"
                     >

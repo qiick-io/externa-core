@@ -168,7 +168,7 @@ function groupConversations(
     if (pinned.length > 0) {
         sections.push({
             key: 'pinned',
-            label: 'Pinned',
+            label: i18n.t('ai.pinned'),
             conversations: pinned,
         });
     }
@@ -779,7 +779,12 @@ export default function AiIndexPage({
                                                                         index,
                                                                     )
                                                                 }
-                                                                aria-label={`Select ${conversation.title}`}
+                                                                aria-label={t(
+                                                                    'ai.selectConversation',
+                                                                    {
+                                                                        title: conversation.title,
+                                                                    },
+                                                                )}
                                                             />
                                                             <button
                                                                 type="button"
@@ -1033,10 +1038,11 @@ export default function AiIndexPage({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Delete selected chats?</DialogTitle>
+                        <DialogTitle>{t('ai.bulkDeleteTitle')}</DialogTitle>
                         <DialogDescription>
-                            You are about to delete {selectedIds.size} chats.
-                            This action cannot be undone.
+                            {t('ai.bulkDeleteDescription', {
+                                count: selectedIds.size,
+                            })}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -1045,14 +1051,14 @@ export default function AiIndexPage({
                             onClick={() => setConfirmBulkDeleteOpen(false)}
                             disabled={isBulkDeleting}
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={() => void handleBulkDelete()}
                             disabled={isBulkDeleting}
                         >
-                            Delete
+                            {t('common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
