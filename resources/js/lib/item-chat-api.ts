@@ -11,6 +11,8 @@ export type ChatUser = {
     id: number;
     name: string;
     email?: string;
+    /** Profile picture URL; initials show when it is missing. */
+    avatar?: string | null;
 };
 
 export type ChatAttachment = {
