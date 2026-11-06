@@ -163,15 +163,16 @@ export default function TwoFactorChallenge() {
                                 <span>
                                     {t('auth.twoFactorChallenge.orYouCan')}
                                 </span>
-                                <button
+                                <Button
                                     type="button"
-                                    className="cursor-pointer text-foreground underline decoration-muted-foreground underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
+                                    variant="link"
+                                    className="h-auto p-0 align-baseline"
                                     onClick={() =>
                                         toggleRecoveryMode(clearErrors)
                                     }
                                 >
                                     {authConfigContent.toggleText}
-                                </button>
+                                </Button>
                             </div>
                         </FieldGroup>
                     )}

@@ -330,7 +330,7 @@ export function DateFieldInput({
 
     if (mode === 'time') {
         return (
-            <div className="relative w-auto max-w-[13rem]">
+            <div className="relative w-full">
                 <Input
                     id={id}
                     type="time"
@@ -348,7 +348,7 @@ export function DateFieldInput({
     }
 
     return (
-        <div className="w-auto max-w-[16rem]">
+        <div className="w-full">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button

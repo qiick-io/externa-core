@@ -32,7 +32,16 @@
         "active": "Attivo",
         "name": "Nome",
         "pageRange": "{{from}}–{{to}} di {{total}}",
-        "perPageOption": "{{count}} / pagina"
+        "perPageOption": "{{count}} / pagina",
+        "noResults": "Nessun risultato.",
+        "copy": "Copia",
+        "copied": "Copiato"
+    },
+    "picker": {
+        "search": "Cerca…",
+        "noResults": "Nessun risultato.",
+        "loading": "Caricamento…",
+        "clearSelection": "Cancella selezione"
     },
     "emptyState": {
         "collections": {
@@ -225,7 +234,8 @@
         "fromDate": "Data da",
         "toDate": "Data a",
         "removeRule": "Rimuovi regola",
-        "removeLocale": "Rimuovi locale {{code}}"
+        "removeLocale": "Rimuovi locale {{code}}",
+        "selectRow": "Seleziona {{name}}"
     },
     "auth": {
         "login": {
@@ -357,7 +367,20 @@
                 "revokeTitle": "Revocare la API key “{{name}}”?",
                 "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
                 "revokeConfirm": "Revoca"
-            }
+            },
+            "columns": {
+                "name": "Nome",
+                "prefix": "Prefisso",
+                "role": "Ruolo",
+                "status": "Stato",
+                "actions": "Azioni"
+            },
+            "status": {
+                "active": "Attiva",
+                "revoked": "Revocata"
+            },
+            "revoke": "Revoca chiave",
+            "secretValue": "Nuova chiave API"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -734,7 +757,8 @@
             "regenerate": "Rigenera codici",
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
-            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra.",
+            "setupKey": "Chiave di configurazione"
         },
         "aiTools": {
             "breadcrumb": "Strumenti AI in scrittura",
@@ -1722,6 +1746,12 @@
             "title": "Pagina non trovata",
             "description": "La pagina richiesta non esiste o non è più disponibile.",
             "goHome": "Vai alla home"
+        },
+        "boundary": {
+            "title": "Qualcosa è andato storto",
+            "description": "L’interfaccia ha incontrato un errore imprevisto. Puoi provare a ricaricare la pagina.",
+            "tryAgain": "Riprova",
+            "reload": "Ricarica la pagina"
         }
     },
     "unsavedChanges": {
@@ -1833,7 +1863,8 @@
             "clearSelection": "Deseleziona",
             "emptyTrash": "Svuota cestino",
             "emptyTrashTitle": "Svuotare il cestino?",
-            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine."
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine.",
+            "uploadOptions": "Altre opzioni di caricamento"
         },
         "sort": {
             "name": "Nome",
@@ -1932,7 +1963,9 @@
             "placeholder": "Digita un tag e premi Invio",
             "exactMatch": "Corrispondenza esatta — verrà riusato il tag “{{name}}”",
             "existing": "Tag esistenti",
-            "moreTags": "{{count}} altri tag"
+            "moreTags": "{{count}} altri tag",
+            "create": "Crea “{{name}}”",
+            "remove": "Rimuovi tag {{name}}"
         },
         "folderPicker": {
             "search": "Cerca cartelle…",
@@ -1980,11 +2013,33 @@
             "select": "Seleziona {{name}}",
             "privateBadge": "Privato",
             "privateTitle": "Privato — richiede Read private sui ruoli API"
+        },
+        "picker": {
+            "title": "Scegli file",
+            "descriptionMultiple": "Fai clic sui file per selezionarli, poi conferma qui sotto",
+            "description": "Sfoglia le cartelle o carica un nuovo file",
+            "empty": "Nessun file in questa cartella",
+            "chooseFiles": "Scegli i file",
+            "chooseCount": "Scegli {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Rilascia qui i file per caricarli",
+            "dropOrBrowse": "Rilascia qui i file o sfoglia",
+            "chunkedHint": "I file grandi vengono caricati a blocchi automaticamente",
+            "chooseFiles": "Scegli i file"
         }
     },
     "confirmDestructive": {
         "typeToConfirm": "Digita \"{{name}}\" per confermare",
-        "deletePermanently": "Elimina definitivamente"
+        "deletePermanently": "Elimina definitivamente",
+        "deleteAiChatTitle": "Eliminare questa chat?",
+        "deleteAiChatDescription": "La conversazione e tutti i suoi messaggi verranno eliminati.",
+        "deletePromptTitle": "Eliminare il prompt “{{name}}”?",
+        "deletePromptDescription": "Il prompt salvato non sarà più disponibile per nessuno.",
+        "deleteMessageTitle": "Eliminare questo messaggio?",
+        "deleteMessageDescription": "Il messaggio verrà rimosso dalla chat per tutti.",
+        "deleteDirectChatTitle": "Eliminare questa chat?",
+        "deleteDirectChatDescription": "La chat verrà rimossa dalle tue chat."
     },
     "itemConfirm": {
         "deleteTitle": "Eliminare l’item “{{name}}”?",
@@ -2027,7 +2082,16 @@
             "firstName": "Nome",
             "email": "Email",
             "created": "Creato",
-            "updated": "Aggiornato"
+            "updated": "Aggiornato",
+            "name": "Nome",
+            "roles": "Ruoli",
+            "groups": "Gruppi",
+            "status": "Stato",
+            "actions": "Azioni"
+        },
+        "status": {
+            "active": "Attivo",
+            "inactive": "Inattivo"
         }
     },
     "groups": {
@@ -2043,7 +2107,15 @@
         "newGroup": "Nuovo gruppo",
         "searchPlaceholder": "Cerca gruppi…",
         "searchTrashPlaceholder": "Cerca nel cestino…",
-        "sortBy": "Ordina per"
+        "sortBy": "Ordina per",
+        "columns": {
+            "name": "Nome",
+            "slug": "Slug",
+            "roles": "Ruoli",
+            "members": "Membri",
+            "actions": "Azioni"
+        },
+        "empty": "Ancora nessun gruppo."
     },
     "pendingToolCalls": {
         "head": "Approvazioni strumenti AI",
@@ -2081,6 +2153,41 @@
         "redo": "Ripeti",
         "table": "Tabella",
         "linkUrl": "URL del link",
+        "applyLink": "Applica",
+        "removeLink": "Rimuovi link",
         "headingLevel": "Titolo {{level}}"
+    },
+    "permissions": {
+        "columns": {
+            "name": "Nome",
+            "guard": "Guard"
+        },
+        "empty": "Nessun permesso nel database. Esegui la sincronizzazione.",
+        "sync": "Sincronizza dall'enum"
+    },
+    "passwordInput": {
+        "strength": "Robustezza della password",
+        "meetsPolicy": "Rispetta la policy password del progetto.",
+        "keepGoing": "Continua per rispettare la policy password del progetto.",
+        "generate": "Genera una password sicura"
+    },
+    "jobs": {
+        "title": "Job",
+        "pendingCount": "In coda: {{count}}",
+        "pendingTitle": "In attesa (campione)",
+        "failedTitle": "Job falliti",
+        "pendingEmpty": "Nessun job in attesa.",
+        "failedEmpty": "Nessun job fallito.",
+        "scopeHint": "Lo stato dei job di dominio (import AI, zip) resta nelle rispettive interfacce: questa pagina monitora solo le tabelle della coda Laravel.",
+        "retry": "Riprova",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Coda",
+            "attempts": "Tentativi",
+            "failedAt": "Fallito il",
+            "exception": "Eccezione",
+            "actions": "Azioni"
+        }
     }
 }

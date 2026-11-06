@@ -1,8 +1,8 @@
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
     STRING_INPUT_TYPES,
@@ -53,8 +53,8 @@ export function TextNumbersSettings({
         return (
             <div className="space-y-6">
                 <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="input_type">Input type</Label>
+                    <Field>
+                        <FieldLabel htmlFor="input_type">Input type</FieldLabel>
                         <NativeSelect
                             id="input_type"
                             value={stringSettings.inputType}
@@ -72,9 +72,11 @@ export function TextNumbersSettings({
                                 </option>
                             ))}
                         </NativeSelect>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="string_max_length">Max length</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="string_max_length">
+                            Max length
+                        </FieldLabel>
                         <Input
                             id="string_max_length"
                             type="number"
@@ -90,7 +92,7 @@ export function TextNumbersSettings({
                                 }))
                             }
                         />
-                    </div>
+                    </Field>
                 </div>
                 <TranslatedInput
                     idPrefix="string_placeholder"
@@ -187,33 +189,33 @@ export function TextNumbersSettings({
 
         return (
             <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label>Min</Label>
+                <Field>
+                    <FieldLabel>Min</FieldLabel>
                     <Input
                         type="number"
                         step="any"
                         defaultValue={numberSettings.min ?? ''}
                         name="settings[min]"
                     />
-                </div>
-                <div className="grid gap-2">
-                    <Label>Max</Label>
+                </Field>
+                <Field>
+                    <FieldLabel>Max</FieldLabel>
                     <Input
                         type="number"
                         step="any"
                         defaultValue={numberSettings.max ?? ''}
                         name="settings[max]"
                     />
-                </div>
-                <div className="grid gap-2">
-                    <Label>Step</Label>
+                </Field>
+                <Field>
+                    <FieldLabel>Step</FieldLabel>
                     <Input
                         type="number"
                         step="any"
                         defaultValue={numberSettings.step ?? ''}
                         name="settings[step]"
                     />
-                </div>
+                </Field>
             </div>
         );
     }
@@ -224,22 +226,26 @@ export function TextNumbersSettings({
         return (
             <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="code_language">Language</Label>
+                    <Field>
+                        <FieldLabel htmlFor="code_language">
+                            Language
+                        </FieldLabel>
                         <Input
                             id="code_language"
                             name="settings[language]"
                             defaultValue={codeSettings.language}
                         />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="code_template">Template</Label>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="code_template">
+                            Template
+                        </FieldLabel>
                         <Input
                             id="code_template"
                             name="settings[template]"
                             defaultValue={codeSettings.template}
                         />
-                    </div>
+                    </Field>
                 </div>
                 <SettingCheckbox
                     id="code_line_numbers"
@@ -264,24 +270,24 @@ export function TextNumbersSettings({
 
         return (
             <div className="space-y-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="tag_presets">
+                <Field>
+                    <FieldLabel htmlFor="tag_presets">
                         Presets (comma-separated)
-                    </Label>
+                    </FieldLabel>
                     <Input
                         id="tag_presets"
                         name="settings[presets]"
                         defaultValue={tagSettings.presets.join(', ')}
                     />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="tag_separator">Separator</Label>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="tag_separator">Separator</FieldLabel>
                     <Input
                         id="tag_separator"
                         name="settings[separator]"
                         defaultValue={tagSettings.separator}
                     />
-                </div>
+                </Field>
                 <SettingCheckbox
                     id="tag_allow_other"
                     name="settings[allow_other]"
@@ -346,8 +352,8 @@ function TextareaLikeSettingsPanel({
                 namePrefix="settings[placeholder]"
             />
             <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor={`${fieldType}_rows`}>Rows</Label>
+                <Field>
+                    <FieldLabel htmlFor={`${fieldType}_rows`}>Rows</FieldLabel>
                     <Input
                         id={`${fieldType}_rows`}
                         type="number"
@@ -355,11 +361,11 @@ function TextareaLikeSettingsPanel({
                         name="settings[rows]"
                         defaultValue={textareaSettings.rows}
                     />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor={`${fieldType}_max_length`}>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor={`${fieldType}_max_length`}>
                         Max length
-                    </Label>
+                    </FieldLabel>
                     <Input
                         id={`${fieldType}_max_length`}
                         type="number"
@@ -367,7 +373,7 @@ function TextareaLikeSettingsPanel({
                         name="settings[max_length]"
                         defaultValue={textareaSettings.maxLength ?? ''}
                     />
-                </div>
+                </Field>
             </div>
         </div>
     );
@@ -418,10 +424,10 @@ function ApiAutocompleteSettingsPanel({
 }) {
     return (
         <div className="space-y-6">
-            <div className="grid gap-2">
-                <Label htmlFor="api_autocomplete_url">
+            <Field>
+                <FieldLabel htmlFor="api_autocomplete_url">
                     URL template <span className="text-destructive">*</span>
-                </Label>
+                </FieldLabel>
                 <Input
                     id="api_autocomplete_url"
                     value={settings.url}
@@ -435,15 +441,17 @@ function ApiAutocompleteSettingsPanel({
                     }
                     placeholder="/demo/cities?q={{value}}"
                 />
-                <p className="text-xs text-muted-foreground">
+                <FieldDescription>
                     Use {'{{value}}'} as the search term placeholder.
                     Same-origin URLs avoid CORS (e.g. /demo/cities?q=
                     {'{{value}}'}).
-                </p>
-            </div>
+                </FieldDescription>
+            </Field>
             <div className="grid gap-4 sm:grid-cols-3">
-                <div className="grid gap-2">
-                    <Label htmlFor="api_results_path">Results path</Label>
+                <Field>
+                    <FieldLabel htmlFor="api_results_path">
+                        Results path
+                    </FieldLabel>
                     <Input
                         id="api_results_path"
                         value={settings.resultsPath}
@@ -455,9 +463,9 @@ function ApiAutocompleteSettingsPanel({
                         }
                         placeholder="data"
                     />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="api_text_path">Text path</Label>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="api_text_path">Text path</FieldLabel>
                     <Input
                         id="api_text_path"
                         value={settings.textPath}
@@ -469,9 +477,9 @@ function ApiAutocompleteSettingsPanel({
                         }
                         placeholder="label"
                     />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="api_value_path">Value path</Label>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="api_value_path">Value path</FieldLabel>
                     <Input
                         id="api_value_path"
                         value={settings.valuePath}
@@ -483,11 +491,11 @@ function ApiAutocompleteSettingsPanel({
                         }
                         placeholder="value"
                     />
-                </div>
+                </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor="api_trigger">Trigger</Label>
+                <Field>
+                    <FieldLabel htmlFor="api_trigger">Trigger</FieldLabel>
                     <NativeSelect
                         id="api_trigger"
                         value={settings.trigger}
@@ -505,9 +513,9 @@ function ApiAutocompleteSettingsPanel({
                         <option value="debounce">Debounce</option>
                         <option value="throttle">Throttle</option>
                     </NativeSelect>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="api_rate">Rate (ms)</Label>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="api_rate">Rate (ms)</FieldLabel>
                     <Input
                         id="api_rate"
                         type="number"
@@ -520,7 +528,7 @@ function ApiAutocompleteSettingsPanel({
                             }))
                         }
                     />
-                </div>
+                </Field>
             </div>
             <TranslatedInput
                 idPrefix="api_autocomplete_placeholder"

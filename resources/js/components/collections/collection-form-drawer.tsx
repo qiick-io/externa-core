@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DrawerBody,
     DrawerContent,
@@ -392,16 +393,14 @@ export function CollectionFormDrawer({
                             }
                         >
                             <div className="flex items-center gap-2">
-                                <input
+                                <Checkbox
                                     id="collection_drawer_singleton"
-                                    type="checkbox"
-                                    className="size-4 rounded border disabled:cursor-not-allowed disabled:opacity-60"
                                     checked={form.data.is_singleton}
                                     disabled={editing !== null}
-                                    onChange={(e) =>
+                                    onCheckedChange={(isChecked) =>
                                         form.setData(
                                             'is_singleton',
-                                            e.target.checked,
+                                            isChecked === true,
                                         )
                                     }
                                 />
@@ -432,18 +431,16 @@ export function CollectionFormDrawer({
                                 }
                             >
                                 <div className="flex items-center gap-2">
-                                    <input
+                                    <Checkbox
                                         id="collection_drawer_versioning"
-                                        type="checkbox"
-                                        className="size-4 rounded border"
                                         checked={Boolean(form.data.versioning)}
-                                        onChange={(e) => {
+                                        onCheckedChange={(isChecked) => {
                                             form.setData(
                                                 'versioning',
-                                                e.target.checked,
+                                                isChecked === true,
                                             );
 
-                                            if (!e.target.checked) {
+                                            if (isChecked !== true) {
                                                 form.setData(
                                                     'approvals_required',
                                                     false,
@@ -474,18 +471,16 @@ export function CollectionFormDrawer({
                                 }
                             >
                                 <div className="flex items-center gap-2">
-                                    <input
+                                    <Checkbox
                                         id="collection_drawer_approvals"
-                                        type="checkbox"
-                                        className="size-4 rounded border"
                                         checked={Boolean(
                                             form.data.approvals_required,
                                         )}
                                         disabled={!form.data.versioning}
-                                        onChange={(e) =>
+                                        onCheckedChange={(isChecked) =>
                                             form.setData(
                                                 'approvals_required',
-                                                e.target.checked,
+                                                isChecked === true,
                                             )
                                         }
                                         data-test="collection-approvals-required"
