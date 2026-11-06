@@ -33,6 +33,7 @@
         "name": "Nome",
         "pageRange": "{{from}}–{{to}} di {{total}}",
         "perPageOption": "{{count}} / pagina",
+        "noResults": "Nessun risultato.",
         "copy": "Copia",
         "copied": "Copiato"
     },
@@ -227,7 +228,8 @@
         "fromDate": "Data da",
         "toDate": "Data a",
         "removeRule": "Rimuovi regola",
-        "removeLocale": "Rimuovi locale {{code}}"
+        "removeLocale": "Rimuovi locale {{code}}",
+        "selectRow": "Seleziona {{name}}"
     },
     "auth": {
         "login": {
@@ -2056,7 +2058,16 @@
             "firstName": "Nome",
             "email": "Email",
             "created": "Creato",
-            "updated": "Aggiornato"
+            "updated": "Aggiornato",
+            "name": "Nome",
+            "roles": "Ruoli",
+            "groups": "Gruppi",
+            "status": "Stato",
+            "actions": "Azioni"
+        },
+        "status": {
+            "active": "Attivo",
+            "inactive": "Inattivo"
         }
     },
     "groups": {
