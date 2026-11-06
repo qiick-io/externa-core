@@ -1418,7 +1418,7 @@ export function ColorFieldInput({
             <div
                 className={cn(
                     colorFieldChrome,
-                    'w-auto max-w-[13rem] gap-2',
+                    'gap-2',
                     readonly && 'bg-muted/50',
                 )}
             >
@@ -1432,7 +1432,7 @@ export function ColorFieldInput({
         <div
             className={cn(
                 colorFieldChromeWithOpacity,
-                'w-auto max-w-xs space-y-2',
+                'space-y-2',
                 readonly && 'bg-muted/50',
             )}
         >

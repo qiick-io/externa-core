@@ -68,12 +68,10 @@ import {
     isLayoutGroupType,
 } from '@/lib/collection-field-groups';
 import {
-    CONTENT_SIZED_CONTROL_CLASS,
     getFieldDisplayName,
     getFieldNote,
     getFieldPlaceholder,
     groupFieldsIntoLayoutRows,
-    isContentSizedField,
     isImageFieldMultiple,
     isFilesFieldMultiple,
     parseDateFieldSettings,
@@ -304,7 +302,6 @@ function renderFieldControl(context: FieldRenderContext) {
                     readOnly={readonly}
                     aria-invalid={hasError}
                     aria-describedby={errorDescribedBy}
-                    className={CONTENT_SIZED_CONTROL_CLASS}
                 />
             );
         case 'slider':
@@ -536,11 +533,6 @@ function renderFieldControl(context: FieldRenderContext) {
                         readOnly={readonly}
                         aria-invalid={hasError}
                         aria-describedby={errorDescribedBy}
-                        className={
-                            isContentSizedField(field)
-                                ? CONTENT_SIZED_CONTROL_CLASS
-                                : undefined
-                        }
                     />
                 </InputWithIcons>
             );
