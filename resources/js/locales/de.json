@@ -2083,6 +2083,8 @@
         "redo": "Wiederholen",
         "table": "Tabelle",
         "linkUrl": "Link-URL",
+        "applyLink": "Übernehmen",
+        "removeLink": "Link entfernen",
         "headingLevel": "Überschrift {{level}}"
     }
 }

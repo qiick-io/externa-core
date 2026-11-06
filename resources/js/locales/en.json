@@ -2083,6 +2083,8 @@
         "redo": "Redo",
         "table": "Table",
         "linkUrl": "Link URL",
+        "applyLink": "Apply",
+        "removeLink": "Remove link",
         "headingLevel": "Heading {{level}}"
     }
 }

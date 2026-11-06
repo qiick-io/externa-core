@@ -72,8 +72,14 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -188,35 +194,104 @@ function ToolbarButton({
     );
 }
 
-function WysiwygToolbar({ editor }: { editor: Editor }) {
+/**
+ * Link editor for the WYSIWYG toolbar (was `window.prompt`): Popover with a
+ * URL Input. Apply (or Enter) sets the link on the selection; an empty URL
+ * or Remove clears it.
+ * @returns {JSX.Element}
+ */
+function WysiwygLinkPopover({ editor }: { editor: Editor }) {
     const { t } = useTranslation();
-    const setLink = (): void => {
-        const previous = editor.getAttributes('link').href as
-            string | undefined;
-        const url = window.prompt(
-            t('richText.linkUrl'),
-            previous ?? 'https://',
-        );
+    const [open, setOpen] = useState(false);
+    const [url, setUrl] = useState('');
+    const isActive = editor.isActive('link');
 
-        if (url === null) {
-            return;
+    const openChange = (next: boolean): void => {
+        if (next) {
+            const previous = editor.getAttributes('link').href as
+                string | undefined;
+            setUrl(previous ?? 'https://');
         }
 
+        setOpen(next);
+    };
+
+    const applyLink = (): void => {
         const trimmed = url.trim();
+        const chain = editor.chain().focus().extendMarkRange('link');
 
         if (trimmed === '') {
-            editor.chain().focus().extendMarkRange('link').unsetLink().run();
-
-            return;
+            chain.unsetLink().run();
+        } else {
+            chain.setLink({ href: trimmed }).run();
         }
 
-        editor
-            .chain()
-            .focus()
-            .extendMarkRange('link')
-            .setLink({ href: trimmed })
-            .run();
+        setOpen(false);
     };
+
+    const removeLink = (): void => {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={openChange}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant={isActive ? 'default' : 'outline'}
+                    className="px-2"
+                    aria-label={t('richText.link')}
+                    title={t('richText.link')}
+                    aria-pressed={isActive}
+                >
+                    <Link2 className="size-3.5" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80">
+                <Field>
+                    <FieldLabel htmlFor="wysiwyg-link-url">
+                        {t('richText.linkUrl')}
+                    </FieldLabel>
+                    <Input
+                        id="wysiwyg-link-url"
+                        type="url"
+                        value={url}
+                        onChange={(event) => setUrl(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                applyLink();
+                            }
+                        }}
+                        data-test="wysiwyg-link-url"
+                    />
+                </Field>
+                <div className="mt-3 flex justify-end gap-2">
+                    {isActive ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={removeLink}
+                        >
+                            {t('richText.removeLink')}
+                        </Button>
+                    ) : null}
+                    <Button
+                        type="button"
+                        onClick={applyLink}
+                        data-test="wysiwyg-link-apply"
+                    >
+                        {t('richText.applyLink')}
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+function WysiwygToolbar({ editor }: { editor: Editor }) {
+    const { t } = useTranslation();
 
     return (
         <div className="flex flex-wrap gap-2 border-b p-1.5">
@@ -292,13 +367,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
                     <Quote className="size-3.5" />
                 </ToolbarButton>
             </ButtonGroup>
-            <ToolbarButton
-                label={t('richText.link')}
-                active={editor.isActive('link')}
-                onClick={setLink}
-            >
-                <Link2 className="size-3.5" />
-            </ToolbarButton>
+            <WysiwygLinkPopover editor={editor} />
             <ButtonGroup>
                 <ToolbarButton
                     label={t('richText.undo')}
