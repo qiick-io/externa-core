@@ -6,13 +6,13 @@ import {
     MessageSquare,
     MessagesSquare,
     Paperclip,
-    ArrowUp,
     Smile,
     UsersRound,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
@@ -32,12 +32,6 @@ import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
 import { applyChatUnread, fetchChatThreads } from '@/lib/chat-hub-api';
 import type { ChatSummary } from '@/lib/chat-hub-api';
-import {
-    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-    composerFrameClass,
-    composerTextareaClass,
-    composerToolbarClass,
-} from '@/lib/composer-chrome';
 import { formatChatUnread } from '@/lib/format-chat-unread';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
@@ -418,24 +412,23 @@ export default function ChatHubPage({
                                     data-test="chat-composer-placeholder"
                                     className="p-3"
                                 >
-                                    <div className={composerFrameClass}>
-                                        <textarea
-                                            rows={1}
-                                            disabled
-                                            className={composerTextareaClass}
-                                            style={{
-                                                minHeight:
-                                                    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-                                            }}
-                                            placeholder={t(
-                                                'collections.itemChat.placeholder',
-                                            )}
-                                            aria-label={t(
-                                                'collections.itemChat.placeholder',
-                                            )}
-                                        />
-                                        <div className={composerToolbarClass}>
-                                            <div className="flex items-center gap-1">
+                                    <ChatComposer
+                                        disabled
+                                        value=""
+                                        onValueChange={() => undefined}
+                                        onSubmit={() => undefined}
+                                        canSubmit={false}
+                                        placeholder={t(
+                                            'collections.itemChat.placeholder',
+                                        )}
+                                        label={t(
+                                            'collections.itemChat.placeholder',
+                                        )}
+                                        sendLabel={t(
+                                            'collections.itemChat.send',
+                                        )}
+                                        actions={
+                                            <>
                                                 <Button
                                                     type="button"
                                                     size="icon"
@@ -458,20 +451,9 @@ export default function ChatHubPage({
                                                 >
                                                     <Paperclip className="size-4" />
                                                 </Button>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                className="rounded-full"
-                                                disabled
-                                                aria-label={t(
-                                                    'collections.itemChat.send',
-                                                )}
-                                            >
-                                                <ArrowUp className="size-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
+                                            </>
+                                        }
+                                    />
                                 </DrawerFooter>
                             </div>
                         ) : null}

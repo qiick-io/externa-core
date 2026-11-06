@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
@@ -11,6 +11,10 @@ import type { ChatMessageScrollerHandle } from '@/components/chat/chat-message-s
 import { MessageScrollerItem } from '@/components/ui/message-scroller';
 
 describe('ChatMessageScroller', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it('keeps the empty state out of the message log', () => {
         render(
             <ChatMessageScroller empty={<p>No messages yet.</p>}>

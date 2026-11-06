@@ -1,5 +1,4 @@
 import {
-    ArrowUp,
     File as FileIcon,
     FlaskConical,
     LayoutList,
@@ -8,28 +7,18 @@ import {
     MicOff,
     Paperclip,
     Sparkles,
-    Square,
     X,
 } from 'lucide-react';
-import { useRef } from 'react';
-import type { FormEvent, KeyboardEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useAutosizeTextarea } from '@/hooks/use-autosize-textarea';
 import type { AiChatAttachment } from '@/lib/ai-chat';
 import type { AiPendingContextAttachment } from '@/lib/ai-context';
-import {
-    COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
-    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-    composerFrameClass,
-    composerTextareaClass,
-    composerToolbarClass,
-} from '@/lib/composer-chrome';
 import { cn } from '@/lib/utils';
 
 type AiComposerProps = {
@@ -92,56 +81,26 @@ export function AiComposer({
     const { t } = useTranslation();
     const resolvedPlaceholder = placeholder ?? t('ai.askPlaceholder');
     const resolvedAttachTooltip = attachTooltip ?? t('ai.attachShortTooltip');
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-    useAutosizeTextarea(textareaRef, value);
-
-    const canSubmit =
-        !disabled &&
-        !isStreaming &&
-        !isUploadingAttachment &&
-        value.trim() !== '';
-
-    const handleFormSubmit = (event: FormEvent) => {
-        event.preventDefault();
-
-        // Never send while streaming — Stop must not fall through to submit.
-        if (isStreaming || !canSubmit) {
-            return;
-        }
-
-        onSubmit();
-    };
-
-    const handleStopClick = (event: MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onStop?.();
-    };
-
-    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (
-            event.key !== 'Enter' ||
-            event.shiftKey ||
-            event.nativeEvent.isComposing
-        ) {
-            return;
-        }
-
-        event.preventDefault();
-
-        if (isStreaming || !canSubmit) {
-            return;
-        }
-
-        onSubmit();
-    };
+    const canSubmit = !isUploadingAttachment && value.trim() !== '';
+    const hasChips = attachments.length > 0 || contextAttachments.length > 0;
 
     return (
-        <form className={cn('w-full', className)} onSubmit={handleFormSubmit}>
-            <div className={composerFrameClass}>
-                {attachments.length > 0 || contextAttachments.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 px-3 pt-3">
+        <ChatComposer
+            className={className}
+            value={value}
+            onValueChange={(nextValue) => onChange(nextValue)}
+            onSubmit={onSubmit}
+            canSubmit={canSubmit}
+            isStreaming={isStreaming}
+            onStop={onStop}
+            disabled={disabled}
+            placeholder={resolvedPlaceholder}
+            label={t('ai.messageAria')}
+            sendLabel={t('ai.sendAria')}
+            stopLabel={t('ai.stopAria')}
+            header={
+                hasChips ? (
+                    <div className="flex flex-wrap gap-1.5">
                         {contextAttachments.map((attachment) => (
                             <span
                                 key={`${attachment.kind}-${attachment.id}`}
@@ -204,186 +163,140 @@ export function AiComposer({
                             </span>
                         ))}
                     </div>
-                ) : null}
-
-                <textarea
-                    ref={textareaRef}
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={resolvedPlaceholder}
-                    disabled={disabled || isStreaming}
-                    rows={1}
-                    className={composerTextareaClass}
-                    style={{
-                        minHeight: COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-                        maxHeight: COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
-                    }}
-                    aria-label={t('ai.messageAria')}
-                />
-
-                <div className={composerToolbarClass}>
-                    <div className="flex items-center gap-1">
-                        {onOpenPresets ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
+                ) : null
+            }
+            actions={
+                <>
+                    {onOpenPresets ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-muted-foreground"
+                                    disabled={disabled || isStreaming}
+                                    onClick={onOpenPresets}
+                                    aria-label={t('ai.usefulActionsAria')}
+                                >
+                                    <LayoutList className="size-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('ai.usefulActionsAria')}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                    {onAttach ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-muted-foreground"
+                                    disabled={
+                                        disabled ||
+                                        isStreaming ||
+                                        isUploadingAttachment ||
+                                        attachDisabled
+                                    }
+                                    onClick={onAttach}
+                                    aria-label={t('ai.attachAria')}
+                                >
+                                    <Paperclip className="size-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {resolvedAttachTooltip}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                    {onDryRunModeChange ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant={dryRunMode ? 'secondary' : 'ghost'}
+                                    className="gap-1.5 px-2"
+                                    disabled={disabled || isStreaming}
+                                    onClick={() =>
+                                        onDryRunModeChange(!dryRunMode)
+                                    }
+                                    aria-pressed={dryRunMode}
+                                >
+                                    <FlaskConical className="size-3.5" />
+                                    {t('ai.simulation')}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('ai.simulationHint')}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                </>
+            }
+            trailingActions={
+                onToggleVoice ? (
+                    speechSupported ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className={cn(
+                                        'text-muted-foreground',
+                                        isListening &&
+                                            'bg-primary/10 text-primary',
+                                    )}
+                                    disabled={disabled || isStreaming}
+                                    onClick={onToggleVoice}
+                                    aria-label={t('ai.dictationAria')}
+                                    aria-pressed={isListening}
+                                >
+                                    {isListening ? (
+                                        <MicOff
+                                            className="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    ) : (
+                                        <Mic
+                                            className="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {isListening
+                                    ? t('ai.stopDictation')
+                                    : t('ai.voiceDictation')}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex items-center">
                                     <Button
                                         type="button"
                                         size="icon"
                                         variant="ghost"
                                         className="text-muted-foreground"
-                                        disabled={disabled || isStreaming}
-                                        onClick={onOpenPresets}
-                                        aria-label={t('ai.usefulActionsAria')}
+                                        disabled
+                                        aria-label={t('ai.dictationAria')}
                                     >
-                                        <LayoutList className="size-4" />
+                                        <Mic className="size-4" />
                                     </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('ai.usefulActionsAria')}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                        {onAttach ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        className="text-muted-foreground"
-                                        disabled={
-                                            disabled ||
-                                            isStreaming ||
-                                            isUploadingAttachment ||
-                                            attachDisabled
-                                        }
-                                        onClick={onAttach}
-                                        aria-label={t('ai.attachAria')}
-                                    >
-                                        <Paperclip className="size-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {resolvedAttachTooltip}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                        {onDryRunModeChange ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant={
-                                            dryRunMode ? 'secondary' : 'ghost'
-                                        }
-                                        className="gap-1.5 px-2"
-                                        disabled={disabled || isStreaming}
-                                        onClick={() =>
-                                            onDryRunModeChange(!dryRunMode)
-                                        }
-                                        aria-pressed={dryRunMode}
-                                    >
-                                        <FlaskConical className="size-3.5" />
-                                        {t('ai.simulation')}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('ai.simulationHint')}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                        {onToggleVoice ? (
-                            speechSupported ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className={cn(
-                                                'text-muted-foreground',
-                                                isListening &&
-                                                    'bg-primary/10 text-primary',
-                                            )}
-                                            disabled={disabled || isStreaming}
-                                            onClick={onToggleVoice}
-                                            aria-label={t('ai.dictationAria')}
-                                            aria-pressed={isListening}
-                                        >
-                                            {isListening ? (
-                                                <MicOff
-                                                    className="size-4"
-                                                    aria-hidden="true"
-                                                />
-                                            ) : (
-                                                <Mic
-                                                    className="size-4"
-                                                    aria-hidden="true"
-                                                />
-                                            )}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {isListening
-                                            ? t('ai.stopDictation')
-                                            : t('ai.voiceDictation')}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ) : (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span className="inline-flex items-center">
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="ghost"
-                                                className="text-muted-foreground"
-                                                disabled
-                                                aria-label={t(
-                                                    'ai.dictationAria',
-                                                )}
-                                            >
-                                                <Mic className="size-4" />
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {t('ai.dictationUnsupported')}
-                                    </TooltipContent>
-                                </Tooltip>
-                            )
-                        ) : null}
-
-                        {isStreaming && onStop ? (
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="destructive"
-                                className="relative z-10 rounded-full"
-                                disabled={false}
-                                onClick={handleStopClick}
-                                aria-label={t('ai.stopAria')}
-                            >
-                                <Square className="size-3.5 fill-current" />
-                            </Button>
-                        ) : (
-                            <Button
-                                type="submit"
-                                size="icon"
-                                className="rounded-full"
-                                disabled={!canSubmit || isStreaming}
-                                aria-label={t('ai.sendAria')}
-                            >
-                                <ArrowUp className="size-4" />
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </form>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('ai.dictationUnsupported')}
+                            </TooltipContent>
+                        </Tooltip>
+                    )
+                ) : null
+            }
+        />
     );
 }

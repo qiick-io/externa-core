@@ -1,8 +1,9 @@
-import { FileText, Paperclip, Send, Smile, Trash2, X } from 'lucide-react';
+import { FileText, Paperclip, Smile, Trash2, X } from 'lucide-react';
 import type { DragEvent, Ref } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -12,7 +13,6 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { formatBytes } from '@/lib/format';
 import type { ChatAttachment } from '@/lib/item-chat-api';
 import { collectionMentionLabel } from '@/lib/item-chat-mentions';
@@ -289,188 +289,175 @@ export function ChatSendAttachmentsDialog({
                     )}
                 </div>
 
-                <div className="flex shrink-0 flex-col gap-2 border-t px-3 py-3">
-                    <div className="relative">
-                        {showMentions &&
-                        mentionOpen &&
-                        mentionHits.length > 0 ? (
-                            <div className="absolute inset-x-0 bottom-full z-30 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                {mentionHits.map((hit, index) => (
-                                    <button
-                                        key={`${hit.type}-${hit.id}`}
-                                        type="button"
-                                        className={
-                                            index === mentionHighlight
-                                                ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                        }
-                                        onMouseEnter={() =>
-                                            onMentionHighlight(index)
-                                        }
-                                        onClick={() => onPickMention(hit)}
-                                    >
-                                        <span>
-                                            {hit.type === 'collection'
-                                                ? collectionMentionLabel(hit)
-                                                : hit.name}
-                                        </span>
-                                        {hit.type === 'user' && hit.email ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {hit.email}
-                                            </span>
-                                        ) : hit.type === 'collection' ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                collection
-                                            </span>
-                                        ) : null}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : null}
-                        <Textarea
-                            ref={captionRef}
-                            value={caption}
-                            rows={2}
-                            placeholder={t('collections.itemChat.addCaption')}
-                            className="min-h-10 resize-none"
-                            data-test="chat-send-caption"
-                            disabled={sending}
-                            onChange={(event) =>
-                                onCaptionChange(
-                                    event.target.value,
-                                    event.target.selectionStart,
-                                )
-                            }
-                            onKeyDown={(event) => {
-                                if (event.nativeEvent.isComposing) {
+                <div className="shrink-0 border-t px-3 py-3">
+                    <ChatComposer
+                        textareaRef={captionRef}
+                        value={caption}
+                        onValueChange={onCaptionChange}
+                        onSubmit={onSend}
+                        canSubmit={canSend}
+                        isSubmitting={sending}
+                        disabled={sending}
+                        placeholder={t('collections.itemChat.addCaption')}
+                        label={t('collections.itemChat.addCaption')}
+                        sendLabel={t('collections.itemChat.send')}
+                        textareaTestId="chat-send-caption"
+                        submitTestId="chat-send-attachments-submit"
+                        popup={
+                            <>
+                                {showMentions &&
+                                mentionOpen &&
+                                mentionHits.length > 0 ? (
+                                    <div className="absolute inset-x-0 bottom-full z-30 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
+                                        {mentionHits.map((hit, index) => (
+                                            <button
+                                                key={`${hit.type}-${hit.id}`}
+                                                type="button"
+                                                className={
+                                                    index === mentionHighlight
+                                                        ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
+                                                        : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
+                                                }
+                                                onMouseEnter={() =>
+                                                    onMentionHighlight(index)
+                                                }
+                                                onClick={() =>
+                                                    onPickMention(hit)
+                                                }
+                                            >
+                                                <span>
+                                                    {hit.type === 'collection'
+                                                        ? collectionMentionLabel(
+                                                              hit,
+                                                          )
+                                                        : hit.name}
+                                                </span>
+                                                {hit.type === 'user' &&
+                                                hit.email ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {hit.email}
+                                                    </span>
+                                                ) : hit.type ===
+                                                  'collection' ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        collection
+                                                    </span>
+                                                ) : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </>
+                        }
+                        onKeyDown={(event) => {
+                            if (
+                                showMentions &&
+                                mentionOpen &&
+                                mentionHits.length > 0
+                            ) {
+                                if (event.key === 'ArrowDown') {
+                                    event.preventDefault();
+                                    onMentionHighlight(
+                                        (mentionHighlight + 1) %
+                                            mentionHits.length,
+                                    );
+
                                     return;
                                 }
 
-                                if (
-                                    showMentions &&
-                                    mentionOpen &&
-                                    mentionHits.length > 0
-                                ) {
-                                    if (event.key === 'ArrowDown') {
-                                        event.preventDefault();
-                                        onMentionHighlight(
-                                            (mentionHighlight + 1) %
-                                                mentionHits.length,
-                                        );
+                                if (event.key === 'ArrowUp') {
+                                    event.preventDefault();
+                                    onMentionHighlight(
+                                        (mentionHighlight -
+                                            1 +
+                                            mentionHits.length) %
+                                            mentionHits.length,
+                                    );
 
-                                        return;
-                                    }
-
-                                    if (event.key === 'ArrowUp') {
-                                        event.preventDefault();
-                                        onMentionHighlight(
-                                            (mentionHighlight -
-                                                1 +
-                                                mentionHits.length) %
-                                                mentionHits.length,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (
-                                        event.key === 'Enter' &&
-                                        !event.shiftKey &&
-                                        !event.metaKey &&
-                                        !event.ctrlKey
-                                    ) {
-                                        event.preventDefault();
-                                        onPickMention(
-                                            mentionHits[mentionHighlight]!,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (event.key === 'Escape') {
-                                        event.preventDefault();
-                                        onDismissMention();
-
-                                        return;
-                                    }
+                                    return;
                                 }
 
                                 if (
                                     event.key === 'Enter' &&
                                     !event.shiftKey &&
-                                    canSend
+                                    !event.metaKey &&
+                                    !event.ctrlKey
                                 ) {
                                     event.preventDefault();
-                                    onSend();
+                                    onPickMention(
+                                        mentionHits[mentionHighlight]!,
+                                    );
+
+                                    return;
                                 }
-                            }}
-                        />
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {showMentions ? (
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                disabled={sending}
-                                aria-label={t('collections.itemChat.mention')}
-                                data-test="chat-send-caption-mention"
-                                onClick={onInsertMentionTrigger}
-                            >
-                                @
-                            </Button>
-                        ) : null}
-                        <Popover
-                            modal={false}
-                            open={emojiOpen}
-                            onOpenChange={onEmojiOpenChange}
-                        >
-                            <PopoverTrigger asChild>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    disabled={sending}
-                                    aria-label={t('collections.itemChat.emoji')}
-                                    data-test="chat-send-caption-emoji"
+
+                                if (event.key === 'Escape') {
+                                    event.preventDefault();
+                                    onDismissMention();
+
+                                    return;
+                                }
+                            }
+                        }}
+                        actions={
+                            <>
+                                {showMentions ? (
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        disabled={sending}
+                                        aria-label={t(
+                                            'collections.itemChat.mention',
+                                        )}
+                                        data-test="chat-send-caption-mention"
+                                        onClick={onInsertMentionTrigger}
+                                    >
+                                        @
+                                    </Button>
+                                ) : null}
+                                <Popover
+                                    modal={false}
+                                    open={emojiOpen}
+                                    onOpenChange={onEmojiOpenChange}
                                 >
-                                    <Smile className="size-4" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className="z-[80] w-64 p-2"
-                                align="start"
-                            >
-                                <div className="grid grid-cols-8 gap-1">
-                                    {emojis.map((emoji) => (
-                                        <button
-                                            key={emoji}
+                                    <PopoverTrigger asChild>
+                                        <Button
                                             type="button"
-                                            className="rounded p-1 text-lg hover:bg-muted"
-                                            onClick={() => onInsertEmoji(emoji)}
+                                            size="icon"
+                                            variant="ghost"
+                                            disabled={sending}
+                                            aria-label={t(
+                                                'collections.itemChat.emoji',
+                                            )}
+                                            data-test="chat-send-caption-emoji"
                                         >
-                                            {emoji}
-                                        </button>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button
-                            type="button"
-                            size="icon"
-                            className="ml-auto size-10 shrink-0 rounded-full"
-                            disabled={!canSend}
-                            data-test="chat-send-attachments-submit"
-                            onClick={onSend}
-                            aria-label={t('collections.itemChat.send')}
-                        >
-                            {sending ? (
-                                <Spinner className="size-4" />
-                            ) : (
-                                <Send className="size-4" />
-                            )}
-                        </Button>
-                    </div>
+                                            <Smile className="size-4" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="z-[80] w-64 p-2"
+                                        align="start"
+                                    >
+                                        <div className="grid grid-cols-8 gap-1">
+                                            {emojis.map((emoji) => (
+                                                <button
+                                                    key={emoji}
+                                                    type="button"
+                                                    className="rounded p-1 text-lg hover:bg-muted"
+                                                    onClick={() =>
+                                                        onInsertEmoji(emoji)
+                                                    }
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </>
+                        }
+                    />
                 </div>
 
                 {dragOver ? (
