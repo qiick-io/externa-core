@@ -7,7 +7,7 @@
     "resources/js/components/app-content.tsx": "externa-core is the source of this item. It imports AppVariant from @/types; the registry declares the type in the file because shadcn rewrites @/types in Laravel apps.",
     "resources/js/components/app-sidebar-header.tsx": "externa-core is the source of this item. It imports BreadcrumbItem from @/types; the registry declares the type in the file because shadcn rewrites @/types in Laravel apps.",
     "resources/js/components/breadcrumbs.tsx": "externa-core is the source of this item. It imports BreadcrumbItem from @/types; the registry declares and exports BreadcrumbItemType in the file because shadcn rewrites @/types in Laravel apps.",
-    "resources/js/components/ui/avatar.tsx": "externa-core colours avatars with the inline styles of lib/avatar-color.ts; the registry picks a theme avatar-* swatch from userId.",
+    "resources/js/components/ui/avatar.tsx": "externa-core colours avatars with the inline styles of lib/avatar-color.ts (its CSS has no avatar-* tokens); the registry picks a theme avatar-* swatch from userId. The shadcn size, AvatarBadge, AvatarGroup and AvatarGroupCount parts are the same.",
     "resources/js/components/admin/actions-overflow.tsx": "externa-core keeps the files-action-* test ids that its browser tests use; the registry renamed them to actions-overflow-*.",
     "resources/js/components/admin/user-avatar.tsx": "externa-core takes its User / AdminUserRow types; the registry takes a generic { id, name, email, avatar? } user.",
     "resources/js/components/realtime/connection-dot.tsx": "externa-core reads useEchoConnection() directly; the registry takes the connection state as a prop.",
@@ -17,5 +17,6 @@
     "resources/js/components/admin/files/file-grid.tsx": "externa-core's grid takes its file rows, permissions and drag-and-drop callbacks; the registry FileGrid is generic over the item.",
     "resources/js/components/admin/files/file-card.tsx": "externa-core's card takes an AdminFileRow; the registry FileCard takes name, preview, cover, tags, badges and actions.",
     "resources/js/lib/list-per-page.ts": "externa-core keeps the rows-per-page helpers in lib/pagination.ts, where the registry's list-per-page.ts was extracted from.",
-    "resources/js/components/layout/chat-layout.tsx": "externa-core is the source of chat-layout: /ai and /chat still have the list column, thread and composer frame inline; the registry extracted them into this file."
+    "resources/js/components/layout/chat-layout.tsx": "externa-core is the source of chat-layout: /ai and /chat still have the list column, thread and composer frame inline; the registry extracted them into this file.",
+    "resources/js/components/ui/popover.tsx": "PopoverContent keeps externa-core's align=\"start\" default (shadcn: center), so existing popovers do not move; the rest is the registry file."
 }
