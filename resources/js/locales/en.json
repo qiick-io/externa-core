@@ -32,7 +32,8 @@
         "active": "Active",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} of {{total}}",
-        "perPageOption": "{{count}} / page"
+        "perPageOption": "{{count}} / page",
+        "noResults": "No results."
     },
     "emptyState": {
         "collections": {
@@ -225,7 +226,8 @@
         "fromDate": "From date",
         "toDate": "To date",
         "removeRule": "Remove rule",
-        "removeLocale": "Remove locale {{code}}"
+        "removeLocale": "Remove locale {{code}}",
+        "selectRow": "Select {{name}}"
     },
     "auth": {
         "login": {
@@ -2023,7 +2025,16 @@
             "firstName": "First name",
             "email": "Email",
             "created": "Created",
-            "updated": "Updated"
+            "updated": "Updated",
+            "name": "Name",
+            "roles": "Roles",
+            "groups": "Groups",
+            "status": "Status",
+            "actions": "Actions"
+        },
+        "status": {
+            "active": "Active",
+            "inactive": "Inactive"
         }
     },
     "groups": {
