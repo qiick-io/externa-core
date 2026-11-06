@@ -2050,7 +2050,15 @@
         "newGroup": "New group",
         "searchPlaceholder": "Search groups…",
         "searchTrashPlaceholder": "Search trash…",
-        "sortBy": "Sort by"
+        "sortBy": "Sort by",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Roles",
+            "members": "Members",
+            "actions": "Actions"
+        },
+        "empty": "No groups yet."
     },
     "pendingToolCalls": {
         "head": "AI tool approvals",

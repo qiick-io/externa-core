@@ -2050,7 +2050,15 @@
         "newGroup": "Nuovo gruppo",
         "searchPlaceholder": "Cerca gruppi…",
         "searchTrashPlaceholder": "Cerca nel cestino…",
-        "sortBy": "Ordina per"
+        "sortBy": "Ordina per",
+        "columns": {
+            "name": "Nome",
+            "slug": "Slug",
+            "roles": "Ruoli",
+            "members": "Membri",
+            "actions": "Azioni"
+        },
+        "empty": "Ancora nessun gruppo."
     },
     "pendingToolCalls": {
         "head": "Approvazioni strumenti AI",

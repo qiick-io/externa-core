@@ -2050,7 +2050,15 @@
         "newGroup": "Neue Gruppe",
         "searchPlaceholder": "Gruppen suchen…",
         "searchTrashPlaceholder": "Papierkorb durchsuchen…",
-        "sortBy": "Sortieren nach"
+        "sortBy": "Sortieren nach",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Rollen",
+            "members": "Mitglieder",
+            "actions": "Aktionen"
+        },
+        "empty": "Noch keine Gruppen."
     },
     "pendingToolCalls": {
         "head": "KI-Tool-Freigaben",
