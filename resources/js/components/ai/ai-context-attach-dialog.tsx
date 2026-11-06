@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -82,6 +83,9 @@ export function AiContextAttachDialog({
     /** Shown under the prompt form when Save is pressed with an empty name or body. */
     const [isPromptIncomplete, setIsPromptIncomplete] = useState(false);
     const [savingPrompt, setSavingPrompt] = useState(false);
+    const [promptPendingDelete, setPromptPendingDelete] =
+        useState<AiSavedPrompt | null>(null);
+    const [isDeletingPrompt, setIsDeletingPrompt] = useState(false);
 
     useEffect(() => {
         if (!open) {
@@ -239,6 +243,8 @@ export function AiContextAttachDialog({
     };
 
     const handleDeletePrompt = async (prompt: AiSavedPrompt) => {
+        setIsDeletingPrompt(true);
+
         try {
             await deleteAiSavedPrompt(prompt.id);
             setPrompts((current) =>
@@ -250,12 +256,15 @@ export function AiContextAttachDialog({
                 ),
             );
             toast.success(t('ai.context.promptDeleted'));
+            setPromptPendingDelete(null);
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
                     : t('ai.context.promptDeleteFailed'),
             );
+        } finally {
+            setIsDeletingPrompt(false);
         }
     };
 
@@ -621,7 +630,7 @@ export function AiContextAttachDialog({
                                                         'ai.context.deletePrompt',
                                                     )}
                                                     onClick={() =>
-                                                        void handleDeletePrompt(
+                                                        setPromptPendingDelete(
                                                             prompt,
                                                         )
                                                     }
@@ -654,6 +663,27 @@ export function AiContextAttachDialog({
                         {t('ai.context.attachSelected')}
                     </Button>
                 </DialogFooter>
+
+                <ConfirmDestructiveDialog
+                    open={promptPendingDelete !== null}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            setPromptPendingDelete(null);
+                        }
+                    }}
+                    title={t('confirmDestructive.deletePromptTitle', {
+                        name: promptPendingDelete?.name ?? '',
+                    })}
+                    description={t(
+                        'confirmDestructive.deletePromptDescription',
+                    )}
+                    confirming={isDeletingPrompt}
+                    onConfirm={() => {
+                        if (promptPendingDelete !== null) {
+                            void handleDeletePrompt(promptPendingDelete);
+                        }
+                    }}
+                />
             </DialogContent>
         </Dialog>
     );
