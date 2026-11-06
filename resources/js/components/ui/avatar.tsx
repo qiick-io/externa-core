@@ -1,41 +1,14 @@
-import * as AvatarPrimitive from "@radix-ui/react-avatar"
 import * as React from "react"
-
-import { avatarStyleForId, avatarTextColor } from "@/lib/avatar-color"
 import { cn } from "@/lib/utils"
-
-function resolveAvatarTone(
-  userId?: number | string,
-  color?: string,
-): { backgroundColor: string; color: string } | undefined {
-  if (color) {
-    return {
-      backgroundColor: color,
-      color: avatarTextColor(color),
-    }
-  }
-
-  if (userId === undefined || userId === null || userId === "") {
-    return undefined
-  }
-
-  return avatarStyleForId(userId)
-}
+import { Avatar as AvatarPrimitive } from "radix-ui"
 
 function Avatar({
   className,
   size = "default",
-  userId,
-  color,
-  style,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Root> & {
   size?: "default" | "sm" | "lg"
-  userId?: number | string
-  color?: string
 }) {
-  const tone = resolveAvatarTone(userId, color)
-
   return (
     <AvatarPrimitive.Root
       data-slot="avatar"
@@ -44,15 +17,6 @@ function Avatar({
         "group/avatar relative flex size-8 shrink-0 overflow-hidden rounded-full select-none data-[size=lg]:size-10 data-[size=sm]:size-6",
         className
       )}
-      style={
-        tone
-          ? ({
-              ...style,
-              "--avatar-bg": tone.backgroundColor,
-              "--avatar-fg": tone.color,
-            } as React.CSSProperties)
-          : style
-      }
       {...props}
     />
   )
@@ -73,21 +37,15 @@ function AvatarImage({
 
 function AvatarFallback({
   className,
-  style,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "bg-muted flex size-full items-center justify-center rounded-full text-sm group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
         className
       )}
-      style={{
-        backgroundColor: "var(--avatar-bg)",
-        color: "var(--avatar-fg)",
-        ...style,
-      }}
       {...props}
     />
   )
