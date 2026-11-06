@@ -26,6 +26,7 @@ import type { PendingChatMessage } from '@/components/chat/chat-outgoing-attach-
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -359,6 +360,8 @@ export function ItemChatDrawer({
     const [addFieldFor, setAddFieldFor] = useState<ChatAttachment | null>(null);
     const [addFieldName, setAddFieldName] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [messagePendingDelete, setMessagePendingDelete] =
+        useState<ItemChatMessage | null>(null);
     const [editingDraft, setEditingDraft] = useState('');
     const [replyTo, setReplyTo] = useState<ItemChatMessage | null>(null);
 
@@ -1988,7 +1991,9 @@ export function ItemChatDrawer({
                                                         );
                                                     }}
                                                     onDelete={() =>
-                                                        removeMessage(comment)
+                                                        setMessagePendingDelete(
+                                                            comment,
+                                                        )
                                                     }
                                                 >
                                                     <Bubble
@@ -2766,6 +2771,24 @@ export function ItemChatDrawer({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDestructiveDialog
+                open={messagePendingDelete !== null}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) {
+                        setMessagePendingDelete(null);
+                    }
+                }}
+                title={t('confirmDestructive.deleteMessageTitle')}
+                description={t('confirmDestructive.deleteMessageDescription')}
+                onConfirm={() => {
+                    if (messagePendingDelete !== null) {
+                        removeMessage(messagePendingDelete);
+                    }
+
+                    setMessagePendingDelete(null);
+                }}
+            />
         </>
     );
 }

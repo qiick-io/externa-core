@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Separator } from '@/components/ui/separator';
 import {
     Tooltip,
@@ -77,62 +83,60 @@ type SettingCheckboxProps =
     SettingCheckboxControlledProps | SettingCheckboxUncontrolledProps;
 
 /**
- * Labeled checkbox row for field settings.
+ * Labeled checkbox row for field settings: shadcn `Field` (horizontal) with
+ * `Checkbox`, `FieldLabel` and `FieldDescription`. The uncontrolled variant
+ * submits `name` / `value` like a native checkbox (Radix renders a hidden
+ * input inside forms); unchecked boxes submit nothing.
  * @returns {JSX.Element}
  */
 export function SettingCheckbox(props: SettingCheckboxProps) {
     const { id, label, description, disabled = false, disabledReason } = props;
 
-    const input =
+    const checkbox =
         'checked' in props && props.onCheckedChange ? (
-            <input
+            <Checkbox
                 id={id}
-                type="checkbox"
                 checked={props.checked}
                 disabled={disabled}
-                onChange={(event) =>
-                    props.onCheckedChange(event.target.checked)
+                onCheckedChange={(checked) =>
+                    props.onCheckedChange(checked === true)
                 }
-                className="mt-1 size-4 shrink-0 rounded border disabled:cursor-not-allowed disabled:opacity-50"
             />
         ) : (
-            <input
+            <Checkbox
                 id={id}
-                type="checkbox"
                 name={props.name}
                 value={props.value ?? '1'}
                 defaultChecked={props.defaultChecked}
                 disabled={disabled}
-                className="mt-1 size-4 shrink-0 rounded border disabled:cursor-not-allowed disabled:opacity-50"
             />
         );
 
     return (
-        <div className={cn('flex items-start gap-4', disabled && 'opacity-80')}>
+        <Field
+            orientation="horizontal"
+            data-disabled={disabled || undefined}
+            className="gap-4"
+        >
             {disabled && disabledReason ? (
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <span className="inline-flex">{input}</span>
+                        <span className="inline-flex">{checkbox}</span>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                         {disabledReason}
                     </TooltipContent>
                 </Tooltip>
             ) : (
-                input
+                checkbox
             )}
-            <div className="grid gap-2">
-                <Label
-                    htmlFor={id}
-                    className={disabled ? 'cursor-not-allowed' : undefined}
-                >
-                    {label}
-                </Label>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+            <FieldContent>
+                <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                <FieldDescription>
                     {disabled && disabledReason ? disabledReason : description}
-                </p>
-            </div>
-        </div>
+                </FieldDescription>
+            </FieldContent>
+        </Field>
     );
 }
 

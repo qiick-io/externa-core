@@ -1,6 +1,7 @@
 import { Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,7 @@ export function FileDropzone({
     children,
     showInlineEmptyState = false,
 }: FileDropzoneProps) {
+    const { t } = useTranslation();
     const inputRef = useRef<HTMLInputElement>(null);
     const [dragOver, setDragOver] = useState(false);
     const [pageDragOver, setPageDragOver] = useState(false);
@@ -174,10 +176,10 @@ export function FileDropzone({
                     <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10">
                         <div className="pointer-events-none rounded-lg border bg-card p-8 shadow-lg">
                             <p className="text-sm font-semibold">
-                                Drop files here to upload
+                                {t('files.dropzone.dropToUpload')}
                             </p>
                             <p className="mt-2 text-xs text-muted-foreground">
-                                Large files use chunked upload automatically
+                                {t('files.dropzone.chunkedHint')}
                             </p>
                         </div>
                     </div>
@@ -234,10 +236,10 @@ export function FileDropzone({
                 <Upload className="size-8 text-muted-foreground" />
                 <div>
                     <p className="text-sm font-medium">
-                        Drop files here or browse
+                        {t('files.dropzone.dropOrBrowse')}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                        Large files use chunked upload automatically
+                        {t('files.dropzone.chunkedHint')}
                     </p>
                 </div>
                 <Button
@@ -246,7 +248,7 @@ export function FileDropzone({
                     disabled={disabled}
                     onClick={openFilePicker}
                 >
-                    Choose files
+                    {t('files.dropzone.chooseFiles')}
                 </Button>
             </div>
         </div>
