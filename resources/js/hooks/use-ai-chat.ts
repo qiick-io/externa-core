@@ -170,7 +170,8 @@ export function useAiChat(options: UseAiChatOptions = {}) {
 
     const [composer, setComposer] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
-    const [toolHint, setToolHint] = useState<string | null>(null);
+    /** Tool the model is running right now, for the status line. */
+    const [runningToolName, setRunningToolName] = useState<string | null>(null);
     const [messages, setMessages] = useState<AiChatMessage[]>(
         options.initialMessages ?? [],
     );
@@ -215,7 +216,7 @@ export function useAiChat(options: UseAiChatOptions = {}) {
     const markStreamingFinished = (): void => {
         isStreamingRef.current = false;
         setIsStreaming(false);
-        setToolHint(null);
+        setRunningToolName(null);
     };
 
     const updateMessage = (
@@ -278,7 +279,7 @@ export function useAiChat(options: UseAiChatOptions = {}) {
         inFlightTurnRef.current = null;
         isStreamingRef.current = false;
         setIsStreaming(false);
-        setToolHint(null);
+        setRunningToolName(null);
         setConversationId(null);
         conversationIdRef.current = null;
         setMessages([]);
@@ -378,7 +379,7 @@ export function useAiChat(options: UseAiChatOptions = {}) {
         ]);
         isStreamingRef.current = true;
         setIsStreaming(true);
-        setToolHint(null);
+        setRunningToolName(null);
         stopSpeaking();
 
         const abortController = new AbortController();
@@ -414,7 +415,7 @@ export function useAiChat(options: UseAiChatOptions = {}) {
                         }
 
                         toolsUsed.push(toolName);
-                        setToolHint(`Chiamata ${toolName}…`);
+                        setRunningToolName(toolName);
                     },
                     onToolResult: (toolName, result) => {
                         callbacksRef.current.onToolResult?.(toolName, result);
@@ -959,7 +960,7 @@ export function useAiChat(options: UseAiChatOptions = {}) {
         messages,
         conversationId,
         isStreaming,
-        toolHint,
+        runningToolName,
         editingMessageId,
         editingDraft,
         setEditingDraft,

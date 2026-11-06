@@ -9,8 +9,18 @@ import {
     Sparkles,
     X,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatComposer } from '@/components/chat/chat-composer';
+import {
+    Attachment,
+    AttachmentAction,
+    AttachmentActions,
+    AttachmentContent,
+    AttachmentGroup,
+    AttachmentMedia,
+    AttachmentTitle,
+} from '@/components/ui/attachment';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -100,69 +110,47 @@ export function AiComposer({
             stopLabel={t('ai.stopAria')}
             header={
                 hasChips ? (
-                    <div className="flex flex-wrap gap-1.5">
+                    <AttachmentGroup>
                         {contextAttachments.map((attachment) => (
-                            <span
+                            <ComposerChip
                                 key={`${attachment.kind}-${attachment.id}`}
-                                className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs"
-                            >
-                                {attachment.kind === 'item' ? (
-                                    <Library className="size-3" />
-                                ) : attachment.kind === 'file' ? (
-                                    <FileIcon className="size-3" />
-                                ) : (
-                                    <Sparkles className="size-3" />
-                                )}
-                                <span className="max-w-[12rem] truncate">
-                                    {attachment.name}
-                                </span>
-                                {onRemoveContextAttachment ? (
-                                    <button
-                                        type="button"
-                                        className="rounded-sm p-0.5 hover:bg-background"
-                                        onClick={() =>
-                                            onRemoveContextAttachment(
-                                                attachment.kind,
-                                                attachment.id,
-                                            )
-                                        }
-                                        aria-label={t('ai.removeAttachment', {
-                                            name: attachment.name,
-                                        })}
-                                        disabled={isStreaming || disabled}
-                                    >
-                                        <X className="size-3" />
-                                    </button>
-                                ) : null}
-                            </span>
+                                name={attachment.name}
+                                icon={
+                                    attachment.kind === 'item' ? (
+                                        <Library />
+                                    ) : attachment.kind === 'file' ? (
+                                        <FileIcon />
+                                    ) : (
+                                        <Sparkles />
+                                    )
+                                }
+                                removeDisabled={isStreaming || disabled}
+                                onRemove={
+                                    onRemoveContextAttachment
+                                        ? () =>
+                                              onRemoveContextAttachment(
+                                                  attachment.kind,
+                                                  attachment.id,
+                                              )
+                                        : undefined
+                                }
+                            />
                         ))}
                         {attachments.map((attachment) => (
-                            <span
+                            <ComposerChip
                                 key={attachment.id}
-                                className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs"
-                            >
-                                <Paperclip className="size-3" />
-                                <span className="max-w-[12rem] truncate">
-                                    {attachment.name}
-                                </span>
-                                {onRemoveAttachment ? (
-                                    <button
-                                        type="button"
-                                        className="rounded-sm p-0.5 hover:bg-background"
-                                        onClick={() =>
-                                            onRemoveAttachment(attachment.id)
-                                        }
-                                        aria-label={t('ai.removeAttachment', {
-                                            name: attachment.name,
-                                        })}
-                                        disabled={isStreaming || disabled}
-                                    >
-                                        <X className="size-3" />
-                                    </button>
-                                ) : null}
-                            </span>
+                                name={attachment.name}
+                                icon={<Paperclip />}
+                                removeDisabled={isStreaming || disabled}
+                                onRemove={
+                                    onRemoveAttachment
+                                        ? () =>
+                                              onRemoveAttachment(attachment.id)
+                                        : undefined
+                                }
+                            />
                         ))}
-                    </div>
+                    </AttachmentGroup>
                 ) : null
             }
             actions={
@@ -298,5 +286,40 @@ export function AiComposer({
                 ) : null
             }
         />
+    );
+}
+
+/** One pending attachment or context entry above the composer textarea. */
+function ComposerChip({
+    name,
+    icon,
+    removeDisabled,
+    onRemove,
+}: {
+    name: string;
+    icon: ReactNode;
+    removeDisabled: boolean;
+    onRemove?: () => void;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <Attachment size="xs" className="min-w-0">
+            <AttachmentMedia>{icon}</AttachmentMedia>
+            <AttachmentContent className="max-w-48">
+                <AttachmentTitle>{name}</AttachmentTitle>
+            </AttachmentContent>
+            {onRemove ? (
+                <AttachmentActions>
+                    <AttachmentAction
+                        aria-label={t('ai.removeAttachment', { name })}
+                        disabled={removeDisabled}
+                        onClick={onRemove}
+                    >
+                        <X />
+                    </AttachmentAction>
+                </AttachmentActions>
+            ) : null}
+        </Attachment>
     );
 }

@@ -8,6 +8,8 @@
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+/* Streamdown (AI answers) ships its classes in the package. */
+@source '../../node_modules/streamdown/dist/*.js';
 
 @custom-variant dark (&:is(.dark *));
 
