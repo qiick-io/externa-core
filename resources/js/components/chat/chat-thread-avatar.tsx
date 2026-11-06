@@ -2,6 +2,7 @@ import { UsersRound } from 'lucide-react';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { avatarStyleForId, avatarTextColor } from '@/lib/avatar-color';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import {
     chatAvatarStackPlan,
     initialsFromName,
@@ -21,8 +22,10 @@ function FaceCircle({
     className?: string;
 }) {
     return (
-        <Avatar userId={face.id} className={className}>
-            <AvatarFallback className="text-xs font-medium">
+        <Avatar className={className}>
+            <AvatarFallback
+                className={cn(avatarToneClass(face.id), 'text-xs font-medium')}
+            >
                 {initialsFromName(face.name)}
             </AvatarFallback>
         </Avatar>
@@ -114,8 +117,13 @@ export function ChatThreadAvatar({
         const other = others[0]!;
 
         return (
-            <Avatar userId={other.id} className="size-10">
-                <AvatarFallback className="text-sm font-medium">
+            <Avatar className="size-10">
+                <AvatarFallback
+                    className={cn(
+                        avatarToneClass(other.id),
+                        'text-sm font-medium',
+                    )}
+                >
                     {initialsFromName(other.name)}
                 </AvatarFallback>
             </Avatar>

@@ -32,7 +32,9 @@
         "active": "Attivo",
         "name": "Nome",
         "pageRange": "{{from}}–{{to}} di {{total}}",
-        "perPageOption": "{{count}} / pagina"
+        "perPageOption": "{{count}} / pagina",
+        "copy": "Copia",
+        "copied": "Copiato"
     },
     "emptyState": {
         "collections": {
@@ -357,7 +359,8 @@
                 "revokeTitle": "Revocare la API key “{{name}}”?",
                 "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
                 "revokeConfirm": "Revoca"
-            }
+            },
+            "secretValue": "Nuova chiave API"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -734,7 +737,8 @@
             "regenerate": "Rigenera codici",
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
-            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra.",
+            "setupKey": "Chiave di configurazione"
         },
         "aiTools": {
             "breadcrumb": "Strumenti AI in scrittura",
@@ -1835,7 +1839,8 @@
             "clearSelection": "Deseleziona",
             "emptyTrash": "Svuota cestino",
             "emptyTrashTitle": "Svuotare il cestino?",
-            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine."
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine.",
+            "uploadOptions": "Altre opzioni di caricamento"
         },
         "sort": {
             "name": "Nome",
@@ -1986,7 +1991,15 @@
     },
     "confirmDestructive": {
         "typeToConfirm": "Digita \"{{name}}\" per confermare",
-        "deletePermanently": "Elimina definitivamente"
+        "deletePermanently": "Elimina definitivamente",
+        "deleteAiChatTitle": "Eliminare questa chat?",
+        "deleteAiChatDescription": "La conversazione e tutti i suoi messaggi verranno eliminati.",
+        "deletePromptTitle": "Eliminare il prompt “{{name}}”?",
+        "deletePromptDescription": "Il prompt salvato non sarà più disponibile per nessuno.",
+        "deleteMessageTitle": "Eliminare questo messaggio?",
+        "deleteMessageDescription": "Il messaggio verrà rimosso dalla chat per tutti.",
+        "deleteDirectChatTitle": "Eliminare questa chat?",
+        "deleteDirectChatDescription": "La chat verrà rimossa dalle tue chat."
     },
     "itemConfirm": {
         "deleteTitle": "Eliminare l’item “{{name}}”?",

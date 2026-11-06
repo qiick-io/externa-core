@@ -32,7 +32,9 @@
         "active": "Aktiv",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} von {{total}}",
-        "perPageOption": "{{count}} / Seite"
+        "perPageOption": "{{count}} / Seite",
+        "copy": "Kopieren",
+        "copied": "Kopiert"
     },
     "emptyState": {
         "collections": {
@@ -357,7 +359,8 @@
                 "revokeTitle": "API-Schlüssel „{{name}}“ widerrufen?",
                 "revokeDescription": "Dieser Schlüssel funktioniert sofort nicht mehr.",
                 "revokeConfirm": "Widerrufen"
-            }
+            },
+            "secretValue": "Neuer API-Schlüssel"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -685,7 +688,8 @@
             "regenerate": "Codes neu generieren",
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
-            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>.",
+            "setupKey": "Einrichtungsschlüssel"
         },
         "performance": {
             "appDebug": "APP_DEBUG",
@@ -1835,7 +1839,8 @@
             "clearSelection": "Auswahl aufheben",
             "emptyTrash": "Papierkorb leeren",
             "emptyTrashTitle": "Papierkorb leeren?",
-            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist."
+            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist.",
+            "uploadOptions": "Weitere Upload-Optionen"
         },
         "sort": {
             "name": "Name",
@@ -1986,7 +1991,15 @@
     },
     "confirmDestructive": {
         "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
-        "deletePermanently": "Endgültig löschen"
+        "deletePermanently": "Endgültig löschen",
+        "deleteAiChatTitle": "Diesen Chat löschen?",
+        "deleteAiChatDescription": "Die Unterhaltung und alle ihre Nachrichten werden gelöscht.",
+        "deletePromptTitle": "Prompt „{{name}}“ löschen?",
+        "deletePromptDescription": "Der gespeicherte Prompt steht danach niemandem mehr zur Verfügung.",
+        "deleteMessageTitle": "Diese Nachricht löschen?",
+        "deleteMessageDescription": "Die Nachricht wird für alle aus dem Chat entfernt.",
+        "deleteDirectChatTitle": "Diesen Chat löschen?",
+        "deleteDirectChatDescription": "Der Chat wird aus deinen Chats entfernt."
     },
     "itemConfirm": {
         "deleteTitle": "Item „{{name}}“ löschen?",
