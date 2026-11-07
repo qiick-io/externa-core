@@ -35,24 +35,26 @@ type FileCardProps = {
     file: AdminFileRow;
     selected: boolean;
     multiSelectMode: boolean;
-    isDropTarget: boolean;
-    isTrashed: boolean;
-    canEdit: boolean;
-    canDrag: boolean;
-    actions: FileActionDefinition[];
     onSelect: (
         fileId: number,
         event: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean },
     ) => void;
     onOpenFolder: (folderId: number) => void;
-    onOpenDetails: (file: AdminFileRow) => void;
-    onAction: (action: FileActionKey, file: AdminFileRow) => void;
-    onPrepareContextMenu: (file: AdminFileRow) => void;
-    onDragStart: (fileId: number) => void;
-    onDragEnd: () => void;
-    onDragOverFolder: (folderId: number) => void;
-    onDragLeaveFolder: (folderId: number) => void;
-    onDropOnFolder: (folderId: number) => void;
+    /** Manager-only props below: the file picker leaves them out. */
+    isDropTarget?: boolean;
+    isTrashed?: boolean;
+    canEdit?: boolean;
+    canDrag?: boolean;
+    /** Context menu actions; none renders the card without a context menu. */
+    actions?: FileActionDefinition[];
+    onOpenDetails?: (file: AdminFileRow) => void;
+    onAction?: (action: FileActionKey, file: AdminFileRow) => void;
+    onPrepareContextMenu?: (file: AdminFileRow) => void;
+    onDragStart?: (fileId: number) => void;
+    onDragEnd?: () => void;
+    onDragOverFolder?: (folderId: number) => void;
+    onDragLeaveFolder?: (folderId: number) => void;
+    onDropOnFolder?: (folderId: number) => void;
 };
 
 /**
@@ -61,17 +63,18 @@ type FileCardProps = {
  * Nested interactive pattern: the card surface handles selection / open via
  * click handlers; title is a separate native `<button>`; checkbox and context
  * menu actions are siblings (not nested inside each other) so keyboard and
- * screen-reader users can reach each control independently.
+ * screen-reader users can reach each control independently. Also used by the
+ * file picker drawer, without actions, drag and drop.
  */
 export function FileCard({
     file,
     selected,
     multiSelectMode,
-    isDropTarget,
-    isTrashed,
-    canEdit,
-    canDrag,
-    actions,
+    isDropTarget = false,
+    isTrashed = false,
+    canEdit = false,
+    canDrag = false,
+    actions = [],
     onSelect,
     onOpenFolder,
     onOpenDetails,
@@ -171,165 +174,169 @@ export function FileCard({
             </div>
         ) : null;
 
+    const card = (
+        <div
+            draggable={canDrag && !isFolder && !isTrashed}
+            data-file-id={file.id}
+            data-testid={`file-card-${file.id}`}
+            className={cn(
+                'group relative aspect-square w-full min-w-0 overflow-hidden rounded-xl border transition-colors',
+                useCoverLayout
+                    ? 'bg-muted/30'
+                    : 'flex flex-col items-center bg-card p-3 hover:bg-muted/40',
+                'border-sidebar-border/70',
+                selected && 'bg-muted/50 ring-2 ring-primary',
+                isDropTarget && 'ring-2 ring-primary',
+                isTrashed && 'opacity-80',
+            )}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selected}
+            onContextMenu={() => onPrepareContextMenu?.(file)}
+            onClick={(event) => {
+                event.stopPropagation();
+                onSelect(file.id, event);
+            }}
+            onKeyDown={(event) => {
+                // Nested controls (checkbox, title) handle their own keys.
+                if (
+                    event.target !== event.currentTarget ||
+                    (event.key !== 'Enter' && event.key !== ' ')
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                onSelect(file.id, event);
+            }}
+            onDoubleClick={() => {
+                if (isFolder && !isTrashed) {
+                    onOpenFolder(file.id);
+
+                    return;
+                }
+
+                if (!isTrashed) {
+                    onOpenDetails?.(file);
+                }
+            }}
+            onDragStart={(event) => {
+                if (isTrashed || isFolder) {
+                    return;
+                }
+
+                onDragStart?.(file.id);
+                event.dataTransfer.setData(
+                    INTERNAL_FILE_DRAG_TYPE,
+                    String(file.id),
+                );
+            }}
+            onDragEnd={() => onDragEnd?.()}
+            onDragOver={(event) => {
+                if (
+                    !isFolder ||
+                    !canEdit ||
+                    isTrashed ||
+                    !isInternalFileDrag(event)
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+                onDragOverFolder?.(file.id);
+            }}
+            onDragLeave={() => onDragLeaveFolder?.(file.id)}
+            onDrop={(event) => {
+                if (isTrashed || !isInternalFileDrag(event)) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (isFolder) {
+                    onDropOnFolder?.(file.id);
+                }
+            }}
+        >
+            {useCoverLayout && (
+                <div className="absolute inset-0 z-0 overflow-hidden rounded-xl">
+                    <FilePreview
+                        file={file}
+                        hovered={hovered}
+                        variant="cover"
+                    />
+                </div>
+            )}
+
+            <div
+                className={cn(
+                    'absolute top-2 left-2 z-20 transition-opacity',
+                    showCheckbox ? 'opacity-100' : 'opacity-0',
+                )}
+                onPointerDown={(event) => event.stopPropagation()}
+            >
+                <Checkbox
+                    checked={selected}
+                    onClick={(event) => {
+                        // Keep the card's select-only click from replacing the multi-selection (#464).
+                        event.stopPropagation();
+
+                        if (event.shiftKey) {
+                            event.preventDefault();
+                            onSelect(file.id, { shiftKey: true });
+                        }
+                    }}
+                    onCheckedChange={() => onSelect(file.id, { metaKey: true })}
+                    aria-label={t('files.card.select', {
+                        name: file.name,
+                    })}
+                />
+            </div>
+
+            {file.is_favorited && (
+                <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
+            )}
+
+            {file.effective_access === 'private' && (
+                <Badge
+                    variant="outline"
+                    className="absolute bottom-2 left-2 z-20 bg-background/90 text-muted-foreground shadow-sm"
+                    title={t('files.card.privateTitle')}
+                >
+                    {t('files.card.privateBadge')}
+                </Badge>
+            )}
+
+            {useCoverLayout ? (
+                <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-3 py-2 backdrop-blur-md">
+                    <div className="flex min-w-0 flex-col items-center gap-1 text-center">
+                        {titleControl}
+                        {tagsRow}
+                    </div>
+                </div>
+            ) : (
+                <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-2 overflow-hidden">
+                    <div className="flex size-12 shrink-0 items-center justify-center">
+                        <FilePreview file={file} hovered={hovered} />
+                    </div>
+                    {titleControl}
+                    {tagsRow}
+                </div>
+            )}
+        </div>
+    );
+
+    if (actions.length === 0) {
+        return card;
+    }
+
     return (
         <ContextMenu modal={false}>
-            <ContextMenuTrigger asChild>
-                <div
-                    draggable={canDrag && !isFolder && !isTrashed}
-                    data-file-id={file.id}
-                    data-testid={`file-card-${file.id}`}
-                    className={cn(
-                        'group relative aspect-square w-full min-w-0 overflow-hidden rounded-xl border transition-colors',
-                        useCoverLayout
-                            ? 'bg-muted/30'
-                            : 'flex flex-col items-center bg-card p-3 hover:bg-muted/40',
-                        'border-sidebar-border/70',
-                        selected && 'bg-muted/50 ring-2 ring-primary',
-                        isDropTarget && 'ring-2 ring-primary',
-                        isTrashed && 'opacity-80',
-                    )}
-                    onMouseEnter={() => setHovered(true)}
-                    onMouseLeave={() => setHovered(false)}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={selected}
-                    onContextMenu={() => onPrepareContextMenu(file)}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        onSelect(file.id, event);
-                    }}
-                    onKeyDown={(event) => {
-                        // Nested controls (checkbox, title) handle their own keys.
-                        if (
-                            event.target !== event.currentTarget ||
-                            (event.key !== 'Enter' && event.key !== ' ')
-                        ) {
-                            return;
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onSelect(file.id, event);
-                    }}
-                    onDoubleClick={() => {
-                        if (isFolder && !isTrashed) {
-                            onOpenFolder(file.id);
-
-                            return;
-                        }
-
-                        if (!isTrashed) {
-                            onOpenDetails(file);
-                        }
-                    }}
-                    onDragStart={(event) => {
-                        if (isTrashed || isFolder) {
-                            return;
-                        }
-
-                        onDragStart(file.id);
-                        event.dataTransfer.setData(
-                            INTERNAL_FILE_DRAG_TYPE,
-                            String(file.id),
-                        );
-                    }}
-                    onDragEnd={onDragEnd}
-                    onDragOver={(event) => {
-                        if (
-                            !isFolder ||
-                            !canEdit ||
-                            isTrashed ||
-                            !isInternalFileDrag(event)
-                        ) {
-                            return;
-                        }
-
-                        event.preventDefault();
-                        onDragOverFolder(file.id);
-                    }}
-                    onDragLeave={() => onDragLeaveFolder(file.id)}
-                    onDrop={(event) => {
-                        if (isTrashed || !isInternalFileDrag(event)) {
-                            return;
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        if (isFolder) {
-                            onDropOnFolder(file.id);
-                        }
-                    }}
-                >
-                    {useCoverLayout && (
-                        <div className="absolute inset-0 z-0 overflow-hidden rounded-xl">
-                            <FilePreview
-                                file={file}
-                                hovered={hovered}
-                                variant="cover"
-                            />
-                        </div>
-                    )}
-
-                    <div
-                        className={cn(
-                            'absolute top-2 left-2 z-20 transition-opacity',
-                            showCheckbox ? 'opacity-100' : 'opacity-0',
-                        )}
-                        onPointerDown={(event) => event.stopPropagation()}
-                    >
-                        <Checkbox
-                            checked={selected}
-                            onClick={(event) => {
-                                // Keep the card's select-only click from replacing the multi-selection (#464).
-                                event.stopPropagation();
-
-                                if (event.shiftKey) {
-                                    event.preventDefault();
-                                    onSelect(file.id, { shiftKey: true });
-                                }
-                            }}
-                            onCheckedChange={() =>
-                                onSelect(file.id, { metaKey: true })
-                            }
-                            aria-label={t('files.card.select', {
-                                name: file.name,
-                            })}
-                        />
-                    </div>
-
-                    {file.is_favorited && (
-                        <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
-                    )}
-
-                    {file.effective_access === 'private' && (
-                        <Badge
-                            variant="outline"
-                            className="absolute bottom-2 left-2 z-20 bg-background/90 text-muted-foreground shadow-sm"
-                            title={t('files.card.privateTitle')}
-                        >
-                            {t('files.card.privateBadge')}
-                        </Badge>
-                    )}
-
-                    {useCoverLayout ? (
-                        <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-3 py-2 backdrop-blur-md">
-                            <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-                                {titleControl}
-                                {tagsRow}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-2 overflow-hidden">
-                            <div className="flex size-12 shrink-0 items-center justify-center">
-                                <FilePreview file={file} hovered={hovered} />
-                            </div>
-                            {titleControl}
-                            {tagsRow}
-                        </div>
-                    )}
-                </div>
-            </ContextMenuTrigger>
+            <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
             <ContextMenuContent>
                 {actions.map((action, index) => {
                     const Icon = action.icon;
@@ -349,7 +356,7 @@ export function FileCard({
                                 data-testid={`files-context-action-${action.key}`}
                                 disabled={Boolean(action.disabledReason)}
                                 title={action.disabledReason}
-                                onSelect={() => onAction(action.key, file)}
+                                onSelect={() => onAction?.(action.key, file)}
                             >
                                 <Icon className="size-4" />
                                 {action.disabledReason ? (

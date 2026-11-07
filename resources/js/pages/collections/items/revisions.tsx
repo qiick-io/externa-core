@@ -1,12 +1,23 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Item, ItemGroup } from '@/components/ui/item';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemMedia,
+    ItemSeparator,
+    ItemTitle,
+} from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -256,8 +267,8 @@ export default function ItemRevisions({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`History — Item #${item.id}`} />
-            <PageLayout description="Select two revisions to compare. Restore writes a snapshot as a new update.">
+            <Head title={t('revisions.pageTitle', { id: item.id })} />
+            <PageLayout description={t('revisions.pageDescription')}>
                 <div className="mb-4 flex flex-wrap items-end gap-3">
                     <Button variant="outline" asChild>
                         <Link
@@ -266,11 +277,13 @@ export default function ItemRevisions({
                                 item: item.id,
                             })}
                         >
-                            Back to item
+                            {t('revisions.backToItem')}
                         </Link>
                     </Button>
                     <div className="space-y-1">
-                        <Label htmlFor="history-date-from">From</Label>
+                        <Label htmlFor="history-date-from">
+                            {t('common.from')}
+                        </Label>
                         <Input
                             id="history-date-from"
                             type="date"
@@ -283,7 +296,9 @@ export default function ItemRevisions({
                         />
                     </div>
                     <div className="space-y-1">
-                        <Label htmlFor="history-date-to">To</Label>
+                        <Label htmlFor="history-date-to">
+                            {t('common.to')}
+                        </Label>
                         <Input
                             id="history-date-to"
                             type="date"
@@ -300,7 +315,7 @@ export default function ItemRevisions({
                         onClick={applyFilter}
                         disabled={loading}
                     >
-                        Filter
+                        {t('common.filter')}
                     </Button>
                     <Button
                         type="button"
@@ -308,78 +323,111 @@ export default function ItemRevisions({
                         onClick={clearFilter}
                         disabled={loading || !filterActive}
                     >
-                        Clear
+                        {t('common.clear')}
                     </Button>
                 </div>
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div className="space-y-2">
-                        <h2 className="text-sm font-medium">Revisions</h2>
+                        <h2 className="text-sm font-medium">
+                            {t('revisions.title')}
+                        </h2>
                         {loading ? (
-                            <p className="text-sm text-muted-foreground">
-                                Loading…
+                            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Spinner />
+                                {t('common.loading')}
                             </p>
                         ) : null}
                         {!loading && revisions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 {filterActive
-                                    ? 'No revisions for this date range. Clear the filter or widen dates.'
-                                    : 'No revisions yet. Saves, draft edits, publish, and restores appear here.'}
+                                    ? t('revisions.emptyFiltered')
+                                    : t('revisions.empty')}
                             </p>
                         ) : (
                             <>
-                                <ItemGroup className="divide-y rounded-xl border border-sidebar-border/70">
-                                    {revisions.map((revision) => {
+                                <ItemGroup className="rounded-xl border border-sidebar-border/70">
+                                    {revisions.map((revision, index) => {
                                         const active = selected.includes(
                                             revision.id,
                                         );
+                                        const checkboxId = `revision-select-${revision.id}`;
 
                                         return (
-                                            <Item
-                                                key={revision.id}
-                                                role="listitem"
-                                                size="sm"
-                                                className="justify-between rounded-none"
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="flex flex-1 flex-col items-start text-left"
-                                                    onClick={() =>
-                                                        toggleSelect(
-                                                            revision.id,
-                                                        )
-                                                    }
-                                                >
-                                                    <span className="font-mono font-medium">
-                                                        #{revision.id}
-                                                        {active
-                                                            ? ' · selected'
-                                                            : ''}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {revision.created_at
-                                                            ? new Date(
-                                                                  revision.created_at,
-                                                              ).toLocaleString()
-                                                            : '—'}{' '}
-                                                        ·{' '}
-                                                        {revision.user?.name ??
-                                                            'System'}
-                                                    </span>
-                                                </button>
-                                                {canRestore ? (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            setRestoreRevisionId(
-                                                                revision.id,
-                                                            )
-                                                        }
-                                                    >
-                                                        Restore
-                                                    </Button>
+                                            <Fragment key={revision.id}>
+                                                {index > 0 ? (
+                                                    <ItemSeparator />
                                                 ) : null}
-                                            </Item>
+                                                <Item
+                                                    role="listitem"
+                                                    size="sm"
+                                                    variant={
+                                                        active
+                                                            ? 'muted'
+                                                            : 'default'
+                                                    }
+                                                    className="rounded-none"
+                                                >
+                                                    <ItemMedia>
+                                                        <Checkbox
+                                                            id={checkboxId}
+                                                            checked={active}
+                                                            onCheckedChange={() =>
+                                                                toggleSelect(
+                                                                    revision.id,
+                                                                )
+                                                            }
+                                                            aria-label={t(
+                                                                'revisions.selectRevision',
+                                                                {
+                                                                    id: revision.id,
+                                                                },
+                                                            )}
+                                                        />
+                                                    </ItemMedia>
+                                                    <ItemContent>
+                                                        <ItemTitle className="font-mono">
+                                                            <label
+                                                                htmlFor={
+                                                                    checkboxId
+                                                                }
+                                                                className="cursor-pointer"
+                                                            >
+                                                                #{revision.id}
+                                                            </label>
+                                                        </ItemTitle>
+                                                        <ItemDescription>
+                                                            {revision.created_at
+                                                                ? new Date(
+                                                                      revision.created_at,
+                                                                  ).toLocaleString()
+                                                                : '—'}{' '}
+                                                            ·{' '}
+                                                            {revision.user
+                                                                ?.name ??
+                                                                t(
+                                                                    'common.system',
+                                                                )}
+                                                        </ItemDescription>
+                                                    </ItemContent>
+                                                    {canRestore ? (
+                                                        <ItemActions>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    setRestoreRevisionId(
+                                                                        revision.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {t(
+                                                                    'revisions.restore',
+                                                                )}
+                                                            </Button>
+                                                        </ItemActions>
+                                                    ) : null}
+                                                </Item>
+                                            </Fragment>
                                         );
                                     })}
                                 </ItemGroup>
@@ -391,24 +439,30 @@ export default function ItemRevisions({
                                         disabled={loading || loadingMore}
                                         onClick={loadMore}
                                     >
-                                        {loadingMore ? 'Loading…' : 'Load more'}
+                                        {loadingMore
+                                            ? t('common.loading')
+                                            : t('common.loadMore')}
                                     </Button>
                                 ) : null}
                             </>
                         )}
                     </div>
                     <div className="space-y-2">
-                        <h2 className="text-sm font-medium">Compare</h2>
+                        <h2 className="text-sm font-medium">
+                            {t('revisions.compare')}
+                        </h2>
                         {!compared ? (
                             <p className="text-sm text-muted-foreground">
-                                Select two revisions to see field diffs.
+                                {t('revisions.compareHint')}
                             </p>
                         ) : (
                             <div className="overflow-x-auto rounded-xl bg-card">
                                 <Table className="text-xs">
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Field</TableHead>
+                                            <TableHead>
+                                                {t('revisions.field')}
+                                            </TableHead>
                                             <TableHead>A</TableHead>
                                             <TableHead>B</TableHead>
                                         </TableRow>
@@ -453,7 +507,7 @@ export default function ItemRevisions({
                     name: `#${item.id}`,
                 })}
                 description={t('itemConfirm.restoreRevisionDescription')}
-                confirmLabel="Restore"
+                confirmLabel={t('revisions.restore')}
                 confirming={restoring}
                 onConfirm={() => {
                     if (restoreRevisionId === null) {

@@ -35,7 +35,15 @@
         "perPageOption": "{{count}} / Seite",
         "noResults": "Keine Ergebnisse.",
         "copy": "Kopieren",
-        "copied": "Kopiert"
+        "copied": "Kopiert",
+        "loading": "Wird geladen…",
+        "loadMore": "Mehr laden",
+        "preview": "Vorschau",
+        "clear": "Leeren",
+        "filter": "Filtern",
+        "from": "Von",
+        "to": "Bis",
+        "system": "System"
     },
     "picker": {
         "search": "Suchen…",
@@ -890,7 +898,14 @@
             "copied": "Rohwert kopiert",
             "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
             "pasted": "Rohwert eingefügt",
-            "pasteFailed": "Zwischenablage konnte nicht gelesen werden"
+            "pasteFailed": "Zwischenablage konnte nicht gelesen werden",
+            "edit": "Feld bearbeiten",
+            "duplicate": "Feld duplizieren",
+            "showInForm": "Feld im Detail anzeigen",
+            "hideInForm": "Feld im Detail ausblenden",
+            "delete": "Feld löschen",
+            "deleteFailed": "Feld konnte nicht gelöscht werden.",
+            "width": "Breite"
         },
         "itemSave": {
             "create": "Erstellen",
@@ -1327,6 +1342,11 @@
             "createdBy": "Erstellt von",
             "updatedBy": "Aktualisiert von",
             "actions": "Aktionen"
+        },
+        "layoutWidth": {
+            "half": "Halbe Breite",
+            "full": "Volle Breite",
+            "fill": "Breite füllen"
         }
     },
     "ai": {
@@ -2317,5 +2337,22 @@
             "exception": "Ausnahme",
             "actions": "Aktionen"
         }
+    },
+    "revisions": {
+        "title": "Revisionen",
+        "drawerDescription": "Wähle eine Revision zum Vergleich mit dem aktuellen Eintrag. Übernehmen fügt sie ins Formular ein – Speichern behält sie.",
+        "pageTitle": "Verlauf — Eintrag #{{id}}",
+        "pageDescription": "Wähle zwei Revisionen zum Vergleichen. Wiederherstellen schreibt den Stand als neue Änderung.",
+        "backToItem": "Zurück zum Eintrag",
+        "emptyFiltered": "Keine Revisionen in diesem Zeitraum. Filter leeren oder Zeitraum erweitern.",
+        "empty": "Noch keine Revisionen. Speichern, Entwürfe, Veröffentlichen und Wiederherstellen erscheinen hier.",
+        "hard": "Direkt",
+        "hardRestore": "Direkt wiederherstellen",
+        "hardRestoreHint": "Direkt wiederherstellen (schreibt sofort)",
+        "restore": "Wiederherstellen",
+        "compare": "Vergleichen",
+        "compareHint": "Wähle zwei Revisionen, um die Unterschiede zu sehen.",
+        "field": "Feld",
+        "selectRevision": "Revision #{{id}} auswählen"
     }
 }
