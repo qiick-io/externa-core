@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\Ai;
 
-use App\Ai\Support\AiPendingApprovals;
-use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Ai\AiConversationMessagePresenterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -19,6 +18,10 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
  */
 class AiPageController extends Controller
 {
+    public function __construct(
+        private readonly AiConversationMessagePresenterService $messagePresenter,
+    ) {}
+
     /**
      * Render the chat page without a preselected conversation.
      */
@@ -76,40 +79,12 @@ class AiPageController extends Controller
                 ->where('conversation_id', $selected->id)
                 ->orderBy('created_at')
                 ->orderBy('id')
-                ->get(['id', 'role', 'content', 'attachments', 'steps', 'status', 'created_at']);
+                ->get(['id', 'role', 'content', 'attachments', 'steps', 'usage', 'meta', 'status', 'created_at']);
 
             $lastMessageId = $rows->last()?->id;
 
             $messages = $rows
-                ->map(function (ConversationMessage $message) use ($lastMessageId): array {
-                    $content = $this->normalizeMessageContent($message->content);
-                    $toolCalls = $message->tool_calls;
-                    $toolResults = $message->tool_results;
-                    $pendingApprovals = AiPendingApprovals::fromMessage($message);
-                    $approvalOpen = $message->id === $lastMessageId;
-                    $attachments = $this->normalizeMessageAttachments($message->attachments);
-
-                    if ($message->role === 'assistant' && trim($content) === '') {
-                        if ($pendingApprovals !== []) {
-                            $content = $approvalOpen
-                                ? AiToolTurnSummary::awaitingApproval($pendingApprovals)
-                                : AiToolTurnSummary::approvalAbandoned($pendingApprovals);
-                        } elseif ($toolCalls !== [] || $toolResults !== []) {
-                            $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
-                        }
-                    }
-
-                    return [
-                        'id' => $message->id,
-                        'role' => $message->role,
-                        'content' => $content,
-                        'attachments' => $attachments,
-                        'tool_calls' => $toolCalls,
-                        'tool_results' => $toolResults,
-                        'pending_approvals' => $approvalOpen ? $pendingApprovals : [],
-                        'created_at' => $message->created_at?->toIso8601String(),
-                    ];
-                })
+                ->map(fn (ConversationMessage $message): array => $this->messagePresenter->present($message, $message->id === $lastMessageId))
                 ->all();
 
             if ($conversations->getCollection()->where('id', $selected->id)->isEmpty()) {
@@ -152,100 +127,5 @@ class AiPageController extends Controller
         }
 
         return Carbon::parse($value)->toIso8601String();
-    }
-
-    /**
-     * Flatten stored message content into display text.
-     */
-    private function normalizeMessageContent(mixed $content): string
-    {
-        if ($content === null) {
-            return '';
-        }
-
-        if (is_string($content)) {
-            $decoded = json_decode($content, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $this->normalizeMessageContent($decoded);
-            }
-
-            return $content;
-        }
-
-        if (! is_array($content)) {
-            return (string) $content;
-        }
-
-        $textParts = [];
-
-        foreach ($content as $part) {
-            if (is_string($part)) {
-                $textParts[] = $part;
-
-                continue;
-            }
-
-            if (is_array($part) && isset($part['text']) && is_string($part['text'])) {
-                $textParts[] = $part['text'];
-            }
-        }
-
-        if ($textParts !== []) {
-            return implode('', $textParts);
-        }
-
-        return json_encode($content, JSON_UNESCAPED_UNICODE) ?: '';
-    }
-
-    /**
-     * Decode tool call/result payloads stored as JSON strings.
-     *
-     * @return array<int|string, mixed>
-     */
-    private function normalizeMessageArray(mixed $value): array
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_string($value) && $value !== '') {
-            return json_decode($value, true) ?: [];
-        }
-
-        return [];
-    }
-
-    /**
-     * Normalize attachment metadata stored on chat messages.
-     *
-     * @return list<array{id?: string, name: string, mime?: string|null, size?: int|null}>
-     */
-    private function normalizeMessageAttachments(mixed $value): array
-    {
-        $items = $this->normalizeMessageArray($value);
-
-        $attachments = [];
-
-        foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-
-            $name = $item['name'] ?? null;
-
-            if (! is_string($name) || $name === '') {
-                continue;
-            }
-
-            $attachments[] = [
-                'id' => is_string($item['id'] ?? null) ? $item['id'] : null,
-                'name' => $name,
-                'mime' => is_string($item['mime'] ?? null) ? $item['mime'] : null,
-                'size' => is_numeric($item['size'] ?? null) ? (int) $item['size'] : null,
-            ];
-        }
-
-        return $attachments;
     }
 }

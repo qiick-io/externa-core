@@ -10,6 +10,7 @@ import { isValidElement } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CodeBlock } from '@/components/ai-elements/code-block';
+import { Shimmer } from '@/components/ai-elements/shimmer';
 import { Badge } from '@/components/ui/badge';
 import {
     Collapsible,
@@ -23,7 +24,7 @@ import { cn } from '@/lib/utils';
  * Changes from the registry copy: the ai-sdk `ToolUIPart` types are local
  * (Externa streams its own SSE and does not install `ai`); the status icons use
  * the theme status tokens instead of palette colours; the labels go through
- * i18n (`ai.tool.*`).
+ * i18n (`ai.tool.*`); a running call's name shimmers (AI Elements Shimmer).
  */
 
 /** The ai-sdk tool part states the components switch on. */
@@ -90,7 +91,13 @@ export const ToolHeader = ({
         <div className="flex items-center gap-2">
             <WrenchIcon className="size-4 text-muted-foreground" />
             <span className="text-sm font-medium">
-                {title ?? type.split('-').slice(1).join('-')}
+                {state === 'input-available' ? (
+                    <Shimmer>
+                        {title ?? type.split('-').slice(1).join('-')}
+                    </Shimmer>
+                ) : (
+                    (title ?? type.split('-').slice(1).join('-'))
+                )}
             </span>
             <StatusBadge status={state} />
         </div>
