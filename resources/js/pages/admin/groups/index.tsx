@@ -16,9 +16,15 @@ import { UserAvatar } from '@/components/admin/user-avatar';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
-import { Avatar, AvatarFallback, AvatarGroup } from '@/components/ui/avatar';
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarGroup,
+    AvatarGroupCount,
+} from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -32,7 +38,6 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
-import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
@@ -89,7 +94,6 @@ export default function AdminGroupsIndex({
         { value: 'updated_at', label: t('common.updated') },
     ];
     const { can } = useCan();
-    const onlineUsers = useOnlineUsers();
     const requestLeave = useRequestLeave();
     const isTrashed = filters.trashed === true;
     const [search, setSearch] = useState(filters.search ?? '');
@@ -319,29 +323,36 @@ export default function AdminGroupsIndex({
             },
             cell: ({ row }) => {
                 const members = row.original.users ?? [];
+                const total = row.original.users_count ?? members.length;
+                const shown = members.slice(0, MEMBER_AVATAR_LIMIT);
+                const hidden = total - shown.length;
+
+                if (members.length === 0) {
+                    return total > 0 ? total : '—';
+                }
 
                 return (
-                    <span className="inline-flex items-center justify-end gap-2">
-                        {members.length > 0 ? (
-                            <AvatarGroup
-                                className="-space-x-1.5 [&_[data-slot=avatar]]:ring-2 [&_[data-slot=avatar]]:ring-background"
-                                data-test={`group-member-avatars-${row.original.id}`}
+                    <AvatarGroup
+                        className="justify-end"
+                        aria-label={t('groups.membersCount', { count: total })}
+                        data-test={`group-member-avatars-${row.original.id}`}
+                    >
+                        {shown.map((member) => (
+                            <UserAvatar
+                                key={member.id}
+                                user={member}
+                                size="sm"
+                            />
+                        ))}
+                        {hidden > 0 ? (
+                            <AvatarGroupCount
+                                className="text-xs"
+                                data-test="group-member-count"
                             >
-                                {members
-                                    .slice(0, MEMBER_AVATAR_LIMIT)
-                                    .map((member) => (
-                                        <UserAvatar
-                                            key={member.id}
-                                            user={member}
-                                            isOnline={onlineUsers.has(
-                                                member.id,
-                                            )}
-                                        />
-                                    ))}
-                            </AvatarGroup>
+                                +{hidden}
+                            </AvatarGroupCount>
                         ) : null}
-                        {row.original.users_count ?? '—'}
-                    </span>
+                    </AvatarGroup>
                 );
             },
         },
@@ -366,7 +377,10 @@ export default function AdminGroupsIndex({
                 }
 
                 return (
-                    <div className="inline-flex gap-1">
+                    <ButtonGroup
+                        aria-label={t('groups.columns.actions')}
+                        className="ml-auto"
+                    >
                         {can(PermissionEnum.CanRestoreGroups) && (
                             <Button
                                 type="button"
@@ -397,7 +411,7 @@ export default function AdminGroupsIndex({
                                 {t('common.deletePermanently')}
                             </Button>
                         )}
-                    </div>
+                    </ButtonGroup>
                 );
             },
         },
