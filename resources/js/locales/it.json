@@ -1314,6 +1314,19 @@
             "convertFailed": "Conversione non riuscita.",
             "success": "Campo convertito.",
             "queued": "Conversione del campo in coda."
+        },
+        "columnPicker": {
+            "fields": "Campi",
+            "related": "Campi collegati",
+            "openRelated": "Apri i campi di {{label}}",
+            "noNestedFields": "Nessun campo annidato disponibile.",
+            "noMatches": "Nessun campo corrisponde alla ricerca.",
+            "id": "ID",
+            "createdAt": "Creato il",
+            "updatedAt": "Aggiornato il",
+            "createdBy": "Creato da",
+            "updatedBy": "Aggiornato da",
+            "actions": "Azioni"
         }
     },
     "ai": {

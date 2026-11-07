@@ -1276,7 +1276,11 @@ export default function ItemsIndex({
                                                     onChange={persistColumns}
                                                 />
                                             ) : null}
-                                            <span>Actions</span>
+                                            <span>
+                                                {t(
+                                                    'collections.columnPicker.actions',
+                                                )}
+                                            </span>
                                         </div>
                                     </TableHead>
                                 </TableRow>

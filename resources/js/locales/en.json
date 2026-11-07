@@ -1314,6 +1314,19 @@
             "convertFailed": "Conversion failed.",
             "success": "Field converted.",
             "queued": "Field conversion queued."
+        },
+        "columnPicker": {
+            "fields": "Fields",
+            "related": "Related fields",
+            "openRelated": "Open {{label}} fields",
+            "noNestedFields": "No nested fields available.",
+            "noMatches": "No fields match your search.",
+            "id": "ID",
+            "createdAt": "Created at",
+            "updatedAt": "Updated at",
+            "createdBy": "Created by",
+            "updatedBy": "Updated by",
+            "actions": "Actions"
         }
     },
     "ai": {
