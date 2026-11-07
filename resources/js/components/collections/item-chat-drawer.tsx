@@ -2,7 +2,6 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     CircleAlert,
     Ellipsis,
-    FileText,
     MoreVertical,
     Paperclip,
     Pin,
@@ -12,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatAttachmentFile } from '@/components/chat/chat-attachment-file';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
@@ -2363,7 +2363,7 @@ export function ItemChatDrawer({
                                                                                                                 }
                                                                                                                 className="w-full min-w-0"
                                                                                                             >
-                                                                                                                <AttachmentRow
+                                                                                                                <ChatAttachmentFile
                                                                                                                     attachment={
                                                                                                                         attachment
                                                                                                                     }
@@ -2905,81 +2905,5 @@ function ChatMediaGallery({
                 }}
             />
         </>
-    );
-}
-
-function AttachmentRow({
-    attachment,
-    scope,
-    canCreateFiles,
-    hasFileFields,
-    onSaved,
-    onAddToField,
-}: {
-    attachment: ChatAttachment;
-    scope: ChatScope;
-    canCreateFiles: boolean;
-    hasFileFields: boolean;
-    onSaved: (attachment: ChatAttachment) => void;
-    onAddToField: () => void;
-}) {
-    const { t } = useTranslation();
-    const href = chatAttachmentUrl(scope, attachment.id);
-
-    return (
-        <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-card-foreground shadow-sm">
-            <a
-                href={href}
-                className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-foreground no-underline hover:underline"
-                target="_blank"
-                rel="noreferrer"
-            >
-                <FileText
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden
-                />
-                <span className="truncate">{attachment.name}</span>
-            </a>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="size-6 shrink-0 text-muted-foreground"
-                        aria-label={t('collections.itemChat.more')}
-                        onContextMenu={(event) => event.stopPropagation()}
-                    >
-                        <MoreVertical className="size-3.5" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                        <a href={href} target="_blank" rel="noreferrer">
-                            {t('collections.itemChat.download')}
-                        </a>
-                    </DropdownMenuItem>
-                    {canCreateFiles ? (
-                        <DropdownMenuItem
-                            onSelect={() => {
-                                void saveChatAttachmentToFiles(
-                                    scope,
-                                    attachment.id,
-                                ).then((payload) =>
-                                    onSaved(payload.attachment),
-                                );
-                            }}
-                        >
-                            {t('collections.itemChat.saveToFiles')}
-                        </DropdownMenuItem>
-                    ) : null}
-                    {hasFileFields ? (
-                        <DropdownMenuItem onSelect={onAddToField}>
-                            {t('collections.itemChat.addToField')}
-                        </DropdownMenuItem>
-                    ) : null}
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
     );
 }
