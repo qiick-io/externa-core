@@ -102,7 +102,7 @@ class ChatMessageController extends Controller
         $pinned = CollectionItemChatMessage::query()
             ->where('chat_id', $chat->id)
             ->whereNotNull('pinned_at')
-            ->with(['user:id,first_name,last_name,email'])
+            ->with(['user:id,first_name,last_name,email', 'user.roles:id,name'])
             ->orderByDesc('pinned_at')
             ->get();
 
@@ -1055,9 +1055,11 @@ class ChatMessageController extends Controller
     {
         return [
             'user:id,first_name,last_name,email',
+            'user.roles:id,name',
             'attachments',
             'reactions.user:id,first_name,last_name,email',
             'replyTo.user:id,first_name,last_name,email',
+            'replyTo.user.roles:id,name',
         ];
     }
 
@@ -1085,24 +1087,22 @@ class ChatMessageController extends Controller
         return [
             'id' => $message->id,
             'body' => trim($message->body),
-            'user' => $author ? [
-                'id' => $author->id,
-                'name' => $this->displayName($author),
-            ] : null,
+            'user' => $author ? $this->serializeChatUser($author) : null,
             'mentioned_users' => $mentions['mentioned_users'],
             'mentioned_collections' => $mentions['mentioned_collections'],
         ];
     }
 
     /**
-     * @return array{mentioned_users: list<array{id: int, name: string}>, mentioned_collections: list<array{id: int, name: string}>}
+     * @return array{mentioned_users: list<array{id: int, name: string, role: string|null}>, mentioned_collections: list<array{id: int, name: string}>}
      */
     private function serializeMentions(CollectionItemChatMessage $comment): array
     {
         $mentionedIds = $comment->mentionedIds();
         $mentionedUsers = $mentionedIds === []
             ? collect()
-            : User::query()->whereIn('id', $mentionedIds)->get(['id', 'first_name', 'last_name', 'email']);
+            : User::query()->whereIn('id', $mentionedIds)->with('roles:id,name')
+                ->get(['id', 'first_name', 'last_name', 'email']);
 
         preg_match_all('/@\[collection:(\d+)\]/', $comment->body, $collectionMatches);
         $collectionIds = array_values(array_unique(array_map('intval', $collectionMatches[1] ?? [])));
@@ -1112,10 +1112,7 @@ class ChatMessageController extends Controller
 
         return [
             'mentioned_users' => $mentionedUsers
-                ->map(fn (User $user): array => [
-                    'id' => $user->id,
-                    'name' => $this->displayName($user),
-                ])
+                ->map(fn (User $user): array => $this->serializeChatUser($user))
                 ->values()
                 ->all(),
             'mentioned_collections' => $mentionedCollections
@@ -1181,10 +1178,7 @@ class ChatMessageController extends Controller
         return [
             'id' => $replyTo->id,
             'body' => Str::limit(trim($replyTo->body), 120),
-            'user' => $author ? [
-                'id' => $author->id,
-                'name' => $this->displayName($author),
-            ] : null,
+            'user' => $author ? $this->serializeChatUser($author) : null,
         ];
     }
 
@@ -1205,10 +1199,7 @@ class ChatMessageController extends Controller
             'mentioned_user_ids' => $mentionedIds,
             'mentioned_users' => $mentions['mentioned_users'],
             'mentioned_collections' => $mentions['mentioned_collections'],
-            'user' => $author ? [
-                'id' => $author->id,
-                'name' => $this->displayName($author),
-            ] : null,
+            'user' => $author ? $this->serializeChatUser($author) : null,
             'attachments' => $comment->attachments
                 ->map(fn (CollectionItemChatAttachment $attachment): array => $attachment->toApiArray())
                 ->values()
@@ -1221,6 +1212,21 @@ class ChatMessageController extends Controller
             'updated_at' => $comment->updated_at?->toIso8601String(),
             'can_edit' => $isAuthor,
             'can_delete' => $isAuthor,
+        ];
+    }
+
+    /**
+     * A chat participant as the thread shows them: name and role, for the
+     * user hover card on author names and mentions.
+     *
+     * @return array{id: int, name: string, role: string|null}
+     */
+    private function serializeChatUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $this->displayName($user),
+            'role' => $user->getRoleNames()->first(),
         ];
     }
 
