@@ -2257,7 +2257,20 @@
         "linkUrl": "URL del link",
         "applyLink": "Applica",
         "removeLink": "Rimuovi link",
-        "headingLevel": "Titolo {{level}}"
+        "headingLevel": "Titolo {{level}}",
+        "removeTag": "Rimuovi tag {{name}}",
+        "imageFromComputer": "Carica dal computer",
+        "imageFromLibrary": "Scegli dalla libreria",
+        "imageFromUrl": "Importa da URL",
+        "imageOnly": "Scegli un file immagine.",
+        "imageUploadFailed": "Caricamento immagine non riuscito.",
+        "uploadingImage": "Caricamento immagine…",
+        "insertTable": "Inserisci tabella",
+        "insertTableDescription": "Scegli righe e colonne della tabella markdown.",
+        "tableRows": "Righe",
+        "tableColumns": "Colonne",
+        "createTable": "Crea",
+        "nothingToPreview": "Niente da visualizzare."
     },
     "permissions": {
         "columns": {
