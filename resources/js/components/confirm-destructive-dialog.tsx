@@ -111,6 +111,7 @@ export function ConfirmDestructiveDialog({
                         {cancelLabel ?? t('common.cancel')}
                     </AlertDialogCancel>
                     <AlertDialogAction
+                        variant="destructive"
                         disabled={confirmDisabled}
                         data-test="confirm-destructive"
                         onClick={(event) => {
