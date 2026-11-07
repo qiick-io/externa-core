@@ -54,6 +54,7 @@ import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { AutocompleteInput } from '@/components/collections/autocomplete-input';
 import { ShortcutKeys } from '@/components/collections/shortcut-keys';
 import { RemovableBadge } from '@/components/removable-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import {
@@ -1503,9 +1504,12 @@ export function ColorFieldInput({
         >
             <div className="flex h-7 items-center gap-2">{swatchAndHex}</div>
             <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums">
+                <Badge
+                    variant="muted"
+                    className="min-w-9 font-mono text-foreground tabular-nums"
+                >
                     {Math.round(alpha * 100)}%
-                </span>
+                </Badge>
                 <Slider
                     className="w-auto min-w-0 flex-1"
                     min={0}

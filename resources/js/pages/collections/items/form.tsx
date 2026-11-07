@@ -901,9 +901,9 @@ export default function ItemsForm({
                         >
                             <MessageCircle className="size-4" />
                             {chatCount > 0 ? (
-                                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                                <Badge className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full px-1 tabular-nums">
                                     {chatCount > 9 ? '9+' : chatCount}
-                                </span>
+                                </Badge>
                             ) : null}
                         </HeaderIconButton>
                     )}

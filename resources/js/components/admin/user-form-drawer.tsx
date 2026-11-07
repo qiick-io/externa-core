@@ -4,6 +4,7 @@ import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserGroupMultiSelect } from '@/components/admin/user-group-multi-select';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DrawerBody,
     DrawerContent,
@@ -325,28 +326,21 @@ export function UserFormDrawer({
                             </FieldError>
                         </Field>
 
-                        <Field>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    id="user_is_active"
-                                    type="checkbox"
-                                    className="size-4 rounded border"
-                                    checked={form.data.is_active}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'is_active',
-                                            e.target.checked,
-                                        )
-                                    }
-                                    disabled={readOnly}
-                                />
-                                <FieldLabel
-                                    htmlFor="user_is_active"
-                                    className="font-normal"
-                                >
-                                    Active
-                                </FieldLabel>
-                            </div>
+                        <Field orientation="horizontal">
+                            <Checkbox
+                                id="user_is_active"
+                                checked={form.data.is_active}
+                                onCheckedChange={(checked) =>
+                                    form.setData('is_active', checked === true)
+                                }
+                                disabled={readOnly}
+                            />
+                            <FieldLabel
+                                htmlFor="user_is_active"
+                                className="font-normal"
+                            >
+                                Active
+                            </FieldLabel>
                         </Field>
 
                         <Field

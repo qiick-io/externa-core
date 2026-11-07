@@ -3,7 +3,6 @@ import {
     Download,
     FolderOpen,
     Link2,
-    Loader2,
     Pencil,
     Upload,
     X,
@@ -33,6 +32,7 @@ import {
     ItemMedia,
     ItemTitle,
 } from '@/components/ui/item';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
     TooltipContent,
@@ -172,9 +172,6 @@ function FileFieldEmptyDropzone({
         [acceptImagesOnly, busy, filesMaxUploadBytes, multiple, onUploaded, t],
     );
 
-    const actionButtonClass =
-        'inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground disabled:pointer-events-none disabled:opacity-50';
-
     return (
         <>
             <div
@@ -216,14 +213,16 @@ function FileFieldEmptyDropzone({
                 />
 
                 {uploading ? (
-                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                    <Spinner className="size-6 text-muted-foreground" />
                 ) : (
                     <div className="flex items-center gap-3">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
                                     type="button"
-                                    className={actionButtonClass}
+                                    variant="secondary"
+                                    size="icon-lg"
+                                    className="rounded-full"
                                     disabled={busy}
                                     aria-label={t(
                                         'collections.fileField.uploadFromComputer',
@@ -231,7 +230,7 @@ function FileFieldEmptyDropzone({
                                     onClick={() => inputRef.current?.click()}
                                 >
                                     <Upload className="size-4" />
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('collections.fileField.uploadFromComputer')}
@@ -240,9 +239,11 @@ function FileFieldEmptyDropzone({
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
                                     type="button"
-                                    className={actionButtonClass}
+                                    variant="secondary"
+                                    size="icon-lg"
+                                    className="rounded-full"
                                     disabled={busy}
                                     aria-label={t(
                                         'collections.fileField.chooseFromLibrary',
@@ -250,7 +251,7 @@ function FileFieldEmptyDropzone({
                                     onClick={onPickLibrary}
                                 >
                                     <FolderOpen className="size-4" />
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('collections.fileField.chooseFromLibrary')}
@@ -259,9 +260,11 @@ function FileFieldEmptyDropzone({
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
                                     type="button"
-                                    className={actionButtonClass}
+                                    variant="secondary"
+                                    size="icon-lg"
+                                    className="rounded-full"
                                     disabled={busy}
                                     aria-label={t(
                                         'collections.fileField.importFromUrl',
@@ -269,7 +272,7 @@ function FileFieldEmptyDropzone({
                                     onClick={() => setUrlOpen(true)}
                                 >
                                     <Link2 className="size-4" />
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('collections.fileField.importFromUrl')}

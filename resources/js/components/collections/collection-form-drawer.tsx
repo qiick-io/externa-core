@@ -22,6 +22,12 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -341,8 +347,8 @@ export function CollectionFormDrawer({
                                         }
                                         className="w-12 shrink-0 cursor-pointer border-0 p-1 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                                     />
-                                    <div className="relative min-w-0 flex-1">
-                                        <Input
+                                    <InputGroup className="min-w-0 flex-1">
+                                        <InputGroupInput
                                             type="text"
                                             value={form.data.color ?? ''}
                                             onChange={(e) =>
@@ -354,7 +360,7 @@ export function CollectionFormDrawer({
                                             placeholder={
                                                 COLLECTION_COLOR_PICKER_FALLBACK
                                             }
-                                            className="pr-8 font-mono"
+                                            className="font-mono"
                                             aria-invalid={
                                                 form.errors.color
                                                     ? true
@@ -367,20 +373,24 @@ export function CollectionFormDrawer({
                                             }
                                         />
                                         {form.data.color ? (
-                                            <button
-                                                type="button"
-                                                className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-                                                onClick={() =>
-                                                    form.setData('color', '')
-                                                }
-                                                aria-label={t(
-                                                    'collections.meta.clearColor',
-                                                )}
-                                            >
-                                                <X className="size-4" />
-                                            </button>
+                                            <InputGroupAddon align="inline-end">
+                                                <InputGroupButton
+                                                    size="icon-xs"
+                                                    onClick={() =>
+                                                        form.setData(
+                                                            'color',
+                                                            '',
+                                                        )
+                                                    }
+                                                    aria-label={t(
+                                                        'collections.meta.clearColor',
+                                                    )}
+                                                >
+                                                    <X />
+                                                </InputGroupButton>
+                                            </InputGroupAddon>
                                         ) : null}
-                                    </div>
+                                    </InputGroup>
                                 </div>
                                 <FieldError id="collection-drawer-color-error">
                                     {form.errors.color}
