@@ -1,10 +1,13 @@
-import { Loader2, RotateCcw, Trash2 } from 'lucide-react';
+import { RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChatPendingFile } from '@/components/chat/chat-attachment-file';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
+import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import type {
     ChatCollection,
     ChatReplyTo,
@@ -146,65 +149,36 @@ export function ChatOutgoingAttachPreview({
                     {docs.length > 0 ? (
                         <ul
                             className={cn(
-                                'flex flex-col gap-1 px-3 pt-2',
+                                'flex min-w-56 flex-col gap-1 px-2 pt-2',
                                 !hasBody && 'pb-0',
                             )}
                         >
                             {docs.map((file) => (
-                                <li
-                                    key={file.key}
-                                    className="group/file flex items-center gap-2 text-xs text-muted-foreground"
-                                >
-                                    {file.error ? (
-                                        <span className="size-3 shrink-0 rounded-full bg-destructive/80" />
-                                    ) : file.uploadedId ? (
-                                        <span className="size-3 shrink-0 rounded-full bg-emerald-500/80" />
-                                    ) : (
-                                        <Loader2 className="size-3 shrink-0 animate-spin" />
-                                    )}
-                                    <span className="min-w-0 flex-1 truncate">
-                                        {file.file.name}
-                                        {file.progress > 0 &&
-                                        file.progress < 100
-                                            ? ` ${file.progress}%`
-                                            : ''}
-                                    </span>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        className="size-6 opacity-0 transition-opacity group-hover/file:opacity-100"
-                                        aria-label={t(
-                                            'collections.itemChat.removePendingFile',
-                                        )}
-                                        onClick={() =>
+                                <li key={file.key} className="min-w-0">
+                                    <ChatPendingFile
+                                        name={file.file.name}
+                                        size={file.file.size}
+                                        progress={file.progress}
+                                        error={file.error}
+                                        uploaded={file.uploadedId !== null}
+                                        onRemove={() =>
                                             onRemoveFile(
                                                 pending.clientId,
                                                 file.key,
                                             )
                                         }
-                                    >
-                                        <Trash2 className="size-3.5" />
-                                    </Button>
+                                    />
                                 </li>
                             ))}
                         </ul>
                     ) : null}
 
                     {pending.replyTo ? (
-                        <div
-                            className={cn(
-                                'mx-3 mt-2 rounded-md border-l-2 border-primary/60 bg-muted/50 px-2 py-1',
-                                !hasMedia && 'mt-0 pt-2',
-                            )}
-                        >
-                            <div className="truncate text-xs font-medium">
-                                {pending.replyTo.user?.name}
-                            </div>
-                            <div className="truncate text-xs text-muted-foreground">
-                                {pending.replyTo.body}
-                            </div>
-                        </div>
+                        <ChatReplyQuote
+                            author={pending.replyTo.user?.name}
+                            body={pending.replyTo.body}
+                            className="mx-2 mt-2 w-auto"
+                        />
                     ) : null}
 
                     {hasBody ? (
@@ -248,12 +222,11 @@ export function ChatOutgoingAttachPreview({
                                     />
                                 </button>
                             ) : inFlight ? (
-                                <Loader2
-                                    className="size-2.5 animate-spin text-muted-foreground"
+                                <Spinner
+                                    className="size-2.5 text-muted-foreground"
                                     aria-label={t(
                                         'collections.itemChat.sending',
                                     )}
-                                    role="status"
                                 />
                             ) : null}
                         </span>
