@@ -994,6 +994,7 @@
             "copyText": "Copia testo",
             "pin": "Fissa",
             "unpin": "Togli",
+            "pinned": "Messaggi fissati",
             "visibilityHint": "Visibile a chi può leggere questo item",
             "openInHub": "Apri in Chat",
             "mediaPreview": "Anteprima media",

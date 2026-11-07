@@ -994,6 +994,7 @@
             "copyText": "Text kopieren",
             "pin": "Anheften",
             "unpin": "Lösen",
+            "pinned": "Angeheftete Nachrichten",
             "visibilityHint": "Sichtbar für alle, die dieses Item lesen können",
             "openInHub": "In Chat öffnen",
             "mediaPreview": "Medienvorschau",
