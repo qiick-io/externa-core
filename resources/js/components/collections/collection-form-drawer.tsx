@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DrawerBody,
     DrawerContent,
@@ -20,6 +21,12 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     Select,
     SelectContent,
@@ -340,8 +347,8 @@ export function CollectionFormDrawer({
                                         }
                                         className="w-12 shrink-0 cursor-pointer border-0 p-1 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                                     />
-                                    <div className="relative min-w-0 flex-1">
-                                        <Input
+                                    <InputGroup className="min-w-0 flex-1">
+                                        <InputGroupInput
                                             type="text"
                                             value={form.data.color ?? ''}
                                             onChange={(e) =>
@@ -353,7 +360,7 @@ export function CollectionFormDrawer({
                                             placeholder={
                                                 COLLECTION_COLOR_PICKER_FALLBACK
                                             }
-                                            className="pr-8 font-mono"
+                                            className="font-mono"
                                             aria-invalid={
                                                 form.errors.color
                                                     ? true
@@ -366,20 +373,24 @@ export function CollectionFormDrawer({
                                             }
                                         />
                                         {form.data.color ? (
-                                            <button
-                                                type="button"
-                                                className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-                                                onClick={() =>
-                                                    form.setData('color', '')
-                                                }
-                                                aria-label={t(
-                                                    'collections.meta.clearColor',
-                                                )}
-                                            >
-                                                <X className="size-4" />
-                                            </button>
+                                            <InputGroupAddon align="inline-end">
+                                                <InputGroupButton
+                                                    size="icon-xs"
+                                                    onClick={() =>
+                                                        form.setData(
+                                                            'color',
+                                                            '',
+                                                        )
+                                                    }
+                                                    aria-label={t(
+                                                        'collections.meta.clearColor',
+                                                    )}
+                                                >
+                                                    <X />
+                                                </InputGroupButton>
+                                            </InputGroupAddon>
                                         ) : null}
-                                    </div>
+                                    </InputGroup>
                                 </div>
                                 <FieldError id="collection-drawer-color-error">
                                     {form.errors.color}
@@ -392,16 +403,14 @@ export function CollectionFormDrawer({
                             }
                         >
                             <div className="flex items-center gap-2">
-                                <input
+                                <Checkbox
                                     id="collection_drawer_singleton"
-                                    type="checkbox"
-                                    className="size-4 rounded border disabled:cursor-not-allowed disabled:opacity-60"
                                     checked={form.data.is_singleton}
                                     disabled={editing !== null}
-                                    onChange={(e) =>
+                                    onCheckedChange={(isChecked) =>
                                         form.setData(
                                             'is_singleton',
-                                            e.target.checked,
+                                            isChecked === true,
                                         )
                                     }
                                 />
@@ -432,18 +441,16 @@ export function CollectionFormDrawer({
                                 }
                             >
                                 <div className="flex items-center gap-2">
-                                    <input
+                                    <Checkbox
                                         id="collection_drawer_versioning"
-                                        type="checkbox"
-                                        className="size-4 rounded border"
                                         checked={Boolean(form.data.versioning)}
-                                        onChange={(e) => {
+                                        onCheckedChange={(isChecked) => {
                                             form.setData(
                                                 'versioning',
-                                                e.target.checked,
+                                                isChecked === true,
                                             );
 
-                                            if (!e.target.checked) {
+                                            if (isChecked !== true) {
                                                 form.setData(
                                                     'approvals_required',
                                                     false,
@@ -474,18 +481,16 @@ export function CollectionFormDrawer({
                                 }
                             >
                                 <div className="flex items-center gap-2">
-                                    <input
+                                    <Checkbox
                                         id="collection_drawer_approvals"
-                                        type="checkbox"
-                                        className="size-4 rounded border"
                                         checked={Boolean(
                                             form.data.approvals_required,
                                         )}
                                         disabled={!form.data.versioning}
-                                        onChange={(e) =>
+                                        onCheckedChange={(isChecked) =>
                                             form.setData(
                                                 'approvals_required',
-                                                e.target.checked,
+                                                isChecked === true,
                                             )
                                         }
                                         data-test="collection-approvals-required"

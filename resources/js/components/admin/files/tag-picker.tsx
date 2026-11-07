@@ -1,6 +1,21 @@
-import { useMemo, useState } from 'react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/input';
+import { RemovableBadge } from '@/components/removable-badge';
+import { Button } from '@/components/ui/button';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { FileTag } from '@/types/files';
 
@@ -13,6 +28,11 @@ type TagPickerProps = {
     id?: string;
 };
 
+/**
+ * @param catalog - Existing tags.
+ * @param typedName - Trimmed name the user typed.
+ * @returns The catalog tag with exactly that name, if any.
+ */
 function findExactCatalogMatch(
     catalog: FileTag[],
     typedName: string,
@@ -21,8 +41,11 @@ function findExactCatalogMatch(
 }
 
 /**
- * Multi-select for assigning tags to files.
- * @param {*} props - Component props.
+ * Assigns tags to files: the shadcn combobox pattern (Popover + Command) with
+ * the chosen tags as removable `Badge` chips above the trigger. Typing a new
+ * name offers "Create"; an exact catalog match reuses the existing tag.
+ *
+ * @param {TagPickerProps} props - Component props.
  * @returns {JSX.Element}
  */
 export function TagPicker({
@@ -34,34 +57,17 @@ export function TagPicker({
     id,
 }: TagPickerProps) {
     const { t } = useTranslation();
-    const [inputValue, setInputValue] = useState('');
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
     const resolvedPlaceholder = placeholder ?? t('files.tags.placeholder');
+    const trimmedQuery = query.trim();
+    const exactMatch = trimmedQuery
+        ? findExactCatalogMatch(catalog, trimmedQuery)
+        : undefined;
+    const canCreate =
+        trimmedQuery !== '' && !exactMatch && !value.includes(trimmedQuery);
 
-    const availableCatalogTags = useMemo(
-        () => catalog.filter((tag) => !value.includes(tag.name)),
-        [catalog, value],
-    );
-
-    const addTagName = (rawName: string): void => {
-        const trimmedName = rawName.trim();
-
-        if (!trimmedName) {
-            setInputValue('');
-
-            return;
-        }
-
-        const existingTag = findExactCatalogMatch(catalog, trimmedName);
-        const resolvedName = existingTag?.name ?? trimmedName;
-
-        if (!value.includes(resolvedName)) {
-            onChange([...value, resolvedName]);
-        }
-
-        setInputValue('');
-    };
-
-    const toggleCatalogTag = (tagName: string): void => {
+    const toggleTagName = (tagName: string): void => {
         if (value.includes(tagName)) {
             onChange(value.filter((entry) => entry !== tagName));
 
@@ -71,75 +77,117 @@ export function TagPicker({
         onChange([...value, tagName]);
     };
 
-    const exactMatchHint = inputValue.trim()
-        ? findExactCatalogMatch(catalog, inputValue.trim())
-        : undefined;
+    const createTag = (): void => {
+        if (!canCreate) {
+            return;
+        }
+
+        onChange([...value, trimmedQuery]);
+        setQuery('');
+    };
 
     return (
         <div className="space-y-2">
             {value.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {value.map((tagName) => (
-                        <button
+                        <RemovableBadge
                             key={tagName}
-                            type="button"
-                            className="rounded-md bg-muted px-2 py-0.5 text-xs"
                             disabled={disabled}
-                            onClick={() =>
-                                onChange(
-                                    value.filter((entry) => entry !== tagName),
-                                )
-                            }
+                            removeLabel={t('files.tags.remove', {
+                                name: tagName,
+                            })}
+                            onRemove={() => toggleTagName(tagName)}
                         >
-                            {tagName} ×
-                        </button>
+                            {tagName}
+                        </RemovableBadge>
                     ))}
                 </div>
             )}
 
-            <Input
-                id={id}
-                value={inputValue}
-                disabled={disabled}
-                placeholder={resolvedPlaceholder}
-                onChange={(event) => setInputValue(event.target.value)}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        addTagName(inputValue);
-                    }
-                }}
-            />
-
-            {exactMatchHint && (
-                <p className="text-xs text-muted-foreground">
-                    {t('files.tags.exactMatch', { name: exactMatchHint.name })}
-                </p>
-            )}
-
-            {availableCatalogTags.length > 0 && (
-                <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                        {t('files.tags.existing')}
-                    </p>
-                    <div className="flex max-h-36 flex-wrap gap-1 overflow-y-auto">
-                        {availableCatalogTags.map((tag) => (
-                            <button
-                                key={tag.id}
-                                type="button"
-                                disabled={disabled}
-                                className={cn(
-                                    'rounded-md border px-2 py-0.5 text-xs transition-colors',
-                                    'border-sidebar-border/70 hover:bg-muted',
-                                )}
-                                onClick={() => toggleCatalogTag(tag.name)}
-                            >
-                                {tag.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        id={id}
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        disabled={disabled}
+                        className="w-full justify-between font-normal text-muted-foreground"
+                    >
+                        {resolvedPlaceholder}
+                        <ChevronsUpDown
+                            className="opacity-50"
+                            aria-hidden="true"
+                        />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    className="w-(--radix-popover-trigger-width) p-0"
+                    align="start"
+                >
+                    <Command>
+                        <CommandInput
+                            value={query}
+                            onValueChange={setQuery}
+                            placeholder={resolvedPlaceholder}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' && canCreate) {
+                                    event.preventDefault();
+                                    createTag();
+                                }
+                            }}
+                        />
+                        <CommandList>
+                            <CommandEmpty>
+                                {catalog.length === 0
+                                    ? t('files.tags.empty')
+                                    : t('common.noResults')}
+                            </CommandEmpty>
+                            {canCreate ? (
+                                <CommandGroup forceMount>
+                                    <CommandItem
+                                        forceMount
+                                        value={`create:${trimmedQuery}`}
+                                        onSelect={createTag}
+                                    >
+                                        <Plus aria-hidden="true" />
+                                        {t('files.tags.create', {
+                                            name: trimmedQuery,
+                                        })}
+                                    </CommandItem>
+                                </CommandGroup>
+                            ) : null}
+                            {catalog.length > 0 ? (
+                                <CommandGroup
+                                    heading={t('files.tags.existing')}
+                                >
+                                    {catalog.map((tag) => (
+                                        <CommandItem
+                                            key={tag.id}
+                                            value={tag.name}
+                                            onSelect={() =>
+                                                toggleTagName(tag.name)
+                                            }
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    value.includes(tag.name)
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0',
+                                                )}
+                                                aria-hidden="true"
+                                            />
+                                            {tag.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            ) : null}
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
         </div>
     );
 }

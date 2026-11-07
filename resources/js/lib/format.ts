@@ -59,7 +59,23 @@ export function formatNumber(
 }
 
 /**
- * Derives avatar initials from a display name (up to two letters).
+ * Joins a user's given and family name into a display name.
+ *
+ * @param firstName - Given name
+ * @param lastName - Optional family name
+ * @returns Trimmed full name (empty when both parts are blank)
+ */
+export function formatUserDisplayName(
+    firstName: string,
+    lastName?: string | null,
+): string {
+    return [firstName, lastName].filter(Boolean).join(' ').trim();
+}
+
+/**
+ * Derives avatar initials from a display name: the first letter of the first
+ * and last word ("Maria Grazia Rossi" → "MR"), the first two letters of a
+ * single word. The app's only initials helper (users, groups, chat faces).
  *
  * @param name - Full display name
  * @returns Uppercase initials, or `'?'` when blank
@@ -75,7 +91,7 @@ export function initialsFromName(name: string): string {
         return parts[0]!.slice(0, 2).toUpperCase();
     }
 
-    return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase() || '?';
+    return `${parts[0]!.charAt(0)}${parts.at(-1)!.charAt(0)}`.toUpperCase();
 }
 
 type DatetimeLocalInput =

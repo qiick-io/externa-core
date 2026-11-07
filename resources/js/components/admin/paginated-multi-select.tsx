@@ -1,25 +1,32 @@
-import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
+import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { UIEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+} from '@/components/ui/command';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import {
-    formatUserDisplayName,
-    getInitialsFromParts,
-} from '@/hooks/use-initials';
+import { Spinner } from '@/components/ui/spinner';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import {
     fieldControlHeight,
     fieldFocusRing,
     fieldOpenBorder,
 } from '@/lib/field-control-chrome';
+import { formatUserDisplayName, initialsFromName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { AdminSelectOption, Paginated } from '@/types/admin';
 
@@ -92,7 +99,10 @@ function optionDisplayName(option: AdminSelectOption): string {
 }
 
 /**
- * Reusable multi-select with server-side pagination.
+ * Server-searched picker on the shadcn combobox pattern: Popover + Command
+ * (`shouldFilter={false}`, the server filters), Badge chips in the trigger.
+ * Search is debounced (300 ms); the list loads the next page when scrolled
+ * near its end. `multiple={false}` keeps at most one id.
  * @param {*} props - Component props.
  * @returns {JSX.Element}
  */
@@ -117,7 +127,6 @@ export function PaginatedMultiSelect({
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const fetchingRef = useRef(false);
-    const listRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -216,14 +225,14 @@ export function PaginatedMultiSelect({
         onChange?.(next);
     };
 
-    const handleScroll = (): void => {
-        const el = listRef.current;
+    const handleListScroll = (event: UIEvent<HTMLDivElement>): void => {
+        const list = event.currentTarget;
 
-        if (!el || loading || !hasMore) {
+        if (loading || !hasMore) {
             return;
         }
 
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 24) {
             void fetchPage(page + 1, false);
         }
     };
@@ -253,9 +262,9 @@ export function PaginatedMultiSelect({
                                 {placeholder}
                             </span>
                         ) : (
-                            selectedLabels.map((label, i) => (
+                            selectedLabels.map((label, index) => (
                                 <Badge
-                                    key={`${value[i]}-${label}`}
+                                    key={`${value[index]}-${label}`}
                                     variant="secondary"
                                     className="font-normal"
                                 >
@@ -271,110 +280,115 @@ export function PaginatedMultiSelect({
                 className="w-(--radix-popover-trigger-width) p-0"
                 align="start"
             >
-                <div className="flex items-center gap-2 border-b p-2">
-                    <Input
+                <Command shouldFilter={false}>
+                    <CommandInput
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search…"
+                        onValueChange={setSearch}
+                        placeholder={t('picker.search')}
                         aria-label={t('a11y.search')}
                     />
-                    {value.length > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0"
-                            aria-label={t('a11y.clearSelection')}
-                            onClick={() => onChange?.([])}
-                        >
-                            <X className="size-4" />
-                        </Button>
-                    )}
-                </div>
-                <div
-                    ref={listRef}
-                    className="max-h-60 overflow-y-auto p-1"
-                    onScroll={handleScroll}
-                >
-                    {options.length === 0 && !loading && (
-                        <p className="p-3 text-sm text-muted-foreground">
-                            No results.
-                        </p>
-                    )}
-                    {options.map((option) => {
-                        const checked = value.includes(option.id);
-                        const name = optionDisplayName(option);
-                        const initials = getInitialsFromParts(
-                            option.first_name ?? name,
-                            option.last_name,
-                        );
+                    <CommandList onScroll={handleListScroll}>
+                        {!loading && (
+                            <CommandEmpty>{t('picker.noResults')}</CommandEmpty>
+                        )}
+                        {options.length > 0 && (
+                            <CommandGroup>
+                                {options.map((option) => {
+                                    const isSelected = value.includes(
+                                        option.id,
+                                    );
+                                    const name = optionDisplayName(option);
 
-                        return (
-                            <div
-                                key={option.id}
-                                role="option"
-                                aria-selected={checked}
-                                tabIndex={0}
-                                className={cn(
-                                    'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent',
-                                    checked && 'bg-accent/50',
-                                )}
-                                onClick={() => toggle(option.id)}
-                                onKeyDown={(event) => {
-                                    if (
-                                        event.key === 'Enter' ||
-                                        event.key === ' '
-                                    ) {
-                                        event.preventDefault();
-                                        toggle(option.id);
-                                    }
-                                }}
-                            >
-                                <Checkbox
-                                    checked={checked}
-                                    tabIndex={-1}
-                                    onCheckedChange={() => toggle(option.id)}
-                                    onClick={(event) => event.stopPropagation()}
-                                />
-                                {showUserDetails ? (
-                                    <>
-                                        <Avatar
-                                            userId={option.id}
-                                            className="size-8"
+                                    return (
+                                        <CommandItem
+                                            key={option.id}
+                                            value={String(option.id)}
+                                            onSelect={() => toggle(option.id)}
+                                            data-checked={isSelected}
                                         >
-                                            <AvatarFallback className="text-xs font-medium">
-                                                {initials || '?'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span className="min-w-0 flex-1 text-left">
-                                            <span className="block truncate font-medium">
-                                                {name}
-                                            </span>
-                                            {option.email ? (
-                                                <span className="block truncate text-xs text-muted-foreground">
-                                                    {option.email}
+                                            {multiple && (
+                                                <span
+                                                    aria-hidden
+                                                    className={cn(
+                                                        'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input',
+                                                        isSelected &&
+                                                            'border-primary bg-primary text-primary-foreground',
+                                                    )}
+                                                >
+                                                    {isSelected && (
+                                                        <Check className="size-3.5 text-primary-foreground" />
+                                                    )}
                                                 </span>
-                                            ) : null}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <span className="flex-1 truncate text-left">
-                                        {option.label}
-                                    </span>
-                                )}
-                                {checked && (
-                                    <Check className="size-4 shrink-0 text-primary" />
-                                )}
+                                            )}
+                                            {showUserDetails ? (
+                                                <>
+                                                    <Avatar className="size-8">
+                                                        <AvatarFallback
+                                                            className={cn(
+                                                                avatarToneClass(
+                                                                    option.id,
+                                                                ),
+                                                                'text-xs font-medium',
+                                                            )}
+                                                        >
+                                                            {initialsFromName(
+                                                                name,
+                                                            )}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block truncate font-medium">
+                                                            {name}
+                                                        </span>
+                                                        {option.email ? (
+                                                            <span className="block truncate text-xs text-muted-foreground">
+                                                                {option.email}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="flex-1 truncate">
+                                                    {option.label}
+                                                </span>
+                                            )}
+                                            {!multiple && (
+                                                <Check
+                                                    className={cn(
+                                                        'ml-auto text-primary',
+                                                        !isSelected &&
+                                                            'opacity-0',
+                                                    )}
+                                                />
+                                            )}
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        )}
+                        {loading && (
+                            <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+                                <Spinner aria-hidden />
+                                {t('picker.loading')}
                             </div>
-                        );
-                    })}
-                    {loading && (
-                        <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
-                            <Loader2 className="size-4 animate-spin" />
-                            Loading…
-                        </div>
-                    )}
-                </div>
+                        )}
+                        {value.length > 0 && (
+                            <>
+                                <CommandSeparator />
+                                <CommandGroup>
+                                    <CommandItem
+                                        value="__clear-selection__"
+                                        onSelect={() => onChange?.([])}
+                                        className="justify-center text-center"
+                                    >
+                                        <X />
+                                        {t('picker.clearSelection')}
+                                    </CommandItem>
+                                </CommandGroup>
+                            </>
+                        )}
+                    </CommandList>
+                </Command>
             </PopoverContent>
         </Popover>
     );

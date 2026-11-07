@@ -1,8 +1,5 @@
 import type { ChatCollection, ChatUser } from '@/lib/item-chat-api';
 
-export const MENTION_TOKEN = /@\[user:(\d+)\]/g;
-export const COLLECTION_MENTION_TOKEN = /@\[collection:(\d+)\]/g;
-
 export function mentionDisplayLabel(user: Pick<ChatUser, 'name'>): string {
     return `@${user.name}`;
 }

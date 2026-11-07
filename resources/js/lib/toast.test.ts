@@ -56,8 +56,24 @@ describe('toast wrapper', () => {
         toast.success('Deleted', { action });
 
         expect(sonnerToast.success).toHaveBeenCalledWith('Deleted', {
+            position: 'top-center',
+            richColors: false,
+            closeButton: true,
             action,
             duration: Infinity,
+        });
+    });
+
+    it('shows success as a short top-centre message without close button', async () => {
+        const { toast } = await import('@/lib/toast');
+
+        toast.success('Saved');
+
+        expect(sonnerToast.success).toHaveBeenCalledWith('Saved', {
+            position: 'top-center',
+            richColors: false,
+            duration: 3000,
+            closeButton: false,
         });
     });
 });

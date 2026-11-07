@@ -33,55 +33,42 @@ export function isFieldHiddenInForm(
     return value === true || value === 1 || value === '1';
 }
 
-/**
- * Filter fields to those visible on the item form.
- *
- * @param fields - Field definitions with optional settings
- * @returns Fields that should render on item edit forms
- */
-export function fieldsVisibleInForm<
-    T extends { settings?: Record<string, unknown> | null },
->(fields: T[]): T[] {
-    return fields.filter((field) => !isFieldHiddenInForm(field.settings));
-}
-
 /** Grid column width token for collection field layout. */
 export type FieldLayoutWidth = 'half' | 'full' | 'fill';
 
 /**
- * Field types that prefer a half-width column and content-sized control
- * when `layout_width` is unset (number, color, date, slugified string).
+ * Short field types that default to a half-width column when `layout_width`
+ * is unset (number, color, date, slugified string). Only the column width
+ * changes: every control fills its field.
  */
-export const CONTENT_SIZED_FIELD_TYPES = new Set(['number', 'color', 'date']);
+export const HALF_WIDTH_DEFAULT_FIELD_TYPES = new Set([
+    'number',
+    'color',
+    'date',
+]);
 
 /**
- * Whether a field should use content-sized / half-width layout by default.
+ * Whether a field defaults to a half-width column.
  *
  * @param field - Field with optional type and settings
- * @returns Whether short-input sizing applies
+ * @returns Whether the field defaults to `half`
  */
-export function isContentSizedField(field: {
+export function defaultsToHalfWidth(field: {
     type?: string;
     settings?: Record<string, unknown> | null;
 }): boolean {
-    if (field.type && CONTENT_SIZED_FIELD_TYPES.has(field.type)) {
+    if (field.type && HALF_WIDTH_DEFAULT_FIELD_TYPES.has(field.type)) {
         return true;
     }
 
     return field.type === 'string' && settingsFlag(field.settings?.slugify);
 }
 
-/** Tailwind width classes for content-sized short item-form controls. */
-export const CONTENT_SIZED_CONTROL_CLASS = 'w-auto max-w-[13rem]';
-
-/** Selectable layout width options for field settings UI. */
-export const FIELD_LAYOUT_WIDTH_OPTIONS: {
-    value: FieldLayoutWidth;
-    label: string;
-}[] = [
-    { value: 'half', label: 'Metà larghezza' },
-    { value: 'full', label: 'Larghezza massima' },
-    { value: 'fill', label: 'Riempi larghezza' },
+/** Selectable layout widths for field settings UI, in menu order. */
+export const FIELD_LAYOUT_WIDTH_OPTIONS: FieldLayoutWidth[] = [
+    'half',
+    'full',
+    'fill',
 ];
 
 /**
@@ -100,7 +87,7 @@ export function getFieldLayoutWidth(
     }
 
     if (
-        isContentSizedField({
+        defaultsToHalfWidth({
             type: fieldType,
             settings,
         })
@@ -115,13 +102,14 @@ export function getFieldLayoutWidth(
  * Human-readable label for a field layout width.
  *
  * @param width - Layout width token
- * @returns Localized label for the width option
+ * @param t - i18n translate function
+ * @returns Localized label (`collections.layoutWidth.*`)
  */
-export function fieldLayoutWidthLabel(width: FieldLayoutWidth): string {
-    return (
-        FIELD_LAYOUT_WIDTH_OPTIONS.find((option) => option.value === width)
-            ?.label ?? 'Larghezza massima'
-    );
+export function fieldLayoutWidthLabel(
+    width: FieldLayoutWidth,
+    t: (key: string) => string,
+): string {
+    return t(`collections.layoutWidth.${width}`);
 }
 
 /**

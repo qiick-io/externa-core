@@ -80,13 +80,3 @@ export function getActiveUnsavedChangesEntry(): UnsavedChangesEntry | null {
 export function hasUnsavedChangesInRegistry(): boolean {
     return getActiveUnsavedChangesEntry() !== null;
 }
-
-/** @internal Test helper */
-export function clearUnsavedChangesRegistryForTests(): void {
-    registrations.clear();
-}
-
-/** @internal Test helper */
-export function getUnsavedChangesRegistrySizeForTests(): number {
-    return registrations.size;
-}

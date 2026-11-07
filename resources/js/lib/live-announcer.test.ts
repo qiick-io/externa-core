@@ -16,7 +16,7 @@ describe('announce', () => {
         announce('Saved successfully');
         vi.advanceTimersByTime(25);
 
-        const region = document.getElementById('externa-live-polite');
+        const region = document.getElementById('app-live-polite');
         expect(region).not.toBeNull();
         expect(region?.getAttribute('aria-live')).toBe('polite');
         expect(region?.textContent).toBe('Saved successfully');
@@ -26,7 +26,7 @@ describe('announce', () => {
         announce('Delete failed', { politeness: 'assertive' });
         vi.advanceTimersByTime(25);
 
-        const region = document.getElementById('externa-live-assertive');
+        const region = document.getElementById('app-live-assertive');
         expect(region?.getAttribute('aria-live')).toBe('assertive');
         expect(region?.textContent).toBe('Delete failed');
     });
@@ -35,6 +35,6 @@ describe('announce', () => {
         announce('   ');
         vi.advanceTimersByTime(25);
 
-        expect(document.getElementById('externa-live-polite')).toBeNull();
+        expect(document.getElementById('app-live-polite')).toBeNull();
     });
 });

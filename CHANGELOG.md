@@ -19,6 +19,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - **AI write tools are denied by default** (#203): chat keeps the read actions of `Manage*` tools; writes need `AI_WRITE_TOOLS=true` plus the per-tool allowlist and human approval (#439).
 - **Security headers are on by default** (#187): review `SECURITY_*` if you embed the admin in a frame or need a custom CSP.
 - **PostgreSQL 15 or later** is required for the `collections_items_values` null-locale unique index (`NULLS NOT DISTINCT`, #278).
+- **AI reasoning settings (#570):** the assistant asks real providers for medium reasoning effort. Tune or turn it off with `OPENAI_REASONING_EFFORT`, `ANTHROPIC_REASONING_EFFORT`, `GEMINI_REASONING_EFFORT` and `LOCAL_AI_REASONING_EFFORT` (unset = none). `AI_ASSISTANT_PROVIDER` picks the assistant's provider (default `local`) and `*_CONTEXT_WINDOW` sets the context size shown in the chat.
+- **Removed packages (#520, #568):** `laravel/sail`, `@headlessui/react`, the unused Radix packages and the Wayfinder Vite plugin are gone; run `composer install` and `npm ci` after pulling.
 
 ### Security
 - Symfony components updated to 8.1.11 for the 2026-11-04 advisories: HtmlSanitizer host-allowlist bypass (CVE-2026-118517) and `srcset` sanitising, Filesystem path-root handling, HttpFoundation, HttpKernel, Serializer, Routing and a YAML parse-time DoS. Composer and npm packages are refreshed within their ranges; dev tooling moves to Vitest 5 and jsdom 29 (#516).
@@ -64,6 +66,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Files selection bar select-all (loaded files), Assistant conversation search by title (`GET /ai/conversations?q=`), and a rows-per-page select on admin lists (10 / 20 / 50 / 100, kept in `per_page`) (#480, #492, #505).
 - The AI assistant opens as a side panel on the current page from the sidebar Assistant hover action or ⌘J / Ctrl+J; the floating button is removed and the panel links to the full page (#499, #503).
 - Blue theme preset (Excubia's brand blue) (#508).
+- AI answers show the model's reasoning (collapsed, "Thought for N s"), every tool call with its input, result or error, the sources it cited and the tokens used, live while streaming and again after a reload (#565, #566, #570, #572).
+- Chat: a user card on author names and mentions (avatar, role, online status), reactions with a tooltip of who reacted, and pinned messages and reply quotes as clickable rows (#575, #576).
+- Admin lists (users, groups, roles, API keys, permissions, activity log, jobs, pending tool calls) are server-driven data tables with sortable columns, faceted filters and row actions (#523, #526–#528, #530, #533, #535, #537, #561).
+- Deleting a chat, a saved prompt or a message asks for confirmation (#522).
 
 ### Changed
 - Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
@@ -106,6 +112,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Controls follow one size scale (24 / 32 / 40) and one field focus style; selection bars show count and select-all on the left and icon actions on the right; activity log date filters use one range picker; settings group the AI pages under "AI" (#462, #472, #489–#492, #508).
 - Sidebar and settings nav: full-height active bar with square left corners and a theme-primary Assistant item; groups list shows an initials avatar and member avatars; activity log filters use one responsive grid with the export menu in the header (#463, #466, #473, #478, #479, #481).
 - The files grid loads more files automatically while scrolling, 48 per page; the Load more button stays as a fallback (#514).
+- The admin UI is rebuilt on standard shadcn/ui and AI Elements: pickers and autocompletes on Command, lists on Item, forms on Field, toggles on Toggle, loaders on Spinner/Skeleton/Empty, chats on Message, Bubble, Message Scroller and Attachment; nine primitives re-pulled from current shadcn (#517–#580).
+- Success messages appear as a short message at the top centre; errors, warnings and info as top-right notifications; form validation errors show under their fields (#519).
+- Avatars: per-user colours on the shadcn avatar, presence as a badge at the bottom right everywhere (green online, grey offline, red only when the realtime connection is lost), groups show three members and +N (#545, #560).
+- Dashboard views are routed tabs with stat cards and chart containers (#517, #542).
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
@@ -132,6 +142,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Items can be created from the admin on collections with versioning enabled; the create form was read-only with no Save button (#512).
 - GraphQL `item`, `createItem` and `updateItem` return `created_at` / `updated_at` instead of a DateTime error (#511).
 - The files grid scrolls on short windows instead of clipping the last rows, and uploading, moving or deleting files keeps the loaded files instead of resetting to the first page (#514).
+- Form field controls fill their field width (#555); item form tabs keep every field mounted, so switching tabs no longer loses input (#540).
+- The 404 page gets the app props and renders inside the app shell; the error boundary uses the shared empty state (#544).
+- The selected file's outline is no longer cut by the files grid (#574).
 
 ## [1.3.0] - 2026-10-24
 

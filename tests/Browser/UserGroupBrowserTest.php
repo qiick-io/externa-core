@@ -153,7 +153,7 @@ it('shows the group name and slug in separate columns', function () {
         ->assertNoJavaScriptErrors();
 });
 
-it('shows member avatars with initials next to the member count', function () {
+it('shows member avatars with initials and the hidden members as +N', function () {
     $actor = grantBrowserGroupPermissions(User::factory()->create(), [
         PermissionEnum::CanShowGroups->value,
     ]);
@@ -178,7 +178,44 @@ it('shows member avatars with initials next to the member count', function () {
         ->assertPresent($selector)
         ->assertScript("document.querySelectorAll('{$selector} [data-slot=\"avatar\"]').length === 3")
         ->assertScript("Array.from(document.querySelectorAll('{$selector} [data-slot=\"avatar\"]')).map((avatar) => avatar.textContent.trim()).join(',') === 'AL,GH,AT'")
-        ->assertScript("document.querySelectorAll('{$selector} [data-test=\"user-online-dot\"]').length === 3")
-        ->assertScript("document.querySelector('{$selector}').closest('td').textContent.trim().endsWith('4')")
+        ->assertScript("document.querySelectorAll('{$selector} [data-test=\"user-online-dot\"]').length === 0")
+        ->assertScript("document.querySelector('{$selector} [data-test=\"group-member-count\"]').textContent.trim() === '+1'")
+        ->assertScript("document.querySelector('{$selector}').getAttribute('aria-label') === '4 members'")
         ->assertNoJavaScriptErrors();
+});
+
+it('adds a member with the keyboard through the server-searched user picker', function () {
+    $actor = grantBrowserGroupPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowGroups->value,
+        PermissionEnum::CanEditGroups->value,
+        PermissionEnum::CanShowUsers->value,
+    ]);
+
+    User::factory()->count(3)->create();
+    $member = User::factory()->create([
+        'first_name' => 'Picked',
+        'last_name' => 'Person',
+        'email' => 'picked-person@example.com',
+    ]);
+
+    $group = UserGroup::factory()->create(['name' => 'Picker Group']);
+
+    $this->actingAs($actor);
+
+    visit('/groups')
+        ->click('Picker Group')
+        ->wait(0.5)
+        ->click('Select users…')
+        ->assertPresent('[cmdk-input]')
+        ->type('[cmdk-input]', 'picked-person')
+        ->wait(1)
+        ->assertSee('picked-person@example.com')
+        ->keys('[cmdk-input]', 'Enter')
+        ->keys('[cmdk-input]', 'Escape')
+        ->assertSeeIn('[role="combobox"]', 'Picked Person')
+        ->click('Save')
+        ->wait(1)
+        ->assertNoJavaScriptErrors();
+
+    expect($group->users()->pluck('users.id')->all())->toBe([$member->id]);
 });

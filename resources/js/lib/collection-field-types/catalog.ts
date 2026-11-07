@@ -5,41 +5,6 @@ export type CollectionFieldTypeOption = {
 
 type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
-/** Catalog of supported collection field types (UI copy lives in i18n). */
-export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
-    { value: 'string' },
-    { value: 'autocomplete' },
-    { value: 'api_autocomplete' },
-    { value: 'code' },
-    { value: 'textarea' },
-    { value: 'wysiwyg' },
-    { value: 'markdown' },
-    { value: 'tag' },
-    { value: 'number' },
-    { value: 'boolean' },
-    { value: 'date' },
-    { value: 'map' },
-    { value: 'color' },
-    { value: 'select' },
-    { value: 'multiselect' },
-    { value: 'checkbox_group' },
-    { value: 'checkbox_group_tree' },
-    { value: 'radio_group' },
-    { value: 'image' },
-    { value: 'files' },
-    { value: 'blocks' },
-    { value: 'm2a' },
-    { value: 'many_to_many' },
-    { value: 'one_to_many' },
-    { value: 'many_to_one' },
-    { value: 'hash' },
-    { value: 'slider' },
-    { value: 'group_accordion' },
-    { value: 'group_detail' },
-    { value: 'group_raw' },
-    { value: 'group_tabs' },
-];
-
 /** Stable group keys used in the field type picker UI (labels via i18n). */
 export const COLLECTION_FIELD_TYPE_GROUPS: {
     key: string;
@@ -177,68 +142,8 @@ export function fieldTypeNeedsTreeOptions(type: string): boolean {
     return type === 'checkbox_group_tree';
 }
 
-/**
- * Whether the field type links to another collection.
- *
- * @param type - Field type key
- * @returns Whether the type links to another collection
- */
-export function fieldTypeNeedsRelation(type: string): boolean {
-    return ['many_to_one', 'one_to_many', 'many_to_many'].includes(type);
-}
-
-/**
- * Whether the relation field allows selecting many related items.
- *
- * @param type - Field type key
- * @returns Whether the relation allows selecting many related items
- */
-export function fieldTypeIsMultipleRelation(type: string): boolean {
-    return ['one_to_many', 'many_to_many'].includes(type);
-}
-
-/**
- * Whether the field type needs many-to-any (M2A) settings.
- *
- * @param type - Field type key
- * @returns Whether the type is many-to-any (M2A) builder settings
- */
-export function fieldTypeNeedsM2aSettings(type: string): boolean {
-    return type === 'm2a';
-}
-
 export function fieldTypeNeedsBlocksSettings(type: string): boolean {
     return type === 'blocks';
-}
-
-/**
- * Whether the field type stores one or more file references.
- *
- * @param type - Field type key
- * @returns Whether the type stores file manager references
- */
-export function fieldTypeIsFilesField(type: string): boolean {
-    return type === 'files';
-}
-
-/**
- * Whether the field type stores image file references.
- *
- * @param type - Field type key
- * @returns Whether the type is an image picker field
- */
-export function fieldTypeIsImageField(type: string): boolean {
-    return type === 'image';
-}
-
-/**
- * Field Type Needs Slider Settings.
- *
- * @param type - Field type key
- * @returns Whether the type exposes slider min/max/step settings
- */
-export function fieldTypeNeedsSliderSettings(type: string): boolean {
-    return type === 'slider';
 }
 
 /** Numeric bounds and defaults for slider field settings. */
@@ -274,14 +179,6 @@ export const STRING_INPUT_TYPES: { value: string; label: string }[] = [
     { value: 'decimal', label: 'Decimal' },
     { value: 'uuid', label: 'UUID' },
 ];
-
-/**
- * @param type - Field type key
- * @returns Whether the type exposes string input subtype settings
- */
-export function fieldTypeUsesStringInputSettings(type: string): boolean {
-    return type === 'string';
-}
 
 export type BlocksFieldDefinition = {
     name: string;
@@ -402,14 +299,4 @@ export function supportsDefaultValue(fieldType: string): boolean {
         'group_raw',
         'group_tabs',
     ].includes(fieldType);
-}
-
-/** Whether the type is a layout group (alias / no-data container). */
-export function fieldTypeIsLayoutGroup(type: string): boolean {
-    return (
-        type === 'group_accordion' ||
-        type === 'group_detail' ||
-        type === 'group_raw' ||
-        type === 'group_tabs'
-    );
 }

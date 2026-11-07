@@ -9,9 +9,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { buttonVariants } from '@/components/ui/button';
 import type { UnsavedChangesDialogCopy } from '@/lib/unsaved-changes/registry';
-import { cn } from '@/lib/utils';
 
 export type UnsavedChangesDialogProps = {
     open: boolean;
@@ -56,10 +54,7 @@ export function UnsavedChangesDialog({
                 </AlertDialogHeader>
                 <AlertDialogFooter className="gap-2 sm:justify-end">
                     <AlertDialogAction
-                        className={cn(
-                            buttonVariants({ variant: 'outline' }),
-                            'bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
-                        )}
+                        variant="outline"
                         onClick={(event) => {
                             event.preventDefault();
                             onDiscard();
@@ -68,7 +63,7 @@ export function UnsavedChangesDialog({
                         {t(copy?.discardKey ?? 'unsavedChanges.discard')}
                     </AlertDialogAction>
                     <AlertDialogCancel
-                        className={cn(buttonVariants({ variant: 'default' }))}
+                        variant="default"
                         onClick={(event) => {
                             event.preventDefault();
                             onKeepEditing();

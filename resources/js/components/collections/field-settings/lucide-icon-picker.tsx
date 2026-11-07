@@ -5,8 +5,13 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     Popover,
     PopoverContent,
@@ -42,11 +47,6 @@ export function toLucideIconKebabName(name: string): string {
 function isLucideIconName(name: string): name is IconName {
     return Object.hasOwn(dynamicIconImports, name);
 }
-
-/** Flat list kept for callers that still expect a curated options array. */
-export const LUCIDE_ICON_OPTIONS: { name: string }[] = ICON_CATEGORIES.flatMap(
-    (category) => category.icons.map((name) => ({ name })),
-);
 
 /**
  * Converts kebab-case Lucide names (e.g. flask-conical) to PascalCase component names.
@@ -165,8 +165,8 @@ export function LucideIconPicker({
     }, [query]);
 
     return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
+        <Field>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
             <Popover
                 open={open}
                 onOpenChange={(next) => {
@@ -208,31 +208,33 @@ export function LucideIconPicker({
                     align="start"
                 >
                     <div className="border-b p-3">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
+                        <InputGroup>
+                            <InputGroupAddon>
+                                <Search aria-hidden="true" />
+                            </InputGroupAddon>
+                            <InputGroupInput
                                 placeholder={t('collections.meta.searchIcons')}
                                 value={query}
                                 onChange={(event) =>
                                     setQuery(event.target.value)
                                 }
-                                className="pr-8 pl-8"
                                 // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                             />
                             {query ? (
-                                <button
-                                    type="button"
-                                    className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-                                    onClick={() => setQuery('')}
-                                    aria-label={t(
-                                        'collections.meta.clearIconSearch',
-                                    )}
-                                >
-                                    <X className="size-4" />
-                                </button>
+                                <InputGroupAddon align="inline-end">
+                                    <InputGroupButton
+                                        size="icon-xs"
+                                        onClick={() => setQuery('')}
+                                        aria-label={t(
+                                            'collections.meta.clearIconSearch',
+                                        )}
+                                    >
+                                        <X />
+                                    </InputGroupButton>
+                                </InputGroupAddon>
                             ) : null}
-                        </div>
+                        </InputGroup>
                     </div>
                     <div className="max-h-72 overflow-y-auto p-3">
                         {filteredCategories.length === 0 ? (
@@ -309,6 +311,6 @@ export function LucideIconPicker({
                     ) : null}
                 </PopoverContent>
             </Popover>
-        </div>
+        </Field>
     );
 }

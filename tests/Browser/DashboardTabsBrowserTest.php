@@ -6,8 +6,8 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
 /**
- * Dashboard tabs are a segmented control in the page header, on the right,
- * like the creation buttons on the other pages.
+ * Dashboard views (Overview / Health) are line tabs under the page header,
+ * each with its own URL (app-ui `docs/page.md`, "Views: tabs under the header").
  */
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -18,15 +18,18 @@ beforeEach(function (): void {
     $this->actingAs($user);
 });
 
-it('switches dashboard tabs from the segmented control in the header', function () {
+it('switches dashboard views from the tabs under the header', function () {
     $page = visit('/dashboard');
 
-    $page->assertPresent('header [data-test="dashboard-tabs"]')
-        ->assertAttribute('[data-test="dashboard-tab-overview"]', 'data-state', 'on')
+    $page->assertMissing('header [data-test="dashboard-tabs"]')
+        ->assertPresent('[data-test="dashboard-tabs"]')
+        ->assertAttribute('[data-test="dashboard-tab-overview"]', 'data-state', 'active')
         ->click('[data-test="dashboard-tab-health"]')
-        ->assertQueryStringHas('tab', 'health')
-        ->assertAttribute('[data-test="dashboard-tab-health"]', 'data-state', 'on')
+        ->assertPathIs('/dashboard/health')
+        ->assertPresent('[data-test="dashboard-health"]')
+        ->assertAttribute('[data-test="dashboard-tab-health"]', 'data-state', 'active')
         ->click('[data-test="dashboard-tab-overview"]')
-        ->assertAttribute('[data-test="dashboard-tab-overview"]', 'data-state', 'on')
+        ->assertPathIs('/dashboard')
+        ->assertAttribute('[data-test="dashboard-tab-overview"]', 'data-state', 'active')
         ->assertNoJavaScriptErrors();
 });

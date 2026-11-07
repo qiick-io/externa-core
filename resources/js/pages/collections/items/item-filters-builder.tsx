@@ -1,6 +1,7 @@
 import { Filter, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -96,11 +97,11 @@ export function ItemFiltersBuilder({
                     aria-label={t('a11y.filters')}
                 >
                     <Filter className="size-4" />
-                    Filters
+                    {t('a11y.filters')}
                     {activeCount > 0 ? (
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground">
+                        <Badge className="min-w-5 rounded-full px-1.5 tabular-nums">
                             {activeCount}
-                        </span>
+                        </Badge>
                     ) : null}
                 </Button>
             </PopoverTrigger>

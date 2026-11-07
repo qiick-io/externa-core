@@ -1,6 +1,16 @@
-import { Tags, X } from 'lucide-react';
+import { Check, Tags } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+} from '@/components/ui/command';
 import {
     Popover,
     PopoverContent,
@@ -16,8 +26,11 @@ type TagFilterPopoverProps = {
 };
 
 /**
- * Popover to filter files by tag.
- * @param {*} props - Component props.
+ * Filters files by tag: the shadcn faceted filter pattern (Popover +
+ * Command with a check per tag, "Clear" at the bottom). A file matches when
+ * it has any of the selected tags.
+ *
+ * @param {TagFilterPopoverProps} props - Component props.
  * @returns {JSX.Element}
  */
 export function TagFilterPopover({
@@ -49,59 +62,68 @@ export function TagFilterPopover({
                     <Tags className="size-4" />
                     {t('files.tags.label')}
                     {selectedCount > 0 && (
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground">
+                        <Badge className="min-w-5 rounded-full px-1.5 tabular-nums">
                             {selectedCount}
-                        </span>
+                        </Badge>
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-3" align="start">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">
-                        {t('files.tags.filterBy')}
-                    </p>
-                    {selectedCount > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="px-2"
-                            onClick={() => onChange([])}
-                        >
-                            <X className="mr-1 size-3" />
-                            {t('files.tags.clear')}
-                        </Button>
-                    )}
-                </div>
-                <p className="mb-2 text-xs text-muted-foreground">
-                    {t('files.tags.filterHint')}
-                </p>
-                {catalog.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                        {t('files.tags.empty')}
-                    </p>
-                ) : (
-                    <div className="flex max-h-56 flex-wrap gap-1 overflow-y-auto">
-                        {catalog.map((tag) => {
-                            const selected = selectedTagIds.includes(tag.id);
+            <PopoverContent className="w-72 p-0" align="start">
+                <Command>
+                    <CommandInput placeholder={t('files.tags.filterBy')} />
+                    <CommandList>
+                        <CommandEmpty>
+                            {catalog.length === 0
+                                ? t('files.tags.empty')
+                                : t('common.noResults')}
+                        </CommandEmpty>
+                        {catalog.length > 0 ? (
+                            <CommandGroup heading={t('files.tags.filterHint')}>
+                                {catalog.map((tag) => {
+                                    const isSelected = selectedTagIds.includes(
+                                        tag.id,
+                                    );
 
-                            return (
-                                <button
-                                    key={tag.id}
-                                    type="button"
-                                    className={cn(
-                                        'rounded-md border px-2 py-0.5 text-xs transition-colors',
-                                        selected
-                                            ? 'border-primary bg-primary text-primary-foreground'
-                                            : 'border-sidebar-border/70 hover:bg-muted',
-                                    )}
-                                    onClick={() => toggleTagId(tag.id)}
-                                >
-                                    {tag.name}
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
+                                    return (
+                                        <CommandItem
+                                            key={tag.id}
+                                            value={tag.name}
+                                            onSelect={() => toggleTagId(tag.id)}
+                                        >
+                                            <div
+                                                className={cn(
+                                                    'flex size-4 items-center justify-center rounded-[4px] border',
+                                                    isSelected
+                                                        ? 'border-primary bg-primary text-primary-foreground'
+                                                        : 'border-input [&_svg]:invisible',
+                                                )}
+                                            >
+                                                <Check
+                                                    className="size-3.5 text-primary-foreground"
+                                                    aria-hidden="true"
+                                                />
+                                            </div>
+                                            <span>{tag.name}</span>
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        ) : null}
+                        {selectedCount > 0 ? (
+                            <>
+                                <CommandSeparator />
+                                <CommandGroup>
+                                    <CommandItem
+                                        onSelect={() => onChange([])}
+                                        className="justify-center text-center"
+                                    >
+                                        {t('files.tags.clear')}
+                                    </CommandItem>
+                                </CommandGroup>
+                            </>
+                        ) : null}
+                    </CommandList>
+                </Command>
             </PopoverContent>
         </Popover>
     );

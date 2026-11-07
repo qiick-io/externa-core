@@ -36,9 +36,6 @@ export type ChatUnreadShare = {
     play_sound?: boolean;
 };
 
-/** @deprecated Prefer applyChatUnread → Zustand; kept for any leftover listeners. */
-export const CHAT_UNREAD_UPDATED_EVENT = 'chat:unread-updated';
-
 /** Write unread totals after API OK or Echo server payload. */
 export function applyChatUnread(payload: ChatUnreadShare): void {
     useChatStore.getState().setUnread(payload);
@@ -90,33 +87,6 @@ export async function fetchChatUnread(): Promise<ChatUnreadShare> {
     await assertOk(response, 'Could not load unread counts.');
 
     return (await response.json()) as ChatUnreadShare;
-}
-
-export async function markHubChatRead(
-    chatId: string,
-): Promise<ChatUnreadShare> {
-    const response = await fetch(`/chat/${chatId}/read`, {
-        method: 'POST',
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-    });
-
-    await assertOk(response, 'Could not mark chat read.');
-
-    const payload = (await response.json()) as ChatUnreadShare;
-    applyChatUnread(payload);
-
-    return payload;
-}
-
-export async function stopHubChatViewing(chatId: string): Promise<void> {
-    const response = await fetch(`/chat/${chatId}/stop-viewing`, {
-        method: 'POST',
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-    });
-
-    await assertOk(response, 'Could not stop viewing chat.');
 }
 
 export async function createChatThread(payload: {

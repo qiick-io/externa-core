@@ -2,7 +2,7 @@ import { Form, Head, router } from '@inertiajs/react';
 import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/heading';
@@ -18,6 +18,16 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemMedia,
+    ItemSeparator,
+    ItemTitle,
+} from '@/components/ui/item';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -190,7 +200,7 @@ export default function Security({
                                                 id="current_password"
                                                 ref={currentPasswordInput}
                                                 name="current_password"
-                                                className="mt-1 block w-full"
+                                                className="mt-1"
                                                 autoComplete="current-password"
                                                 placeholder={t(
                                                     'settings.security.currentPassword',
@@ -229,7 +239,7 @@ export default function Security({
                                                 id="password"
                                                 ref={passwordInput}
                                                 name="password"
-                                                className="mt-1 block w-full"
+                                                className="mt-1"
                                                 autoComplete="new-password"
                                                 placeholder={t(
                                                     'settings.security.newPassword',
@@ -265,7 +275,7 @@ export default function Security({
                                             <PasswordInput
                                                 id="password_confirmation"
                                                 name="password_confirmation"
-                                                className="mt-1 block w-full"
+                                                className="mt-1"
                                                 autoComplete="new-password"
                                                 placeholder={t(
                                                     'common.confirmPassword',
@@ -434,67 +444,75 @@ export default function Security({
                                 />
 
                                 {passkeys.length > 0 ? (
-                                    <ul className="divide-y divide-border rounded-md border">
-                                        {passkeys.map((passkey) => (
-                                            <li
-                                                key={passkey.id}
-                                                className="flex items-center justify-between gap-4 px-4 py-3"
-                                                data-test="passkey-item"
-                                            >
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-medium">
-                                                        {passkey.name}
-                                                    </p>
-                                                    {passkey.created_at && (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {t(
-                                                                'settings.security.passkeyCreated',
-                                                                {
-                                                                    date: new Date(
-                                                                        passkey.created_at,
-                                                                    ).toLocaleString(),
-                                                                },
-                                                            )}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    disabled={
-                                                        deletingPasskeyId ===
-                                                        passkey.id
-                                                    }
-                                                    data-test="delete-passkey-button"
-                                                    onClick={() => {
-                                                        setDeletingPasskeyId(
-                                                            passkey.id,
-                                                        );
-                                                        router.delete(
-                                                            destroyPasskey.url(
-                                                                passkey.id,
-                                                            ),
-                                                            {
-                                                                preserveScroll: true,
-                                                                onFinish: () =>
-                                                                    setDeletingPasskeyId(
-                                                                        null,
-                                                                    ),
-                                                            },
-                                                        );
-                                                    }}
+                                    <ItemGroup className="rounded-md border">
+                                        {passkeys.map((passkey, index) => (
+                                            <Fragment key={passkey.id}>
+                                                {index > 0 && <ItemSeparator />}
+                                                <Item
+                                                    size="sm"
+                                                    data-test="passkey-item"
                                                 >
-                                                    {deletingPasskeyId ===
-                                                        passkey.id && (
-                                                        <Spinner />
-                                                    )}
-                                                    {t(
-                                                        'settings.security.deletePasskey',
-                                                    )}
-                                                </Button>
-                                            </li>
+                                                    <ItemMedia variant="icon">
+                                                        <KeyRound />
+                                                    </ItemMedia>
+                                                    <ItemContent className="min-w-0">
+                                                        <ItemTitle className="truncate">
+                                                            {passkey.name}
+                                                        </ItemTitle>
+                                                        {passkey.created_at && (
+                                                            <ItemDescription>
+                                                                {t(
+                                                                    'settings.security.passkeyCreated',
+                                                                    {
+                                                                        date: new Date(
+                                                                            passkey.created_at,
+                                                                        ).toLocaleString(),
+                                                                    },
+                                                                )}
+                                                            </ItemDescription>
+                                                        )}
+                                                    </ItemContent>
+                                                    <ItemActions>
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            disabled={
+                                                                deletingPasskeyId ===
+                                                                passkey.id
+                                                            }
+                                                            data-test="delete-passkey-button"
+                                                            onClick={() => {
+                                                                setDeletingPasskeyId(
+                                                                    passkey.id,
+                                                                );
+                                                                router.delete(
+                                                                    destroyPasskey.url(
+                                                                        passkey.id,
+                                                                    ),
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                        onFinish:
+                                                                            () =>
+                                                                                setDeletingPasskeyId(
+                                                                                    null,
+                                                                                ),
+                                                                    },
+                                                                );
+                                                            }}
+                                                        >
+                                                            {deletingPasskeyId ===
+                                                                passkey.id && (
+                                                                <Spinner />
+                                                            )}
+                                                            {t(
+                                                                'settings.security.deletePasskey',
+                                                            )}
+                                                        </Button>
+                                                    </ItemActions>
+                                                </Item>
+                                            </Fragment>
                                         ))}
-                                    </ul>
+                                    </ItemGroup>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
                                         {t('settings.security.passkeysEmpty')}

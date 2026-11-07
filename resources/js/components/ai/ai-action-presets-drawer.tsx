@@ -1,7 +1,16 @@
-import { Search, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import {
     Dialog,
     DialogContent,
@@ -12,14 +21,12 @@ import {
 } from '@/components/ui/dialog';
 import {
     Drawer,
-    DrawerBody,
     DrawerContent,
     DrawerDescription,
     DrawerHeader,
     DrawerNested,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
 import { useCan } from '@/hooks/use-can';
 import {
     AI_ACTION_PRESETS,
@@ -29,7 +36,6 @@ import type {
     AiActionPreset,
     AiActionPresetCategory,
 } from '@/lib/ai-action-presets';
-import { cn } from '@/lib/utils';
 
 const CATEGORY_ORDER: AiActionPresetCategory[] = [
     'common',
@@ -152,71 +158,56 @@ export function AiActionPresetsDrawer({
                             {t('ai.drawer.description')}
                         </DrawerDescription>
                     </DrawerHeader>
-                    <DrawerBody className="gap-4">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder={t('ai.drawer.searchPlaceholder')}
-                                className="pl-8"
-                                aria-label={t('ai.drawer.searchAria')}
-                            />
-                        </div>
-
-                        {grouped.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('ai.drawer.empty')}
-                            </p>
-                        ) : (
-                            grouped.map((group) => (
-                                <section
+                    <Command
+                        shouldFilter={false}
+                        className="min-h-0 flex-1 rounded-none bg-transparent"
+                    >
+                        <CommandInput
+                            value={search}
+                            onValueChange={setSearch}
+                            placeholder={t('ai.drawer.searchPlaceholder')}
+                            aria-label={t('ai.drawer.searchAria')}
+                        />
+                        <CommandList
+                            label={t('ai.drawer.title')}
+                            className="max-h-none flex-1 px-3 py-2"
+                        >
+                            <CommandEmpty>{t('ai.drawer.empty')}</CommandEmpty>
+                            {grouped.map((group) => (
+                                <CommandGroup
                                     key={group.category}
-                                    className="space-y-2"
+                                    heading={group.label}
                                 >
-                                    <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                        {group.label}
-                                    </h3>
-                                    <ul className="space-y-2">
-                                        {group.presets.map((preset) => (
-                                            <li key={preset.id}>
-                                                <button
-                                                    type="button"
-                                                    className={cn(
-                                                        'w-full rounded-lg border px-3 py-3 text-left transition-colors',
-                                                        'hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                                                    )}
-                                                    onClick={() =>
-                                                        handlePresetClick(
-                                                            preset,
-                                                        )
-                                                    }
-                                                >
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <span className="text-sm font-medium">
-                                                            {preset.title}
-                                                        </span>
-                                                        {preset.destructive ? (
-                                                            <span className="shrink-0 rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                                                                {t(
-                                                                    'ai.drawer.destructive',
-                                                                )}
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                    <p className="mt-0.5 text-xs text-muted-foreground">
-                                                        {preset.description}
-                                                    </p>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </section>
-                            ))
-                        )}
-                    </DrawerBody>
+                                    {group.presets.map((preset) => (
+                                        <CommandItem
+                                            key={preset.id}
+                                            value={preset.id}
+                                            className="flex-col items-stretch gap-0.5 py-2"
+                                            onSelect={() =>
+                                                handlePresetClick(preset)
+                                            }
+                                        >
+                                            <span className="flex items-start justify-between gap-2">
+                                                <span className="font-medium">
+                                                    {preset.title}
+                                                </span>
+                                                {preset.destructive ? (
+                                                    <Badge variant="destructive">
+                                                        {t(
+                                                            'ai.drawer.destructive',
+                                                        )}
+                                                    </Badge>
+                                                ) : null}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {preset.description}
+                                            </span>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            ))}
+                        </CommandList>
+                    </Command>
                 </DrawerContent>
             </DrawerRoot>
 

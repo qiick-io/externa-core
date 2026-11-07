@@ -2,6 +2,15 @@ import { Link } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { ChatDirectThreadMenu } from '@/components/chat/chat-direct-thread-menu';
 import { ChatThreadAvatar } from '@/components/chat/chat-thread-avatar';
+import { Badge } from '@/components/ui/badge';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
+} from '@/components/ui/item';
 import type { ChatSummary } from '@/lib/chat-hub-api';
 import { formatChatUnread } from '@/lib/format-chat-unread';
 import { cn } from '@/lib/utils';
@@ -67,67 +76,76 @@ export function ChatThreadRow({
     const isDirect = thread.kind === 'direct';
 
     return (
-        <Link
-            href={`/chat/${thread.id}`}
-            data-test="chat-thread-row"
-            data-unread={unread}
+        <Item
+            asChild
+            size="sm"
+            variant={selected ? 'muted' : 'default'}
             className={cn(
-                'mb-0.5 flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted',
+                'mb-0.5 flex-nowrap gap-3 px-2 py-2 hover:bg-muted',
                 selected && 'bg-muted',
             )}
-            onClick={(event) => {
-                event.preventDefault();
-                onOpen(thread.id);
-            }}
         >
-            <ChatThreadAvatar thread={thread} viewerId={viewerId} />
-            <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">
-                    {thread.title}
-                </div>
-                <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                    {imageId ? (
-                        <img
-                            src={`/chat/${thread.id}/attachments/${imageId}`}
-                            alt=""
-                            className="size-4 shrink-0 rounded-sm object-cover"
+            <Link
+                href={`/chat/${thread.id}`}
+                data-test="chat-thread-row"
+                data-unread={unread}
+                aria-current={selected ? 'page' : undefined}
+                onClick={(event) => {
+                    event.preventDefault();
+                    onOpen(thread.id);
+                }}
+            >
+                <ItemMedia>
+                    <ChatThreadAvatar thread={thread} viewerId={viewerId} />
+                </ItemMedia>
+                <ItemContent className="min-w-0 gap-0.5">
+                    <ItemTitle className="w-full truncate">
+                        <span className="truncate">{thread.title}</span>
+                    </ItemTitle>
+                    <ItemDescription className="flex min-w-0 items-center gap-2 text-xs">
+                        {imageId ? (
+                            <img
+                                src={`/chat/${thread.id}/attachments/${imageId}`}
+                                alt=""
+                                className="size-4 shrink-0 rounded-sm object-cover"
+                            />
+                        ) : null}
+                        <span className="truncate">
+                            {preview || (imageId ? t('chatHub.photo') : '')}
+                        </span>
+                    </ItemDescription>
+                </ItemContent>
+                <ItemActions className="shrink-0 gap-0.5 self-start pt-0.5">
+                    <div className="flex flex-col items-end gap-1">
+                        {time ? (
+                            <span className="text-xs text-muted-foreground">
+                                {time}
+                            </span>
+                        ) : null}
+                        {badge ? (
+                            <Badge
+                                className="min-w-5 rounded-full px-1.5 tabular-nums"
+                                aria-label={t('chatHub.unreadCount', {
+                                    count: unread,
+                                })}
+                            >
+                                {badge}
+                            </Badge>
+                        ) : null}
+                    </div>
+                    {isDirect ? (
+                        <ChatDirectThreadMenu
+                            chatId={thread.id}
+                            participants={thread.participants}
+                            canCreateDirect={canCreateDirect}
+                            archived={thread.archived === true}
+                            navigateHomeOnDelete={selected}
+                            reloadSelectedOnAdd={selected}
+                            triggerClassName="size-7"
                         />
                     ) : null}
-                    <span className="truncate">
-                        {preview || (imageId ? t('chatHub.photo') : '')}
-                    </span>
-                </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-0.5 self-start pt-0.5">
-                <div className="flex flex-col items-end gap-1">
-                    {time ? (
-                        <span className="text-xs text-muted-foreground">
-                            {time}
-                        </span>
-                    ) : null}
-                    {badge ? (
-                        <span
-                            className="flex min-w-5 items-center justify-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
-                            aria-label={t('chatHub.unreadCount', {
-                                count: unread,
-                            })}
-                        >
-                            {badge}
-                        </span>
-                    ) : null}
-                </div>
-                {isDirect ? (
-                    <ChatDirectThreadMenu
-                        chatId={thread.id}
-                        participants={thread.participants}
-                        canCreateDirect={canCreateDirect}
-                        archived={thread.archived === true}
-                        navigateHomeOnDelete={selected}
-                        reloadSelectedOnAdd={selected}
-                        triggerClassName="size-7"
-                    />
-                ) : null}
-            </div>
-        </Link>
+                </ItemActions>
+            </Link>
+        </Item>
     );
 }

@@ -1,9 +1,25 @@
-import { FileText, Paperclip, Send, Smile, Trash2, X } from 'lucide-react';
-import type { DragEvent, Ref } from 'react';
+import { FileText, Paperclip, Smile, Trash2, X } from 'lucide-react';
+import type { DragEvent, RefObject } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
+import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
+import type { ChatMentionHit } from '@/components/chat/chat-mention-hit';
+import {
+    ChatMentionMenu,
+    handleMentionMenuKeyDown,
+} from '@/components/chat/chat-mention-menu';
+import {
+    Attachment,
+    AttachmentAction,
+    AttachmentActions,
+    AttachmentContent,
+    AttachmentDescription,
+    AttachmentMedia,
+    AttachmentTitle,
+} from '@/components/ui/attachment';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -12,10 +28,8 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { formatBytes } from '@/lib/format';
 import type { ChatAttachment } from '@/lib/item-chat-api';
-import { collectionMentionLabel } from '@/lib/item-chat-mentions';
 
 export type SendAttachItem = {
     key: string;
@@ -25,9 +39,7 @@ export type SendAttachItem = {
     error: string | null;
 };
 
-export type AttachCaptionMentionHit =
-    | { type: 'user'; id: number; name: string; email?: string }
-    | { type: 'collection'; id: number; name: string };
+export type AttachCaptionMentionHit = ChatMentionHit;
 
 function isMediaFile(file: File): boolean {
     return file.type.startsWith('image/') || file.type.startsWith('video/');
@@ -44,7 +56,7 @@ type Props = {
     items: SendAttachItem[];
     caption: string;
     sending: boolean;
-    captionRef: Ref<HTMLTextAreaElement>;
+    captionRef: RefObject<HTMLTextAreaElement | null>;
     mentionOpen: boolean;
     mentionHits: AttachCaptionMentionHit[];
     mentionHighlight: number;
@@ -177,6 +189,15 @@ export function ChatSendAttachmentsDialog({
             : t('collections.itemChat.sendFiles', { count: n });
     }, [items, t]);
 
+    const mentionMenu = {
+        isOpen: showMentions && mentionOpen,
+        hits: mentionHits,
+        highlightIndex: mentionHighlight,
+        onHighlightChange: onMentionHighlight,
+        onPick: onPickMention,
+        onDismiss: onDismissMention,
+    };
+
     return (
         <Dialog
             open={open && items.length > 0}
@@ -244,233 +265,107 @@ export function ChatSendAttachmentsDialog({
                     ) : (
                         <ul className="flex flex-col gap-1">
                             {items.map((item) => (
-                                <li
-                                    key={item.key}
-                                    className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/60"
-                                >
-                                    <FileThumb item={item} />
-                                    <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-medium">
-                                            {item.file.name}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {item.error ? (
-                                                <span className="text-destructive">
-                                                    {item.error}
-                                                </span>
-                                            ) : item.uploaded ? (
-                                                formatBytes(item.file.size)
-                                            ) : (
-                                                t(
-                                                    'collections.itemChat.uploading',
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                    {item.uploaded === null &&
-                                    item.error === null ? (
-                                        <Spinner className="size-4 shrink-0" />
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="shrink-0 text-muted-foreground"
-                                            disabled={sending}
-                                            onClick={() => onRemove(item.key)}
-                                            aria-label={t('common.delete')}
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </Button>
-                                    )}
+                                <li key={item.key} className="min-w-0">
+                                    <SendAttachmentFile
+                                        item={item}
+                                        disabled={sending}
+                                        onRemove={() => onRemove(item.key)}
+                                    />
                                 </li>
                             ))}
                         </ul>
                     )}
                 </div>
 
-                <div className="flex shrink-0 flex-col gap-2 border-t px-3 py-3">
-                    <div className="relative">
-                        {showMentions &&
-                        mentionOpen &&
-                        mentionHits.length > 0 ? (
-                            <div className="absolute inset-x-0 bottom-full z-30 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                {mentionHits.map((hit, index) => (
-                                    <button
-                                        key={`${hit.type}-${hit.id}`}
-                                        type="button"
-                                        className={
-                                            index === mentionHighlight
-                                                ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                        }
-                                        onMouseEnter={() =>
-                                            onMentionHighlight(index)
-                                        }
-                                        onClick={() => onPickMention(hit)}
-                                    >
-                                        <span>
-                                            {hit.type === 'collection'
-                                                ? collectionMentionLabel(hit)
-                                                : hit.name}
-                                        </span>
-                                        {hit.type === 'user' && hit.email ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {hit.email}
-                                            </span>
-                                        ) : hit.type === 'collection' ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                collection
-                                            </span>
-                                        ) : null}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : null}
-                        <Textarea
-                            ref={captionRef}
+                <div className="shrink-0 border-t px-3 py-3">
+                    <ChatMentionMenu
+                        {...mentionMenu}
+                        open={mentionMenu.isOpen}
+                        renderHit={(hit) => <ChatMentionHitLabel hit={hit} />}
+                        textareaRef={captionRef}
+                        contentClassName="z-[80]"
+                    >
+                        <ChatComposer
+                            textareaRef={captionRef}
                             value={caption}
-                            rows={2}
-                            placeholder={t('collections.itemChat.addCaption')}
-                            className="min-h-10 resize-none"
-                            data-test="chat-send-caption"
+                            onValueChange={onCaptionChange}
+                            onSubmit={onSend}
+                            canSubmit={canSend}
+                            isSubmitting={sending}
                             disabled={sending}
-                            onChange={(event) =>
-                                onCaptionChange(
-                                    event.target.value,
-                                    event.target.selectionStart,
-                                )
-                            }
+                            placeholder={t('collections.itemChat.addCaption')}
+                            label={t('collections.itemChat.addCaption')}
+                            sendLabel={t('collections.itemChat.send')}
+                            textareaTestId="chat-send-caption"
+                            submitTestId="chat-send-attachments-submit"
                             onKeyDown={(event) => {
-                                if (event.nativeEvent.isComposing) {
-                                    return;
-                                }
-
-                                if (
-                                    showMentions &&
-                                    mentionOpen &&
-                                    mentionHits.length > 0
-                                ) {
-                                    if (event.key === 'ArrowDown') {
-                                        event.preventDefault();
-                                        onMentionHighlight(
-                                            (mentionHighlight + 1) %
-                                                mentionHits.length,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (event.key === 'ArrowUp') {
-                                        event.preventDefault();
-                                        onMentionHighlight(
-                                            (mentionHighlight -
-                                                1 +
-                                                mentionHits.length) %
-                                                mentionHits.length,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (
-                                        event.key === 'Enter' &&
-                                        !event.shiftKey &&
-                                        !event.metaKey &&
-                                        !event.ctrlKey
-                                    ) {
-                                        event.preventDefault();
-                                        onPickMention(
-                                            mentionHits[mentionHighlight]!,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (event.key === 'Escape') {
-                                        event.preventDefault();
-                                        onDismissMention();
-
-                                        return;
-                                    }
-                                }
-
-                                if (
-                                    event.key === 'Enter' &&
-                                    !event.shiftKey &&
-                                    canSend
-                                ) {
-                                    event.preventDefault();
-                                    onSend();
+                                if (showMentions) {
+                                    handleMentionMenuKeyDown(
+                                        event,
+                                        mentionMenu,
+                                    );
                                 }
                             }}
-                        />
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {showMentions ? (
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                disabled={sending}
-                                aria-label={t('collections.itemChat.mention')}
-                                data-test="chat-send-caption-mention"
-                                onClick={onInsertMentionTrigger}
-                            >
-                                @
-                            </Button>
-                        ) : null}
-                        <Popover
-                            modal={false}
-                            open={emojiOpen}
-                            onOpenChange={onEmojiOpenChange}
-                        >
-                            <PopoverTrigger asChild>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    disabled={sending}
-                                    aria-label={t('collections.itemChat.emoji')}
-                                    data-test="chat-send-caption-emoji"
-                                >
-                                    <Smile className="size-4" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className="z-[80] w-64 p-2"
-                                align="start"
-                            >
-                                <div className="grid grid-cols-8 gap-1">
-                                    {emojis.map((emoji) => (
-                                        <button
-                                            key={emoji}
+                            actions={
+                                <>
+                                    {showMentions ? (
+                                        <Button
                                             type="button"
-                                            className="rounded p-1 text-lg hover:bg-muted"
-                                            onClick={() => onInsertEmoji(emoji)}
+                                            size="icon"
+                                            variant="ghost"
+                                            disabled={sending}
+                                            aria-label={t(
+                                                'collections.itemChat.mention',
+                                            )}
+                                            data-test="chat-send-caption-mention"
+                                            onClick={onInsertMentionTrigger}
                                         >
-                                            {emoji}
-                                        </button>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button
-                            type="button"
-                            size="icon"
-                            className="ml-auto size-10 shrink-0 rounded-full"
-                            disabled={!canSend}
-                            data-test="chat-send-attachments-submit"
-                            onClick={onSend}
-                            aria-label={t('collections.itemChat.send')}
-                        >
-                            {sending ? (
-                                <Spinner className="size-4" />
-                            ) : (
-                                <Send className="size-4" />
-                            )}
-                        </Button>
-                    </div>
+                                            @
+                                        </Button>
+                                    ) : null}
+                                    <Popover
+                                        modal={false}
+                                        open={emojiOpen}
+                                        onOpenChange={onEmojiOpenChange}
+                                    >
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                disabled={sending}
+                                                aria-label={t(
+                                                    'collections.itemChat.emoji',
+                                                )}
+                                                data-test="chat-send-caption-emoji"
+                                            >
+                                                <Smile className="size-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            className="z-[80] w-64 p-2"
+                                            align="start"
+                                        >
+                                            <div className="grid grid-cols-8 gap-1">
+                                                {emojis.map((emoji) => (
+                                                    <button
+                                                        key={emoji}
+                                                        type="button"
+                                                        className="rounded p-1 text-lg hover:bg-muted"
+                                                        onClick={() =>
+                                                            onInsertEmoji(emoji)
+                                                        }
+                                                    >
+                                                        {emoji}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </>
+                            }
+                        />
+                    </ChatMentionMenu>
                 </div>
 
                 {dragOver ? (
@@ -489,28 +384,61 @@ export function ChatSendAttachmentsDialog({
     );
 }
 
-function FileThumb({ item }: { item: SendAttachItem }) {
-    if (item.previewUrl && item.file.type.startsWith('image/')) {
-        return (
-            <img
-                src={item.previewUrl}
-                alt=""
-                className="size-11 shrink-0 rounded-md object-cover"
-            />
-        );
-    }
-
-    const ext = fileExtension(item.file.name);
+/** One non-media file in the send dialog, on shadcn `Attachment`. */
+function SendAttachmentFile({
+    item,
+    disabled,
+    onRemove,
+}: {
+    item: SendAttachItem;
+    disabled: boolean;
+    onRemove: () => void;
+}) {
+    const { t } = useTranslation();
+    const uploading = item.uploaded === null && item.error === null;
+    const isImage = item.previewUrl && item.file.type.startsWith('image/');
 
     return (
-        <div className="flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-primary/15 text-primary">
-            <FileText className="size-4" aria-hidden />
-            {ext ? (
-                <span className="text-xs leading-none font-bold uppercase">
-                    {ext.slice(0, 4)}
-                </span>
-            ) : null}
-        </div>
+        <Attachment
+            state={item.error ? 'error' : uploading ? 'uploading' : 'done'}
+            className="w-full"
+            data-test="chat-send-attachment"
+        >
+            <AttachmentMedia variant={isImage ? 'image' : 'icon'}>
+                {uploading ? (
+                    <Spinner />
+                ) : isImage ? (
+                    <img src={item.previewUrl!} alt="" />
+                ) : (
+                    <FileText className="text-muted-foreground" />
+                )}
+            </AttachmentMedia>
+            <AttachmentContent>
+                <AttachmentTitle>{item.file.name}</AttachmentTitle>
+                <AttachmentDescription>
+                    {item.error ??
+                        (uploading
+                            ? t('collections.itemChat.uploading')
+                            : [
+                                  fileExtension(item.file.name).toUpperCase(),
+                                  formatBytes(item.file.size),
+                              ]
+                                  .filter(Boolean)
+                                  .join(' · '))}
+                </AttachmentDescription>
+            </AttachmentContent>
+            {uploading ? null : (
+                <AttachmentActions>
+                    <AttachmentAction
+                        disabled={disabled}
+                        onClick={onRemove}
+                        aria-label={t('common.delete')}
+                    >
+                        <Trash2 />
+                    </AttachmentAction>
+                </AttachmentActions>
+            )}
+        </Attachment>
     );
 }
 

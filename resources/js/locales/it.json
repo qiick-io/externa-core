@@ -32,7 +32,24 @@
         "active": "Attivo",
         "name": "Nome",
         "pageRange": "{{from}}–{{to}} di {{total}}",
-        "perPageOption": "{{count}} / pagina"
+        "perPageOption": "{{count}} / pagina",
+        "noResults": "Nessun risultato.",
+        "copy": "Copia",
+        "copied": "Copiato",
+        "loading": "Caricamento…",
+        "loadMore": "Carica altri",
+        "preview": "Anteprima",
+        "clear": "Cancella",
+        "filter": "Filtra",
+        "from": "Da",
+        "to": "A",
+        "system": "Sistema"
+    },
+    "picker": {
+        "search": "Cerca…",
+        "noResults": "Nessun risultato.",
+        "loading": "Caricamento…",
+        "clearSelection": "Cancella selezione"
     },
     "emptyState": {
         "collections": {
@@ -225,7 +242,8 @@
         "fromDate": "Data da",
         "toDate": "Data a",
         "removeRule": "Rimuovi regola",
-        "removeLocale": "Rimuovi locale {{code}}"
+        "removeLocale": "Rimuovi locale {{code}}",
+        "selectRow": "Seleziona {{name}}"
     },
     "auth": {
         "login": {
@@ -357,7 +375,20 @@
                 "revokeTitle": "Revocare la API key “{{name}}”?",
                 "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
                 "revokeConfirm": "Revoca"
-            }
+            },
+            "columns": {
+                "name": "Nome",
+                "prefix": "Prefisso",
+                "role": "Ruolo",
+                "status": "Stato",
+                "actions": "Azioni"
+            },
+            "status": {
+                "active": "Attiva",
+                "revoked": "Revocata"
+            },
+            "revoke": "Revoca chiave",
+            "secretValue": "Nuova chiave API"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -734,7 +765,8 @@
             "regenerate": "Rigenera codici",
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
-            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra.",
+            "setupKey": "Chiave di configurazione"
         },
         "aiTools": {
             "breadcrumb": "Strumenti AI in scrittura",
@@ -866,7 +898,14 @@
             "copied": "Valore grezzo copiato",
             "copyFailed": "Impossibile copiare negli appunti",
             "pasted": "Valore grezzo incollato",
-            "pasteFailed": "Impossibile leggere gli appunti"
+            "pasteFailed": "Impossibile leggere gli appunti",
+            "edit": "Modifica campo",
+            "duplicate": "Duplica campo",
+            "showInForm": "Mostra campo nel dettaglio",
+            "hideInForm": "Nascondi campo nel dettaglio",
+            "delete": "Elimina campo",
+            "deleteFailed": "Impossibile eliminare il campo.",
+            "width": "Larghezza"
         },
         "itemSave": {
             "create": "Crea",
@@ -968,8 +1007,10 @@
             "sendError": "Impossibile inviare il messaggio.",
             "reply": "Rispondi",
             "copyText": "Copia testo",
+            "copyFailed": "Impossibile copiare il messaggio",
             "pin": "Fissa",
             "unpin": "Togli",
+            "pinned": "Messaggi fissati",
             "visibilityHint": "Visibile a chi può leggere questo item",
             "openInHub": "Apri in Chat",
             "mediaPreview": "Anteprima media",
@@ -982,7 +1023,11 @@
             "sendingMedia": "Invio…",
             "retrySend": "Riprova",
             "removePendingFile": "Rimuovi file",
-            "scrollToBottom": "Vai in fondo"
+            "scrollToBottom": "Vai in fondo",
+            "mentionCollection": "Collezione",
+            "reactionToggle": "Reazione {{emoji}}: {{names}}",
+            "messageActions": "Azioni sul messaggio",
+            "react": "Reagisci"
         },
         "packs": {
             "createFromPack": "Crea da pack",
@@ -1286,7 +1331,28 @@
             "convertFailed": "Conversione non riuscita.",
             "success": "Campo convertito.",
             "queued": "Conversione del campo in coda."
-        }
+        },
+        "columnPicker": {
+            "fields": "Campi",
+            "related": "Campi collegati",
+            "openRelated": "Apri i campi di {{label}}",
+            "noNestedFields": "Nessun campo annidato disponibile.",
+            "noMatches": "Nessun campo corrisponde alla ricerca.",
+            "id": "ID",
+            "createdAt": "Creato il",
+            "updatedAt": "Aggiornato il",
+            "createdBy": "Creato da",
+            "updatedBy": "Aggiornato da",
+            "actions": "Azioni"
+        },
+        "layoutWidth": {
+            "half": "Metà larghezza",
+            "full": "Larghezza massima",
+            "fill": "Riempi larghezza"
+        },
+        "openCollection": "Apri {{name}}",
+        "reorderColumn": "Riordina {{label}}",
+        "noFieldsMatch": "Nessun campo corrisponde alla ricerca."
     },
     "ai": {
         "drawer": {
@@ -1557,7 +1623,105 @@
         "conversations": "Conversazioni",
         "searchConversations": "Cerca conversazioni…",
         "noConversationsMatch": "Nessuna conversazione corrisponde alla ricerca.",
-        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti."
+        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti.",
+        "conversationRegion": "Conversazione",
+        "tool": {
+            "state": {
+                "input-streaming": "In attesa",
+                "input-available": "In esecuzione",
+                "approval-requested": "In attesa di approvazione",
+                "approval-responded": "Risposto",
+                "output-available": "Completato",
+                "output-error": "Errore",
+                "output-denied": "Rifiutato"
+            },
+            "parameters": "Parametri",
+            "result": "Risultato",
+            "error": "Errore",
+            "steps_one": "{{count}} passo con strumenti",
+            "steps_other": "{{count}} passi con strumenti"
+        },
+        "approval": {
+            "request": "L’assistente vuole eseguire {{tools}}.",
+            "approve": "Approva",
+            "reject": "Rifiuta"
+        },
+        "actions": {
+            "copy": "Copia",
+            "copied": "Copiato",
+            "edit": "Modifica"
+        },
+        "retry": "Riprova",
+        "sendAgain": "Invia di nuovo",
+        "assistantMessagePdfTitle": "Messaggio dell’assistente",
+        "callingTool": "Chiamata {{tool}}…",
+        "importStatus": "Importazione {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "in coda",
+            "running": "in corso",
+            "done": "completata",
+            "failed": "non riuscita"
+        },
+        "markdown": {
+            "copyCode": "Copia codice",
+            "downloadFile": "Scarica file",
+            "viewFullscreen": "Schermo intero",
+            "exitFullscreen": "Esci da schermo intero",
+            "copyTable": "Copia tabella",
+            "copyTableAsMarkdown": "Copia tabella come Markdown",
+            "copyTableAsCsv": "Copia tabella come CSV",
+            "copyTableAsTsv": "Copia tabella come TSV",
+            "downloadTable": "Scarica tabella",
+            "downloadTableAsCsv": "Scarica tabella come CSV",
+            "downloadTableAsMarkdown": "Scarica tabella come Markdown",
+            "imageNotAvailable": "Immagine non disponibile",
+            "downloadImage": "Scarica immagine",
+            "openExternalLink": "Aprire il link esterno?",
+            "externalLinkWarning": "Stai per visitare un sito esterno.",
+            "close": "Chiudi",
+            "copyLink": "Copia link",
+            "copied": "Copiato",
+            "openLink": "Apri link"
+        },
+        "errors": {
+            "tooManyAttachments": "Puoi allegare al massimo 5 file per messaggio.",
+            "unsupportedAttachment": "Sono ammessi solo file CSV, TXT, XLSX o PDF.",
+            "attachmentTooLarge": "Il file supera il limite di 5 MB.",
+            "attachmentUploadFailed": "Caricamento dell’allegato non riuscito",
+            "connectionInterrupted": "La connessione al server AI si è interrotta (timeout, proxy o crash del modello). Controlla il provider AI e riprova con un prompt più breve.",
+            "network": "Errore di rete",
+            "noResponseStream": "Nessuno stream di risposta",
+            "stream": "Errore durante lo stream AI",
+            "streamInterrupted": "Connessione allo stream AI interrotta (timeout del proxy o modello lento). Controlla il provider AI e che fastcgi_read_timeout sia almeno 600 s, poi riprova.",
+            "loadConversations": "Impossibile caricare le conversazioni",
+            "truncate": "Impossibile troncare la conversazione",
+            "popupBlocked": "Popup bloccato: consenti le finestre popup per esportare il PDF."
+        },
+        "awaitingApproval": "In attesa della tua approvazione per eseguire {{tools}}.",
+        "aTool": "uno strumento",
+        "toolFallback": "Completato con {{tools}}. Chiedimi di verificare il risultato se serve.",
+        "pinned": "Fissate",
+        "selectConversation": "Seleziona {{title}}",
+        "bulkDeleteTitle": "Eliminare le chat selezionate?",
+        "bulkDeleteDescription_one": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "reasoning": {
+            "thinking": "Sto ragionando…",
+            "thoughtFor_one": "Ha ragionato per {{count}} secondo",
+            "thoughtFor_other": "Ha ragionato per {{count}} secondi",
+            "thoughtFewSeconds": "Ha ragionato per qualche secondo"
+        },
+        "sources": {
+            "used_one": "{{count}} fonte usata",
+            "used_other": "{{count}} fonti usate"
+        },
+        "usage": {
+            "trigger": "Contesto usato: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Ragionamento",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1660,7 +1824,14 @@
         "healthWorkloadQueue": "Coda",
         "healthWorkloadLength": "Lunghezza",
         "healthWorkloadWait": "Attesa",
-        "healthWorkloadProcesses": "Proc"
+        "healthWorkloadProcesses": "Proc",
+        "statFilesHeadline": "Cartelle: {{count}}",
+        "statSizeContext": "Tutti i file, su ogni disco",
+        "statUploadsInProgress": "Upload in corso",
+        "statInProgressContext": "Upload a blocchi non ancora completati",
+        "statStaleUploads": "Upload stagnanti",
+        "statStaleContext": "Scaduti prima di finire",
+        "statFailedJobsHeadline": "Job falliti: {{count}}"
     },
     "realtime": {
         "connected": "Realtime connesso",
@@ -1703,7 +1874,9 @@
         "showArchived": "Mostra archiviate",
         "showInbox": "Mostra chat",
         "deleteChat": "Elimina chat",
-        "deleteChatError": "Impossibile eliminare la chat."
+        "deleteChatError": "Impossibile eliminare la chat.",
+        "messagesRegion": "Messaggi",
+        "scrollToLatest": "Vai all’ultimo messaggio"
     },
     "errors": {
         "notFound": {
@@ -1711,6 +1884,12 @@
             "title": "Pagina non trovata",
             "description": "La pagina richiesta non esiste o non è più disponibile.",
             "goHome": "Vai alla home"
+        },
+        "boundary": {
+            "title": "Qualcosa è andato storto",
+            "description": "L’interfaccia ha incontrato un errore imprevisto. Puoi provare a ricaricare la pagina.",
+            "tryAgain": "Riprova",
+            "reload": "Ricarica la pagina"
         }
     },
     "unsavedChanges": {
@@ -1822,7 +2001,8 @@
             "clearSelection": "Deseleziona",
             "emptyTrash": "Svuota cestino",
             "emptyTrashTitle": "Svuotare il cestino?",
-            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine."
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine.",
+            "uploadOptions": "Altre opzioni di caricamento"
         },
         "sort": {
             "name": "Nome",
@@ -1921,7 +2101,9 @@
             "placeholder": "Digita un tag e premi Invio",
             "exactMatch": "Corrispondenza esatta — verrà riusato il tag “{{name}}”",
             "existing": "Tag esistenti",
-            "moreTags": "{{count}} altri tag"
+            "moreTags": "{{count}} altri tag",
+            "create": "Crea “{{name}}”",
+            "remove": "Rimuovi tag {{name}}"
         },
         "folderPicker": {
             "search": "Cerca cartelle…",
@@ -1969,11 +2151,33 @@
             "select": "Seleziona {{name}}",
             "privateBadge": "Privato",
             "privateTitle": "Privato — richiede Read private sui ruoli API"
+        },
+        "picker": {
+            "title": "Scegli file",
+            "descriptionMultiple": "Fai clic sui file per selezionarli, poi conferma qui sotto",
+            "description": "Sfoglia le cartelle o carica un nuovo file",
+            "empty": "Nessun file in questa cartella",
+            "chooseFiles": "Scegli i file",
+            "chooseCount": "Scegli {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Rilascia qui i file per caricarli",
+            "dropOrBrowse": "Rilascia qui i file o sfoglia",
+            "chunkedHint": "I file grandi vengono caricati a blocchi automaticamente",
+            "chooseFiles": "Scegli i file"
         }
     },
     "confirmDestructive": {
         "typeToConfirm": "Digita \"{{name}}\" per confermare",
-        "deletePermanently": "Elimina definitivamente"
+        "deletePermanently": "Elimina definitivamente",
+        "deleteAiChatTitle": "Eliminare questa chat?",
+        "deleteAiChatDescription": "La conversazione e tutti i suoi messaggi verranno eliminati.",
+        "deletePromptTitle": "Eliminare il prompt “{{name}}”?",
+        "deletePromptDescription": "Il prompt salvato non sarà più disponibile per nessuno.",
+        "deleteMessageTitle": "Eliminare questo messaggio?",
+        "deleteMessageDescription": "Il messaggio verrà rimosso dalla chat per tutti.",
+        "deleteDirectChatTitle": "Eliminare questa chat?",
+        "deleteDirectChatDescription": "La chat verrà rimossa dalle tue chat."
     },
     "itemConfirm": {
         "deleteTitle": "Eliminare l’item “{{name}}”?",
@@ -2016,7 +2220,16 @@
             "firstName": "Nome",
             "email": "Email",
             "created": "Creato",
-            "updated": "Aggiornato"
+            "updated": "Aggiornato",
+            "name": "Nome",
+            "roles": "Ruoli",
+            "groups": "Gruppi",
+            "status": "Stato",
+            "actions": "Azioni"
+        },
+        "status": {
+            "active": "Attivo",
+            "inactive": "Inattivo"
         }
     },
     "groups": {
@@ -2032,7 +2245,17 @@
         "newGroup": "Nuovo gruppo",
         "searchPlaceholder": "Cerca gruppi…",
         "searchTrashPlaceholder": "Cerca nel cestino…",
-        "sortBy": "Ordina per"
+        "sortBy": "Ordina per",
+        "columns": {
+            "name": "Nome",
+            "slug": "Slug",
+            "roles": "Ruoli",
+            "members": "Membri",
+            "actions": "Azioni"
+        },
+        "empty": "Ancora nessun gruppo.",
+        "membersCount_one": "{{count}} membro",
+        "membersCount_other": "{{count}} membri"
     },
     "pendingToolCalls": {
         "head": "Approvazioni strumenti AI",
@@ -2070,6 +2293,71 @@
         "redo": "Ripeti",
         "table": "Tabella",
         "linkUrl": "URL del link",
-        "headingLevel": "Titolo {{level}}"
+        "applyLink": "Applica",
+        "removeLink": "Rimuovi link",
+        "headingLevel": "Titolo {{level}}",
+        "removeTag": "Rimuovi tag {{name}}",
+        "imageFromComputer": "Carica dal computer",
+        "imageFromLibrary": "Scegli dalla libreria",
+        "imageFromUrl": "Importa da URL",
+        "imageOnly": "Scegli un file immagine.",
+        "imageUploadFailed": "Caricamento immagine non riuscito.",
+        "uploadingImage": "Caricamento immagine…",
+        "insertTable": "Inserisci tabella",
+        "insertTableDescription": "Scegli righe e colonne della tabella markdown.",
+        "tableRows": "Righe",
+        "tableColumns": "Colonne",
+        "createTable": "Crea",
+        "nothingToPreview": "Niente da visualizzare."
+    },
+    "permissions": {
+        "columns": {
+            "name": "Nome",
+            "guard": "Guard"
+        },
+        "empty": "Nessun permesso nel database. Esegui la sincronizzazione.",
+        "sync": "Sincronizza dall'enum"
+    },
+    "passwordInput": {
+        "strength": "Robustezza della password",
+        "meetsPolicy": "Rispetta la policy password del progetto.",
+        "keepGoing": "Continua per rispettare la policy password del progetto.",
+        "generate": "Genera una password sicura"
+    },
+    "jobs": {
+        "title": "Job",
+        "pendingCount": "In coda: {{count}}",
+        "pendingTitle": "In attesa (campione)",
+        "failedTitle": "Job falliti",
+        "pendingEmpty": "Nessun job in attesa.",
+        "failedEmpty": "Nessun job fallito.",
+        "scopeHint": "Lo stato dei job di dominio (import AI, zip) resta nelle rispettive interfacce: questa pagina monitora solo le tabelle della coda Laravel.",
+        "retry": "Riprova",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Coda",
+            "attempts": "Tentativi",
+            "failedAt": "Fallito il",
+            "exception": "Eccezione",
+            "actions": "Azioni"
+        }
+    },
+    "revisions": {
+        "title": "Revisioni",
+        "drawerDescription": "Seleziona una revisione da confrontare con l’elemento attuale. Applica la unisce al modulo: salva per mantenerla.",
+        "pageTitle": "Cronologia — Elemento #{{id}}",
+        "pageDescription": "Seleziona due revisioni da confrontare. Ripristina scrive lo snapshot come nuovo aggiornamento.",
+        "backToItem": "Torna all’elemento",
+        "emptyFiltered": "Nessuna revisione in questo intervallo. Cancella il filtro o allarga le date.",
+        "empty": "Ancora nessuna revisione. Salvataggi, bozze, pubblicazioni e ripristini compaiono qui.",
+        "hard": "Diretto",
+        "hardRestore": "Ripristino diretto",
+        "hardRestoreHint": "Ripristino diretto (scrive subito)",
+        "restore": "Ripristina",
+        "compare": "Confronta",
+        "compareHint": "Seleziona due revisioni per vedere le differenze.",
+        "field": "Campo",
+        "selectRevision": "Seleziona revisione #{{id}}"
     }
 }

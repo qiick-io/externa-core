@@ -277,7 +277,7 @@ export default function CollectionsFields({
                     </div>
                 ) : searchQueryActive && filteredFields.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">
-                        No fields match your search.
+                        {t('collections.noFieldsMatch')}
                     </p>
                 ) : (
                     <CollectionFieldsList

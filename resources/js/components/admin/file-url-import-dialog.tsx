@@ -1,5 +1,4 @@
-import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { importFileFromUrl, isImageFile } from '@/lib/files-api';
-import { toast } from '@/lib/toast';
 import type { AdminFileRow } from '@/types/files';
 
 /**
@@ -34,11 +34,15 @@ export function FileUrlImportDialog({
     const { t } = useTranslation();
     const [url, setUrl] = useState('');
     const [busy, setBusy] = useState(false);
+    /** Why the URL could not be imported, under the field (app-ui `docs/notifications.md`). */
+    const [urlError, setUrlError] = useState<string | null>(null);
+    const urlErrorId = useId();
 
     useEffect(() => {
         if (!open) {
             setUrl('');
             setBusy(false);
+            setUrlError(null);
         }
     }, [open]);
 
@@ -55,7 +59,7 @@ export function FileUrlImportDialog({
             const file = await importFileFromUrl(trimmed, null);
 
             if (acceptImagesOnly && !isImageFile(file)) {
-                toast.error(t('collections.fileField.imageRequired'));
+                setUrlError(t('collections.fileField.imageRequired'));
 
                 return;
             }
@@ -63,7 +67,7 @@ export function FileUrlImportDialog({
             onImported(file);
             onOpenChange(false);
         } catch (error) {
-            toast.error(
+            setUrlError(
                 error instanceof Error
                     ? error.message
                     : t('collections.fileField.importFailed'),
@@ -92,7 +96,14 @@ export function FileUrlImportDialog({
                     // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                     autoFocus
                     disabled={busy}
-                    onChange={(event) => setUrl(event.target.value)}
+                    aria-invalid={urlError !== null}
+                    aria-describedby={
+                        urlError !== null ? urlErrorId : undefined
+                    }
+                    onChange={(event) => {
+                        setUrl(event.target.value);
+                        setUrlError(null);
+                    }}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter') {
                             event.preventDefault();
@@ -100,6 +111,7 @@ export function FileUrlImportDialog({
                         }
                     }}
                 />
+                <FieldError id={urlErrorId}>{urlError}</FieldError>
                 <DialogFooter>
                     <Button
                         type="button"
@@ -114,9 +126,7 @@ export function FileUrlImportDialog({
                         disabled={busy || url.trim() === ''}
                         onClick={() => void submit()}
                     >
-                        {busy ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : null}
+                        {busy ? <Spinner /> : null}
                         {t('collections.fileField.import')}
                     </Button>
                 </DialogFooter>

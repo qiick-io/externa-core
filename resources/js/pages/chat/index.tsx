@@ -2,22 +2,21 @@ import { Head, router, usePage } from '@inertiajs/react';
 import {
     Archive,
     Database,
-    Inbox,
     MessageSquare,
     MessagesSquare,
     Paperclip,
-    ArrowUp,
     Smile,
     UsersRound,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DrawerFooter } from '@/components/ui/drawer';
 import {
@@ -27,17 +26,17 @@ import {
     EmptyMedia,
 } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
+import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
 import { applyChatUnread, fetchChatThreads } from '@/lib/chat-hub-api';
 import type { ChatSummary } from '@/lib/chat-hub-api';
-import {
-    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-    composerFrameClass,
-    composerTextareaClass,
-    composerToolbarClass,
-} from '@/lib/composer-chrome';
 import { formatChatUnread } from '@/lib/format-chat-unread';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
@@ -266,14 +265,14 @@ export default function ChatHubPage({
                                 <Database className="size-4" />
                                 <span>{t('chatHub.collection')}</span>
                                 {unread.unread_collection > 0 ? (
-                                    <span
+                                    <Badge
                                         data-test="chat-tab-collection-unread"
-                                        className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
+                                        className="min-w-5 rounded-full px-1.5 tabular-nums"
                                     >
                                         {formatChatUnread(
                                             unread.unread_collection,
                                         )}
-                                    </span>
+                                    </Badge>
                                 ) : null}
                             </ToggleGroupItem>
                             <ToggleGroupItem
@@ -283,39 +282,40 @@ export default function ChatHubPage({
                                 <UsersRound className="size-4" />
                                 <span>{t('chatHub.users')}</span>
                                 {unread.unread_private > 0 ? (
-                                    <span
+                                    <Badge
                                         data-test="chat-tab-private-unread"
-                                        className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
+                                        className="min-w-5 rounded-full px-1.5 tabular-nums"
                                     >
                                         {formatChatUnread(
                                             unread.unread_private,
                                         )}
-                                    </span>
+                                    </Badge>
                                 ) : null}
                             </ToggleGroupItem>
                         </ToggleGroup>
-                        <HeaderIconButton
-                            type="button"
-                            data-test="chat-filter-archived"
-                            disabled={tab !== 'private'}
-                            variant={
-                                tab === 'private' && showArchived
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            label={
-                                showArchived
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                    <Toggle
+                                        variant="outline"
+                                        data-test="chat-filter-archived"
+                                        disabled={tab !== 'private'}
+                                        pressed={
+                                            tab === 'private' && showArchived
+                                        }
+                                        onPressedChange={setShowArchived}
+                                        aria-label={t('chatHub.showArchived')}
+                                    >
+                                        <Archive />
+                                    </Toggle>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {showArchived
                                     ? t('chatHub.showInbox')
-                                    : t('chatHub.showArchived')
-                            }
-                            onClick={() => setShowArchived((prev) => !prev)}
-                        >
-                            {tab === 'private' && showArchived ? (
-                                <Inbox className="size-4" />
-                            ) : (
-                                <Archive className="size-4" />
-                            )}
-                        </HeaderIconButton>
+                                    : t('chatHub.showArchived')}
+                            </TooltipContent>
+                        </Tooltip>
                     </>
                 }
             >
@@ -418,24 +418,23 @@ export default function ChatHubPage({
                                     data-test="chat-composer-placeholder"
                                     className="p-3"
                                 >
-                                    <div className={composerFrameClass}>
-                                        <textarea
-                                            rows={1}
-                                            disabled
-                                            className={composerTextareaClass}
-                                            style={{
-                                                minHeight:
-                                                    COMPOSER_MIN_TEXTAREA_HEIGHT_PX,
-                                            }}
-                                            placeholder={t(
-                                                'collections.itemChat.placeholder',
-                                            )}
-                                            aria-label={t(
-                                                'collections.itemChat.placeholder',
-                                            )}
-                                        />
-                                        <div className={composerToolbarClass}>
-                                            <div className="flex items-center gap-1">
+                                    <ChatComposer
+                                        disabled
+                                        value=""
+                                        onValueChange={() => undefined}
+                                        onSubmit={() => undefined}
+                                        canSubmit={false}
+                                        placeholder={t(
+                                            'collections.itemChat.placeholder',
+                                        )}
+                                        label={t(
+                                            'collections.itemChat.placeholder',
+                                        )}
+                                        sendLabel={t(
+                                            'collections.itemChat.send',
+                                        )}
+                                        actions={
+                                            <>
                                                 <Button
                                                     type="button"
                                                     size="icon"
@@ -458,20 +457,9 @@ export default function ChatHubPage({
                                                 >
                                                     <Paperclip className="size-4" />
                                                 </Button>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                className="rounded-full"
-                                                disabled
-                                                aria-label={t(
-                                                    'collections.itemChat.send',
-                                                )}
-                                            >
-                                                <ArrowUp className="size-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
+                                            </>
+                                        }
+                                    />
                                 </DrawerFooter>
                             </div>
                         ) : null}

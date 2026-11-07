@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { History } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RevisionSnapshot } from '@/components/collections/item-revision-compare-modal';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
@@ -14,9 +14,23 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemSeparator,
+    ItemTitle,
+} from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { jsonRequestHeaders } from '@/lib/csrf';
-import { cn } from '@/lib/utils';
 
 type RevisionsMeta = {
     current_page: number;
@@ -203,11 +217,10 @@ export function ItemRevisionsDrawer({
                     <DrawerHeader>
                         <DrawerTitle className="flex items-center gap-2">
                             <History className="size-4" />
-                            Revisions
+                            {t('revisions.title')}
                         </DrawerTitle>
                         <DrawerDescription>
-                            Select a revision to compare with the current item.
-                            Apply merges into the form — Save to keep.
+                            {t('revisions.drawerDescription')}
                         </DrawerDescription>
                     </DrawerHeader>
                     <DrawerBody className="space-y-3">
@@ -215,7 +228,7 @@ export function ItemRevisionsDrawer({
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
                                     <Label htmlFor="revision-date-from">
-                                        From
+                                        {t('common.from')}
                                     </Label>
                                     <Input
                                         id="revision-date-from"
@@ -228,7 +241,9 @@ export function ItemRevisionsDrawer({
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="revision-date-to">To</Label>
+                                    <Label htmlFor="revision-date-to">
+                                        {t('common.to')}
+                                    </Label>
                                     <Input
                                         id="revision-date-to"
                                         type="date"
@@ -249,7 +264,7 @@ export function ItemRevisionsDrawer({
                                     onClick={applyFilter}
                                     disabled={loading}
                                 >
-                                    Filter
+                                    {t('common.filter')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -258,14 +273,15 @@ export function ItemRevisionsDrawer({
                                     onClick={clearFilter}
                                     disabled={loading || !filterActive}
                                 >
-                                    Clear
+                                    {t('common.clear')}
                                 </Button>
                             </div>
                         </div>
 
                         {loading ? (
-                            <p className="text-sm text-muted-foreground">
-                                Loading…
+                            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Spinner />
+                                {t('common.loading')}
                             </p>
                         ) : null}
                         {error ? (
@@ -277,62 +293,84 @@ export function ItemRevisionsDrawer({
                                 data-test="revisions-empty"
                             >
                                 {filterActive
-                                    ? 'No revisions for this date range. Clear the filter or widen dates.'
-                                    : 'No revisions yet. Saves, draft edits, publish, and restores appear here.'}
+                                    ? t('revisions.emptyFiltered')
+                                    : t('revisions.empty')}
                             </p>
                         ) : null}
-                        <ul className="divide-y rounded-xl border border-sidebar-border/70">
-                            {revisions.map((revision) => (
-                                <li
-                                    key={revision.id}
-                                    className="flex items-start gap-2 px-3 py-3"
-                                >
-                                    <button
-                                        type="button"
-                                        className={cn(
-                                            'flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left text-sm',
-                                            'hover:text-foreground',
-                                        )}
-                                        data-test={`revision-row-${revision.id}`}
-                                        onClick={() =>
-                                            onSelectRevision(
-                                                revision,
-                                                revisionsRef.current,
-                                            )
-                                        }
-                                    >
-                                        <span className="font-medium">
-                                            #{revision.id}
-                                            {revision.summary
-                                                ? ` · ${revision.summary}`
-                                                : ''}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                            {revision.created_at
-                                                ? new Date(
-                                                      revision.created_at,
-                                                  ).toLocaleString()
-                                                : '—'}{' '}
-                                            · {revision.user?.name ?? 'System'}
-                                        </span>
-                                    </button>
-                                    {canRestore ? (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            className="shrink-0 text-muted-foreground"
-                                            title="Hard restore (writes immediately)"
-                                            data-test={`hard-restore-${revision.id}`}
-                                            onClick={() =>
-                                                setHardRestoreId(revision.id)
-                                            }
+                        {revisions.length > 0 ? (
+                            <ItemGroup className="rounded-xl border border-sidebar-border/70">
+                                {revisions.map((revision, index) => (
+                                    <Fragment key={revision.id}>
+                                        {index > 0 ? <ItemSeparator /> : null}
+                                        <Item
+                                            role="listitem"
+                                            size="sm"
+                                            className="relative rounded-none hover:bg-accent/50"
                                         >
-                                            Hard
-                                        </Button>
-                                    ) : null}
-                                </li>
-                            ))}
-                        </ul>
+                                            <ItemContent>
+                                                <ItemTitle>
+                                                    {/* Stretched button: the whole row picks the revision. */}
+                                                    <button
+                                                        type="button"
+                                                        className="text-left outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                                                        data-test={`revision-row-${revision.id}`}
+                                                        onClick={() =>
+                                                            onSelectRevision(
+                                                                revision,
+                                                                revisionsRef.current,
+                                                            )
+                                                        }
+                                                    >
+                                                        #{revision.id}
+                                                        {revision.summary
+                                                            ? ` · ${revision.summary}`
+                                                            : ''}
+                                                    </button>
+                                                </ItemTitle>
+                                                <ItemDescription>
+                                                    {revision.created_at
+                                                        ? new Date(
+                                                              revision.created_at,
+                                                          ).toLocaleString()
+                                                        : '—'}{' '}
+                                                    ·{' '}
+                                                    {revision.user?.name ??
+                                                        t('common.system')}
+                                                </ItemDescription>
+                                            </ItemContent>
+                                            {canRestore ? (
+                                                <ItemActions className="relative">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                className="text-muted-foreground"
+                                                                data-test={`hard-restore-${revision.id}`}
+                                                                onClick={() =>
+                                                                    setHardRestoreId(
+                                                                        revision.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {t(
+                                                                    'revisions.hard',
+                                                                )}
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            {t(
+                                                                'revisions.hardRestoreHint',
+                                                            )}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </ItemActions>
+                                            ) : null}
+                                        </Item>
+                                    </Fragment>
+                                ))}
+                            </ItemGroup>
+                        ) : null}
                         {meta?.has_more ? (
                             <Button
                                 type="button"
@@ -341,7 +379,9 @@ export function ItemRevisionsDrawer({
                                 disabled={loading || loadingMore}
                                 onClick={loadMore}
                             >
-                                {loadingMore ? 'Loading…' : 'Load more'}
+                                {loadingMore
+                                    ? t('common.loading')
+                                    : t('common.loadMore')}
                             </Button>
                         ) : null}
                     </DrawerBody>
@@ -359,7 +399,7 @@ export function ItemRevisionsDrawer({
                     name: `#${itemId}`,
                 })}
                 description={t('itemConfirm.hardRestoreRevisionDescription')}
-                confirmLabel="Hard restore"
+                confirmLabel={t('revisions.hardRestore')}
                 confirming={restoring}
                 onConfirm={() => {
                     if (hardRestoreId === null) {

@@ -49,6 +49,9 @@ it('switches between collection and user chats with the shared toggle group', fu
         ->assertAttribute('[data-test="chat-tab-private"]', 'data-state', 'on')
         ->assertAttribute('[data-test="chat-tab-collection"]', 'data-state', 'off')
         ->assertScript("document.querySelector('[data-test=\"chat-filter-archived\"]').disabled === false")
+        ->assertAttribute('[data-test="chat-filter-archived"]', 'aria-pressed', 'false')
+        ->click('[data-test="chat-filter-archived"]')
+        ->assertAttribute('[data-test="chat-filter-archived"]', 'aria-pressed', 'true')
         ->assertNoJavaScriptErrors();
 });
 
@@ -59,7 +62,8 @@ it('puts the chat search above the thread list, as wide as the list', function (
         ->assertPresent('[data-slot="page-header"] [data-test="chat-tab-collection"]')
         ->assertScript(<<<'JS'
 (() => {
-  const search = document.querySelector('[data-test="chat-filter-q"]').getBoundingClientRect();
+  // The search is an InputGroup: its bordered box is the group around the input.
+  const search = document.querySelector('[data-test="chat-filter-q"]').closest('[data-slot="input-group"]').getBoundingClientRect();
   const list = document.querySelector('[data-test="chat-hub"] aside').getBoundingClientRect();
 
   return Math.round(search.left) === Math.round(list.left) && Math.round(search.width) === Math.round(list.width);

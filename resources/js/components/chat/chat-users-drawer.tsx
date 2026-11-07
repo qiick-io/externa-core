@@ -4,17 +4,22 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+    Command,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
     Drawer,
-    DrawerBody,
     DrawerContent,
     DrawerFooter,
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
-import { getInitialsFromParts } from '@/hooks/use-initials';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import { fetchChatDirectory } from '@/lib/chat-hub-api';
 import type { ChatDirectoryRow, ChatListMeta } from '@/lib/chat-hub-api';
+import { formatUserDisplayName, initialsFromName } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
@@ -24,11 +29,9 @@ export function directoryKey(row: { type: string; id: number }): string {
 
 function directoryInitials(row: ChatDirectoryRow): string {
     if (row.type === 'user') {
-        const fromParts = getInitialsFromParts(row.first_name, row.last_name);
-
-        return fromParts !== ''
-            ? fromParts
-            : row.name.slice(0, 2).toUpperCase();
+        return initialsFromName(
+            formatUserDisplayName(row.first_name, row.last_name) || row.name,
+        );
     }
 
     const parts = row.name.trim().split(/\s+/).filter(Boolean);
@@ -156,25 +159,32 @@ export function ChatUsersDrawer({
             <DrawerContent data-test="chat-users-drawer">
                 <DrawerHeader>
                     <DrawerTitle>{title ?? t('chatHub.users')}</DrawerTitle>
-                    <Input
+                </DrawerHeader>
+                <Command
+                    shouldFilter={false}
+                    className="min-h-0 flex-1 rounded-none bg-transparent"
+                >
+                    <CommandInput
                         data-test="chat-directory-q"
                         value={q}
                         placeholder={t('chatHub.searchDirectory')}
-                        onChange={(event) => setQ(event.target.value)}
+                        aria-label={t('chatHub.searchDirectory')}
+                        onValueChange={setQ}
                     />
-                </DrawerHeader>
-                <DrawerBody>
-                    {loading ? (
-                        <p className="text-sm text-muted-foreground">
-                            {t('chatHub.loading')}
-                        </p>
-                    ) : null}
-                    {!loading && rows.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            {t('chatHub.emptyDirectory')}
-                        </p>
-                    ) : null}
-                    <ul className="space-y-0.5">
+                    <CommandList
+                        label={title ?? t('chatHub.users')}
+                        className="max-h-none flex-1 px-3 py-2"
+                    >
+                        {loading ? (
+                            <p className="text-sm text-muted-foreground">
+                                {t('chatHub.loading')}
+                            </p>
+                        ) : null}
+                        {!loading && rows.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                {t('chatHub.emptyDirectory')}
+                            </p>
+                        ) : null}
                         {rows.map((row) => {
                             const key = directoryKey(row);
                             const alreadyIn = excluded.has(key);
@@ -183,72 +193,72 @@ export function ChatUsersDrawer({
                             );
 
                             return (
-                                <li key={key}>
-                                    <label
-                                        data-test={`chat-directory-row-${row.type}-${row.id}`}
-                                        className={cn(
-                                            'flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted',
-                                            alreadyIn
-                                                ? 'cursor-not-allowed opacity-50'
-                                                : 'cursor-pointer',
-                                            selected && 'bg-muted',
-                                        )}
-                                    >
-                                        <Checkbox
-                                            checked={selected || alreadyIn}
-                                            disabled={alreadyIn}
-                                            onCheckedChange={() => {
-                                                if (alreadyIn) {
-                                                    return;
-                                                }
-
-                                                toggle(row);
-                                            }}
-                                            aria-label={row.name}
-                                        />
-                                        <Avatar
-                                            userId={avatarSeed(row)}
-                                            className="size-9"
-                                        >
-                                            <AvatarFallback className="text-xs font-medium">
-                                                {directoryInitials(row)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block truncate font-medium">
-                                                {row.name}
-                                            </span>
-                                            {row.type === 'user' ? (
-                                                <span className="block truncate text-xs text-muted-foreground">
-                                                    {row.email}
-                                                </span>
-                                            ) : (
-                                                <span className="block text-xs text-muted-foreground">
-                                                    {t('chatHub.groups')}
-                                                </span>
+                                <CommandItem
+                                    key={key}
+                                    value={key}
+                                    disabled={alreadyIn}
+                                    data-test={`chat-directory-row-${row.type}-${row.id}`}
+                                    data-checked={selected || alreadyIn}
+                                    className="gap-3 py-2"
+                                    onSelect={() => toggle(row)}
+                                >
+                                    <Checkbox
+                                        checked={selected || alreadyIn}
+                                        disabled={alreadyIn}
+                                        tabIndex={-1}
+                                        aria-hidden
+                                        className="pointer-events-none"
+                                    />
+                                    <Avatar className="size-9">
+                                        <AvatarFallback
+                                            className={cn(
+                                                avatarToneClass(
+                                                    avatarSeed(row),
+                                                ),
+                                                'text-xs font-medium',
                                             )}
+                                        >
+                                            {directoryInitials(row)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block truncate font-medium">
+                                            {row.name}
                                         </span>
-                                    </label>
-                                </li>
+                                        {row.type === 'user' ? (
+                                            <span className="block truncate text-xs text-muted-foreground">
+                                                {row.email}
+                                            </span>
+                                        ) : (
+                                            <span className="block text-xs text-muted-foreground">
+                                                {t('chatHub.groups')}
+                                            </span>
+                                        )}
+                                    </span>
+                                </CommandItem>
                             );
                         })}
-                    </ul>
-                    {meta?.has_more ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="mt-3 w-full"
-                            disabled={loading || loadingMore}
-                            onClick={() =>
-                                loadPage((meta.current_page ?? 1) + 1, true, q)
-                            }
-                        >
-                            {loadingMore
-                                ? t('chatHub.loading')
-                                : t('chatHub.loadMore')}
-                        </Button>
-                    ) : null}
-                </DrawerBody>
+                        {meta?.has_more ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="mt-3 w-full"
+                                disabled={loading || loadingMore}
+                                onClick={() =>
+                                    loadPage(
+                                        (meta.current_page ?? 1) + 1,
+                                        true,
+                                        q,
+                                    )
+                                }
+                            >
+                                {loadingMore
+                                    ? t('chatHub.loading')
+                                    : t('chatHub.loadMore')}
+                            </Button>
+                        ) : null}
+                    </CommandList>
+                </Command>
                 <DrawerFooter>
                     <Button
                         type="button"

@@ -32,7 +32,24 @@
         "active": "Active",
         "name": "Name",
         "pageRange": "{{from}}–{{to}} of {{total}}",
-        "perPageOption": "{{count}} / page"
+        "perPageOption": "{{count}} / page",
+        "noResults": "No results.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "loading": "Loading…",
+        "loadMore": "Load more",
+        "preview": "Preview",
+        "clear": "Clear",
+        "filter": "Filter",
+        "from": "From",
+        "to": "To",
+        "system": "System"
+    },
+    "picker": {
+        "search": "Search…",
+        "noResults": "No results.",
+        "loading": "Loading…",
+        "clearSelection": "Clear selection"
     },
     "emptyState": {
         "collections": {
@@ -225,7 +242,8 @@
         "fromDate": "From date",
         "toDate": "To date",
         "removeRule": "Remove rule",
-        "removeLocale": "Remove locale {{code}}"
+        "removeLocale": "Remove locale {{code}}",
+        "selectRow": "Select {{name}}"
     },
     "auth": {
         "login": {
@@ -357,7 +375,20 @@
                 "revokeTitle": "Revoke API key “{{name}}”?",
                 "revokeDescription": "This key will stop working immediately.",
                 "revokeConfirm": "Revoke"
-            }
+            },
+            "columns": {
+                "name": "Name",
+                "prefix": "Prefix",
+                "role": "Role",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "status": {
+                "active": "Active",
+                "revoked": "Revoked"
+            },
+            "revoke": "Revoke key",
+            "secretValue": "New API key"
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -734,7 +765,8 @@
             "regenerate": "Regenerate codes",
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
-            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above.",
+            "setupKey": "Setup key"
         },
         "aiTools": {
             "breadcrumb": "AI write tools",
@@ -866,7 +898,14 @@
             "copied": "Raw value copied",
             "copyFailed": "Could not copy to clipboard",
             "pasted": "Raw value pasted",
-            "pasteFailed": "Could not read clipboard"
+            "pasteFailed": "Could not read clipboard",
+            "edit": "Edit field",
+            "duplicate": "Duplicate field",
+            "showInForm": "Show field in detail",
+            "hideInForm": "Hide field in detail",
+            "delete": "Delete field",
+            "deleteFailed": "Could not delete field.",
+            "width": "Width"
         },
         "itemSave": {
             "create": "Create",
@@ -968,8 +1007,10 @@
             "sendError": "Could not send message.",
             "reply": "Reply",
             "copyText": "Copy text",
+            "copyFailed": "Could not copy the message",
             "pin": "Pin",
             "unpin": "Unpin",
+            "pinned": "Pinned messages",
             "visibilityHint": "Visible to anyone who can read this item",
             "openInHub": "Open in Chat",
             "mediaPreview": "Media preview",
@@ -982,7 +1023,11 @@
             "sendingMedia": "Sending…",
             "retrySend": "Retry",
             "removePendingFile": "Remove file",
-            "scrollToBottom": "Scroll to bottom"
+            "scrollToBottom": "Scroll to bottom",
+            "mentionCollection": "Collection",
+            "reactionToggle": "{{emoji}} reaction: {{names}}",
+            "messageActions": "Message actions",
+            "react": "React"
         },
         "packs": {
             "createFromPack": "Create from pack",
@@ -1286,7 +1331,28 @@
             "convertFailed": "Conversion failed.",
             "success": "Field converted.",
             "queued": "Field conversion queued."
-        }
+        },
+        "columnPicker": {
+            "fields": "Fields",
+            "related": "Related fields",
+            "openRelated": "Open {{label}} fields",
+            "noNestedFields": "No nested fields available.",
+            "noMatches": "No fields match your search.",
+            "id": "ID",
+            "createdAt": "Created at",
+            "updatedAt": "Updated at",
+            "createdBy": "Created by",
+            "updatedBy": "Updated by",
+            "actions": "Actions"
+        },
+        "layoutWidth": {
+            "half": "Half width",
+            "full": "Full width",
+            "fill": "Fill width"
+        },
+        "openCollection": "Open {{name}}",
+        "reorderColumn": "Reorder {{label}}",
+        "noFieldsMatch": "No fields match your search."
     },
     "ai": {
         "drawer": {
@@ -1557,7 +1623,105 @@
         "conversations": "Conversations",
         "searchConversations": "Search conversations…",
         "noConversationsMatch": "No conversations match your search.",
-        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools."
+        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools.",
+        "conversationRegion": "Conversation",
+        "tool": {
+            "state": {
+                "input-streaming": "Pending",
+                "input-available": "Running",
+                "approval-requested": "Awaiting approval",
+                "approval-responded": "Responded",
+                "output-available": "Completed",
+                "output-error": "Error",
+                "output-denied": "Denied"
+            },
+            "parameters": "Parameters",
+            "result": "Result",
+            "error": "Error",
+            "steps_one": "{{count}} tool step",
+            "steps_other": "{{count}} tool steps"
+        },
+        "approval": {
+            "request": "The assistant wants to run {{tools}}.",
+            "approve": "Approve",
+            "reject": "Reject"
+        },
+        "actions": {
+            "copy": "Copy",
+            "copied": "Copied",
+            "edit": "Edit"
+        },
+        "retry": "Retry",
+        "sendAgain": "Send again",
+        "assistantMessagePdfTitle": "Assistant message",
+        "callingTool": "Calling {{tool}}…",
+        "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "queued",
+            "running": "running",
+            "done": "done",
+            "failed": "failed"
+        },
+        "markdown": {
+            "copyCode": "Copy code",
+            "downloadFile": "Download file",
+            "viewFullscreen": "View fullscreen",
+            "exitFullscreen": "Exit fullscreen",
+            "copyTable": "Copy table",
+            "copyTableAsMarkdown": "Copy table as Markdown",
+            "copyTableAsCsv": "Copy table as CSV",
+            "copyTableAsTsv": "Copy table as TSV",
+            "downloadTable": "Download table",
+            "downloadTableAsCsv": "Download table as CSV",
+            "downloadTableAsMarkdown": "Download table as Markdown",
+            "imageNotAvailable": "Image not available",
+            "downloadImage": "Download image",
+            "openExternalLink": "Open external link?",
+            "externalLinkWarning": "You're about to visit an external website.",
+            "close": "Close",
+            "copyLink": "Copy link",
+            "copied": "Copied",
+            "openLink": "Open link"
+        },
+        "errors": {
+            "tooManyAttachments": "You can attach at most 5 files per message.",
+            "unsupportedAttachment": "Only CSV, TXT, XLSX or PDF files are allowed.",
+            "attachmentTooLarge": "The file is larger than 5 MB.",
+            "attachmentUploadFailed": "Attachment upload failed",
+            "connectionInterrupted": "Connection to the AI server was interrupted (timeout, proxy, or model crash). Check the AI provider and retry with a smaller prompt.",
+            "network": "Network error",
+            "noResponseStream": "No response stream",
+            "stream": "Error during the AI stream",
+            "streamInterrupted": "AI stream connection interrupted (proxy timeout or slow model). Check the AI provider and that fastcgi_read_timeout is at least 600s, then retry.",
+            "loadConversations": "Unable to load conversations",
+            "truncate": "Could not truncate the conversation",
+            "popupBlocked": "Popup blocked: allow pop-ups to export the PDF."
+        },
+        "awaitingApproval": "Waiting for your approval to run {{tools}}.",
+        "aTool": "a tool",
+        "toolFallback": "Completed via {{tools}}. Ask me to verify the result if needed.",
+        "pinned": "Pinned",
+        "selectConversation": "Select {{title}}",
+        "bulkDeleteTitle": "Delete selected chats?",
+        "bulkDeleteDescription_one": "You are about to delete {{count}} chat. This action cannot be undone.",
+        "bulkDeleteDescription_other": "You are about to delete {{count}} chats. This action cannot be undone.",
+        "reasoning": {
+            "thinking": "Thinking…",
+            "thoughtFor_one": "Thought for {{count}} second",
+            "thoughtFor_other": "Thought for {{count}} seconds",
+            "thoughtFewSeconds": "Thought for a few seconds"
+        },
+        "sources": {
+            "used_one": "Used {{count}} source",
+            "used_other": "Used {{count}} sources"
+        },
+        "usage": {
+            "trigger": "Context used: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Reasoning",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1660,7 +1824,14 @@
         "healthWorkloadQueue": "Queue",
         "healthWorkloadLength": "Length",
         "healthWorkloadWait": "Wait",
-        "healthWorkloadProcesses": "Procs"
+        "healthWorkloadProcesses": "Procs",
+        "statFilesHeadline": "Folders: {{count}}",
+        "statSizeContext": "All files, on every disk",
+        "statUploadsInProgress": "Uploads in progress",
+        "statInProgressContext": "Chunked uploads not finished yet",
+        "statStaleUploads": "Stale uploads",
+        "statStaleContext": "Expired before they finished",
+        "statFailedJobsHeadline": "Failed jobs: {{count}}"
     },
     "realtime": {
         "connected": "Realtime connected",
@@ -1703,7 +1874,9 @@
         "showArchived": "Show archived",
         "showInbox": "Show chats",
         "deleteChat": "Delete chat",
-        "deleteChatError": "Could not delete chat."
+        "deleteChatError": "Could not delete chat.",
+        "messagesRegion": "Messages",
+        "scrollToLatest": "Scroll to the latest message"
     },
     "errors": {
         "notFound": {
@@ -1711,6 +1884,12 @@
             "title": "Page not found",
             "description": "The page you requested does not exist or is no longer available.",
             "goHome": "Go to home"
+        },
+        "boundary": {
+            "title": "Something went wrong",
+            "description": "The interface hit an unexpected error. You can try reloading the page.",
+            "tryAgain": "Try again",
+            "reload": "Reload page"
         }
     },
     "unsavedChanges": {
@@ -1822,7 +2001,8 @@
             "clearSelection": "Clear selection",
             "emptyTrash": "Empty trash",
             "emptyTrashTitle": "Empty the trash?",
-            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done."
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done.",
+            "uploadOptions": "More upload options"
         },
         "sort": {
             "name": "Name",
@@ -1921,7 +2101,9 @@
             "placeholder": "Type a tag and press Enter",
             "exactMatch": "Exact match — will reuse existing tag “{{name}}”",
             "existing": "Existing tags",
-            "moreTags": "{{count}} more tags"
+            "moreTags": "{{count}} more tags",
+            "create": "Create “{{name}}”",
+            "remove": "Remove tag {{name}}"
         },
         "folderPicker": {
             "search": "Search folders…",
@@ -1969,11 +2151,33 @@
             "select": "Select {{name}}",
             "privateBadge": "Private",
             "privateTitle": "Private — requires Read private on API roles"
+        },
+        "picker": {
+            "title": "Choose file",
+            "descriptionMultiple": "Click files to select them, then confirm below",
+            "description": "Browse folders or upload a new file",
+            "empty": "No files in this folder",
+            "chooseFiles": "Choose files",
+            "chooseCount": "Choose {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Drop files here to upload",
+            "dropOrBrowse": "Drop files here or browse",
+            "chunkedHint": "Large files use chunked upload automatically",
+            "chooseFiles": "Choose files"
         }
     },
     "confirmDestructive": {
         "typeToConfirm": "Type \"{{name}}\" to confirm",
-        "deletePermanently": "Delete permanently"
+        "deletePermanently": "Delete permanently",
+        "deleteAiChatTitle": "Delete this chat?",
+        "deleteAiChatDescription": "The conversation and all its messages will be deleted.",
+        "deletePromptTitle": "Delete prompt “{{name}}”?",
+        "deletePromptDescription": "The saved prompt will no longer be available to anyone.",
+        "deleteMessageTitle": "Delete this message?",
+        "deleteMessageDescription": "The message will be removed from the chat for everyone.",
+        "deleteDirectChatTitle": "Delete this chat?",
+        "deleteDirectChatDescription": "The chat will be removed from your chats."
     },
     "itemConfirm": {
         "deleteTitle": "Delete item “{{name}}”?",
@@ -2016,7 +2220,16 @@
             "firstName": "First name",
             "email": "Email",
             "created": "Created",
-            "updated": "Updated"
+            "updated": "Updated",
+            "name": "Name",
+            "roles": "Roles",
+            "groups": "Groups",
+            "status": "Status",
+            "actions": "Actions"
+        },
+        "status": {
+            "active": "Active",
+            "inactive": "Inactive"
         }
     },
     "groups": {
@@ -2032,7 +2245,17 @@
         "newGroup": "New group",
         "searchPlaceholder": "Search groups…",
         "searchTrashPlaceholder": "Search trash…",
-        "sortBy": "Sort by"
+        "sortBy": "Sort by",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Roles",
+            "members": "Members",
+            "actions": "Actions"
+        },
+        "empty": "No groups yet.",
+        "membersCount_one": "{{count}} member",
+        "membersCount_other": "{{count}} members"
     },
     "pendingToolCalls": {
         "head": "AI tool approvals",
@@ -2070,6 +2293,71 @@
         "redo": "Redo",
         "table": "Table",
         "linkUrl": "Link URL",
-        "headingLevel": "Heading {{level}}"
+        "applyLink": "Apply",
+        "removeLink": "Remove link",
+        "headingLevel": "Heading {{level}}",
+        "removeTag": "Remove tag {{name}}",
+        "imageFromComputer": "Upload from computer",
+        "imageFromLibrary": "Choose from library",
+        "imageFromUrl": "Import from URL",
+        "imageOnly": "Please choose an image file.",
+        "imageUploadFailed": "Image upload failed.",
+        "uploadingImage": "Uploading image…",
+        "insertTable": "Insert table",
+        "insertTableDescription": "Choose rows and columns for the markdown table.",
+        "tableRows": "Rows",
+        "tableColumns": "Columns",
+        "createTable": "Create",
+        "nothingToPreview": "Nothing to preview."
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "No permissions in database. Run sync.",
+        "sync": "Sync from enum"
+    },
+    "passwordInput": {
+        "strength": "Password strength",
+        "meetsPolicy": "Meets project password policy.",
+        "keepGoing": "Keep going to meet project password policy.",
+        "generate": "Generate secure password"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "Pending in queue: {{count}}",
+        "pendingTitle": "Pending (sample)",
+        "failedTitle": "Failed jobs",
+        "pendingEmpty": "No pending jobs.",
+        "failedEmpty": "No failed jobs.",
+        "scopeHint": "Domain job status (AI import, zip) remains in their existing UIs — this page monitors the Laravel queue tables only.",
+        "retry": "Retry",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Queue",
+            "attempts": "Attempts",
+            "failedAt": "Failed at",
+            "exception": "Exception",
+            "actions": "Actions"
+        }
+    },
+    "revisions": {
+        "title": "Revisions",
+        "drawerDescription": "Select a revision to compare with the current item. Apply merges into the form — Save to keep.",
+        "pageTitle": "History — Item #{{id}}",
+        "pageDescription": "Select two revisions to compare. Restore writes a snapshot as a new update.",
+        "backToItem": "Back to item",
+        "emptyFiltered": "No revisions for this date range. Clear the filter or widen dates.",
+        "empty": "No revisions yet. Saves, draft edits, publish, and restores appear here.",
+        "hard": "Hard",
+        "hardRestore": "Hard restore",
+        "hardRestoreHint": "Hard restore (writes immediately)",
+        "restore": "Restore",
+        "compare": "Compare",
+        "compareHint": "Select two revisions to see field diffs.",
+        "field": "Field",
+        "selectRevision": "Select revision #{{id}}"
     }
 }

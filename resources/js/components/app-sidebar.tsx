@@ -21,6 +21,7 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavUser } from '@/components/nav-user';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
+import { Kbd } from '@/components/ui/kbd';
 import {
     Sidebar,
     SidebarContent,
@@ -197,7 +198,9 @@ export function AppSidebar() {
                 isActive={isCurrentUrl(
                     item.id === 'settings' ? '/settings' : item.href,
                     undefined,
-                    item.id === 'ai' || item.id === 'settings',
+                    item.id === 'ai' ||
+                        item.id === 'settings' ||
+                        item.id === 'dashboard',
                 )}
                 tooltip={{ children: t(item.titleKey) }}
                 className={item.accent ? 'sidebar-ai-nav' : undefined}
@@ -206,9 +209,9 @@ export function AppSidebar() {
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
                     {item.id === 'ai' && !isOnAiPage ? (
-                        <kbd className="ml-auto font-sans text-xs text-muted-foreground transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0 group-data-[collapsible=icon]:hidden">
+                        <Kbd className="ml-auto transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0 group-data-[collapsible=icon]:hidden">
                             {AI_PANEL_SHORTCUT}
-                        </kbd>
+                        </Kbd>
                     ) : null}
                 </Link>
             </SidebarMenuButton>

@@ -1,10 +1,11 @@
 import { Form, Head, router, usePage } from '@inertiajs/react';
 import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
-import { KeyRound } from 'lucide-react';
+import { CircleCheck, KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -12,6 +13,7 @@ import {
     FieldError,
     FieldGroup,
     FieldLabel,
+    FieldSeparator,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -159,16 +161,9 @@ export default function Login({
                             {passkeyErrorMessage}
                         </FieldError>
                     ) : null}
-                    <div className="relative py-1">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                                {t('auth.login.orContinueWithEmail')}
-                            </span>
-                        </div>
-                    </div>
+                    <FieldSeparator className="my-0">
+                        {t('auth.login.orContinueWithEmail')}
+                    </FieldSeparator>
                 </div>
             )}
 
@@ -283,13 +278,12 @@ export default function Login({
             </Form>
 
             {status && (
-                <div
-                    className="mb-4 text-center text-sm font-medium text-success"
-                    role="status"
-                    aria-live="polite"
-                >
-                    {status}
-                </div>
+                <Alert variant="success" role="status" className="mb-4">
+                    <CircleCheck />
+                    <AlertTitle className="line-clamp-none">
+                        {status}
+                    </AlertTitle>
+                </Alert>
             )}
         </AuthLayout>
     );

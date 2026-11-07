@@ -101,15 +101,6 @@ export function readFieldRawFromForm(
     return undefined;
 }
 
-/** Pick the locale slice of a translatable field value. */
-export function localeSliceOf(value: unknown, locale: string): unknown {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-        return (value as Record<string, unknown>)[locale];
-    }
-
-    return undefined;
-}
-
 /** Merge a locale slice back into a translatable field object. */
 export function withLocaleSlice(
     current: unknown,

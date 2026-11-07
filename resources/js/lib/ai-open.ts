@@ -157,10 +157,6 @@ export function seedActivityLogPrompt(entry: {
     return `Working on activity log entry (activity_log_id=${entry.id}, summary=«${summary}»).`;
 }
 
-export function seedFilePrompt(file: { id: number; name: string }): string {
-    return `Working on file «${file.name}» (file_id=${file.id}).`;
-}
-
 export function seedFilesBulkPrompt(
     files: Array<{ id: number; name: string }>,
 ): string {
