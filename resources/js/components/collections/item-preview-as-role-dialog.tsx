@@ -220,7 +220,9 @@ export function ItemPreviewAsRoleDialog({
                                 void runPreview();
                             }}
                         >
-                            {loading ? 'Loading…' : 'Preview'}
+                            {loading
+                                ? t('common.loading')
+                                : t('common.preview')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -64,14 +64,11 @@ export function defaultsToHalfWidth(field: {
     return field.type === 'string' && settingsFlag(field.settings?.slugify);
 }
 
-/** Selectable layout width options for field settings UI. */
-export const FIELD_LAYOUT_WIDTH_OPTIONS: {
-    value: FieldLayoutWidth;
-    label: string;
-}[] = [
-    { value: 'half', label: 'Metà larghezza' },
-    { value: 'full', label: 'Larghezza massima' },
-    { value: 'fill', label: 'Riempi larghezza' },
+/** Selectable layout widths for field settings UI, in menu order. */
+export const FIELD_LAYOUT_WIDTH_OPTIONS: FieldLayoutWidth[] = [
+    'half',
+    'full',
+    'fill',
 ];
 
 /**
@@ -105,13 +102,14 @@ export function getFieldLayoutWidth(
  * Human-readable label for a field layout width.
  *
  * @param width - Layout width token
- * @returns Localized label for the width option
+ * @param t - i18n translate function
+ * @returns Localized label (`collections.layoutWidth.*`)
  */
-export function fieldLayoutWidthLabel(width: FieldLayoutWidth): string {
-    return (
-        FIELD_LAYOUT_WIDTH_OPTIONS.find((option) => option.value === width)
-            ?.label ?? 'Larghezza massima'
-    );
+export function fieldLayoutWidthLabel(
+    width: FieldLayoutWidth,
+    t: (key: string) => string,
+): string {
+    return t(`collections.layoutWidth.${width}`);
 }
 
 /**

@@ -116,6 +116,8 @@ export function pickAiChatAttachmentFiles(
 export type AiStatus = {
     online: boolean;
     model?: string | null;
+    /** Context window (tokens) of the assistant's provider, for the usage display. */
+    context_window?: number | null;
 };
 
 /** Destructive tool call the paused assistant turn is waiting on (laravel/ai `tool_approval_request`). */
@@ -149,10 +151,38 @@ export function awaitingApprovalContent(
 }
 
 /** Callbacks invoked while consuming an AI chat SSE stream. */
+/** How a streamed tool call ended. */
+export type AiToolResultDetail = {
+    id: string;
+    successful: boolean;
+    error: string | null;
+    denied: boolean;
+};
+
 export type AiStreamHandlers = {
     onToken?: (token: string) => void;
-    onTool?: (toolName: string) => void;
-    onToolResult?: (toolName: string, result: unknown) => void;
+    onTool?: (
+        toolName: string,
+        call?: { id: string; arguments: unknown },
+    ) => void;
+    onToolResult?: (
+        toolName: string,
+        result: unknown,
+        detail?: AiToolResultDetail,
+    ) => void;
+    onReasoningDelta?: (reasoningId: string, delta: string) => void;
+    onReasoningEnd?: (reasoningId: string) => void;
+    onCitation?: (citation: { url: string; title: string | null }) => void;
+    onProviderTool?: (tool: {
+        id: string;
+        kind: string;
+        data: Record<string, unknown>;
+    }) => void;
+    onStreamStart?: (meta: {
+        provider: string | null;
+        model: string | null;
+    }) => void;
+    onStreamEnd?: (usage: Record<string, number> | null) => void;
     onApprovalRequest?: (approvals: AiPendingApproval[]) => void;
     onDone?: (fullText: string) => void;
     onError?: (error: Error) => void;
@@ -169,10 +199,31 @@ type ParsedSsePayload = {
     conversation_id?: string;
     tool_call?: { name?: string };
     tool_name?: string;
+    tool_id?: string;
+    id?: string;
+    arguments?: unknown;
     name?: string;
     result?: unknown;
+    successful?: boolean;
+    error?: string | null;
+    denied?: boolean;
+    preliminary?: boolean;
     approvals?: AiPendingApproval[];
+    reasoning_id?: string;
+    citation?: { url?: string; title?: string | null };
+    item_id?: string;
+    data?: Record<string, unknown>;
+    provider?: string | null;
+    model?: string | null;
+    usage?: Record<string, number> | null;
 };
+
+/** laravel/ai event types handled as reasoning, citations and stream bookends. */
+const PASSIVE_EVENT_TYPES = new Set([
+    'reasoning_start',
+    'text_start',
+    'text_end',
+]);
 
 /**
  * Parses a single SSE `data:` payload line into a structured event object.
@@ -469,7 +520,10 @@ export async function streamAiChat(
                             parsed.tool_call?.name ??
                             parsed.name ??
                             'tool';
-                        handlers.onTool?.(toolName);
+                        handlers.onTool?.(toolName, {
+                            id: parsed.tool_id ?? parsed.id ?? toolName,
+                            arguments: parsed.arguments ?? {},
+                        });
                     }
 
                     continue;
@@ -479,11 +533,86 @@ export async function streamAiChat(
                     parsed.type === 'tool_result' ||
                     parsed.type === 'tool-result'
                 ) {
-                    if (!abortSignal?.aborted) {
-                        handlers.onToolResult?.(
-                            parsed.tool_name ?? parsed.name ?? 'tool',
-                            parsed.result,
+                    if (!abortSignal?.aborted && !parsed.preliminary) {
+                        const toolName =
+                            parsed.tool_name ?? parsed.name ?? 'tool';
+                        handlers.onToolResult?.(toolName, parsed.result, {
+                            id: parsed.tool_id ?? parsed.id ?? toolName,
+                            successful:
+                                parsed.successful ??
+                                (parsed.error === null ||
+                                    parsed.error === undefined),
+                            error: parsed.error ?? null,
+                            denied: parsed.denied === true,
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type === 'reasoning_delta') {
+                    if (!abortSignal?.aborted && parsed.delta) {
+                        handlers.onReasoningDelta?.(
+                            parsed.reasoning_id ?? 'reasoning',
+                            parsed.delta,
                         );
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type === 'reasoning_end') {
+                    if (!abortSignal?.aborted) {
+                        handlers.onReasoningEnd?.(
+                            parsed.reasoning_id ?? 'reasoning',
+                        );
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type === 'citation') {
+                    if (!abortSignal?.aborted && parsed.citation?.url) {
+                        handlers.onCitation?.({
+                            url: parsed.citation.url,
+                            title: parsed.citation.title ?? null,
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type === 'stream_start') {
+                    if (!abortSignal?.aborted) {
+                        handlers.onStreamStart?.({
+                            provider: parsed.provider ?? null,
+                            model: parsed.model ?? null,
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type === 'stream_end') {
+                    if (!abortSignal?.aborted) {
+                        handlers.onStreamEnd?.(parsed.usage ?? null);
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type && PASSIVE_EVENT_TYPES.has(parsed.type)) {
+                    continue;
+                }
+
+                // Provider-hosted tools (web search, code interpreter) carry an item id.
+                if (parsed.item_id && parsed.type) {
+                    if (!abortSignal?.aborted) {
+                        handlers.onProviderTool?.({
+                            id: parsed.item_id,
+                            kind: parsed.type,
+                            data: parsed.data ?? {},
+                        });
                     }
 
                     continue;

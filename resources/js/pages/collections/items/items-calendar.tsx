@@ -5,7 +5,6 @@ import {
     ChevronsLeft,
     ChevronsRight,
     GripVertical,
-    Loader2,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -19,6 +18,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
@@ -984,10 +984,7 @@ export function ItemsCalendar({
                         {t('collections.itemsList.calendarToday')}
                     </Button>
                     {loading ? (
-                        <Loader2
-                            className="ml-2 size-4 animate-spin text-muted-foreground"
-                            aria-hidden
-                        />
+                        <Spinner className="ml-2 text-muted-foreground" />
                     ) : null}
                 </div>
 

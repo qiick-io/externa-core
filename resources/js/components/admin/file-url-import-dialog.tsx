@@ -1,4 +1,3 @@
-import { Loader2 } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { importFileFromUrl, isImageFile } from '@/lib/files-api';
 import type { AdminFileRow } from '@/types/files';
 
@@ -126,9 +126,7 @@ export function FileUrlImportDialog({
                         disabled={busy || url.trim() === ''}
                         onClick={() => void submit()}
                     >
-                        {busy ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : null}
+                        {busy ? <Spinner /> : null}
                         {t('collections.fileField.import')}
                     </Button>
                 </DialogFooter>

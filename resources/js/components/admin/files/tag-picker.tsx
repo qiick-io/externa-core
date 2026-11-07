@@ -1,7 +1,7 @@
-import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
+import { RemovableBadge } from '@/components/removable-badge';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -91,24 +91,16 @@ export function TagPicker({
             {value.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {value.map((tagName) => (
-                        <Badge
+                        <RemovableBadge
                             key={tagName}
-                            variant="secondary"
-                            className="gap-1 pr-1"
+                            disabled={disabled}
+                            removeLabel={t('files.tags.remove', {
+                                name: tagName,
+                            })}
+                            onRemove={() => toggleTagName(tagName)}
                         >
                             {tagName}
-                            <button
-                                type="button"
-                                className="rounded-sm opacity-70 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none"
-                                disabled={disabled}
-                                aria-label={t('files.tags.remove', {
-                                    name: tagName,
-                                })}
-                                onClick={() => toggleTagName(tagName)}
-                            >
-                                <X className="size-3" aria-hidden="true" />
-                            </button>
-                        </Badge>
+                        </RemovableBadge>
                     ))}
                 </div>
             )}
