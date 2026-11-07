@@ -37,7 +37,6 @@ import {
     Link2,
     List,
     ListOrdered,
-    Loader2,
     Quote,
     Redo2,
     Strikethrough,
@@ -54,7 +53,7 @@ import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { AutocompleteInput } from '@/components/collections/autocomplete-input';
 import { ShortcutKeys } from '@/components/collections/shortcut-keys';
-import { Badge } from '@/components/ui/badge';
+import { RemovableBadge } from '@/components/removable-badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import {
@@ -81,7 +80,14 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
+import { Spinner } from '@/components/ui/spinner';
+import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAppearance } from '@/hooks/use-appearance';
 import {
     parseCodeFieldSettings,
@@ -152,10 +158,11 @@ function markdownImageSnippet(url: string, alt = 'image'): string {
 
 async function uploadImageFile(
     file: File,
+    notImageMessage: string,
     maxBytes?: number | null,
 ): Promise<AdminFileRow> {
     if (!file.type.startsWith('image/')) {
-        throw new Error('Please choose an image file.');
+        throw new Error(notImageMessage);
     }
 
     if (file.size > CHUNK_SIZE_BYTES) {
@@ -165,32 +172,73 @@ async function uploadImageFile(
     return uploadFileDirect(file, null, maxBytes);
 }
 
+/**
+ * Action button for the rich-text toolbars (undo, redo, markdown commands):
+ * outline icon Button with its label in a Tooltip.
+ * @returns {JSX.Element}
+ */
 function ToolbarButton({
     label,
-    active,
     disabled,
     onClick,
     children,
 }: {
     label: string;
-    active?: boolean;
     disabled?: boolean;
     onClick: () => void;
     children: ReactNode;
 }) {
     return (
-        <Button
-            type="button"
-            variant={active ? 'default' : 'outline'}
-            className="px-2"
-            aria-label={label}
-            aria-pressed={active}
-            title={label}
-            disabled={disabled}
-            onClick={onClick}
-        >
-            {children}
-        </Button>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={label}
+                    disabled={disabled}
+                    onClick={onClick}
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+/**
+ * On/off format control for the WYSIWYG toolbar (bold, heading, list, ...):
+ * outline `Toggle` whose pressed state mirrors the editor selection, label in
+ * a Tooltip. Pressing runs the editor command; the editor state then drives
+ * `pressed` on the next render.
+ * @returns {JSX.Element}
+ */
+function ToolbarToggle({
+    label,
+    pressed,
+    onToggle,
+    children,
+}: {
+    label: string;
+    pressed: boolean;
+    onToggle: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Toggle
+                    variant="outline"
+                    aria-label={label}
+                    pressed={pressed}
+                    onPressedChange={onToggle}
+                >
+                    {children}
+                </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -236,18 +284,20 @@ function WysiwygLinkPopover({ editor }: { editor: Editor }) {
 
     return (
         <Popover open={open} onOpenChange={openChange}>
-            <PopoverTrigger asChild>
-                <Button
-                    type="button"
-                    variant={isActive ? 'default' : 'outline'}
-                    className="px-2"
-                    aria-label={t('richText.link')}
-                    title={t('richText.link')}
-                    aria-pressed={isActive}
-                >
-                    <Link2 className="size-3.5" />
-                </Button>
-            </PopoverTrigger>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                        <Toggle
+                            variant="outline"
+                            aria-label={t('richText.link')}
+                            pressed={isActive}
+                        >
+                            <Link2 className="size-3.5" />
+                        </Toggle>
+                    </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>{t('richText.link')}</TooltipContent>
+            </Tooltip>
             <PopoverContent align="start" className="w-80">
                 <Field>
                     <FieldLabel htmlFor="wysiwyg-link-url">
@@ -296,76 +346,76 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
     return (
         <div className="flex flex-wrap gap-2 border-b p-1.5">
             <ButtonGroup>
-                <ToolbarButton
+                <ToolbarToggle
                     label={t('richText.bold')}
-                    active={editor.isActive('bold')}
-                    onClick={() => editor.chain().focus().toggleBold().run()}
+                    pressed={editor.isActive('bold')}
+                    onToggle={() => editor.chain().focus().toggleBold().run()}
                 >
                     <Bold className="size-3.5" />
-                </ToolbarButton>
-                <ToolbarButton
+                </ToolbarToggle>
+                <ToolbarToggle
                     label={t('richText.italic')}
-                    active={editor.isActive('italic')}
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                    pressed={editor.isActive('italic')}
+                    onToggle={() => editor.chain().focus().toggleItalic().run()}
                 >
                     <Italic className="size-3.5" />
-                </ToolbarButton>
-                <ToolbarButton
+                </ToolbarToggle>
+                <ToolbarToggle
                     label={t('richText.strikethrough')}
-                    active={editor.isActive('strike')}
-                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                    pressed={editor.isActive('strike')}
+                    onToggle={() => editor.chain().focus().toggleStrike().run()}
                 >
                     <Strikethrough className="size-3.5" />
-                </ToolbarButton>
+                </ToolbarToggle>
             </ButtonGroup>
             <ButtonGroup>
-                <ToolbarButton
+                <ToolbarToggle
                     label={t('richText.heading2')}
-                    active={editor.isActive('heading', { level: 2 })}
-                    onClick={() =>
+                    pressed={editor.isActive('heading', { level: 2 })}
+                    onToggle={() =>
                         editor.chain().focus().toggleHeading({ level: 2 }).run()
                     }
                 >
                     <Heading2 className="size-3.5" />
-                </ToolbarButton>
-                <ToolbarButton
+                </ToolbarToggle>
+                <ToolbarToggle
                     label={t('richText.heading3')}
-                    active={editor.isActive('heading', { level: 3 })}
-                    onClick={() =>
+                    pressed={editor.isActive('heading', { level: 3 })}
+                    onToggle={() =>
                         editor.chain().focus().toggleHeading({ level: 3 }).run()
                     }
                 >
                     <Heading3 className="size-3.5" />
-                </ToolbarButton>
+                </ToolbarToggle>
             </ButtonGroup>
             <ButtonGroup>
-                <ToolbarButton
+                <ToolbarToggle
                     label={t('richText.bulletList')}
-                    active={editor.isActive('bulletList')}
-                    onClick={() =>
+                    pressed={editor.isActive('bulletList')}
+                    onToggle={() =>
                         editor.chain().focus().toggleBulletList().run()
                     }
                 >
                     <List className="size-3.5" />
-                </ToolbarButton>
-                <ToolbarButton
+                </ToolbarToggle>
+                <ToolbarToggle
                     label={t('richText.orderedList')}
-                    active={editor.isActive('orderedList')}
-                    onClick={() =>
+                    pressed={editor.isActive('orderedList')}
+                    onToggle={() =>
                         editor.chain().focus().toggleOrderedList().run()
                     }
                 >
                     <ListOrdered className="size-3.5" />
-                </ToolbarButton>
-                <ToolbarButton
+                </ToolbarToggle>
+                <ToolbarToggle
                     label={t('richText.quote')}
-                    active={editor.isActive('blockquote')}
-                    onClick={() =>
+                    pressed={editor.isActive('blockquote')}
+                    onToggle={() =>
                         editor.chain().focus().toggleBlockquote().run()
                     }
                 >
                     <Quote className="size-3.5" />
-                </ToolbarButton>
+                </ToolbarToggle>
             </ButtonGroup>
             <WysiwygLinkPopover editor={editor} />
             <ButtonGroup>
@@ -554,7 +604,6 @@ function MarkdownToolbar({
                         variant="outline"
                         className="gap-1.5 px-2"
                         aria-label={t('richText.heading')}
-                        title={t('richText.heading')}
                         disabled={disabled}
                     >
                         <Heading className="size-3.5" />
@@ -656,7 +705,6 @@ function MarkdownToolbar({
                         variant="outline"
                         className="px-2"
                         aria-label={t('richText.image')}
-                        title={t('richText.image')}
                         disabled={disabled}
                     >
                         <ImageIcon className="size-3.5" />
@@ -668,21 +716,21 @@ function MarkdownToolbar({
                         onSelect={onImageFromComputer}
                     >
                         <Upload className="size-4" />
-                        Upload from computer
+                        {t('richText.imageFromComputer')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="min-h-10 gap-2 py-2.5"
                         onSelect={onImageFromLibrary}
                     >
                         <FolderOpen className="size-4" />
-                        Choose from library
+                        {t('richText.imageFromLibrary')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="min-h-10 gap-2 py-2.5"
                         onSelect={onImageFromUrl}
                     >
                         <Link2 className="size-4" />
-                        Import from URL
+                        {t('richText.imageFromUrl')}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -840,7 +888,11 @@ export function MarkdownFieldInput({
 
                 for (const file of Array.from(fileList)) {
                     uploaded.push(
-                        await uploadImageFile(file, filesMaxUploadBytes),
+                        await uploadImageFile(
+                            file,
+                            t('richText.imageOnly'),
+                            filesMaxUploadBytes,
+                        ),
                     );
                 }
 
@@ -849,7 +901,7 @@ export function MarkdownFieldInput({
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : 'Image upload failed.',
+                        : t('richText.imageUploadFailed'),
                 );
             } finally {
                 setImageUploading(false);
@@ -859,7 +911,13 @@ export function MarkdownFieldInput({
                 }
             }
         },
-        [filesMaxUploadBytes, imageUploading, insertImagesFromFiles, readonly],
+        [
+            filesMaxUploadBytes,
+            imageUploading,
+            insertImagesFromFiles,
+            readonly,
+            t,
+        ],
     );
 
     useEffect(() => {
@@ -977,14 +1035,16 @@ export function MarkdownFieldInput({
             <Dialog open={tableOpen} onOpenChange={setTableOpen}>
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Insert table</DialogTitle>
+                        <DialogTitle>{t('richText.insertTable')}</DialogTitle>
                         <DialogDescription>
-                            Choose rows and columns for the markdown table.
+                            {t('richText.insertTableDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor={`${id}-table-rows`}>Rows</Label>
+                            <Label htmlFor={`${id}-table-rows`}>
+                                {t('richText.tableRows')}
+                            </Label>
                             <Input
                                 id={`${id}-table-rows`}
                                 type="number"
@@ -999,7 +1059,9 @@ export function MarkdownFieldInput({
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor={`${id}-table-cols`}>Columns</Label>
+                            <Label htmlFor={`${id}-table-cols`}>
+                                {t('richText.tableColumns')}
+                            </Label>
                             <Input
                                 id={`${id}-table-cols`}
                                 type="number"
@@ -1020,10 +1082,10 @@ export function MarkdownFieldInput({
                             variant="outline"
                             onClick={() => setTableOpen(false)}
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                         <Button type="button" onClick={insertTable}>
-                            Create
+                            {t('richText.createTable')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1035,7 +1097,7 @@ export function MarkdownFieldInput({
                 >
                     {value.trim() === '' ? (
                         <p className="text-sm text-muted-foreground">
-                            Nothing to preview.
+                            {t('richText.nothingToPreview')}
                         </p>
                     ) : (
                         <AssistantMarkdown content={value} />
@@ -1073,8 +1135,8 @@ export function MarkdownFieldInput({
                     ) : null}
                     {imageUploading ? (
                         <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs text-muted-foreground">
-                            <Loader2 className="size-3.5 animate-spin" />
-                            Uploading image…
+                            <Spinner className="size-3.5" />
+                            {t('richText.uploadingImage')}
                         </div>
                     ) : null}
                     <MDEditor
@@ -1297,24 +1359,22 @@ export function TagChipInput({
                 className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5"
             >
                 {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="gap-1">
+                    <RemovableBadge
+                        key={tag}
+                        removeLabel={t('richText.removeTag', { name: tag })}
+                        onRemove={
+                            readonly
+                                ? undefined
+                                : () =>
+                                      setTags((current) =>
+                                          current.filter(
+                                              (entry) => entry !== tag,
+                                          ),
+                                      )
+                        }
+                    >
                         {tag}
-                        {!readonly ? (
-                            <button
-                                type="button"
-                                className="text-xs"
-                                onClick={() =>
-                                    setTags((current) =>
-                                        current.filter(
-                                            (entry) => entry !== tag,
-                                        ),
-                                    )
-                                }
-                            >
-                                ×
-                            </button>
-                        ) : null}
-                    </Badge>
+                    </RemovableBadge>
                 ))}
                 {!readonly ? (
                     <div className="min-w-[120px] flex-1">

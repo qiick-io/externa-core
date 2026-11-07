@@ -2238,7 +2238,20 @@
         "linkUrl": "Link-URL",
         "applyLink": "Übernehmen",
         "removeLink": "Link entfernen",
-        "headingLevel": "Überschrift {{level}}"
+        "headingLevel": "Überschrift {{level}}",
+        "removeTag": "Tag {{name}} entfernen",
+        "imageFromComputer": "Vom Computer hochladen",
+        "imageFromLibrary": "Aus der Bibliothek wählen",
+        "imageFromUrl": "Von URL importieren",
+        "imageOnly": "Bitte wähle eine Bilddatei.",
+        "imageUploadFailed": "Bild-Upload fehlgeschlagen.",
+        "uploadingImage": "Bild wird hochgeladen…",
+        "insertTable": "Tabelle einfügen",
+        "insertTableDescription": "Wähle Zeilen und Spalten für die Markdown-Tabelle.",
+        "tableRows": "Zeilen",
+        "tableColumns": "Spalten",
+        "createTable": "Erstellen",
+        "nothingToPreview": "Nichts zur Vorschau."
     },
     "permissions": {
         "columns": {
