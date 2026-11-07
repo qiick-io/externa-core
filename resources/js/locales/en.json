@@ -1009,6 +1009,7 @@
             "copyText": "Copy text",
             "pin": "Pin",
             "unpin": "Unpin",
+            "pinned": "Pinned messages",
             "visibilityHint": "Visible to anyone who can read this item",
             "openInHub": "Open in Chat",
             "mediaPreview": "Media preview",

@@ -2,7 +2,6 @@ import { Head, router, usePage } from '@inertiajs/react';
 import {
     Archive,
     Database,
-    Inbox,
     MessageSquare,
     MessagesSquare,
     Paperclip,
@@ -11,13 +10,13 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DrawerFooter } from '@/components/ui/drawer';
 import {
@@ -27,7 +26,13 @@ import {
     EmptyMedia,
 } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
+import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
 import { applyChatUnread, fetchChatThreads } from '@/lib/chat-hub-api';
@@ -260,14 +265,14 @@ export default function ChatHubPage({
                                 <Database className="size-4" />
                                 <span>{t('chatHub.collection')}</span>
                                 {unread.unread_collection > 0 ? (
-                                    <span
+                                    <Badge
                                         data-test="chat-tab-collection-unread"
-                                        className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
+                                        className="min-w-5 rounded-full px-1.5 tabular-nums"
                                     >
                                         {formatChatUnread(
                                             unread.unread_collection,
                                         )}
-                                    </span>
+                                    </Badge>
                                 ) : null}
                             </ToggleGroupItem>
                             <ToggleGroupItem
@@ -277,39 +282,40 @@ export default function ChatHubPage({
                                 <UsersRound className="size-4" />
                                 <span>{t('chatHub.users')}</span>
                                 {unread.unread_private > 0 ? (
-                                    <span
+                                    <Badge
                                         data-test="chat-tab-private-unread"
-                                        className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
+                                        className="min-w-5 rounded-full px-1.5 tabular-nums"
                                     >
                                         {formatChatUnread(
                                             unread.unread_private,
                                         )}
-                                    </span>
+                                    </Badge>
                                 ) : null}
                             </ToggleGroupItem>
                         </ToggleGroup>
-                        <HeaderIconButton
-                            type="button"
-                            data-test="chat-filter-archived"
-                            disabled={tab !== 'private'}
-                            variant={
-                                tab === 'private' && showArchived
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            label={
-                                showArchived
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                    <Toggle
+                                        variant="outline"
+                                        data-test="chat-filter-archived"
+                                        disabled={tab !== 'private'}
+                                        pressed={
+                                            tab === 'private' && showArchived
+                                        }
+                                        onPressedChange={setShowArchived}
+                                        aria-label={t('chatHub.showArchived')}
+                                    >
+                                        <Archive />
+                                    </Toggle>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {showArchived
                                     ? t('chatHub.showInbox')
-                                    : t('chatHub.showArchived')
-                            }
-                            onClick={() => setShowArchived((prev) => !prev)}
-                        >
-                            {tab === 'private' && showArchived ? (
-                                <Inbox className="size-4" />
-                            ) : (
-                                <Archive className="size-4" />
-                            )}
-                        </HeaderIconButton>
+                                    : t('chatHub.showArchived')}
+                            </TooltipContent>
+                        </Tooltip>
                     </>
                 }
             >

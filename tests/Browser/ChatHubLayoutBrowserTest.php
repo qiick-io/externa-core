@@ -49,6 +49,9 @@ it('switches between collection and user chats with the shared toggle group', fu
         ->assertAttribute('[data-test="chat-tab-private"]', 'data-state', 'on')
         ->assertAttribute('[data-test="chat-tab-collection"]', 'data-state', 'off')
         ->assertScript("document.querySelector('[data-test=\"chat-filter-archived\"]').disabled === false")
+        ->assertAttribute('[data-test="chat-filter-archived"]', 'aria-pressed', 'false')
+        ->click('[data-test="chat-filter-archived"]')
+        ->assertAttribute('[data-test="chat-filter-archived"]', 'aria-pressed', 'true')
         ->assertNoJavaScriptErrors();
 });
 
