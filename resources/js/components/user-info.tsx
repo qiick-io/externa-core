@@ -23,20 +23,20 @@ export function UserInfo({
 
     return (
         <>
-            <span className="relative shrink-0">
-                <Avatar className="h-8 w-8 overflow-hidden rounded-full">
-                    <AvatarImage src={user.avatar} alt={displayName} />
-                    <AvatarFallback
-                        className={cn(
-                            avatarToneClass(user.id),
-                            'rounded-lg text-xs font-medium',
-                        )}
-                    >
-                        {getInitials(user.first_name, user.last_name)}
-                    </AvatarFallback>
-                </Avatar>
-                {showConnectionStatus ? <ConnectionDot /> : null}
-            </span>
+            <Avatar>
+                <AvatarImage src={user.avatar} alt={displayName} />
+                <AvatarFallback
+                    className={cn(
+                        avatarToneClass(user.id),
+                        'text-xs font-medium',
+                    )}
+                >
+                    {getInitials(user.first_name, user.last_name)}
+                </AvatarFallback>
+                {showConnectionStatus ? (
+                    <ConnectionDot className="ring-sidebar" />
+                ) : null}
+            </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{displayName}</span>
                 {showEmail && (

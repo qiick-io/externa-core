@@ -2196,7 +2196,9 @@
             "members": "Mitglieder",
             "actions": "Aktionen"
         },
-        "empty": "Noch keine Gruppen."
+        "empty": "Noch keine Gruppen.",
+        "membersCount_one": "{{count}} Mitglied",
+        "membersCount_other": "{{count}} Mitglieder"
     },
     "pendingToolCalls": {
         "head": "KI-Tool-Freigaben",

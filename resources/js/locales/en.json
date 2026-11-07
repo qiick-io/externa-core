@@ -2196,7 +2196,9 @@
             "members": "Members",
             "actions": "Actions"
         },
-        "empty": "No groups yet."
+        "empty": "No groups yet.",
+        "membersCount_one": "{{count}} member",
+        "membersCount_other": "{{count}} members"
     },
     "pendingToolCalls": {
         "head": "AI tool approvals",
