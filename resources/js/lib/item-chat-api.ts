@@ -13,6 +13,8 @@ export type ChatUser = {
     email?: string;
     /** Profile picture URL; initials show when it is missing. */
     avatar?: string | null;
+    /** The user's role name, shown on the chat user hover card. */
+    role?: string | null;
 };
 
 export type ChatAttachment = {

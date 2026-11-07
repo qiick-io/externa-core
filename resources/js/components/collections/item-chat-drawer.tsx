@@ -36,9 +36,11 @@ import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
+import { ChatUserHoverCard } from '@/components/chat/chat-user-hover-card';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -184,7 +186,7 @@ function renderMessageBody(
     mentions: ChatUser[],
     collections: ChatCollection[] = [],
 ): ReactNode {
-    const names = new Map(mentions.map((user) => [user.id, user.name]));
+    const users = new Map(mentions.map((user) => [user.id, user]));
     const collectionNames = new Map(
         collections.map((collection) => [collection.id, collection.name]),
     );
@@ -212,13 +214,37 @@ function renderMessageBody(
                 </Link>,
             );
         } else {
-            nodes.push(
-                <span
+            const user = users.get(id);
+            const text = `@${user?.name ?? `user ${id}`}`;
+            const label = user ? (
+                <Badge
                     key={`${match.index}-${id}`}
-                    className="rounded bg-primary/15 px-1 font-medium"
+                    variant="secondary"
+                    className="cursor-default bg-primary/15 px-1 align-baseline text-sm text-foreground"
+                    data-test="chat-mention"
+                    asChild
                 >
-                    @{names.get(id) ?? `user ${id}`}
-                </span>,
+                    <button type="button">{text}</button>
+                </Badge>
+            ) : (
+                <Badge
+                    key={`${match.index}-${id}`}
+                    variant="secondary"
+                    className="bg-primary/15 px-1 align-baseline text-sm text-foreground"
+                    data-test="chat-mention"
+                >
+                    {text}
+                </Badge>
+            );
+
+            nodes.push(
+                user ? (
+                    <ChatUserHoverCard key={`${match.index}-${id}`} user={user}>
+                        {label}
+                    </ChatUserHoverCard>
+                ) : (
+                    label
+                ),
             );
         }
 
@@ -2062,11 +2088,25 @@ export function ItemChatDrawer({
                                                             {!mine &&
                                                             isGroupStart ? (
                                                                 <MessageHeader className="font-medium text-foreground">
-                                                                    {
-                                                                        comment
-                                                                            .user
-                                                                            ?.name
-                                                                    }
+                                                                    {comment.user ? (
+                                                                        <ChatUserHoverCard
+                                                                            user={
+                                                                                comment.user
+                                                                            }
+                                                                        >
+                                                                            <button
+                                                                                type="button"
+                                                                                className="cursor-default rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                                                data-test="chat-author-name"
+                                                                            >
+                                                                                {
+                                                                                    comment
+                                                                                        .user
+                                                                                        .name
+                                                                                }
+                                                                            </button>
+                                                                        </ChatUserHoverCard>
+                                                                    ) : null}
                                                                 </MessageHeader>
                                                             ) : null}
                                                             <div className="flex min-w-0 items-end gap-1 group-data-[align=end]/message:flex-row-reverse">
