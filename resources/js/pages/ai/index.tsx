@@ -16,10 +16,7 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
-import {
-    AiImportJobMarker,
-    AiToolRunningMarker,
-} from '@/components/ai/ai-run-status';
+import { AiImportJobMarker } from '@/components/ai/ai-run-status';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FilterSearch } from '@/components/layout/page-header';
@@ -941,10 +938,6 @@ export default function AiIndexPage({
                                             approved,
                                         )
                                     }
-                                />
-
-                                <AiToolRunningMarker
-                                    toolName={chat.runningToolName}
                                 />
                                 <AiImportJobMarker status={importJobStatus} />
                             </ChatMessageScroller>

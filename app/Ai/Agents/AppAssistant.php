@@ -7,26 +7,70 @@ use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Ai\AiToolRegistryService;
 use App\Services\Authorization\EffectivePermissionResolverService;
-use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasSkills;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-#[Provider('local')]
 /**
  * Primary in-app AI assistant agent with tools for admin and content workflows.
  */
-class AppAssistant implements Agent, Conversational, HasSkills, HasTools
+class AppAssistant implements Agent, Conversational, HasProviderOptions, HasSkills, HasTools
 {
     use Promptable;
     use RemembersConversations;
 
+    /**
+     * Anthropic and Gemini thinking budgets (tokens) for each reasoning effort.
+     *
+     * @var array<string, int>
+     */
+    private const THINKING_BUDGET_TOKENS = [
+        'low' => 2048,
+        'medium' => 8192,
+        'high' => 24576,
+    ];
+
     public function __construct(private readonly ?User $user = null) {}
+
+    /**
+     * The provider the assistant runs on (`ai.assistant.provider`, "local" by default).
+     */
+    public function provider(): string
+    {
+        $provider = config('ai.assistant.provider');
+
+        return is_string($provider) && $provider !== '' ? $provider : 'local';
+    }
+
+    /**
+     * Reasoning options for the provider in use, from `ai.providers.<name>.reasoning.effort`
+     * (low, medium or high). Without an effort (the local model's default) nothing is sent,
+     * so the model keeps its own behaviour.
+     *
+     * @return array<string, mixed>
+     */
+    public function providerOptions(Lab|string $provider): array
+    {
+        $effort = config('ai.providers.'.$this->provider().'.reasoning.effort');
+
+        if (! is_string($effort) || ! array_key_exists($effort, self::THINKING_BUDGET_TOKENS)) {
+            return [];
+        }
+
+        return match ($provider instanceof Lab ? $provider->value : $provider) {
+            'openai', 'azure' => ['reasoning' => ['effort' => $effort, 'summary' => 'auto']],
+            'anthropic' => ['thinking' => ['type' => 'enabled', 'budget_tokens' => self::THINKING_BUDGET_TOKENS[$effort]]],
+            'gemini' => ['generation_config' => ['thinking_level' => $effort, 'thinking_summaries' => 'auto']],
+            default => [],
+        };
+    }
 
     /**
      * Allow create collection + one create_field per FieldTypeEnum + buffer for get/list/retries/final text.

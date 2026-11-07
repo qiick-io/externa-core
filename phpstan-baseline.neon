@@ -117,18 +117,6 @@ parameters:
 		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
 			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Laravel\\Ai\\Models\\ConversationMessage\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
-			identifier: property.notFound
 			count: 2
 			path: app/Services/Ai/AiConversationMutationService.php
 
@@ -152,12 +140,6 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$updated_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/Ai/AiPageController.php
