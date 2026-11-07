@@ -25,9 +25,18 @@ import {
     EmptyMedia,
 } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemGroup,
+    ItemMedia,
+    ItemSeparator,
+    ItemTitle,
+} from '@/components/ui/item';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/ui/spinner';
 import { listFilesPage } from '@/lib/files-api';
-import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileBreadcrumb } from '@/types/files';
 
 type BlockedFolder = Pick<AdminFileRow, 'id' | 'path'>;
@@ -289,7 +298,7 @@ export function FolderPickerDialog({
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    <div className="max-h-72 min-h-40 overflow-y-auto rounded-lg border border-sidebar-border/70">
+                    <ScrollArea className="rounded-lg border border-sidebar-border/70 [&>[data-slot=scroll-area-viewport]]:max-h-72 [&>[data-slot=scroll-area-viewport]]:min-h-40">
                         {loading && folders.length === 0 ? (
                             <div className="flex flex-col items-center gap-2 p-6 text-sm text-muted-foreground">
                                 <Spinner className="size-5" />
@@ -311,27 +320,39 @@ export function FolderPickerDialog({
                                 </EmptyHeader>
                             </Empty>
                         ) : null}
-                        <ul className="divide-y divide-sidebar-border/70">
-                            {folders.map((folder) => (
-                                <li key={folder.id}>
-                                    <button
-                                        type="button"
-                                        className={cn(
-                                            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60',
-                                        )}
-                                        disabled={submitting}
-                                        onClick={() => openFolder(folder)}
-                                        data-testid={`folder-picker-item-${folder.id}`}
+                        <ItemGroup>
+                            {folders.map((folder, index) => (
+                                <Fragment key={folder.id}>
+                                    {index > 0 && (
+                                        <ItemSeparator className="bg-sidebar-border/70" />
+                                    )}
+                                    <Item
+                                        size="sm"
+                                        className="w-full flex-nowrap rounded-none px-3 py-2 text-left hover:bg-accent/50 disabled:pointer-events-none disabled:opacity-50"
+                                        asChild
                                     >
-                                        <FolderOpen className="size-4 shrink-0 text-amber-500" />
-                                        <span className="truncate font-medium">
-                                            {folder.name}
-                                        </span>
-                                        <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
-                                    </button>
-                                </li>
+                                        <button
+                                            type="button"
+                                            disabled={submitting}
+                                            onClick={() => openFolder(folder)}
+                                            data-testid={`folder-picker-item-${folder.id}`}
+                                        >
+                                            <ItemMedia>
+                                                <FolderOpen className="size-4 text-amber-500" />
+                                            </ItemMedia>
+                                            <ItemContent className="min-w-0">
+                                                <ItemTitle className="truncate">
+                                                    {folder.name}
+                                                </ItemTitle>
+                                            </ItemContent>
+                                            <ItemActions>
+                                                <ChevronRight className="size-4 text-muted-foreground" />
+                                            </ItemActions>
+                                        </button>
+                                    </Item>
+                                </Fragment>
                             ))}
-                        </ul>
+                        </ItemGroup>
                         {page < lastPage ? (
                             <div className="border-t border-sidebar-border/70 p-2">
                                 <Button
@@ -351,7 +372,7 @@ export function FolderPickerDialog({
                                 </Button>
                             </div>
                         ) : null}
-                    </div>
+                    </ScrollArea>
 
                     <p className="text-sm text-muted-foreground">
                         {t('files.folderPicker.destination')}{' '}
