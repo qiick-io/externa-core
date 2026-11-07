@@ -16,10 +16,10 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { getInitialsFromParts } from '@/hooks/use-initials';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import { fetchChatDirectory } from '@/lib/chat-hub-api';
 import type { ChatDirectoryRow, ChatListMeta } from '@/lib/chat-hub-api';
+import { formatUserDisplayName, initialsFromName } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
@@ -29,11 +29,9 @@ export function directoryKey(row: { type: string; id: number }): string {
 
 function directoryInitials(row: ChatDirectoryRow): string {
     if (row.type === 'user') {
-        const fromParts = getInitialsFromParts(row.first_name, row.last_name);
-
-        return fromParts !== ''
-            ? fromParts
-            : row.name.slice(0, 2).toUpperCase();
+        return initialsFromName(
+            formatUserDisplayName(row.first_name, row.last_name) || row.name,
+        );
     }
 
     const parts = row.name.trim().split(/\s+/).filter(Boolean);

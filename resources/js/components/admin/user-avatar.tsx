@@ -5,8 +5,8 @@ import {
     AvatarFallback,
     AvatarImage,
 } from '@/components/ui/avatar';
-import { getInitialsFromParts } from '@/hooks/use-initials';
 import { avatarToneClass } from '@/lib/avatar-tone';
+import { formatUserDisplayName, initialsFromName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { AdminUserRow } from '@/types/admin';
 
@@ -32,9 +32,11 @@ export function UserAvatar({
     className,
 }: UserAvatarProps) {
     const { t } = useTranslation();
+    const displayName = formatUserDisplayName(user.first_name, user.last_name);
     const initials =
-        getInitialsFromParts(user.first_name, user.last_name) ||
-        user.email.charAt(0).toUpperCase();
+        displayName !== ''
+            ? initialsFromName(displayName)
+            : user.email.charAt(0).toUpperCase();
 
     return (
         <Avatar size={size} className={className}>
