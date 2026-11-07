@@ -6,6 +6,7 @@ import type { ComponentProps, HTMLAttributes } from 'react';
 import { codeToHtml } from 'shiki';
 import type { BundledLanguage, ShikiTransformer } from 'shiki';
 import { Button } from '@/components/ui/button';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { cn } from '@/lib/utils';
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
@@ -141,20 +142,15 @@ export const CodeBlockCopyButton = ({
     const { code } = useContext(CodeBlockContext);
 
     const copyToClipboard = async () => {
-        if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
-            onError?.(new Error('Clipboard API not available'));
+        if (!(await copyTextToClipboard(code))) {
+            onError?.(new Error('Could not copy to the clipboard'));
 
             return;
         }
 
-        try {
-            await navigator.clipboard.writeText(code);
-            setIsCopied(true);
-            onCopy?.();
-            setTimeout(() => setIsCopied(false), timeout);
-        } catch (error) {
-            onError?.(error as Error);
-        }
+        setIsCopied(true);
+        onCopy?.();
+        setTimeout(() => setIsCopied(false), timeout);
     };
 
     const Icon = isCopied ? CheckIcon : CopyIcon;

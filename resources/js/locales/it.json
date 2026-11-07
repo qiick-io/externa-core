@@ -1007,6 +1007,7 @@
             "sendError": "Impossibile inviare il messaggio.",
             "reply": "Rispondi",
             "copyText": "Copia testo",
+            "copyFailed": "Impossibile copiare il messaggio",
             "pin": "Fissa",
             "unpin": "Togli",
             "pinned": "Messaggi fissati",

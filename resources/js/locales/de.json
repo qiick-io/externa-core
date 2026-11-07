@@ -1007,6 +1007,7 @@
             "sendError": "Nachricht konnte nicht gesendet werden.",
             "reply": "Antworten",
             "copyText": "Text kopieren",
+            "copyFailed": "Nachricht konnte nicht kopiert werden",
             "pin": "Anheften",
             "unpin": "Lösen",
             "pinned": "Angeheftete Nachrichten",
