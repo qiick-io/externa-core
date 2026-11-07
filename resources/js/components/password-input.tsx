@@ -2,7 +2,13 @@ import { Eye, EyeOff, WandSparkles } from 'lucide-react';
 import type { ComponentProps, Ref } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import { Progress } from '@/components/ui/progress';
 import { evaluatePasswordStrength } from '@/lib/password-strength';
 import type { PasswordPolicy } from '@/lib/password-strength';
 import { cn } from '@/lib/utils';
@@ -58,7 +64,9 @@ function generateSecurePassword(): string {
 }
 
 /**
- * Password input with toggle to reveal or hide the value.
+ * Password input with toggle to reveal or hide the value, on the shadcn
+ * InputGroup: the reveal and generate buttons sit in an inline-end addon.
+ * `className` styles the group (the bordered box), not the inner input.
  * @param {Omit<ComponentProps<'input'>, 'type'> & { ref?: Ref<HTMLInputElement> }} props - Standard input props without type.
  * @returns {JSX.Element}
  */
@@ -66,7 +74,7 @@ export default function PasswordInput({
     className,
     ref,
     showGenerateButton = false,
-    generateLabel = 'Generate secure password',
+    generateLabel,
     onGenerated,
     showStrength = false,
     strengthPolicy = 'medium',
@@ -86,60 +94,60 @@ export default function PasswordInput({
         : null;
     const meterColor =
         strength?.level === 'strong'
-            ? 'bg-emerald-500'
+            ? '[&_[data-slot=progress-indicator]]:bg-success'
             : strength?.level === 'medium'
-              ? 'bg-amber-500'
-              : 'bg-red-500';
+              ? '[&_[data-slot=progress-indicator]]:bg-warning'
+              : '[&_[data-slot=progress-indicator]]:bg-destructive';
     const strengthLabelColor =
         strength?.level === 'strong'
-            ? 'text-emerald-600'
+            ? 'text-success'
             : strength?.level === 'medium'
-              ? 'text-amber-600'
+              ? 'text-warning'
               : 'text-muted-foreground';
 
     return (
         <div className="space-y-2">
-            <div className="relative">
-                <Input
+            <InputGroup
+                className={cn('dark:bg-transparent', className)}
+                data-disabled={props.disabled ? true : undefined}
+            >
+                <InputGroupInput
                     type={showPassword ? 'text' : 'password'}
-                    className={cn(
-                        showGenerateButton ? 'pr-20' : 'pr-10',
-                        className,
-                    )}
                     ref={ref}
                     {...props}
                 />
-                {showGenerateButton && (
-                    <button
-                        type="button"
-                        onClick={() => onGenerated?.(generateSecurePassword())}
-                        className="absolute inset-y-0 right-10 flex items-center px-2 text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none"
-                        aria-label={generateLabel}
-                        title={generateLabel}
-                    >
-                        <WandSparkles className="size-4" />
-                    </button>
-                )}
-                <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-3 text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none"
-                    aria-label={
-                        showPassword ? t('common.hide') : t('common.view')
-                    }
-                >
-                    {showPassword ? (
-                        <EyeOff className="size-4" />
-                    ) : (
-                        <Eye className="size-4" />
+                <InputGroupAddon align="inline-end">
+                    {showGenerateButton && (
+                        <InputGroupButton
+                            size="icon-xs"
+                            onClick={() =>
+                                onGenerated?.(generateSecurePassword())
+                            }
+                            disabled={props.disabled}
+                            aria-label={
+                                generateLabel ?? t('passwordInput.generate')
+                            }
+                            title={generateLabel ?? t('passwordInput.generate')}
+                        >
+                            <WandSparkles />
+                        </InputGroupButton>
                     )}
-                </button>
-            </div>
+                    <InputGroupButton
+                        size="icon-xs"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        aria-label={
+                            showPassword ? t('common.hide') : t('common.view')
+                        }
+                    >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                    </InputGroupButton>
+                </InputGroupAddon>
+            </InputGroup>
             {strength && (
                 <div id={strengthId} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">
-                            Password strength
+                            {t('passwordInput.strength')}
                         </span>
                         <span className={cn('font-medium', strengthLabelColor)}>
                             {t(
@@ -147,15 +155,11 @@ export default function PasswordInput({
                             )}
                         </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                            className={cn(
-                                'h-full rounded-full transition-[width]',
-                                meterColor,
-                            )}
-                            style={{ width: `${strength.progress}%` }}
-                        />
-                    </div>
+                    <Progress
+                        value={strength.progress}
+                        aria-hidden="true"
+                        className={cn('h-1.5 bg-muted', meterColor)}
+                    />
                     <p className="text-xs text-muted-foreground">
                         {t(
                             `settings.project.passwordPolicies.${strengthPolicy}.description`,
@@ -166,13 +170,13 @@ export default function PasswordInput({
                             className={cn(
                                 'text-xs',
                                 strength.meetsPolicy
-                                    ? 'text-emerald-600'
+                                    ? 'text-success'
                                     : 'text-muted-foreground',
                             )}
                         >
                             {strength.meetsPolicy
-                                ? 'Meets project password policy.'
-                                : 'Keep going to meet project password policy.'}
+                                ? t('passwordInput.meetsPolicy')
+                                : t('passwordInput.keepGoing')}
                         </p>
                     )}
                 </div>

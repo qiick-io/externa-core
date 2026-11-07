@@ -1,6 +1,8 @@
 import { Check, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
+import { formatDateTime } from '@/lib/format';
+import i18n from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -38,7 +40,7 @@ function formatDate(value: unknown): string | null {
         return value;
     }
 
-    return date.toLocaleString();
+    return formatDateTime(date);
 }
 
 function empty(): string {
@@ -55,7 +57,7 @@ export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
 
     if (path === 'created_at') {
         return (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
                 {formatDate(row.created_at) ?? empty()}
             </span>
         );
@@ -63,7 +65,7 @@ export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
 
     if (path === 'updated_at') {
         return (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
                 {formatDate(row.updated_at) ?? empty()}
             </span>
         );
@@ -145,9 +147,17 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
     switch (type) {
         case 'boolean':
             return value === true || value === 1 || value === '1' ? (
-                <Check className="size-4 text-foreground" aria-label="Yes" />
+                <Check
+                    className="size-4 text-foreground"
+                    role="img"
+                    aria-label={i18n.t('a11y.yes')}
+                />
             ) : (
-                <X className="size-4 text-muted-foreground" aria-label="No" />
+                <X
+                    className="size-4 text-muted-foreground"
+                    role="img"
+                    aria-label={i18n.t('a11y.no')}
+                />
             );
         case 'date':
             return (

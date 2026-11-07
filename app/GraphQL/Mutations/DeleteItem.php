@@ -5,7 +5,7 @@ namespace App\GraphQL\Mutations;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 
 final class DeleteItem
 {
@@ -27,7 +27,7 @@ final class DeleteItem
             abort(404);
         }
 
-        app(CollectionPermissionEnforcer::class)->assertItemWritable(request(), $collection, $item);
+        app(CollectionPermissionEnforcerService::class)->assertItemWritable(request(), $collection, $item);
         $item->delete();
 
         return true;

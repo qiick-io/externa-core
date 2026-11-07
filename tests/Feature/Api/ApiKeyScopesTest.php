@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
@@ -11,10 +12,10 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\File;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -37,10 +38,10 @@ function syncScopedItem(CollectionItem $item, Collection $collection, array $dat
         ? $collection
         : $collection->fresh(['fields']);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, $data, true),
     );
 }
 
@@ -49,13 +50,13 @@ function syncScopedItem(CollectionItem $item, Collection $collection, array $dat
  */
 function graphqlItemCacheKey(Collection $collection, string $itemId, ApiAccess $access): string
 {
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
     $hash = $cache->hash([
         'locale' => request()->query('locale'),
         'include_all_translations' => request()->boolean('include_all_translations'),
         'role_id' => $roleId,
-        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        'file_grants' => app(FilePermissionGuardService::class)->grantsForRole($roleId),
         ...$access->responseCacheScopeFactors(),
         'surface' => 'graphql',
     ]);
@@ -73,16 +74,17 @@ function graphqlItemCacheKey(Collection $collection, string $itemId, ApiAccess $
  */
 function graphqlItemsCacheKey(Collection $collection, ApiAccess $access): string
 {
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
     $hash = $cache->hash([
         'filter' => [],
         'page' => 1,
         'per_page' => min(15, max(1, (int) config('api.max_per_page', 100))),
+        'sort' => '',
         'locale' => request()->query('locale'),
         'include_all_translations' => request()->boolean('include_all_translations'),
         'role_id' => $roleId,
-        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        'file_grants' => app(FilePermissionGuardService::class)->grantsForRole($roleId),
         ...$access->responseCacheScopeFactors(),
         'surface' => 'graphql',
     ]);
@@ -99,13 +101,13 @@ function graphqlItemsCacheKey(Collection $collection, ApiAccess $access): string
  */
 function graphqlItemCacheKeyWithoutScopes(Collection $collection, string $itemId, ApiAccess $access): string
 {
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
     $hash = $cache->hash([
         'locale' => request()->query('locale'),
         'include_all_translations' => request()->boolean('include_all_translations'),
         'role_id' => $roleId,
-        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        'file_grants' => app(FilePermissionGuardService::class)->grantsForRole($roleId),
         'surface' => 'graphql',
     ]);
 
@@ -122,16 +124,17 @@ function graphqlItemCacheKeyWithoutScopes(Collection $collection, string $itemId
  */
 function graphqlItemsCacheKeyWithoutScopes(Collection $collection, ApiAccess $access): string
 {
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
     $hash = $cache->hash([
         'filter' => [],
         'page' => 1,
         'per_page' => min(15, max(1, (int) config('api.max_per_page', 100))),
+        'sort' => '',
         'locale' => request()->query('locale'),
         'include_all_translations' => request()->boolean('include_all_translations'),
         'role_id' => $roleId,
-        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        'file_grants' => app(FilePermissionGuardService::class)->grantsForRole($roleId),
         'surface' => 'graphql',
     ]);
 
@@ -247,10 +250,10 @@ it('does not expand include relations from out-of-scope collections', function (
         'type' => FieldTypeEnum::String,
     ]);
     $author = $authors->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $author,
         $authors->fresh(['fields']),
-        app(CollectionItemDataNormalizer::class)->normalize($authors->fresh(['fields']), ['name' => 'Secret Author'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($authors->fresh(['fields']), ['name' => 'Secret Author'], true),
     );
 
     $blog = Collection::query()->create([
@@ -266,10 +269,10 @@ it('does not expand include relations from out-of-scope collections', function (
         'settings' => ['related_collection_id' => $authors->id],
     ]);
     $post = $blog->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $post,
         $blog->fresh(['fields']),
-        app(CollectionItemDataNormalizer::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
     );
 
     $auth = makeApiKeyForRole();
@@ -300,10 +303,10 @@ it('partitions response cache for keys that share a role but differ in scopes', 
         'type' => FieldTypeEnum::String,
     ]);
     $author = $authors->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $author,
         $authors->fresh(['fields']),
-        app(CollectionItemDataNormalizer::class)->normalize($authors->fresh(['fields']), ['name' => 'Cached Author'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($authors->fresh(['fields']), ['name' => 'Cached Author'], true),
     );
 
     $blog = Collection::query()->create([
@@ -319,10 +322,10 @@ it('partitions response cache for keys that share a role but differ in scopes', 
         'settings' => ['related_collection_id' => $authors->id],
     ]);
     $post = $blog->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $post,
         $blog->fresh(['fields']),
-        app(CollectionItemDataNormalizer::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
     );
 
     $wide = makeApiKeyForRole();
@@ -368,10 +371,10 @@ it('read_only key can include in-scope relations but cannot write', function ():
         'type' => FieldTypeEnum::String,
     ]);
     $author = $authors->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $author,
         $authors->fresh(['fields']),
-        app(CollectionItemDataNormalizer::class)->normalize($authors->fresh(['fields']), ['name' => 'Readable'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($authors->fresh(['fields']), ['name' => 'Readable'], true),
     );
 
     $blog = Collection::query()->create([
@@ -387,10 +390,10 @@ it('read_only key can include in-scope relations but cannot write', function ():
         'settings' => ['related_collection_id' => $authors->id],
     ]);
     $post = $blog->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $post,
         $blog->fresh(['fields']),
-        app(CollectionItemDataNormalizer::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
     );
 
     $auth = makeApiKeyForRole();
@@ -451,10 +454,10 @@ it('enforces collection allowlist and read_only on GraphQL', function (): void {
     ])->save();
 
     $item = $posts->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $posts,
-        app(CollectionItemDataNormalizer::class)->normalize($posts, ['title' => 'Hi'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($posts, ['title' => 'Hi'], true),
     );
 
     $asKey = fn () => $this->withToken($auth['plain']);
@@ -853,4 +856,134 @@ it('allows file writes for an unscoped key when the role grants them', function 
 
     $asKey()->deleteJson("/api/v1/files/{$file->id}")->assertNoContent();
     expect(File::query()->find($file->id))->toBeNull();
+});
+
+it('files_scope none forbids Files API and returns bare ids on includes', function (): void {
+    Storage::fake('assets');
+
+    $posts = makePostsCollection();
+    CollectionField::factory()->create([
+        'collection_id' => $posts->id,
+        'name' => 'cover',
+        'type' => FieldTypeEnum::Image,
+    ]);
+
+    $auth = makeApiKeyForRole();
+    grantFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+    ]);
+    grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
+    $auth['key']->forceFill([
+        'collection_slugs' => ['posts'],
+        'files_scope' => ApiKeyFilesScopeEnum::None,
+    ])->save();
+
+    $file = makeStoredFile('scoped-none.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertForbidden();
+    $asKey()->getJson("/api/v1/files/{$file->id}")->assertForbidden();
+    $asKey()->get("/api/v1/files/{$file->id}/content")->assertForbidden();
+
+    $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
+    syncScopedItem($item, $posts, ['cover' => $file->id]);
+
+    $asKey()->getJson("/api/v1/collections/posts/items/{$item->id}?include=files")
+        ->assertOk()
+        ->assertJsonPath('data.data.cover', $file->id);
+});
+
+it('files_scope read allows reads but blocks writes', function (): void {
+    Storage::fake('assets');
+
+    $auth = makeApiKeyForRole();
+    grantFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+        FilePermissionActionEnum::Update,
+        FilePermissionActionEnum::Delete,
+    ]);
+    $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::Read])->save();
+
+    $file = makeStoredFile('scoped-read.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertOk();
+    $asKey()->getJson("/api/v1/files/{$file->id}")->assertOk();
+
+    $asKey()->post('/api/v1/files', [
+        'file' => UploadedFile::fake()->image('blocked.png', 40, 30),
+    ], ['Accept' => 'application/json'])->assertForbidden();
+    $asKey()->patchJson("/api/v1/files/{$file->id}", ['title' => 'Nope'])->assertForbidden();
+    $asKey()->deleteJson("/api/v1/files/{$file->id}")->assertForbidden();
+});
+
+it('migrated keys default files_scope all keeps 1.3.0 file behaviour', function (): void {
+    Storage::fake('assets');
+    Queue::fake([WarmFileThumbnailJob::class]);
+
+    $auth = makeApiKeyForRole();
+    grantFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+        FilePermissionActionEnum::Update,
+        FilePermissionActionEnum::Delete,
+    ]);
+    expect($auth['key']->fresh()->files_scope)->toBe(ApiKeyFilesScopeEnum::All);
+
+    $file = makeStoredFile('legacy-all.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertOk();
+    $asKey()->post('/api/v1/files', [
+        'file' => UploadedFile::fake()->image('upload.png', 40, 30),
+    ], ['Accept' => 'application/json'])->assertCreated();
+    $asKey()->patchJson("/api/v1/files/{$file->id}", ['title' => 'Hero'])->assertOk();
+});
+
+it('response cache factors include files_scope', function (): void {
+    $auth = makeApiKeyForRole();
+    $accessAll = new ApiAccess('api_key', $auth['role'], $auth['key']->fresh());
+    $factorsAll = $accessAll->responseCacheScopeFactors();
+
+    $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::None])->save();
+    $accessNone = new ApiAccess('api_key', $auth['role'], $auth['key']->fresh());
+    $factorsNone = $accessNone->responseCacheScopeFactors();
+
+    expect($factorsAll['api_key_scopes']['files_scope'])->toBe('all')
+        ->and($factorsNone['api_key_scopes']['files_scope'])->toBe('none')
+        ->and($factorsAll)->not->toBe($factorsNone);
+});
+
+it('files_scope none still allows GraphQL collection reads', function (): void {
+    $posts = makePostsCollection();
+    CollectionField::factory()->create([
+        'collection_id' => $posts->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $auth = makeApiKeyForRole();
+    grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
+    grantFileActions($auth['role'], [FilePermissionActionEnum::Read]);
+    $auth['key']->forceFill([
+        'collection_slugs' => ['posts'],
+        'files_scope' => ApiKeyFilesScopeEnum::None,
+    ])->save();
+
+    $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
+    syncScopedItem($item, $posts, ['title' => 'Scoped']);
+
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertForbidden();
+
+    $gql = $asKey()->postJson('/api/graphql', [
+        'query' => 'query ($c: String!, $id: ID!) { item(collection: $c, id: $id) { id } }',
+        'variables' => ['c' => 'posts', 'id' => (string) $item->id],
+    ]);
+    $gql->assertOk();
+    expect($gql->json('data.item.id'))->toBe((string) $item->id)
+        ->and($gql->json('errors'))->toBeNull();
 });

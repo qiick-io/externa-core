@@ -42,6 +42,8 @@ export type ProjectSettingsForm = {
     notifier_telegram_chat_id: string | null;
     notifier_telegram_bot_token_configured: boolean;
     notifier_event_types: string[];
+    deploy_hooks: DeployHookFormEntry[];
+    deploy_on_publish: boolean;
     oidc_enabled: boolean;
     oidc_issuer: string | null;
     oidc_client_id: string | null;
@@ -53,6 +55,9 @@ export type ProjectSettingsForm = {
     revision_retention_days: number | null;
     files_max_upload_bytes: number | null;
     chat_max_upload_bytes: number | null;
+    upload_allowed_mimes: string[] | null;
+    upload_allowed_extensions: string[] | null;
+    upload_allow_svg: boolean;
 };
 
 export type WebhookEventCatalogEntry = {
@@ -76,11 +81,34 @@ export type WebhookDeliverySummary = {
     recent: WebhookDeliveryEntry[];
 };
 
+export type DeployHookFormEntry = {
+    id: string;
+    name: string;
+    url_configured: boolean;
+};
+
+export type DeployLastRun = {
+    hook_id: string;
+    hook_name: string;
+    outcome: 'success' | 'failed' | string;
+    status: number | null;
+    message: string | null;
+    source: string;
+    hook_ids: string[];
+    at: string;
+};
+
+export type SharedDeployProps = {
+    canTrigger: boolean;
+    hooks: Array<{ id: string; name: string }>;
+    lastRun: DeployLastRun | null;
+};
+
 export type SharedProjectSettings = {
     name: string | null;
     defaultLanguage: string;
-    registrationEnabled: boolean;
-    emailVerificationRequired: boolean;
+    isRegistrationEnabled: boolean;
+    isEmailVerificationRequired: boolean;
     passwordPolicy: 'weak' | 'medium' | 'strong';
     sidebarModules: SidebarModuleSetting[];
     reportIssueUrl: string | null;

@@ -1,7 +1,17 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { clsx } from 'clsx';
 import type { ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+/**
+ * `tailwind-merge` aware of the control-size spacing keys (#462) so a caller's
+ * `h-8` / `size-7` still overrides a variant's `h-control` / `size-control`.
+ */
+const twMerge = extendTailwindMerge({
+    extend: {
+        theme: { spacing: ['control', 'control-sm', 'control-lg'] },
+    },
+});
 
 /**
  * Merges Tailwind class names with conflict resolution via `tailwind-merge`.

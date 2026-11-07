@@ -567,8 +567,8 @@ test('file manager index paginates folder listings', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('admin/files/index')
-            ->has('files.data', 50)
-            ->where('files.per_page', 50)
+            ->has('files.data', 48)
+            ->where('files.per_page', 48)
             ->where('files.total', 55)
             ->where('files.last_page', 2));
 });
@@ -604,11 +604,11 @@ test('file manager list json paginates and returns coherent page totals', functi
         'direction' => 'asc',
     ]))->assertOk()->json();
 
-    expect($pageOne['per_page'])->toBe(50)
+    expect($pageOne['per_page'])->toBe(48)
         ->and($pageOne['total'])->toBe(55)
         ->and($pageOne['current_page'])->toBe(1)
         ->and($pageOne['last_page'])->toBe(2)
-        ->and($pageOne['data'])->toHaveCount(50);
+        ->and($pageOne['data'])->toHaveCount(48);
 
     $pageTwo = $this->getJson(route('files.list', [
         'parent_id' => $folder->id,
@@ -618,7 +618,7 @@ test('file manager list json paginates and returns coherent page totals', functi
     ]))->assertOk()->json();
 
     expect($pageTwo['current_page'])->toBe(2)
-        ->and($pageTwo['data'])->toHaveCount(5);
+        ->and($pageTwo['data'])->toHaveCount(7);
 
     $pageOneIds = collect($pageOne['data'])->pluck('id');
     $pageTwoIds = collect($pageTwo['data'])->pluck('id');
@@ -688,7 +688,7 @@ test('file manager index and list reset to page one when sort changes', function
             ->where('filters.direction', 'desc')
             // Index always serves page 1; load-more uses files.list.
             ->where('files.current_page', 1)
-            ->has('files.data', 50)
+            ->has('files.data', 48)
             ->where('files.data.0.name', 'sort-55.txt'));
 
     $listPageOne = $this->getJson(route('files.list', [
@@ -699,7 +699,7 @@ test('file manager index and list reset to page one when sort changes', function
 
     expect($listPageOne['current_page'])->toBe(1)
         ->and($listPageOne['data'][0]['name'])->toBe('sort-55.txt')
-        ->and($listPageOne['data'])->toHaveCount(50);
+        ->and($listPageOne['data'])->toHaveCount(48);
 });
 
 test('favorites stay on early pages across load more ordering', function () {

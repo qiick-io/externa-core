@@ -6,6 +6,7 @@ import {
     ChatUsersDrawer,
     directoryKey,
 } from '@/components/chat/chat-users-drawer';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -56,6 +57,7 @@ export function ChatDirectThreadMenu({
     const upsertThread = useChatStore((state) => state.upsertThread);
     const [addPeopleOpen, setAddPeopleOpen] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
     const excludeKeys = useMemo(
         () => participants.map((row) => directoryKey(row)),
@@ -117,6 +119,7 @@ export function ChatDirectThreadMenu({
     const onDeleteChat = (): void => {
         runMuted(async () => {
             await deleteDirectChat(chatId);
+            setConfirmDeleteOpen(false);
 
             if (navigateHomeOnDelete) {
                 router.visit('/chat');
@@ -132,7 +135,7 @@ export function ChatDirectThreadMenu({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className={cn('size-8 shrink-0', triggerClassName)}
+                        className={cn('shrink-0', triggerClassName)}
                         data-test="chat-thread-menu"
                         aria-label={t('collections.itemChat.more')}
                         onClick={(event) => {
@@ -176,12 +179,29 @@ export function ChatDirectThreadMenu({
                         data-test="chat-delete"
                         variant="destructive"
                         disabled={busy}
-                        onSelect={onDeleteChat}
+                        onSelect={() => setConfirmDeleteOpen(true)}
                     >
                         {t('chatHub.deleteChat')}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+            {/* The menu sits inside the thread row link: React clicks bubble out of the dialog portal, so stop them here. */}
+            <span
+                role="presentation"
+                className="contents"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <ConfirmDestructiveDialog
+                    open={confirmDeleteOpen}
+                    onOpenChange={setConfirmDeleteOpen}
+                    title={t('confirmDestructive.deleteDirectChatTitle')}
+                    description={t(
+                        'confirmDestructive.deleteDirectChatDescription',
+                    )}
+                    confirming={busy}
+                    onConfirm={onDeleteChat}
+                />
+            </span>
             {canCreateDirect ? (
                 <ChatUsersDrawer
                     open={addPeopleOpen}

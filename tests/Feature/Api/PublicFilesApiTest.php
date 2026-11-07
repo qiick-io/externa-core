@@ -4,7 +4,6 @@ use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
-use App\Enums\RoleEnum;
 use App\Jobs\WarmFileThumbnailJob;
 use App\Models\ApiKey;
 use App\Models\Collection;
@@ -13,8 +12,8 @@ use App\Models\CollectionItem;
 use App\Models\CollectionPermission;
 use App\Models\File;
 use App\Models\Role;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use App\Services\FileService;
 use App\Services\FileTransformService;
 use Database\Seeders\PermissionSeeder;
@@ -28,19 +27,6 @@ beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
     Storage::fake('assets');
 });
-
-function filesPublicRole(): Role
-{
-    return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
-}
-
-/**
- * @param  list<FilePermissionActionEnum|string>  $actions
- */
-function grantPublicFileActions(array $actions): void
-{
-    grantFileActions(filesPublicRole(), $actions);
-}
 
 /**
  * @return array{role: Role, plain: string, key: ApiKey}
@@ -157,7 +143,7 @@ it('expands image fields on item api when file read is granted', function (): vo
     $file = makeStoredFile('cover.jpg');
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection->fresh(['fields']),
         ['cover' => $file->id],
@@ -171,7 +157,7 @@ it('expands image fields on item api when file read is granted', function (): vo
         ],
         ['allowed' => true],
     );
-    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+    app(CollectionPermissionGuardService::class)->forget(filesPublicRole()->id);
 
     // Without include=files: raw id (even if file read is later granted).
     $this->getJson("/api/v1/collections/articles/items/{$item->id}")
@@ -224,7 +210,7 @@ it('expands nested files inside blocks fields on item api when file read is gran
     $gallery = makeStoredFile('nested-gallery.jpg');
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection->fresh(['fields']),
         ['content' => [[
@@ -245,7 +231,7 @@ it('expands nested files inside blocks fields on item api when file read is gran
         ],
         ['allowed' => true],
     );
-    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+    app(CollectionPermissionGuardService::class)->forget(filesPublicRole()->id);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}")
         ->assertOk()
@@ -429,7 +415,7 @@ it('nulls private image fields on items without read_private even when collectio
     $file->update(['access' => 'private']);
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection->fresh(['fields']),
         ['cover' => $file->id],
@@ -443,7 +429,7 @@ it('nulls private image fields on items without read_private even when collectio
         ],
         ['allowed' => true],
     );
-    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+    app(CollectionPermissionGuardService::class)->forget(filesPublicRole()->id);
     grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
@@ -488,7 +474,7 @@ it('omits private nested block images without read_private', function (): void {
     $publicGallery = makeStoredFile('block-public.jpg');
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection->fresh(['fields']),
         ['content' => [[
@@ -509,7 +495,7 @@ it('omits private nested block images without read_private', function (): void {
         ],
         ['allowed' => true],
     );
-    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+    app(CollectionPermissionGuardService::class)->forget(filesPublicRole()->id);
     grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")

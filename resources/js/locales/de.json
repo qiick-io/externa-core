@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} ausgewählt",
         "save": "Speichern",
         "saved": "Gespeichert",
         "cancel": "Abbrechen",
@@ -15,7 +16,104 @@
         "lastName": "Nachname",
         "hide": "Ausblenden",
         "view": "Anzeigen",
-        "export": "Exportieren"
+        "export": "Exportieren",
+        "clearFilters": "Filter zurücksetzen",
+        "learnMore": "Mehr erfahren",
+        "restore": "Wiederherstellen",
+        "deletePermanently": "Dauerhaft löschen",
+        "created": "Erstellt",
+        "updated": "Aktualisiert",
+        "search": "Suchen",
+        "rowsPerPage": "Zeilen pro Seite",
+        "online": "Online",
+        "offline": "Offline",
+        "sortAscending": "Aufsteigend sortieren",
+        "sortDescending": "Absteigend sortieren",
+        "active": "Aktiv",
+        "name": "Name",
+        "pageRange": "{{from}}–{{to}} von {{total}}",
+        "perPageOption": "{{count}} / Seite",
+        "noResults": "Keine Ergebnisse.",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "loading": "Wird geladen…",
+        "loadMore": "Mehr laden",
+        "preview": "Vorschau",
+        "clear": "Leeren",
+        "filter": "Filtern",
+        "from": "Von",
+        "to": "Bis",
+        "system": "System"
+    },
+    "picker": {
+        "search": "Suchen…",
+        "noResults": "Keine Ergebnisse.",
+        "loading": "Wird geladen…",
+        "clearSelection": "Auswahl aufheben"
+    },
+    "emptyState": {
+        "collections": {
+            "title": "Noch keine Collections",
+            "description": "Collections gruppieren Felder und Inhalte. Erstelle eine, um zu starten.",
+            "cta": "Erste Collection erstellen",
+            "filteredTitle": "Keine passenden Collections",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Collections zu sehen.",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Collections erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
+        },
+        "items": {
+            "title": "Noch keine Einträge",
+            "description": "Füge den ersten Inhaltseintrag zu dieser Collection hinzu.",
+            "cta": "Ersten Eintrag erstellen",
+            "filteredTitle": "Keine passenden Einträge",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Einträge zu sehen.",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Einträge erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
+        },
+        "users": {
+            "title": "Noch keine Benutzer",
+            "description": "Lade Teammitglieder ein, damit sie Inhalte und Einstellungen verwalten können.",
+            "cta": "Ersten Benutzer erstellen",
+            "filteredTitle": "Keine Benutzer gefunden",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Benutzer zu sehen.",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Benutzer erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
+        },
+        "apiKeys": {
+            "title": "Noch keine API-Schlüssel",
+            "description": "Erstelle einen API-Schlüssel, damit externe Apps die Public-CMS-API nutzen können.",
+            "cta": "API-Schlüssel erstellen"
+        },
+        "roleCollections": {
+            "title": "Noch keine Collections",
+            "description": "Erstelle zuerst eine Collection und gewähre dieser Rolle dann Zugriff.",
+            "cta": "Zu den Collections",
+            "filteredTitle": "Keine passenden Collections",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Collections zu sehen."
+        },
+        "fields": {
+            "title": "Noch keine Felder",
+            "description": "Definiere Feldtypen, bevor du Inhalte für diese Collection eingibst.",
+            "cta": "Felder hinzufügen"
+        },
+        "dashboard": {
+            "collectionsDescription": "Erstelle eine Collection, um Inhaltsvolumen hier zu verfolgen.",
+            "collectionsCta": "Collection erstellen",
+            "activityDescription": "Aktivität erscheint, sobald du und dein Team in Externa arbeiten.",
+            "activityCta": "Aktivitätsprotokoll anzeigen",
+            "filesDescription": "Lade Dateien hoch, um Speicher-Insights im Dashboard zu sehen.",
+            "filesCta": "Dateien öffnen",
+            "genericDescription": "Hier ist noch nichts anzuzeigen."
+        },
+        "files": {
+            "title": "Dieser Ordner ist leer",
+            "description": "Dateien hier ablegen oder Hochladen nutzen, um Medien hinzuzufügen.",
+            "cta": "Datei hochladen",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Dateien und Ordner erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst.",
+            "dropTitle": "Dateien zum Hochladen ablegen",
+            "dropDescription": "Loslassen, um den Upload zu starten, oder die Schaltfläche Hochladen in der Toolbar nutzen."
+        }
     },
     "roles": {
         "names": {
@@ -37,8 +135,8 @@
         },
         "empty": "Noch keine Rollen.",
         "systemBadge": "System",
-        "deleteTitle": "Rolle löschen?",
-        "deleteDescription": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
+        "deleteTitle": "Rolle „{{name}}“ löschen?",
+        "deleteDescription": "Das kann nicht rückgängig gemacht werden.",
         "deleteFallback": "Dies kann nicht rückgängig gemacht werden.",
         "duplicate": {
             "title": "Rolle duplizieren",
@@ -91,13 +189,61 @@
     "a11y": {
         "skipToContent": "Zum Inhalt springen",
         "mainNav": "Hauptnavigation",
+        "breadcrumb": "Brotkrümelnavigation",
+        "chatThreadList": "Chat-Threads",
         "openMenu": "Menü öffnen",
         "search": "Suchen",
         "removeConditionRule": "Bedingungsregel entfernen",
         "dismissUpload": "Upload verwerfen",
         "clearSelection": "Auswahl löschen",
         "removeTab": "Tab entfernen",
-        "removeSection": "Abschnitt entfernen"
+        "removeSection": "Abschnitt entfernen",
+        "close": "Schließen",
+        "toggleSidebar": "Seitenleiste umschalten",
+        "loading": "Wird geladen",
+        "notifications": "Benachrichtigungen",
+        "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
+        "unreadCount": "{{count}} ungelesen",
+        "moreActions": "Weitere Aktionen",
+        "configureColumns": "Spalten konfigurieren",
+        "columnOptions": "Spaltenoptionen für {{label}}",
+        "fieldActions": "Feldaktionen",
+        "saving": "Wird gespeichert",
+        "aiAnswerReady": "Antwort des Assistenten: {{preview}}",
+        "dragToReorder": "Zum Neuordnen ziehen",
+        "removeChoice": "Auswahl entfernen",
+        "required": "pflicht",
+        "yes": "Ja",
+        "no": "Nein",
+        "editMode": "Bearbeiten",
+        "previewMode": "Vorschau",
+        "heading": "Überschrift",
+        "insertImage": "Bild",
+        "moveBlockUp": "Block nach oben",
+        "moveBlockDown": "Block nach unten",
+        "changed": "Geändert",
+        "reorder": "Neu ordnen",
+        "filters": "Filter",
+        "removeFilter": "Filter entfernen",
+        "filterField": "Filterfeld",
+        "filterOperator": "Filteroperator",
+        "filterValue": "Filterwert",
+        "selectAll": "Alle auswählen",
+        "sortBy": "Sortieren nach",
+        "activeList": "Aktiv",
+        "trashList": "Papierkorb",
+        "pinChat": "Chat anheften",
+        "unpinChat": "Chat lösen",
+        "deleteChat": "Chat löschen",
+        "deleteSelectedChats": "Ausgewählte Chats löschen",
+        "editField": "Feld bearbeiten",
+        "fieldsPanel": "Felder",
+        "activityPanel": "Aktivität",
+        "fromDate": "Von Datum",
+        "toDate": "Bis Datum",
+        "removeRule": "Regel entfernen",
+        "removeLocale": "Locale {{code}} entfernen",
+        "selectRow": "{{name}} auswählen"
     },
     "auth": {
         "login": {
@@ -191,7 +337,12 @@
             "filesMedia": "Dateien & Medien",
             "api": "API",
             "integrations": "Integrationen",
-            "sidebar": "Seitenleiste"
+            "sidebar": "Seitenleiste",
+            "aiTools": "KI-Schreibwerkzeuge",
+            "pendingToolCalls": "KI-Tool-Freigaben",
+            "sectionAi": "KI",
+            "aiToolsNav": "Schreibwerkzeuge",
+            "pendingToolCallsNav": "Tool-Freigaben"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -203,11 +354,41 @@
             "linkSent": "Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet."
         },
         "apiKeys": {
+            "description": "Bearer-Tokens für /api/v1. Berechtigungen kommen von der gewählten Rolle (Public für anonym-äquivalenten Zugriff).",
+            "create": "API-Schlüssel erstellen",
+            "createTitle": "API-Schlüssel erstellen",
+            "createDescription": "Namen vergeben, Rolle und Besitzer wählen, optional Scopes einschränken.",
+            "secretBanner": "Schlüssel jetzt kopieren — er wird nicht erneut angezeigt.",
             "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
             "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
+            "owner": "Besitzer",
+            "ownerHelp": "Berechtigungsobergrenze: der Schlüssel kann nicht mehr als dieser Benutzer. Standard: Sie.",
             "readOnly": "Nur Lesen (Create, Update und Delete blockieren)",
             "readOnlyBadge": "nur lesen",
-            "scopes": "Scopes"
+            "scopes": "Scopes",
+            "filesScope": "Datei-Zugriff",
+            "filesScopeHelp": "none = keine Files-API; read = nur Liste/Download; all = lesen+schreiben (weiterhin read-only und Rolle).",
+            "filesScopeNone": "Kein",
+            "filesScopeRead": "Lesen",
+            "filesScopeAll": "Alles",
+            "confirm": {
+                "revokeTitle": "API-Schlüssel „{{name}}“ widerrufen?",
+                "revokeDescription": "Dieser Schlüssel funktioniert sofort nicht mehr.",
+                "revokeConfirm": "Widerrufen"
+            },
+            "columns": {
+                "name": "Name",
+                "prefix": "Präfix",
+                "role": "Rolle",
+                "status": "Status",
+                "actions": "Aktionen"
+            },
+            "status": {
+                "active": "Aktiv",
+                "revoked": "Widerrufen"
+            },
+            "revoke": "Schlüssel widerrufen",
+            "secretValue": "Neuer API-Schlüssel"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -316,6 +497,15 @@
             "filesMaxUploadMb": "Dateien max. Upload (MB)",
             "chatMaxUploadMb": "Chat max. Upload (MB)",
             "uploadLimitsHint": "Leer = unbegrenzt. Einzel-Uploads bleiben unter PHP upload_max_filesize / post_max_size; größere Dateien nutzen Chunked Upload.",
+            "uploadPolicyTitle": "Upload-Typ-Richtlinie",
+            "uploadPolicyDescription": "Allowlist für Erweiterungen und MIME-Typen für Files und API. Leere Felder behalten die sicheren Defaults.",
+            "uploadAllowedExtensions": "Erlaubte Erweiterungen (optional)",
+            "uploadAllowedExtensionsHelp": "Kommagetrennt, ohne Punkt. Leer = kein zusätzlicher Extensions-Filter (MIME-Allowlist gilt weiter).",
+            "uploadAllowedMimes": "Erlaubte MIME-Typen (optional)",
+            "uploadAllowedMimesHelp": "Kommagetrennt. Leer = integrierte sichere Menge (PNG/JPEG/PDF/…).",
+            "uploadAllowSvg": "SVG-Uploads erlauben",
+            "uploadAllowSvgHelp": "Standardmäßig aus. SVG kann Skripte tragen und XSS auslösen, wenn ausgeliefert oder eingebettet — nur aktivieren, wenn Logos/Icons nötig sind und Uploader vertrauenswürdig sind.",
+            "uploadPolicyFloorHint": "Ausführbare Dateien, HTML, SSI (.shtml) und Ähnliches bleiben blockiert, auch wenn hier gelistet. Diese Sicherheitsgrenze lässt sich nicht deaktivieren.",
             "filesTitle": "Dateien & Speicher",
             "filesDescription": "Bildtransformationsoptionen der Dateibibliothek",
             "allowedTransformations": "Erlaubte Transformationen",
@@ -400,6 +590,21 @@
             "notifierTelegramSendTest": "Telegram-Test senden",
             "notifierTelegramSendTestHint": "Chat-ID und Token speichern, dann Ping sofort senden (kein Queue-Worker nötig).",
             "notifiersPrivacyNote": "Event-Metadaten werden bei Konfiguration an Slack oder Telegram gesendet. Datenschutz des Anbieters bei Self-Hosting prüfen.",
+            "deployTitle": "Deploy-Hooks",
+            "deployDescription": "Benannte URLs für Vercel-, Netlify-, Cloudflare-Pages- oder Forge-Deploy-Hooks. URLs werden verschlüsselt gespeichert.",
+            "deployHookLabel": "Hook {{number}}",
+            "deployHookName": "Name",
+            "deployHookUrl": "Deploy-Hook-URL",
+            "deployHookUrlHint": "Provider-Deploy-Hook-URL einfügen. Sie wird verschlüsselt gespeichert und nicht erneut angezeigt.",
+            "deployHookUrlConfigured": "Eine URL ist bereits konfiguriert. Leer lassen zum Behalten oder neue URL zum Ersetzen einfügen.",
+            "deployHookAdd": "Deploy-Hook hinzufügen",
+            "deployHookRemove": "Deploy-Hook entfernen",
+            "deployOnPublish": "Bei Veröffentlichung deployen",
+            "deployOnPublishHint": "Wenn aktiv, löst jede Item-Veröffentlichung alle konfigurierten Deploy-Hooks einmal aus.",
+            "deployTrigger": "Jetzt deployen",
+            "deployTriggerHint": "Stellt einen POST an jeden konfigurierten Hook in die Warteschlange. Erfordert die Berechtigung deploy.trigger und einen Queue-Worker, außer QUEUE_CONNECTION=sync.",
+            "deployLastRunTitle": "Letzter Deploy-Lauf",
+            "deployLastRunNone": "Noch kein Deploy ausgelöst.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistent",
@@ -470,7 +675,21 @@
             "sidebar": {
                 "breadcrumb": "Seitenleisten-Einstellungen",
                 "head": "Seitenleisten-Einstellungen"
-            }
+            },
+            "themePresetTitle": "Theme-Preset",
+            "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
+            "themePresetTeal": "Teal (Standard)",
+            "themePresetBlue": "Blau",
+            "themePresetIndigo": "Indigo",
+            "themePresetViolet": "Violett",
+            "themePresetRose": "Rose",
+            "themePresetSlate": "Schiefer",
+            "customColorTitle": "Eigene Markenfarbe",
+            "customColorDescription": "Optionaler Override für Primary. Leer lassen, um den gewählten Preset zu nutzen.",
+            "clearCustomColor": "Eigene Farbe entfernen",
+            "brandContrastWarning": "Diese Markenfarbe erfüllt nicht den WCAG-AA-Kontrast (4.5:1 Text / 3:1 UI). Bitte eine dunklere oder hellere Nuance wählen.",
+            "presetPreviewLight": "Hell",
+            "presetPreviewDark": "Dunkel"
         },
         "deleteUser": {
             "title": "Konto löschen",
@@ -497,7 +716,8 @@
             "regenerate": "Codes neu generieren",
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
-            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>.",
+            "setupKey": "Einrichtungsschlüssel"
         },
         "performance": {
             "appDebug": "APP_DEBUG",
@@ -547,6 +767,18 @@
             "lastFlushedBy": "Geleert von",
             "neverFlushed": "Nie",
             "unknownActor": "—"
+        },
+        "aiTools": {
+            "breadcrumb": "KI-Schreibwerkzeuge",
+            "head": "KI-Schreibwerkzeuge",
+            "title": "KI-Schreibwerkzeuge",
+            "description": "Wählen Sie, welche mutierenden KI-Tool-Klassen nach menschlicher Freigabe laufen dürfen. Der AI_WRITE_TOOLS-Kill-Switch muss aktiv sein.",
+            "killSwitchLabel": "Env-Kill-Switch",
+            "killSwitchOn": "aktiviert",
+            "killSwitchOff": "deaktiviert (Standard)",
+            "killSwitchHint": "Setzen Sie AI_WRITE_TOOLS=true (oder AI_TOOLS_WRITE_ENABLED=true) in der Umgebung, um Schreibwerkzeuge zuzulassen.",
+            "ttlHint": "MCP-Freigaben laufen nach {{minutes}} Minuten ab. Tool-Audit-Einträge werden {{days}} Tage aufbewahrt.",
+            "save": "Speichern"
         }
     },
     "collections": {
@@ -666,7 +898,14 @@
             "copied": "Rohwert kopiert",
             "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
             "pasted": "Rohwert eingefügt",
-            "pasteFailed": "Zwischenablage konnte nicht gelesen werden"
+            "pasteFailed": "Zwischenablage konnte nicht gelesen werden",
+            "edit": "Feld bearbeiten",
+            "duplicate": "Feld duplizieren",
+            "showInForm": "Feld im Detail anzeigen",
+            "hideInForm": "Feld im Detail ausblenden",
+            "delete": "Feld löschen",
+            "deleteFailed": "Feld konnte nicht gelöscht werden.",
+            "width": "Breite"
         },
         "itemSave": {
             "create": "Erstellen",
@@ -682,6 +921,10 @@
             "previewAs": "Vorschau als…",
             "livePreview": "Live Preview",
             "livePreviewError": "Live Preview konnte nicht geöffnet werden. Prüfe die Vorschau-URL der Collection.",
+            "livePreviewAt": "Vorschau zum…",
+            "livePreviewAtHint": "Zeigt den Eintrag so, wie er bei geplanten Änderungen live aussehen wird (max. 90 Tage voraus).",
+            "livePreviewAtOpen": "Vorschau öffnen",
+            "livePreviewAtInvalid": "Wähle eine gültige Zeit innerhalb der nächsten 90 Tage.",
             "chat": "Chat",
             "revisions": "Revisionen",
             "editFields": "Felder bearbeiten",
@@ -764,8 +1007,10 @@
             "sendError": "Nachricht konnte nicht gesendet werden.",
             "reply": "Antworten",
             "copyText": "Text kopieren",
+            "copyFailed": "Nachricht konnte nicht kopiert werden",
             "pin": "Anheften",
             "unpin": "Lösen",
+            "pinned": "Angeheftete Nachrichten",
             "visibilityHint": "Sichtbar für alle, die dieses Item lesen können",
             "openInHub": "In Chat öffnen",
             "mediaPreview": "Medienvorschau",
@@ -778,7 +1023,11 @@
             "sendingMedia": "Senden…",
             "retrySend": "Erneut versuchen",
             "removePendingFile": "Datei entfernen",
-            "scrollToBottom": "Nach unten scrollen"
+            "scrollToBottom": "Nach unten scrollen",
+            "mentionCollection": "Sammlung",
+            "reactionToggle": "Reaktion {{emoji}}: {{names}}",
+            "messageActions": "Nachrichtenaktionen",
+            "react": "Reagieren"
         },
         "packs": {
             "createFromPack": "Aus Pack erstellen",
@@ -1055,7 +1304,55 @@
             "groups": "Gruppen"
         },
         "translatableDescription": "Wenn aktiviert, geben Redakteure einen eigenen Wert je Sprache ein (z. B. Englisch und Italienisch) statt eines gemeinsamen Werts.",
-        "translatableLockedHint": "Gesperrt, weil dieses Feld bereits Inhalte hat. Eine Änderung von Übersetzbar würde vorhandene Werte nicht konvertieren — legen Sie ein neues Feld an und migrieren Sie die Inhalte."
+        "translatableLockedHint": "Gesperrt, weil dieses Feld bereits Inhalte hat. Eine Änderung von Übersetzbar würde vorhandene Werte nicht konvertieren — legen Sie ein neues Feld an und migrieren Sie die Inhalte.",
+        "confirm": {
+            "deleteTitle": "Collection „{{name}}“ löschen?",
+            "deleteDescription": "Diese Collection wird soft-gelöscht und in den Papierkorb verschoben.",
+            "forceDeleteTitle": "Collection „{{name}}“ endgültig löschen?",
+            "forceDeleteDescription": "Diese Collection wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+            "bulkDeleteTitle": "{{count}} ausgewählte Collections löschen?",
+            "bulkDeleteDescription": "Ausgewählte Collections werden soft-gelöscht und in den Papierkorb verschoben.",
+            "bulkForceDeleteTitle": "{{count}} ausgewählte Collections endgültig löschen?",
+            "bulkForceDeleteDescription": "Ausgewählte Collections werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+            "bulkForceDeleteTitleNamed": "Collection „{{name}}“ endgültig löschen?"
+        },
+        "translatableLockedHintConvert": "Hier gesperrt, weil das Feld bereits Inhalte hat. Nutzen Sie Typ ändern / konvertieren, um Werte sicher zu migrieren (oder legen Sie ein neues Feld an).",
+        "convert": {
+            "menuLabel": "Typ ändern…",
+            "title": "Feld „{{name}}“ konvertieren",
+            "description": "Migriert gespeicherte Werte in einen unterstützten Typ oder übersetzbaren Speicher. Zuerst Dry-run für Fehler prüfen.",
+            "targetType": "Zieltyp",
+            "translatableHint": "Werte in die Standard-Locale verschieben oder auf eine Locale reduzieren.",
+            "dryRun": "Dry-run",
+            "confirm": "Konvertieren",
+            "previewSummary": "ok {{ok}} · fehlgeschlagen {{failed}} · Entwürfe {{drafts}} · übersprungen {{skipped}}",
+            "loadTargetsFailed": "Konvertierungsziele konnten nicht geladen werden.",
+            "previewFailed": "Dry-run fehlgeschlagen.",
+            "convertFailed": "Konvertierung fehlgeschlagen.",
+            "success": "Feld konvertiert.",
+            "queued": "Feldkonvertierung in der Warteschlange."
+        },
+        "columnPicker": {
+            "fields": "Felder",
+            "related": "Verknüpfte Felder",
+            "openRelated": "Felder von {{label}} öffnen",
+            "noNestedFields": "Keine verschachtelten Felder verfügbar.",
+            "noMatches": "Keine Felder entsprechen deiner Suche.",
+            "id": "ID",
+            "createdAt": "Erstellt am",
+            "updatedAt": "Aktualisiert am",
+            "createdBy": "Erstellt von",
+            "updatedBy": "Aktualisiert von",
+            "actions": "Aktionen"
+        },
+        "layoutWidth": {
+            "half": "Halbe Breite",
+            "full": "Volle Breite",
+            "fill": "Breite füllen"
+        },
+        "openCollection": "{{name}} öffnen",
+        "reorderColumn": "{{label}} verschieben",
+        "noFieldsMatch": "Keine Felder entsprechen deiner Suche."
     },
     "ai": {
         "drawer": {
@@ -1227,8 +1524,8 @@
         "askPlaceholder": "Assistenten fragen…",
         "askSomething": "Etwas fragen…",
         "offlinePlaceholder": "KI offline…",
-        "attachTooltip": "CSV, TXT, Excel oder PDF anhängen (max. 5 MB)",
-        "attachShortTooltip": "CSV oder TXT anhängen (max. 5 MB)",
+        "attachTooltip": "Items, Dateien, gespeicherte Prompts oder Import-CSV/TXT/Excel/PDF anhängen",
+        "attachShortTooltip": "Kontext oder Import-Dateien anhängen",
         "attachAria": "Anhängen",
         "messageAria": "Nachricht",
         "dictationAria": "Diktat",
@@ -1243,7 +1540,7 @@
         "askAi": "KI fragen",
         "assistantOffline": "Assistent offline",
         "assistantOnline": "Assistent online",
-        "aiOfflineHint": "KI offline — LM Studio starten zum Aktivieren",
+        "aiOfflineHint": "KI nicht verfügbar — Konfiguration des KI-Anbieters prüfen",
         "thinking": "Denke nach",
         "copied": "In die Zwischenablage kopiert",
         "copyFailed": "Kopieren fehlgeschlagen",
@@ -1255,7 +1552,176 @@
         "removeAttachment": "{{name}} entfernen",
         "simulation": "Simulation",
         "simulationHint": "Schreibt keine Daten",
-        "dictationUnsupported": "Diktat wird in diesem Browser nicht unterstützt"
+        "dictationUnsupported": "Diktat wird in diesem Browser nicht unterstützt",
+        "context": {
+            "title": "Kontext anhängen",
+            "description": "Fügen Sie Collection-Items, Bibliotheksdateien oder gespeicherte Prompts hinzu, die der Assistent für diese Nachricht nutzen soll.",
+            "attachTooltip": "Items, Dateien oder gespeicherte Prompts anhängen",
+            "tabs": {
+                "items": "Items",
+                "files": "Dateien",
+                "prompts": "Prompts"
+            },
+            "searchPlaceholder": "Suchen…",
+            "searchAria": "Kontext suchen",
+            "collectionAria": "Collection",
+            "uploadImport": "Import-Datei hochladen",
+            "newPrompt": "Neuer Prompt",
+            "loading": "Laden…",
+            "emptyItems": "Keine lesbaren Items gefunden.",
+            "emptyFiles": "Keine Dateien gefunden.",
+            "emptyPrompts": "Noch keine gespeicherten Prompts.",
+            "selectedCount": "{{count}} ausgewählt",
+            "cancel": "Abbrechen",
+            "attachSelected": "Auswahl anhängen",
+            "promptName": "Name",
+            "promptDescription": "Beschreibung",
+            "promptBody": "Prompt-Text",
+            "savePrompt": "Prompt speichern",
+            "editPrompt": "Prompt bearbeiten",
+            "deletePrompt": "Prompt löschen",
+            "promptRequired": "Name und Text sind erforderlich.",
+            "promptSaved": "Prompt gespeichert",
+            "promptSaveFailed": "Prompt konnte nicht gespeichert werden",
+            "promptDeleted": "Prompt gelöscht",
+            "promptDeleteFailed": "Prompt konnte nicht gelöscht werden",
+            "loadFailed": "Kontext konnte nicht geladen werden"
+        },
+        "unableStartChat": "Neuer Chat konnte nicht gestartet werden",
+        "chatDeleted": "Chat gelöscht",
+        "unableDeleteChat": "Chat konnte nicht gelöscht werden",
+        "unableUpdatePin": "Pin konnte nicht aktualisiert werden",
+        "unableLoadMoreChats": "Weitere Chats konnten nicht geladen werden",
+        "chatsDeleted": "{{count}} Chats gelöscht",
+        "unableDeleteSelectedChats": "Ausgewählte Chats konnten nicht gelöscht werden",
+        "noResponse": "Keine Antwort vom Assistenten",
+        "responseError": "Fehler während der Antwort",
+        "attachmentUploadFailed": "Anhang-Upload fehlgeschlagen",
+        "writeMessageWithAttachments": "Schreiben Sie zusätzlich zu Anhängen eine Nachricht",
+        "noUserMessageToRegenerate": "Keine Benutzernachricht zum Regenerieren",
+        "unablePrepareRegeneration": "Regenerierung konnte nicht vorbereitet werden",
+        "messageResent": "Nachricht erneut gesendet",
+        "messageCannotBeEmpty": "Nachricht darf nicht leer sein",
+        "unableEditMessage": "Nachricht konnte nicht bearbeitet werden",
+        "dictationError": "Diktierfehler",
+        "unableStartDictation": "Diktat konnte nicht gestartet werden",
+        "chat": "Chat",
+        "responseTryAgain": "Keine Antwort vom Assistenten. Bitte erneut versuchen.",
+        "sendError": "Fehler beim Senden",
+        "loadMore": "Mehr laden",
+        "yesterday": "Gestern",
+        "thisWeek": "Diese Woche",
+        "aWeekAgo": "Vor einer Woche",
+        "thisMonth": "Diesen Monat",
+        "today": "Heute",
+        "twoDaysAgo": "Vor 2 Tagen",
+        "older": "Älter",
+        "newChat": "Neuer Chat",
+        "noConversations": "Noch keine Unterhaltungen.",
+        "openFullPage": "Ganze Seite öffnen",
+        "openPanel": "Im Seitenbereich öffnen",
+        "conversations": "Unterhaltungen",
+        "searchConversations": "Unterhaltungen suchen…",
+        "noConversationsMatch": "Keine Unterhaltung passt zur Suche.",
+        "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools.",
+        "conversationRegion": "Unterhaltung",
+        "tool": {
+            "state": {
+                "input-streaming": "Ausstehend",
+                "input-available": "Läuft",
+                "approval-requested": "Wartet auf Freigabe",
+                "approval-responded": "Beantwortet",
+                "output-available": "Abgeschlossen",
+                "output-error": "Fehler",
+                "output-denied": "Abgelehnt"
+            },
+            "parameters": "Parameter",
+            "result": "Ergebnis",
+            "error": "Fehler",
+            "steps_one": "{{count}} Werkzeugschritt",
+            "steps_other": "{{count}} Werkzeugschritte"
+        },
+        "approval": {
+            "request": "Der Assistent möchte {{tools}} ausführen.",
+            "approve": "Freigeben",
+            "reject": "Ablehnen"
+        },
+        "actions": {
+            "copy": "Kopieren",
+            "copied": "Kopiert",
+            "edit": "Bearbeiten"
+        },
+        "retry": "Erneut versuchen",
+        "sendAgain": "Erneut senden",
+        "assistantMessagePdfTitle": "Assistentennachricht",
+        "callingTool": "{{tool}} wird aufgerufen…",
+        "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "in Warteschlange",
+            "running": "läuft",
+            "done": "abgeschlossen",
+            "failed": "fehlgeschlagen"
+        },
+        "markdown": {
+            "copyCode": "Code kopieren",
+            "downloadFile": "Datei herunterladen",
+            "viewFullscreen": "Vollbild",
+            "exitFullscreen": "Vollbild beenden",
+            "copyTable": "Tabelle kopieren",
+            "copyTableAsMarkdown": "Tabelle als Markdown kopieren",
+            "copyTableAsCsv": "Tabelle als CSV kopieren",
+            "copyTableAsTsv": "Tabelle als TSV kopieren",
+            "downloadTable": "Tabelle herunterladen",
+            "downloadTableAsCsv": "Tabelle als CSV herunterladen",
+            "downloadTableAsMarkdown": "Tabelle als Markdown herunterladen",
+            "imageNotAvailable": "Bild nicht verfügbar",
+            "downloadImage": "Bild herunterladen",
+            "openExternalLink": "Externen Link öffnen?",
+            "externalLinkWarning": "Sie sind dabei, eine externe Website zu besuchen.",
+            "close": "Schließen",
+            "copyLink": "Link kopieren",
+            "copied": "Kopiert",
+            "openLink": "Link öffnen"
+        },
+        "errors": {
+            "tooManyAttachments": "Sie können höchstens 5 Dateien pro Nachricht anhängen.",
+            "unsupportedAttachment": "Nur CSV-, TXT-, XLSX- oder PDF-Dateien sind erlaubt.",
+            "attachmentTooLarge": "Die Datei ist größer als 5 MB.",
+            "attachmentUploadFailed": "Hochladen des Anhangs fehlgeschlagen",
+            "connectionInterrupted": "Die Verbindung zum KI-Server wurde unterbrochen (Timeout, Proxy oder Absturz des Modells). Prüfen Sie den KI-Anbieter und versuchen Sie es mit einem kürzeren Prompt erneut.",
+            "network": "Netzwerkfehler",
+            "noResponseStream": "Kein Antwort-Stream",
+            "stream": "Fehler im KI-Stream",
+            "streamInterrupted": "Verbindung zum KI-Stream unterbrochen (Proxy-Timeout oder langsames Modell). Prüfen Sie den KI-Anbieter und dass fastcgi_read_timeout mindestens 600 s beträgt, dann erneut versuchen.",
+            "loadConversations": "Unterhaltungen konnten nicht geladen werden",
+            "truncate": "Die Unterhaltung konnte nicht gekürzt werden",
+            "popupBlocked": "Pop-up blockiert: Erlauben Sie Pop-ups, um das PDF zu exportieren."
+        },
+        "awaitingApproval": "Wartet auf Ihre Freigabe, um {{tools}} auszuführen.",
+        "aTool": "ein Werkzeug",
+        "toolFallback": "Erledigt mit {{tools}}. Bitten Sie mich bei Bedarf, das Ergebnis zu prüfen.",
+        "pinned": "Angeheftet",
+        "selectConversation": "{{title}} auswählen",
+        "bulkDeleteTitle": "Ausgewählte Chats löschen?",
+        "bulkDeleteDescription_one": "Sie löschen {{count}} Chat. Dies kann nicht rückgängig gemacht werden.",
+        "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden.",
+        "reasoning": {
+            "thinking": "Denkt nach…",
+            "thoughtFor_one": "{{count}} Sekunde nachgedacht",
+            "thoughtFor_other": "{{count}} Sekunden nachgedacht",
+            "thoughtFewSeconds": "Ein paar Sekunden nachgedacht"
+        },
+        "sources": {
+            "used_one": "{{count}} Quelle verwendet",
+            "used_other": "{{count}} Quellen verwendet"
+        },
+        "usage": {
+            "trigger": "Kontext genutzt: {{percent}}",
+            "input": "Eingabe",
+            "output": "Ausgabe",
+            "reasoning": "Denken",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1358,7 +1824,14 @@
         "healthWorkloadQueue": "Queue",
         "healthWorkloadLength": "Länge",
         "healthWorkloadWait": "Wartezeit",
-        "healthWorkloadProcesses": "Proz"
+        "healthWorkloadProcesses": "Proz",
+        "statFilesHeadline": "Ordner: {{count}}",
+        "statSizeContext": "Alle Dateien auf allen Datenträgern",
+        "statUploadsInProgress": "Laufende Uploads",
+        "statInProgressContext": "Noch nicht abgeschlossene Chunk-Uploads",
+        "statStaleUploads": "Veraltete Uploads",
+        "statStaleContext": "Vor dem Abschluss abgelaufen",
+        "statFailedJobsHeadline": "Fehlgeschlagene Jobs: {{count}}"
     },
     "realtime": {
         "connected": "Realtime verbunden",
@@ -1401,7 +1874,9 @@
         "showArchived": "Archivierte anzeigen",
         "showInbox": "Chats anzeigen",
         "deleteChat": "Chat löschen",
-        "deleteChatError": "Chat konnte nicht gelöscht werden."
+        "deleteChatError": "Chat konnte nicht gelöscht werden.",
+        "messagesRegion": "Nachrichten",
+        "scrollToLatest": "Zur neuesten Nachricht scrollen"
     },
     "errors": {
         "notFound": {
@@ -1409,6 +1884,12 @@
             "title": "Seite nicht gefunden",
             "description": "Die angeforderte Seite existiert nicht oder ist nicht mehr verfügbar.",
             "goHome": "Zur Startseite"
+        },
+        "boundary": {
+            "title": "Etwas ist schiefgelaufen",
+            "description": "In der Oberfläche ist ein unerwarteter Fehler aufgetreten. Lade die Seite neu, um es erneut zu versuchen.",
+            "tryAgain": "Erneut versuchen",
+            "reload": "Seite neu laden"
         }
     },
     "unsavedChanges": {
@@ -1424,15 +1905,15 @@
     },
     "activityLog": {
         "title": "Aktivitätsprotokoll",
-        "description": "Schreibgeschützter Audit-Trail für Modelländerungen und Authentifizierungsereignisse.",
         "searchPlaceholder": "Beschreibung oder Subjekt suchen…",
         "allUsers": "Alle Benutzer",
         "allActions": "Alle Aktionen",
         "allLogs": "Alle Protokolle",
         "filterByAction": "Nach Aktion filtern",
         "filterByLog": "Nach Protokollname filtern",
-        "dateFrom": "Von Datum",
-        "dateTo": "Bis Datum",
+        "dateRange": "Datumsbereich",
+        "anyDate": "Beliebiges Datum",
+        "clearDates": "Daten löschen",
         "empty": "Keine Aktivität für die gewählten Filter.",
         "system": "System",
         "noChanges": "Keine Feldänderungen erfasst.",
@@ -1517,7 +1998,11 @@
             "activeFiles": "Aktive Dateien",
             "trash": "Papierkorb",
             "selectedCount": "{{count}} ausgewählt",
-            "clearSelection": "Auswahl aufheben"
+            "clearSelection": "Auswahl aufheben",
+            "emptyTrash": "Papierkorb leeren",
+            "emptyTrashTitle": "Papierkorb leeren?",
+            "emptyTrashDescription": "Alle Elemente im Papierkorb werden samt gespeicherter Dateien endgültig gelöscht. Das lässt sich nicht rückgängig machen. Der Vorgang läuft im Hintergrund, du erhältst eine Benachrichtigung, sobald er abgeschlossen ist.",
+            "uploadOptions": "Weitere Upload-Optionen"
         },
         "sort": {
             "name": "Name",
@@ -1526,10 +2011,6 @@
             "updated": "Aktualisiert"
         },
         "empty": {
-            "trash": "Papierkorb ist leer",
-            "dropToUpload": "Dateien hier ablegen zum Hochladen",
-            "folderEmpty": "Dieser Ordner ist leer",
-            "orUseUpload": "Oder den Hochladen-Button oben nutzen",
             "contextNewFolder": "Neuer Ordner",
             "contextUploadFile": "Datei hochladen",
             "contextUploadFolder": "Ordner hochladen"
@@ -1620,7 +2101,9 @@
             "placeholder": "Tag eingeben und Enter drücken",
             "exactMatch": "Exakte Übereinstimmung — bestehender Tag „{{name}}“ wird wiederverwendet",
             "existing": "Vorhandene Tags",
-            "moreTags": "{{count}} weitere Tags"
+            "moreTags": "{{count}} weitere Tags",
+            "create": "„{{name}}“ erstellen",
+            "remove": "Tag {{name}} entfernen"
         },
         "folderPicker": {
             "search": "Ordner suchen…",
@@ -1659,12 +2142,222 @@
             "zipFailed": "Zip-Vorbereitung fehlgeschlagen",
             "zipPreparing": "Zip wird vorbereitet — Sie werden benachrichtigt, wenn sie bereit ist.",
             "duplicationStarted": "Duplizierung gestartet — Sie werden benachrichtigt, wenn sie fertig ist",
-            "duplicated": "Datei dupliziert"
+            "duplicated": "Datei dupliziert",
+            "trashEmptying": "Papierkorb wird im Hintergrund geleert…",
+            "trashEmptied": "Papierkorb geleert",
+            "trashEmptyFailed": "Papierkorb konnte nicht geleert werden"
         },
         "card": {
             "select": "{{name}} auswählen",
             "privateBadge": "Privat",
             "privateTitle": "Privat — erfordert Read private auf API-Rollen"
+        },
+        "picker": {
+            "title": "Datei auswählen",
+            "descriptionMultiple": "Klicke auf Dateien, um sie auszuwählen, und bestätige dann unten",
+            "description": "Ordner durchsuchen oder eine neue Datei hochladen",
+            "empty": "Keine Dateien in diesem Ordner",
+            "chooseFiles": "Dateien auswählen",
+            "chooseCount": "{{count}} auswählen"
+        },
+        "dropzone": {
+            "dropToUpload": "Dateien hier ablegen, um sie hochzuladen",
+            "dropOrBrowse": "Dateien hier ablegen oder durchsuchen",
+            "chunkedHint": "Große Dateien werden automatisch in Teilen hochgeladen",
+            "chooseFiles": "Dateien auswählen"
         }
+    },
+    "confirmDestructive": {
+        "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
+        "deletePermanently": "Endgültig löschen",
+        "deleteAiChatTitle": "Diesen Chat löschen?",
+        "deleteAiChatDescription": "Die Unterhaltung und alle ihre Nachrichten werden gelöscht.",
+        "deletePromptTitle": "Prompt „{{name}}“ löschen?",
+        "deletePromptDescription": "Der gespeicherte Prompt steht danach niemandem mehr zur Verfügung.",
+        "deleteMessageTitle": "Diese Nachricht löschen?",
+        "deleteMessageDescription": "Die Nachricht wird für alle aus dem Chat entfernt.",
+        "deleteDirectChatTitle": "Diesen Chat löschen?",
+        "deleteDirectChatDescription": "Der Chat wird aus deinen Chats entfernt."
+    },
+    "itemConfirm": {
+        "deleteTitle": "Item „{{name}}“ löschen?",
+        "deleteDescription": "Dieses Item wird soft-gelöscht und aus der aktiven Liste entfernt.",
+        "forceDeleteTitle": "Item „{{name}}“ endgültig löschen?",
+        "forceDeleteDescription": "Dieses Item wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+        "bulkDeleteTitle": "{{count}} ausgewählte Items löschen?",
+        "bulkDeleteDescription": "Ausgewählte Items werden soft-gelöscht und aus der aktiven Liste entfernt.",
+        "bulkForceDeleteTitle": "{{count}} ausgewählte Items endgültig löschen?",
+        "bulkForceDeleteDescription": "Ausgewählte Items werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+        "rejectDraftTitle": "Entwurf für „{{name}}“ ablehnen?",
+        "publishDraftTitle": "Entwurf für „{{name}}“ veröffentlichen?",
+        "publishDraftDescription": "Unveröffentlichten Entwurf in veröffentlichte Werte übernehmen. Der Entwurfsbereich wird geleert.",
+        "discardDraftTitle": "Entwurf für „{{name}}“ verwerfen?",
+        "discardDraftDescription": "Unveröffentlichten Entwurf verwerfen. Veröffentlichte Werte bleiben unverändert.",
+        "restoreRevisionTitle": "Revision für „{{name}}“ wiederherstellen?",
+        "restoreRevisionDescription": "Aktuelle Werte werden überschrieben.",
+        "hardRestoreRevisionTitle": "Hard restore der Revision für „{{name}}“?",
+        "hardRestoreRevisionDescription": "Aktuelle veröffentlichte Werte werden sofort überschrieben. Bevorzuge Vergleichen → Anwenden für soft restore."
+    },
+    "fieldConfirm": {
+        "deleteTitle": "Feld „{{name}}“ löschen?",
+        "deleteDescription": "Das kann nicht rückgängig gemacht werden."
+    },
+    "users": {
+        "confirm": {
+            "bulkDeleteTitle": "{{count}} ausgewählte Benutzer löschen?",
+            "bulkDeleteDescription": "Ausgewählte Benutzer werden soft-gelöscht.",
+            "bulkForceDeleteTitle": "{{count}} ausgewählte Benutzer endgültig löschen?",
+            "bulkForceDeleteDescription": "Ausgewählte Benutzer werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
+        },
+        "title": "Benutzer",
+        "newUser": "Neuer Benutzer",
+        "searchPlaceholder": "Benutzer suchen…",
+        "searchTrashPlaceholder": "Papierkorb durchsuchen…",
+        "sortBy": "Sortieren nach",
+        "activeUsers": "Aktive Benutzer",
+        "columns": {
+            "lastName": "Nachname",
+            "firstName": "Vorname",
+            "email": "E-Mail",
+            "created": "Erstellt",
+            "updated": "Aktualisiert",
+            "name": "Name",
+            "roles": "Rollen",
+            "groups": "Gruppen",
+            "status": "Status",
+            "actions": "Aktionen"
+        },
+        "status": {
+            "active": "Aktiv",
+            "inactive": "Inaktiv"
+        }
+    },
+    "groups": {
+        "confirm": {
+            "bulkDeleteTitle": "{{count}} ausgewählte Gruppen löschen?",
+            "bulkDeleteDescription": "Ausgewählte Gruppen werden soft-gelöscht.",
+            "bulkForceDeleteTitle": "{{count}} ausgewählte Gruppen endgültig löschen?",
+            "bulkForceDeleteDescription": "Ausgewählte Gruppen werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+            "forceDeleteTitle": "Gruppe „{{name}}“ endgültig löschen?",
+            "forceDeleteDescription": "Diese Gruppe wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
+        },
+        "title": "Gruppen",
+        "newGroup": "Neue Gruppe",
+        "searchPlaceholder": "Gruppen suchen…",
+        "searchTrashPlaceholder": "Papierkorb durchsuchen…",
+        "sortBy": "Sortieren nach",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Rollen",
+            "members": "Mitglieder",
+            "actions": "Aktionen"
+        },
+        "empty": "Noch keine Gruppen.",
+        "membersCount_one": "{{count}} Mitglied",
+        "membersCount_other": "{{count}} Mitglieder"
+    },
+    "pendingToolCalls": {
+        "head": "KI-Tool-Freigaben",
+        "description": "MCP-Tool-Aufrufe, die auf einen Benutzer mit passender Berechtigung warten.",
+        "colTool": "Werkzeug",
+        "colArgs": "Argumente",
+        "colRequester": "Angefordert von",
+        "colExpires": "Läuft ab",
+        "colActions": "Aktionen",
+        "empty": "Keine ausstehenden Freigaben.",
+        "approve": "Freigeben",
+        "reject": "Ablehnen"
+    },
+    "deploy": {
+        "button": "Deploy"
+    },
+    "richText": {
+        "bold": "Fett",
+        "italic": "Kursiv",
+        "heading": "Überschrift",
+        "heading2": "Überschrift 2",
+        "heading3": "Überschrift 3",
+        "edit": "Bearbeiten",
+        "preview": "Vorschau",
+        "image": "Bild",
+        "chooseImages": "Bilder auswählen",
+        "addTag": "Tag hinzufügen…",
+        "strikethrough": "Durchgestrichen",
+        "link": "Link",
+        "bulletList": "Aufzählung",
+        "orderedList": "Nummerierte Liste",
+        "quote": "Zitat",
+        "code": "Code",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "table": "Tabelle",
+        "linkUrl": "Link-URL",
+        "applyLink": "Übernehmen",
+        "removeLink": "Link entfernen",
+        "headingLevel": "Überschrift {{level}}",
+        "removeTag": "Tag {{name}} entfernen",
+        "imageFromComputer": "Vom Computer hochladen",
+        "imageFromLibrary": "Aus der Bibliothek wählen",
+        "imageFromUrl": "Von URL importieren",
+        "imageOnly": "Bitte wähle eine Bilddatei.",
+        "imageUploadFailed": "Bild-Upload fehlgeschlagen.",
+        "uploadingImage": "Bild wird hochgeladen…",
+        "insertTable": "Tabelle einfügen",
+        "insertTableDescription": "Wähle Zeilen und Spalten für die Markdown-Tabelle.",
+        "tableRows": "Zeilen",
+        "tableColumns": "Spalten",
+        "createTable": "Erstellen",
+        "nothingToPreview": "Nichts zur Vorschau."
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "Keine Berechtigungen in der Datenbank. Synchronisierung ausführen.",
+        "sync": "Aus Enum synchronisieren"
+    },
+    "passwordInput": {
+        "strength": "Passwortstärke",
+        "meetsPolicy": "Erfüllt die Passwortrichtlinie des Projekts.",
+        "keepGoing": "Weiter so, um die Passwortrichtlinie des Projekts zu erfüllen.",
+        "generate": "Sicheres Passwort generieren"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "In der Warteschlange: {{count}}",
+        "pendingTitle": "Ausstehend (Stichprobe)",
+        "failedTitle": "Fehlgeschlagene Jobs",
+        "pendingEmpty": "Keine ausstehenden Jobs.",
+        "failedEmpty": "Keine fehlgeschlagenen Jobs.",
+        "scopeHint": "Der Status von Domain-Jobs (KI-Import, Zip) bleibt in den jeweiligen Oberflächen; diese Seite überwacht nur die Laravel-Queue-Tabellen.",
+        "retry": "Erneut versuchen",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Warteschlange",
+            "attempts": "Versuche",
+            "failedAt": "Fehlgeschlagen am",
+            "exception": "Ausnahme",
+            "actions": "Aktionen"
+        }
+    },
+    "revisions": {
+        "title": "Revisionen",
+        "drawerDescription": "Wähle eine Revision zum Vergleich mit dem aktuellen Eintrag. Übernehmen fügt sie ins Formular ein – Speichern behält sie.",
+        "pageTitle": "Verlauf — Eintrag #{{id}}",
+        "pageDescription": "Wähle zwei Revisionen zum Vergleichen. Wiederherstellen schreibt den Stand als neue Änderung.",
+        "backToItem": "Zurück zum Eintrag",
+        "emptyFiltered": "Keine Revisionen in diesem Zeitraum. Filter leeren oder Zeitraum erweitern.",
+        "empty": "Noch keine Revisionen. Speichern, Entwürfe, Veröffentlichen und Wiederherstellen erscheinen hier.",
+        "hard": "Direkt",
+        "hardRestore": "Direkt wiederherstellen",
+        "hardRestoreHint": "Direkt wiederherstellen (schreibt sofort)",
+        "restore": "Wiederherstellen",
+        "compare": "Vergleichen",
+        "compareHint": "Wähle zwei Revisionen, um die Unterschiede zu sehen.",
+        "field": "Feld",
+        "selectRevision": "Revision #{{id}} auswählen"
     }
 }

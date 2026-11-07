@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Enums\ApiKeyFilesScopeEnum;
 use App\Models\ApiKey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -26,8 +27,18 @@ class ApiKeyResource extends JsonResource
                 'id' => $this->role?->id,
                 'name' => $this->role?->name,
             ]),
+            'owner_id' => $this->owner_id,
+            'owner' => $this->whenLoaded('owner', fn () => $this->owner === null ? null : [
+                'id' => $this->owner->id,
+                'name' => $this->owner->name,
+                'email' => $this->owner->email,
+            ]),
             'collection_slugs' => $this->collection_slugs,
             'read_only' => (bool) $this->read_only,
+            'files_scope' => $this->files_scope instanceof ApiKeyFilesScopeEnum
+                ? $this->files_scope->value
+                : (string) ($this->files_scope ?? 'all'),
+            'scopes' => $this->scopes,
             'ip_allowlist' => $this->ip_allowlist,
             'rate_limit_per_minute' => $this->rate_limit_per_minute,
             'expires_at' => $this->expires_at?->toIso8601String(),

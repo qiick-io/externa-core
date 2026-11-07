@@ -2,7 +2,7 @@
 
 namespace App\Jobs\Search;
 
-use App\Services\Search\MeilisearchClient;
+use App\Services\Search\MeilisearchClientService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +31,7 @@ class DeleteCollectionItemFromMeilisearchJob implements ShouldQueue
         return [15, 45];
     }
 
-    public function handle(MeilisearchClient $client): void
+    public function handle(MeilisearchClientService $client): void
     {
         $client->deleteDocument($this->documentId);
     }

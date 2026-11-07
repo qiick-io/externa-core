@@ -5,11 +5,11 @@ use App\Jobs\Search\DeleteCollectionItemFromMeilisearchJob;
 use App\Jobs\Search\SyncCollectionItemToMeilisearchJob;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Search\MeilisearchClient;
-use App\Services\Search\MeilisearchDocumentBuilder;
-use App\Services\Search\MeilisearchSyncDispatcher;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Search\MeilisearchClientService;
+use App\Services\Search\MeilisearchDocumentBuilderService;
+use App\Services\Search\MeilisearchSyncDispatcherService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -54,7 +54,7 @@ test('meilisearch dispatcher is a no-op when disabled', function () {
     ['collection' => $collection] = meiliKitchen();
     $item = $collection->items()->create([]);
 
-    app(MeilisearchSyncDispatcher::class)->dispatchUpsert($item);
+    app(MeilisearchSyncDispatcherService::class)->dispatchUpsert($item);
 
     Queue::assertNothingPushed();
 });
@@ -63,8 +63,8 @@ test('values writer queues meilisearch sync job when enabled', function () {
     Queue::fake();
     ['collection' => $collection] = meiliKitchen();
     $item = $collection->items()->create([]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $writer->sync(
         $item,
@@ -88,8 +88,8 @@ test('sync job upserts published documents and deletes ineligible status', funct
 
     ['collection' => $collection] = meiliKitchen();
     $item = $collection->items()->create([]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $writer->sync(
         $item,
@@ -102,8 +102,8 @@ test('sync job upserts published documents and deletes ineligible status', funct
     );
 
     (new SyncCollectionItemToMeilisearchJob($item->id))->handle(
-        app(MeilisearchClient::class),
-        app(MeilisearchDocumentBuilder::class),
+        app(MeilisearchClientService::class),
+        app(MeilisearchDocumentBuilderService::class),
     );
 
     Http::assertSent(function ($request): bool {
@@ -128,8 +128,8 @@ test('sync job upserts published documents and deletes ineligible status', funct
     ]);
 
     (new SyncCollectionItemToMeilisearchJob($item->id))->handle(
-        app(MeilisearchClient::class),
-        app(MeilisearchDocumentBuilder::class),
+        app(MeilisearchClientService::class),
+        app(MeilisearchDocumentBuilderService::class),
     );
 
     Http::assertSent(function ($request) use ($item): bool {
@@ -154,10 +154,10 @@ test('withoutMeilisearch suppresses sync during bulk style writes', function () 
     Queue::fake();
     ['collection' => $collection] = meiliKitchen();
     $item = $collection->items()->create([]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
-    MeilisearchSyncDispatcher::withoutMeilisearch(function () use ($writer, $item, $collection, $normalizer): void {
+    MeilisearchSyncDispatcherService::withoutMeilisearch(function () use ($writer, $item, $collection, $normalizer): void {
         $writer->sync(
             $item,
             $collection,

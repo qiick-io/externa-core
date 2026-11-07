@@ -6,9 +6,9 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\PublicApiResponseCache;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Api\PublicApiResponseCacheService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
@@ -45,9 +45,9 @@ class PerformanceSettingsController extends Controller
     ];
 
     public function __construct(
-        private readonly PublicApiResponseCache $publicApiResponseCache,
-        private readonly CollectionPermissionGuard $collectionPermissionGuard,
-        private readonly FilePermissionGuard $filePermissionGuard,
+        private readonly PublicApiResponseCacheService $publicApiResponseCache,
+        private readonly CollectionPermissionGuardService $collectionPermissionGuard,
+        private readonly FilePermissionGuardService $filePermissionGuard,
     ) {}
 
     /**

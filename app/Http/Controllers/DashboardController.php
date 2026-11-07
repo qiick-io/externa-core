@@ -8,7 +8,8 @@ use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\User;
-use App\Services\Dashboard\DashboardHealthMetrics;
+use App\Services\Dashboard\DashboardHealthMetricsService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -21,10 +22,23 @@ use Spatie\Activitylog\Models\Activity;
 class DashboardController
 {
     /**
-     * Show recent activity, file stats, upload health, and deferred storage breakdowns.
+     * The dashboard's views after the overview (`/dashboard/{view}`).
+     *
+     * @var list<string>
      */
-    public function index(Request $request): Response
+    public const array VIEWS = ['health'];
+
+    /**
+     * Show recent activity, file stats, upload health, and deferred storage breakdowns.
+     * `$view` is the tab: null for the overview, otherwise one of {@see self::VIEWS}.
+     */
+    public function index(Request $request, ?string $view = null): Response|RedirectResponse
     {
+        // Links from before the tabs had their own URLs used `?tab=`.
+        if ($view === null && in_array($request->query('tab'), self::VIEWS, true)) {
+            return to_route('dashboard.view', ['view' => $request->query('tab')]);
+        }
+
         $now = now();
 
         $latestActivity = Cache::remember(
@@ -182,6 +196,7 @@ class DashboardController
         );
 
         return Inertia::render('dashboard', [
+            'view' => $view ?? 'overview',
             'latestActivity' => $latestActivity,
             'fileStats' => $fileStats,
             'uploadHealth' => $uploadHealth,
@@ -191,7 +206,7 @@ class DashboardController
             'health' => Cache::remember(
                 'dashboard:health',
                 $now->copy()->addSeconds(60),
-                fn (): array => app(DashboardHealthMetrics::class)->summary(),
+                fn (): array => app(DashboardHealthMetricsService::class)->summary(),
             ),
             'largestFiles' => Cache::remember(
                 'dashboard:largest-files',

@@ -4,7 +4,8 @@ namespace App\GraphQL\Queries;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
-use App\Services\Api\CollectionPermissionGuard;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\CollectionPermissionGuardService;
 use App\Support\Api\ApiAccess;
 
 final class CollectionsQuery
@@ -15,16 +16,20 @@ final class CollectionsQuery
     public function __invoke(mixed $_, array $args): array
     {
         $access = app(ApiAccess::class);
-        $matrix = app(CollectionPermissionGuard::class)->matrixForRole($access->roleId());
-
-        $apiKey = $access->apiKey;
+        $matrix = app(CollectionPermissionGuardService::class)->matrixForRole($access->roleId());
+        $enforcer = app(CollectionPermissionEnforcerService::class);
+        $request = request();
 
         return Collection::query()
             ->active()
             ->ordered()
             ->get(['id', 'name', 'slug', 'is_singleton'])
             ->filter(fn (Collection $c): bool => (bool) ($matrix[(int) $c->id][CollectionPermissionActionEnum::Read->value] ?? false))
-            ->filter(fn (Collection $c): bool => $apiKey === null || $apiKey->allowsCollectionSlug((string) $c->slug))
+            ->filter(fn (Collection $c): bool => $enforcer->allowsCollectionAction(
+                $request,
+                $c,
+                CollectionPermissionActionEnum::Read,
+            ))
             ->map(fn (Collection $c): array => [
                 'id' => $c->id,
                 'name' => $c->name,

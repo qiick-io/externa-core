@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateNotificationPreferencesRequest;
-use App\Services\Settings\UserNotificationPreferences;
+use App\Services\Settings\UserNotificationPreferencesService;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Http\RedirectResponse;
 class NotificationPreferencesController extends Controller
 {
     public function __construct(
-        private readonly UserNotificationPreferences $preferences,
+        private readonly UserNotificationPreferencesService $preferences,
     ) {}
 
     /**

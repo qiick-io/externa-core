@@ -1,23 +1,15 @@
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { NativeSelect } from '@/components/ui/native-select';
 import { parseM2aFieldSettings } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
-import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
+import type { FieldDef } from '@/types';
 
 type M2aBlock = {
     id: string;
@@ -113,6 +105,7 @@ export function M2aFieldInput({
     readonly: boolean;
     relatedCollections: RelatedCollectionOption[];
 }) {
+    const { t } = useTranslation();
     const m2aSettings = parseM2aFieldSettings(field.settings);
     const allowedCollections = relatedCollections.filter((collection) =>
         m2aSettings.allowedCollectionIds.includes(collection.id),
@@ -233,13 +226,13 @@ export function M2aFieldInput({
                                     <button
                                         type="button"
                                         className="drag-handle text-muted-foreground"
-                                        aria-label="Drag to reorder"
+                                        aria-label={t('a11y.dragToReorder')}
                                     >
                                         <GripVertical className="size-4" />
                                     </button>
                                 ) : null}
-                                <select
-                                    className={cn(inputLike, 'max-w-xs')}
+                                <NativeSelect
+                                    className="max-w-xs"
                                     value={block.related_collection_id}
                                     disabled={readonly}
                                     onChange={(event) =>
@@ -259,38 +252,44 @@ export function M2aFieldInput({
                                             {collection.name}
                                         </option>
                                     ))}
-                                </select>
+                                </NativeSelect>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
+                                        <ButtonGroup>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={blockIndex === 0}
+                                                aria-label={t(
+                                                    'a11y.moveBlockUp',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, -1)
+                                                }
+                                            >
+                                                <ArrowUp className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={
+                                                    blockIndex ===
+                                                    blocks.length - 1
+                                                }
+                                                aria-label={t(
+                                                    'a11y.moveBlockDown',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, 1)
+                                                }
+                                            >
+                                                <ArrowDown className="size-4" />
+                                            </Button>
+                                        </ButtonGroup>
                                         <Button
                                             type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={blockIndex === 0}
-                                            aria-label="Move block up"
-                                            onClick={() =>
-                                                moveBlock(block.id, -1)
-                                            }
-                                        >
-                                            <ArrowUp className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={
-                                                blockIndex === blocks.length - 1
-                                            }
-                                            aria-label="Move block down"
-                                            onClick={() =>
-                                                moveBlock(block.id, 1)
-                                            }
-                                        >
-                                            <ArrowDown className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 removeBlock(block.id)
@@ -336,7 +335,6 @@ export function M2aFieldInput({
             {!readonly ? (
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     disabled={allowedCollections.length === 0}
                     onClick={addBlock}

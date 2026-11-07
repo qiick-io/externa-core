@@ -3,7 +3,7 @@
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemDataNormalizerService;
 
 beforeEach(function (): void {
     config(['collections.locales' => ['en', 'it']]);
@@ -18,7 +18,7 @@ it('normalizes boolean scalars from html-like strings and integers', function ()
         'translatable' => false,
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     expect($normalizer->normalize($collection, ['active' => '1'])['active'])->toBeTrue();
     expect($normalizer->normalize($collection, ['active' => '0'])['active'])->toBeFalse();
@@ -38,7 +38,7 @@ it('normalizes legacy lat/lng map values to GeoJSON Point', function (): void {
         'settings' => ['geometry_mode' => 'point'],
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     expect($normalizer->normalize($collection, [
         'location' => ['lat' => 45.5, 'lng' => 9.25],
@@ -58,7 +58,7 @@ it('normalizes GeoJSON MultiPoint and coerces Point when mode is multipoint', fu
         'settings' => ['geometry_mode' => 'multipoint'],
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     expect($normalizer->normalize($collection, [
         'stops' => [
@@ -87,7 +87,7 @@ it('rejects invalid map coordinates as null', function (): void {
         'translatable' => false,
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     expect($normalizer->normalize($collection, [
         'location' => ['lat' => 999, 'lng' => 9.19],
@@ -107,7 +107,7 @@ it('normalizes translatable booleans from strings per locale', function (): void
         'translatable' => true,
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $out = $normalizer->normalize($collection, [
         'visible' => [
@@ -129,7 +129,7 @@ it('canonicalizes date values to datetime-local minute precision', function (): 
         'translatable' => false,
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     expect($normalizer->normalize($collection, [
         'when' => '2024-02-01T12:00:00.000Z',
@@ -149,7 +149,7 @@ it('omits empty locale slots on translatable strings', function (): void {
         'translatable' => true,
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $out = $normalizer->normalize($collection, [
         'title' => [

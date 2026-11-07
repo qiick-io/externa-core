@@ -1,5 +1,5 @@
-import { formatUserDisplayName } from '@/hooks/use-initials';
-import adminRoutes from '@/lib/admin-routes';
+import { formatUserDisplayName } from '@/lib/format';
+import users from '@/routes/users';
 import type { AdminSelectOption, AdminUserRow } from '@/types/admin';
 import { PaginatedMultiSelect } from './paginated-multi-select';
 import type { PaginatedMultiSelectProps } from './paginated-multi-select';
@@ -44,7 +44,7 @@ export function UserMultiSelect({
 
     return (
         <PaginatedMultiSelect
-            fetchUrl={adminRoutes.users.index()}
+            fetchUrl={users.index.url()}
             placeholder={placeholder}
             initialOptions={resolvedInitial}
             showUserDetails

@@ -1,4 +1,5 @@
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { assertOk } from '@/lib/http';
 import { useChatStore } from '@/stores/chat/store';
 
 export type ChatSummary = {
@@ -35,34 +36,9 @@ export type ChatUnreadShare = {
     play_sound?: boolean;
 };
 
-/** @deprecated Prefer applyChatUnread → Zustand; kept for any leftover listeners. */
-export const CHAT_UNREAD_UPDATED_EVENT = 'chat:unread-updated';
-
 /** Write unread totals after API OK or Echo server payload. */
 export function applyChatUnread(payload: ChatUnreadShare): void {
     useChatStore.getState().setUnread(payload);
-}
-
-async function assertOk(response: Response, fallback: string): Promise<void> {
-    if (response.ok) {
-        return;
-    }
-
-    try {
-        const payload = (await response.json()) as {
-            message?: string;
-            errors?: Record<string, string[]>;
-        };
-        const first = Object.values(payload.errors ?? {})[0]?.[0];
-
-        throw new Error(payload.message ?? first ?? fallback);
-    } catch (error) {
-        if (error instanceof Error && error.message !== fallback) {
-            throw error;
-        }
-
-        throw new Error(fallback);
-    }
 }
 
 export async function fetchChatThreads(options: {
@@ -111,33 +87,6 @@ export async function fetchChatUnread(): Promise<ChatUnreadShare> {
     await assertOk(response, 'Could not load unread counts.');
 
     return (await response.json()) as ChatUnreadShare;
-}
-
-export async function markHubChatRead(
-    chatId: string,
-): Promise<ChatUnreadShare> {
-    const response = await fetch(`/chat/${chatId}/read`, {
-        method: 'POST',
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-    });
-
-    await assertOk(response, 'Could not mark chat read.');
-
-    const payload = (await response.json()) as ChatUnreadShare;
-    applyChatUnread(payload);
-
-    return payload;
-}
-
-export async function stopHubChatViewing(chatId: string): Promise<void> {
-    const response = await fetch(`/chat/${chatId}/stop-viewing`, {
-        method: 'POST',
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-    });
-
-    await assertOk(response, 'Could not stop viewing chat.');
 }
 
 export async function createChatThread(payload: {

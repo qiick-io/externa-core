@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Webhooks\OutboundWebhookDeliveryLog;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Webhooks\OutboundWebhookDeliveryLogService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -41,7 +41,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
         return [10, 30, 60];
     }
 
-    public function handle(ProjectSettings $projectSettings): void
+    public function handle(ProjectSettingsService $projectSettings): void
     {
         $url = $projectSettings->webhookUrl();
         if ($url === null) {
@@ -78,13 +78,16 @@ class DeliverOutboundWebhookJob implements ShouldQueue
         ], JSON_THROW_ON_ERROR);
 
         $timestamp = (string) now()->timestamp;
-        $signature = 'sha256='.hash_hmac('sha256', $payload, $secret);
+        // Legacy body-only HMAC — keep for one minor; prefer V2 (timestamp-bound).
+        $legacySignature = 'sha256='.hash_hmac('sha256', $payload, $secret);
+        $v2Signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
 
         $response = Http::timeout(5)
             ->connectTimeout(3)
             ->withoutRedirecting()
             ->withHeaders([
-                'X-Externa-Signature' => $signature,
+                'X-Externa-Signature' => $legacySignature,
+                'X-Externa-Signature-V2' => $v2Signature,
                 'X-Externa-Event-Id' => $this->eventId,
                 'X-Externa-Timestamp' => $timestamp,
                 'User-Agent' => 'Externa-Webhooks/1.0',
@@ -100,7 +103,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             ));
         }
 
-        $this->recordOutcome(fn (OutboundWebhookDeliveryLog $log) => $log->recordSuccess(
+        $this->recordOutcome(fn (OutboundWebhookDeliveryLogService $log) => $log->recordSuccess(
             $this->eventId,
             $this->type,
             $response->status(),
@@ -116,7 +119,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             'message' => $exception?->getMessage(),
         ]);
 
-        $this->recordOutcome(fn (OutboundWebhookDeliveryLog $log) => $log->recordFailure(
+        $this->recordOutcome(fn (OutboundWebhookDeliveryLogService $log) => $log->recordFailure(
             $this->eventId,
             $this->type,
             $exception?->getMessage(),
@@ -127,12 +130,12 @@ class DeliverOutboundWebhookJob implements ShouldQueue
     /**
      * Never let status bookkeeping fail (and retry) an already-delivered event.
      *
-     * @param  callable(OutboundWebhookDeliveryLog): void  $record
+     * @param  callable(OutboundWebhookDeliveryLogService): void  $record
      */
     private function recordOutcome(callable $record): void
     {
         try {
-            $record(app(OutboundWebhookDeliveryLog::class));
+            $record(app(OutboundWebhookDeliveryLogService::class));
         } catch (Throwable $exception) {
             Log::warning('Outbound webhook delivery status not recorded', [
                 'event_id' => $this->eventId,

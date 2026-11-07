@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
@@ -24,7 +24,7 @@ test('security page is displayed', function () {
             ->where('canManageTwoFactor', true)
             ->where('canManagePasskeys', Features::canManagePasskeys())
             ->where('twoFactorEnabled', false)
-            ->where('twoFactorRequired', false)
+            ->where('isTwoFactorRequired', false)
             ->where('twoFactorEnforcedForUser', false),
         );
 });
@@ -37,8 +37,8 @@ test('security page shows enforced banner props when two factor is required', fu
         'confirmPassword' => true,
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -51,7 +51,7 @@ test('security page shows enforced banner props when two factor is required', fu
         ->get(route('security.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/security')
-            ->where('twoFactorRequired', true)
+            ->where('isTwoFactorRequired', true)
             ->where('twoFactorEnabled', false)
             ->where('twoFactorEnforcedForUser', true),
         );
@@ -65,8 +65,8 @@ test('security page hides enforced banner when user has two factor enabled', fun
         'confirmPassword' => true,
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -79,7 +79,7 @@ test('security page hides enforced banner when user has two factor enabled', fun
         ->get(route('security.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/security')
-            ->where('twoFactorRequired', true)
+            ->where('isTwoFactorRequired', true)
             ->where('twoFactorEnabled', true)
             ->where('twoFactorEnforcedForUser', false),
         );
@@ -136,7 +136,7 @@ test('security page renders without two factor when feature is disabled', functi
             ->component('settings/security')
             ->where('canManageTwoFactor', false)
             ->where('canManagePasskeys', false)
-            ->where('twoFactorRequired', false)
+            ->where('isTwoFactorRequired', false)
             ->where('twoFactorEnforcedForUser', false)
             ->missing('twoFactorEnabled')
             ->missing('requiresConfirmation')

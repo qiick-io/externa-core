@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Settings\Concerns\LogsProjectSettingsUpdateTrait;
 use App\Http\Requests\Settings\UpdateProjectFilesSettingsRequest;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,8 +19,8 @@ class ProjectFilesSettingsController extends Controller
     use LogsProjectSettingsUpdateTrait;
 
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
-        private readonly SettingsRepository $settings,
+        private readonly ProjectSettingsService $projectSettings,
+        private readonly SettingsRepositoryService $settings,
     ) {}
 
     /**
@@ -34,10 +34,14 @@ class ProjectFilesSettingsController extends Controller
                 'chat_max_upload_bytes',
                 'allowed_transformations',
                 'preset_transformations',
+                'upload_allowed_mimes',
+                'upload_allowed_extensions',
+                'upload_allow_svg',
             ]),
             'transformationOptions' => config('settings.project.allowed_transformations', ['thumbnail']),
             'transformFits' => config('settings.project.transform_fits', ['contain']),
             'transformFormats' => config('settings.project.transform_formats', ['auto']),
+            'defaultUploadMimes' => array_values((array) config('files.upload_allowed_mimes', [])),
         ]);
     }
 
@@ -49,7 +53,7 @@ class ProjectFilesSettingsController extends Controller
         $values = $request->projectValues();
 
         $this->settings->setMany(
-            SettingsRepository::SCOPE_PROJECT,
+            SettingsRepositoryService::SCOPE_PROJECT,
             'project',
             $values,
         );

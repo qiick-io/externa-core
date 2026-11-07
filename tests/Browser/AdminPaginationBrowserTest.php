@@ -46,7 +46,7 @@ it('keeps activity log page 2 after the search debounce window', function () {
     $page->assertSee('Activity Log')
         ->assertSee('Pagination activity')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();
@@ -63,7 +63,7 @@ it('paginates permissions under settings', function () {
 
     $page->assertSee('Permissions are defined')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertPathIs('/settings/permissions')
@@ -75,7 +75,7 @@ it('paginates users without bouncing to page 1', function () {
         PermissionEnum::CanShowUsers->value,
     ]);
 
-    User::factory()->count(20)->create();
+    User::factory()->count(25)->create();
 
     $this->actingAs($user);
 
@@ -83,7 +83,7 @@ it('paginates users without bouncing to page 1', function () {
 
     $page->assertSee('Users')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();
@@ -94,15 +94,15 @@ it('paginates groups without bouncing to page 1', function () {
         PermissionEnum::CanShowGroups->value,
     ]);
 
-    UserGroup::factory()->count(20)->create();
+    UserGroup::factory()->count(25)->create();
 
     $this->actingAs($user);
 
     $page = visit('/groups');
 
-    $page->assertSee('Slug')
+    $page->assertSee('Members')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();
@@ -113,7 +113,7 @@ it('paginates roles without bouncing to page 1', function () {
         PermissionEnum::CanShowRoles->value,
     ]);
 
-    foreach (range(1, 20) as $index) {
+    foreach (range(1, 25) as $index) {
         Role::query()->create([
             'name' => 'pagination-role-'.$index.'-'.uniqid(),
             'guard_name' => config('auth.defaults.guard', 'web'),
@@ -126,7 +126,7 @@ it('paginates roles without bouncing to page 1', function () {
 
     $page->assertSee('Name')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertPathIs('/settings/roles')
@@ -143,7 +143,7 @@ it('paginates collection items without bouncing to page 1', function () {
         'slug' => 'pagination-posts-'.uniqid(),
     ]);
 
-    CollectionItem::factory()->count(20)->create([
+    CollectionItem::factory()->count(25)->create([
         'collection_id' => $collection->id,
     ]);
 
@@ -151,9 +151,9 @@ it('paginates collection items without bouncing to page 1', function () {
 
     $page = visit('/collections/'.$collection->id.'/items');
 
-    $page->assertSee('Data preview')
+    $page->assertSee('Actions')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();

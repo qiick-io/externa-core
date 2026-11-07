@@ -93,27 +93,6 @@ export function useRegisterUnsavedChanges({
     }, [enabled, register, scope, dialogCopy]);
 }
 
-/**
- * Thin helper for Vaul/shadcn drawers: open freely, close via requestLeave.
- */
-export function guardedOpenChange(
-    next: boolean,
-    requestLeave: () => Promise<boolean>,
-    setOpen: (open: boolean) => void,
-): void {
-    if (next) {
-        setOpen(true);
-
-        return;
-    }
-
-    void requestLeave().then((ok) => {
-        if (ok) {
-            setOpen(false);
-        }
-    });
-}
-
 export type {
     UnsavedChangesEntry,
     UnsavedChangesScope,

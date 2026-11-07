@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Settings\Concerns;
 
 use App\Enums\PermissionEnum;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 
 /**
  * Shared authorization for project settings form requests.
@@ -18,7 +18,7 @@ trait AuthorizesProjectSettingsTrait
         $user = $this->user();
 
         return $user !== null
-            && app(EffectivePermissionResolver::class)
+            && app(EffectivePermissionResolverService::class)
                 ->hasPermission($user, PermissionEnum::CanManageProjectSettings->value);
     }
 }

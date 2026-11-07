@@ -7,7 +7,7 @@ use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Support\FieldTypeCookbook;
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -69,7 +69,7 @@ class DescribeFieldTypes implements Tool
             return 'Error: Unauthenticated.';
         }
 
-        $resolver = app(EffectivePermissionResolver::class);
+        $resolver = app(EffectivePermissionResolverService::class);
         $can = $resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)
             || $resolver->hasPermission($user, PermissionEnum::CanCreateCollections->value)
             || $resolver->hasPermission($user, PermissionEnum::CanEditCollections->value);

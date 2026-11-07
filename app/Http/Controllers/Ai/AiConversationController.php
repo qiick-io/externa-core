@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Ai;
 
-use App\Ai\Support\AiPendingApprovals;
-use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Ai\AiConversationMessagePresenterService;
+use App\Services\Ai\AiConversationMutationService;
+use App\Support\Validation\SearchQueryRules;
+use App\Support\Validation\StringLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
@@ -19,6 +20,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AiConversationController extends Controller
 {
+    public function __construct(
+        private readonly AiConversationMutationService $mutations,
+        private readonly AiConversationMessagePresenterService $messagePresenter,
+    ) {}
+
     /**
      * Paginate the authenticated user's conversations with pinned items first.
      */
@@ -27,9 +33,14 @@ class AiConversationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $validated = $request->validate([
+            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
+        ]);
+        $search = trim((string) ($validated['q'] ?? ''));
         $perPage = min(max($request->integer('per_page', 25), 1), 100);
 
         $conversations = $user->conversations()
+            ->when($search !== '', fn ($query) => $query->whereLike('title', '%'.$search.'%'))
             // raw-sql: reviewed — fixed nulls-last pin ordering
             ->orderByRaw('pinned_at IS NULL')
             ->orderByDesc('pinned_at')
@@ -50,39 +61,15 @@ class AiConversationController extends Controller
             ->where('conversation_id', $owned->id)
             ->orderBy('created_at')
             ->orderBy('id')
-            ->get(['id', 'role', 'content', 'steps', 'status', 'created_at']);
+            ->get(['id', 'role', 'content', 'attachments', 'steps', 'usage', 'meta', 'status', 'created_at']);
 
         $lastMessageId = $messages->last()?->id;
 
         return response()->json([
             'conversation' => $owned->only(['id', 'title', 'pinned_at', 'created_at', 'updated_at']),
-            'messages' => $messages->map(function (ConversationMessage $message) use ($lastMessageId): array {
-                $content = $this->normalizeMessageContent($message->content);
-                $toolCalls = $message->tool_calls;
-                $toolResults = $message->tool_results;
-                $pendingApprovals = AiPendingApprovals::fromMessage($message);
-                $approvalOpen = $message->id === $lastMessageId;
-
-                if ($message->role === 'assistant' && trim($content) === '') {
-                    if ($pendingApprovals !== []) {
-                        $content = $approvalOpen
-                            ? AiToolTurnSummary::awaitingApproval($pendingApprovals)
-                            : AiToolTurnSummary::approvalAbandoned($pendingApprovals);
-                    } elseif ($toolCalls !== [] || $toolResults !== []) {
-                        $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
-                    }
-                }
-
-                return [
-                    'id' => $message->id,
-                    'role' => $message->role,
-                    'content' => $content,
-                    'tool_calls' => $toolCalls,
-                    'tool_results' => $toolResults,
-                    'pending_approvals' => $approvalOpen ? $pendingApprovals : [],
-                    'created_at' => $message->created_at,
-                ];
-            }),
+            'messages' => $messages->map(
+                fn (ConversationMessage $message): array => $this->messagePresenter->present($message, $message->id === $lastMessageId),
+            ),
         ]);
     }
 
@@ -122,13 +109,7 @@ class AiConversationController extends Controller
     {
         $owned = $this->ownedConversation($request, $conversation);
 
-        DB::transaction(function () use ($owned): void {
-            ConversationMessage::query()
-                ->where('conversation_id', $owned->id)
-                ->delete();
-
-            $owned->delete();
-        });
+        $this->mutations->deleteConversation($owned);
 
         return response()->json(['ok' => true]);
     }
@@ -155,15 +136,7 @@ class AiConversationController extends Controller
 
         abort_if(count($ownedIds) !== count($ids), Response::HTTP_NOT_FOUND);
 
-        $deleted = DB::transaction(function () use ($ownedIds): int {
-            ConversationMessage::query()
-                ->whereIn('conversation_id', $ownedIds)
-                ->delete();
-
-            return Conversation::query()
-                ->whereIn('id', $ownedIds)
-                ->delete();
-        });
+        $deleted = $this->mutations->deleteConversations($ownedIds);
 
         return response()->json([
             'ok' => true,
@@ -205,18 +178,7 @@ class AiConversationController extends Controller
 
         abort_if($anchor === null, Response::HTTP_NOT_FOUND);
 
-        $deleted = DB::transaction(function () use ($owned, $anchor): int {
-            return ConversationMessage::query()
-                ->where('conversation_id', $owned->id)
-                ->where(function ($query) use ($anchor): void {
-                    $query->where('created_at', '>', $anchor->created_at)
-                        ->orWhere(function ($sameInstant) use ($anchor): void {
-                            $sameInstant->where('created_at', $anchor->created_at)
-                                ->where('id', '>=', $anchor->id);
-                        });
-                })
-                ->delete();
-        });
+        $deleted = $this->mutations->truncateFromMessage($owned, $anchor);
 
         $owned->touch();
 
@@ -241,49 +203,5 @@ class AiConversationController extends Controller
         abort_if($conversation === null, Response::HTTP_NOT_FOUND);
 
         return $conversation;
-    }
-
-    /**
-     * Flatten stored message content into display text.
-     */
-    private function normalizeMessageContent(mixed $content): string
-    {
-        if ($content === null) {
-            return '';
-        }
-
-        if (is_string($content)) {
-            $decoded = json_decode($content, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $this->normalizeMessageContent($decoded);
-            }
-
-            return $content;
-        }
-
-        if (! is_array($content)) {
-            return (string) $content;
-        }
-
-        $textParts = [];
-
-        foreach ($content as $part) {
-            if (is_string($part)) {
-                $textParts[] = $part;
-
-                continue;
-            }
-
-            if (is_array($part) && isset($part['text']) && is_string($part['text'])) {
-                $textParts[] = $part['text'];
-            }
-        }
-
-        if ($textParts !== []) {
-            return implode('', $textParts);
-        }
-
-        return json_encode($content, JSON_UNESCAPED_UNICODE) ?: '';
     }
 }

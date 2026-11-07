@@ -1,0 +1,17 @@
+# Baseline of known raw Tailwind palette / #hex className usages outside components/ui.
+# Maintained with scripts/check-ui-tokens.mjs (#240). Do not grow counts; fix call sites instead.
+# Ratchet (#452): counts must match the scan exactly; remove or lower entries once debt is paid.
+# Format: path:kind:token:count
+# Excluded: components/ui/*, pages/welcome.tsx, components/app-logo-icon.tsx
+resources/js/components/admin/files/file-card.tsx:palette:fill-amber-400:1
+resources/js/components/admin/files/file-card.tsx:palette:text-amber-400:1
+resources/js/components/admin/files/file-preview.tsx:palette:text-amber-500:1
+resources/js/components/admin/files/folder-picker-dialog.tsx:palette:text-amber-500:1
+resources/js/components/ai/ai-file-cards.tsx:palette:text-amber-500:1
+resources/js/components/collections/dynamic-item-fields.tsx:palette:text-amber-500:1
+resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-400:1
+resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-700:1
+resources/js/components/nav-footer.tsx:palette:text-neutral-100:1
+resources/js/components/nav-footer.tsx:palette:text-neutral-300:1
+resources/js/components/nav-footer.tsx:palette:text-neutral-600:1
+resources/js/components/nav-footer.tsx:palette:text-neutral-800:1

@@ -1,6 +1,12 @@
-import adminRoutes from '@/lib/admin-routes';
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { formatFileSize } from '@/lib/format';
+import { assertOk, parseError } from '@/lib/http';
+import files from '@/routes/files';
+import { index as fileTagsCatalogIndex } from '@/routes/files/tags';
+import { empty as emptyFilesTrashRoute } from '@/routes/files/trash';
 import type { AdminFileRow, FileTag } from '@/types/files';
+
+export { formatFileSize };
 
 /** Size of each chunk for resumable large file uploads (10 MiB). */
 export const CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
@@ -52,7 +58,7 @@ export function filePublicUrl(file: AdminFileRow): string | null {
 
     // Never invent a public /storage/assets URL for effective-private bytes.
     if (file.effective_access === 'private' || file.disk === 'private_assets') {
-        return adminRoutes.files.download(file.id);
+        return files.download.url(file.id);
     }
 
     return `/storage/assets/${file.storage_path}`;
@@ -69,16 +75,6 @@ export function isImageFile(file: AdminFileRow): boolean {
 }
 
 /**
- * Is Video File.
- *
- * @param file - File manager row
- * @returns Whether the mime type indicates a video
- */
-export function isVideoFile(file: AdminFileRow): boolean {
-    return Boolean(file.mime_type?.startsWith('video/'));
-}
-
-/**
  * Is Playable Video.
  *
  * @param file - File manager row
@@ -86,66 +82,6 @@ export function isVideoFile(file: AdminFileRow): boolean {
  */
 export function isPlayableVideo(file: AdminFileRow): boolean {
     return file.mime_type === 'video/mp4' || file.mime_type === 'video/webm';
-}
-
-/**
- * Formats a byte count for display in the file manager.
- *
- * @param bytes - File size in bytes, or null
- * @returns Human-readable size string
- */
-export function formatFileSize(bytes: number | null): string {
-    if (bytes === null || bytes === 0) {
-        return '—';
-    }
-
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = bytes;
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-        size /= 1024;
-        unitIndex += 1;
-    }
-
-    return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
-async function parseResponseError(
-    response: Response,
-    fallbackMessage: string,
-): Promise<string> {
-    try {
-        const payload = (await response.json()) as {
-            message?: string;
-            errors?: Record<string, string[]>;
-        };
-
-        if (payload.errors) {
-            const firstError = Object.values(payload.errors)[0]?.[0];
-
-            if (firstError) {
-                return firstError;
-            }
-        }
-
-        if (payload.message) {
-            return payload.message;
-        }
-    } catch {
-        /* Non-JSON error body — use fallback message */
-    }
-
-    return fallbackMessage;
-}
-
-async function assertOkResponse(
-    response: Response,
-    fallbackMessage: string,
-): Promise<void> {
-    if (!response.ok) {
-        throw new Error(await parseResponseError(response, fallbackMessage));
-    }
 }
 
 async function request(
@@ -178,7 +114,7 @@ export async function createFolder(
     parentId: number | null,
 ): Promise<AdminFileRow> {
     const response = await request(
-        adminRoutes.files.createFolder(),
+        files.folders.store.url(),
         {
             method: 'POST',
             headers: jsonRequestHeaders(),
@@ -188,7 +124,7 @@ export async function createFolder(
         'Failed to create folder',
     );
 
-    await assertOkResponse(response, 'Failed to create folder');
+    await assertOk(response, 'Failed to create folder');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -215,7 +151,7 @@ export async function uploadFileDirect(
     }
 
     const response = await request(
-        adminRoutes.files.upload(),
+        files.upload.url(),
         {
             method: 'POST',
             headers: formRequestHeaders(),
@@ -225,7 +161,7 @@ export async function uploadFileDirect(
         'Failed to upload file',
     );
 
-    await assertOkResponse(response, 'Failed to upload file');
+    await assertOk(response, 'Failed to upload file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -244,7 +180,7 @@ export async function importFileFromUrl(
     name?: string,
 ): Promise<AdminFileRow> {
     const response = await request(
-        adminRoutes.files.importUrl(),
+        files.importUrl.url(),
         {
             method: 'POST',
             headers: jsonRequestHeaders(),
@@ -258,7 +194,7 @@ export async function importFileFromUrl(
         'Failed to import file from URL',
     );
 
-    await assertOkResponse(response, 'Failed to import file from URL');
+    await assertOk(response, 'Failed to import file from URL');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -274,14 +210,14 @@ export async function moveFile(
     fileId: number,
     parentId: number | null,
 ): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.move(fileId), {
+    const response = await fetch(files.move.url(fileId), {
         method: 'PATCH',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify({ parent_id: parentId }),
     });
 
-    await assertOkResponse(response, 'Failed to move file');
+    await assertOk(response, 'Failed to move file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -297,14 +233,14 @@ export async function renameFile(
     fileId: number,
     name: string,
 ): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.rename(fileId), {
+    const response = await fetch(files.rename.url(fileId), {
         method: 'PATCH',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify({ name }),
     });
 
-    await assertOkResponse(response, 'Failed to rename file');
+    await assertOk(response, 'Failed to rename file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -316,13 +252,13 @@ export async function renameFile(
  * @returns {void}
  */
 export async function deleteFile(fileId: number): Promise<void> {
-    const response = await fetch(adminRoutes.files.destroy(fileId), {
+    const response = await fetch(files.destroy.url(fileId), {
         method: 'DELETE',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to delete file');
+    await assertOk(response, 'Failed to delete file');
 }
 
 export type FileWhereUsedReference = {
@@ -345,13 +281,13 @@ export type FileWhereUsedResponse = {
 export async function fetchFileWhereUsed(
     fileId: number,
 ): Promise<FileWhereUsedResponse> {
-    const response = await fetch(adminRoutes.files.whereUsed(fileId), {
+    const response = await fetch(files.whereUsed.url(fileId), {
         method: 'GET',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to scan file references');
+    await assertOk(response, 'Failed to scan file references');
 
     return (await response.json()) as FileWhereUsedResponse;
 }
@@ -363,13 +299,13 @@ export async function fetchFileWhereUsed(
  * @returns Restored file row
  */
 export async function restoreFile(fileId: number): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.restore(fileId), {
+    const response = await fetch(files.restore.url(fileId), {
         method: 'POST',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to restore file');
+    await assertOk(response, 'Failed to restore file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -381,13 +317,13 @@ export async function restoreFile(fileId: number): Promise<AdminFileRow> {
  * @returns {void}
  */
 export async function forceDeleteFile(fileId: number): Promise<void> {
-    const response = await fetch(adminRoutes.files.forceDelete(fileId), {
+    const response = await fetch(files.forceDelete.url(fileId), {
         method: 'DELETE',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to permanently delete file');
+    await assertOk(response, 'Failed to permanently delete file');
 }
 
 /**
@@ -412,14 +348,14 @@ export async function updateFileMetadata(
         access: 'public' | 'private' | null;
     }>,
 ): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.update(fileId), {
+    const response = await fetch(files.update.url(fileId), {
         method: 'PATCH',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify(payload),
     });
 
-    await assertOkResponse(response, 'Failed to update file');
+    await assertOk(response, 'Failed to update file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -439,7 +375,7 @@ export async function replaceFile(
     formData.append('file', file);
 
     const response = await request(
-        adminRoutes.files.replace(fileId),
+        files.replace.url(fileId),
         {
             method: 'POST',
             headers: formRequestHeaders(),
@@ -449,7 +385,7 @@ export async function replaceFile(
         'Failed to replace file',
     );
 
-    await assertOkResponse(response, 'Failed to replace file');
+    await assertOk(response, 'Failed to replace file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -470,14 +406,14 @@ export async function copyFile(
     fileId: number,
     parentId?: number | null,
 ): Promise<DuplicateFileResult> {
-    const response = await fetch(adminRoutes.files.copy(fileId), {
+    const response = await fetch(files.copy.url(fileId), {
         method: 'POST',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify({ parent_id: parentId ?? null }),
     });
 
-    await assertOkResponse(response, 'Failed to duplicate file');
+    await assertOk(response, 'Failed to duplicate file');
 
     if (response.status === 202) {
         const payload = (await response.json()) as {
@@ -501,13 +437,13 @@ export async function copyFile(
  * @returns Updated file row
  */
 export async function favoriteFile(fileId: number): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.favorite(fileId), {
+    const response = await fetch(files.favorite.url(fileId), {
         method: 'POST',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to favorite file');
+    await assertOk(response, 'Failed to favorite file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -519,13 +455,13 @@ export async function favoriteFile(fileId: number): Promise<AdminFileRow> {
  * @returns Updated file row
  */
 export async function unfavoriteFile(fileId: number): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.favorite(fileId), {
+    const response = await fetch(files.unfavorite.url(fileId), {
         method: 'DELETE',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to unfavorite file');
+    await assertOk(response, 'Failed to unfavorite file');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -541,14 +477,14 @@ export async function syncFileTags(
     fileId: number,
     tags: string[],
 ): Promise<AdminFileRow> {
-    const response = await fetch(adminRoutes.files.tags(fileId), {
+    const response = await fetch(files.tags.url(fileId), {
         method: 'PUT',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify({ tags }),
     });
 
-    await assertOkResponse(response, 'Failed to update tags');
+    await assertOk(response, 'Failed to update tags');
 
     return (await response.json()) as AdminFileRow;
 }
@@ -559,12 +495,12 @@ export async function syncFileTags(
  * @returns All known tags
  */
 export async function listFileTagsCatalog(): Promise<FileTag[]> {
-    const response = await fetch(adminRoutes.files.tagsCatalog(), {
+    const response = await fetch(fileTagsCatalogIndex.url(), {
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
     });
 
-    await assertOkResponse(response, 'Failed to load tags');
+    await assertOk(response, 'Failed to load tags');
 
     return (await response.json()) as FileTag[];
 }
@@ -576,7 +512,7 @@ export async function listFileTagsCatalog(): Promise<FileTag[]> {
  * @returns Download URL for a single file
  */
 export function downloadFileUrl(fileId: number): string {
-    return adminRoutes.files.download(fileId);
+    return files.download.url(fileId);
 }
 
 /**
@@ -586,7 +522,7 @@ export function downloadFileUrl(fileId: number): string {
  * @returns Download URL for a prepared zip archive
  */
 export function downloadPreparedZipUrl(jobId: string): string {
-    return adminRoutes.files.downloadZip(jobId);
+    return files.zips.download.url(jobId);
 }
 
 /** Handle returned when a multi-file zip download is queued asynchronously. */
@@ -601,14 +537,14 @@ export type QueueZipDownloadResult = { queued: true; job_id: string };
 export async function queueFilesZipDownload(
     fileIds: number[],
 ): Promise<QueueZipDownloadResult> {
-    const response = await fetch(adminRoutes.files.downloadMany(), {
+    const response = await fetch(files.downloadMany.url(), {
         method: 'POST',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify({ ids: fileIds }),
     });
 
-    await assertOkResponse(response, 'Failed to prepare zip download');
+    await assertOk(response, 'Failed to prepare zip download');
 
     const payload = (await response.json()) as {
         queued: true;
@@ -616,6 +552,25 @@ export async function queueFilesZipDownload(
     };
 
     return { queued: true, job_id: payload.job_id };
+}
+
+/**
+ * Queues a background job that permanently deletes everything in the trash.
+ *
+ * @returns Job id to match against the completion notification
+ */
+export async function queueEmptyFilesTrash(): Promise<string> {
+    const response = await fetch(emptyFilesTrashRoute.url(), {
+        method: 'DELETE',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Failed to empty the trash');
+
+    const payload = (await response.json()) as { job_id: string };
+
+    return payload.job_id;
 }
 
 /** Result of a bulk file action — immediate completion or queued job. */
@@ -635,14 +590,14 @@ export async function bulkFileAction(
     ids: number[],
     extra: Record<string, unknown> = {},
 ): Promise<BulkFileActionResult> {
-    const response = await fetch(adminRoutes.files.bulk(), {
+    const response = await fetch(files.bulk.url(), {
         method: 'POST',
         headers: jsonRequestHeaders(),
         credentials: 'same-origin',
         body: JSON.stringify({ action, ids, ...extra }),
     });
 
-    await assertOkResponse(response, 'Failed to run bulk action');
+    await assertOk(response, 'Failed to run bulk action');
 
     if (response.status === 202) {
         const payload = (await response.json()) as {
@@ -678,7 +633,7 @@ export async function listFilesPage(options: {
     total: number;
 }> {
     const response = await fetch(
-        adminRoutes.files.list({
+        files.list.url({
             query: {
                 parent_id: options.parentId ?? undefined,
                 trashed: options.trashed ?? undefined,
@@ -698,7 +653,7 @@ export async function listFilesPage(options: {
         },
     );
 
-    await assertOkResponse(response, 'Failed to load files');
+    await assertOk(response, 'Failed to load files');
 
     return (await response.json()) as {
         data: AdminFileRow[];
@@ -723,7 +678,7 @@ export async function fetchFilesByIds(ids: number[]): Promise<AdminFileRow[]> {
     }
 
     const response = await fetch(
-        adminRoutes.files.list({
+        files.list.url({
             query: { ids: uniqueIds },
         }),
         {
@@ -732,7 +687,7 @@ export async function fetchFilesByIds(ids: number[]): Promise<AdminFileRow[]> {
         },
     );
 
-    await assertOkResponse(response, 'Failed to load files');
+    await assertOk(response, 'Failed to load files');
 
     const payload = (await response.json()) as { data: AdminFileRow[] };
     const byId = new Map(payload.data.map((file) => [file.id, file]));
@@ -758,7 +713,7 @@ async function uploadChunkWithRetry(
 
         try {
             const chunkResponse = await request(
-                adminRoutes.files.uploadsChunk(),
+                files.uploads.chunk.url(),
                 {
                     method: 'POST',
                     headers: formRequestHeaders(),
@@ -773,7 +728,7 @@ async function uploadChunkWithRetry(
             }
 
             lastError = new Error(
-                await parseResponseError(
+                await parseError(
                     chunkResponse,
                     `Failed to upload chunk ${chunkIndex + 1}`,
                 ),
@@ -820,7 +775,7 @@ export async function uploadFileChunked(
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
 
     const initResponse = await request(
-        adminRoutes.files.uploadsInit(),
+        files.uploads.init.url(),
         {
             method: 'POST',
             headers: jsonRequestHeaders(),
@@ -836,7 +791,7 @@ export async function uploadFileChunked(
         'Failed to initialize upload',
     );
 
-    await assertOkResponse(initResponse, 'Failed to initialize upload');
+    await assertOk(initResponse, 'Failed to initialize upload');
 
     const { upload_id: uploadId } = (await initResponse.json()) as {
         upload_id: string;
@@ -853,7 +808,7 @@ export async function uploadFileChunked(
     }
 
     const completeResponse = await request(
-        adminRoutes.files.uploadsComplete(),
+        files.uploads.complete.url(),
         {
             method: 'POST',
             headers: jsonRequestHeaders(),
@@ -863,7 +818,7 @@ export async function uploadFileChunked(
         'Failed to complete upload',
     );
 
-    await assertOkResponse(completeResponse, 'Failed to complete upload');
+    await assertOk(completeResponse, 'Failed to complete upload');
 
     return (await completeResponse.json()) as AdminFileRow;
 }

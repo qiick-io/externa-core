@@ -1,8 +1,11 @@
-import { FolderOpen, FolderPlus, Upload } from 'lucide-react';
-import type { MouseEvent, ReactNode } from 'react';
+import { FolderOpen, FolderPlus, Trash2, Upload } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isInternalFileDrag } from '@/components/admin/file-dropzone';
 import { FileCard } from '@/components/admin/files/file-card';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
 import {
     ContextMenu,
@@ -137,9 +140,61 @@ export function FileGrid({
     onUploadFolder,
     cardActionsFor,
 }: FileGridProps) {
+    const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+    // The list at the last automatic load: a failed or empty load leaves the same
+    // array, so auto-loading stops (the button still retries) instead of looping,
+    // while any refreshed list (upload, move, reload) can load again.
+    const lastAutoLoadFilesRef = useRef<AdminFileRow[] | null>(null);
+    // Parents pass an inline callback; read the latest one without re-observing.
+    const onLoadMoreRef = useRef(onLoadMore);
+
+    useEffect(() => {
+        onLoadMoreRef.current = onLoadMore;
+    }, [onLoadMore]);
+
+    // Load the next page whenever the sentinel under the grid is on screen, so a
+    // tall window fills up without a gap and scrolling keeps loading (Drive-style).
+    useEffect(() => {
+        const sentinel = loadMoreSentinelRef.current;
+
+        if (!sentinel || !hasMore || loadingMore) {
+            return;
+        }
+
+        // Observe against the panel that scrolls (not the window), so the 400px
+        // look-ahead starts loading before the user reaches the end.
+        let scrollRoot: HTMLElement | null = sentinel.parentElement;
+
+        while (
+            scrollRoot &&
+            !/(auto|scroll)/.test(getComputedStyle(scrollRoot).overflowY)
+        ) {
+            scrollRoot = scrollRoot.parentElement;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (
+                    entries.some((entry) => entry.isIntersecting) &&
+                    lastAutoLoadFilesRef.current !== files
+                ) {
+                    lastAutoLoadFilesRef.current = files;
+                    onLoadMoreRef.current();
+                }
+            },
+            { root: scrollRoot, rootMargin: '0px 0px 400px 0px' },
+        );
+
+        observer.observe(sentinel);
+
+        return () => observer.disconnect();
+    }, [files, hasMore, loadingMore]);
+
     const { t } = useTranslation();
 
-    const handleBackgroundClick = (event: MouseEvent<HTMLDivElement>): void => {
+    const handleBackgroundPointerDown = (
+        event: PointerEvent<HTMLDivElement>,
+    ): void => {
         if (isInteractiveGridClickTarget(event.target)) {
             return;
         }
@@ -157,22 +212,37 @@ export function FileGrid({
             >
                 <div
                     data-testid="files-grid-area"
-                    className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center text-muted-foreground"
-                    onClick={handleBackgroundClick}
+                    className="flex flex-1 flex-col"
+                    onPointerDown={handleBackgroundPointerDown}
                 >
-                    <Upload className="size-8 opacity-60" />
-                    <p className="text-sm font-medium">
-                        {isTrashed
-                            ? t('files.empty.trash')
-                            : uploadsEnabled
-                              ? t('files.empty.dropToUpload')
-                              : t('files.empty.folderEmpty')}
-                    </p>
-                    {uploadsEnabled && !isTrashed && (
-                        <p className="text-xs">
-                            {t('files.empty.orUseUpload')}
-                        </p>
-                    )}
+                    <PageEmptyState
+                        icon={isTrashed ? Trash2 : Upload}
+                        title={
+                            <EmptyStatus>
+                                {isTrashed
+                                    ? t('emptyState.files.trashTitle')
+                                    : uploadsEnabled
+                                      ? t('emptyState.files.dropTitle')
+                                      : t('emptyState.files.title')}
+                            </EmptyStatus>
+                        }
+                        description={
+                            isTrashed
+                                ? t('emptyState.files.trashDescription')
+                                : uploadsEnabled
+                                  ? t('emptyState.files.dropDescription')
+                                  : t('emptyState.files.description')
+                        }
+                        action={
+                            uploadsEnabled && !isTrashed ? (
+                                <Button type="button" onClick={onUploadFile}>
+                                    <Upload className="size-4" />
+                                    {t('emptyState.files.cta')}
+                                </Button>
+                            ) : undefined
+                        }
+                        className="min-h-64 flex-1 bg-muted/20"
+                    />
                 </div>
             </EmptyAreaContextMenu>
         );
@@ -187,11 +257,11 @@ export function FileGrid({
         >
             <div
                 data-testid="files-grid-area"
-                className="flex min-h-0 flex-1 flex-col gap-3"
-                onClick={handleBackgroundClick}
+                className="flex flex-1 flex-col gap-3"
+                onPointerDown={handleBackgroundPointerDown}
             >
                 <div
-                    className="grid min-h-0 flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
+                    className="grid flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"
                     onDragOver={(event) => {
                         if (isTrashed || !isInternalFileDrag(event)) {
                             return;
@@ -238,11 +308,14 @@ export function FileGrid({
                 </div>
 
                 {hasMore && (
-                    <div className="flex justify-center py-2">
+                    <div
+                        ref={loadMoreSentinelRef}
+                        data-testid="files-load-more"
+                        className="flex justify-center py-2"
+                    >
                         <Button
                             type="button"
                             variant="outline"
-                            size="sm"
                             disabled={loadingMore}
                             onClick={onLoadMore}
                         >

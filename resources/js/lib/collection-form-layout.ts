@@ -201,7 +201,3 @@ export function resolveFormLayoutGroups<T extends { id: number }>(
 
     return groups;
 }
-
-export function newFormLayoutId(prefix: string): string {
-    return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}

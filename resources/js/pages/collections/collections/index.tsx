@@ -5,10 +5,12 @@ import {
     Box,
     FolderOpen,
     PackagePlus,
+    MoreHorizontal,
     Pencil,
     Plus,
     RotateCcw,
     Rows3,
+    SearchX,
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
@@ -26,10 +29,25 @@ import {
     resolveCollectionIconName,
 } from '@/components/collections/field-settings/lucide-icon-picker';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import { PageLayout, TablePanel } from '@/components/layout/page-layout';
+import { EmptyStatus } from '@/components/empty-status';
+import {
+    hasTablePaginationFooter,
+    PageLayout,
+    TablePaginationFooter,
+    TablePanel,
+} from '@/components/layout/page-layout';
+import type { TablePaginationState } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer } from '@/components/ui/drawer';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -37,6 +55,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
@@ -46,9 +72,11 @@ import {
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
+import { listPerPageQuery } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 import collectionRoutes from '@/routes/collections';
 import { resolveCollectionColor } from '@/types';
@@ -70,10 +98,12 @@ type CollectionFilters = {
  */
 export default function CollectionsIndex({
     collections,
+    pagination,
     filters = {},
     collectionPacks = [],
 }: {
     collections: CollectionRow[];
+    pagination: TablePaginationState;
     filters?: CollectionFilters;
     collectionPacks?: CollectionPackSummary[];
 }) {
@@ -99,6 +129,9 @@ export default function CollectionsIndex({
     } | null>(null);
     const [confirmingDestructive, setConfirmingDestructive] = useState(false);
     const hasSelection = selected.length > 0;
+    const hasActiveFilters = search.trim() !== '';
+    const isListEmpty = collections.length === 0;
+    const hideListChrome = isListEmpty && !hasActiveFilters && !isTrashed;
 
     const sortFields: { value: CollectionSortField; label: string }[] = [
         { value: 'name', label: t('collections.list.sortName') },
@@ -184,6 +217,7 @@ export default function CollectionsIndex({
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(pagination.per_page),
                     },
                 }),
                 {},
@@ -193,7 +227,7 @@ export default function CollectionsIndex({
                 },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, pagination.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -202,17 +236,14 @@ export default function CollectionsIndex({
         setDirection(filters.direction ?? 'asc');
     }, [filters.search, filters.sort, filters.direction]);
 
-    useEffect(() => {
-        if (search === (filters.search ?? '')) {
-            return;
-        }
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     useEffect(() => {
         setSelected([]);
@@ -246,7 +277,7 @@ export default function CollectionsIndex({
             breadcrumbs={breadcrumbs}
             headerActions={
                 !isTrashed && can(PermissionEnum.CanCreateCollections) ? (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                         <HeaderIconButton
                             type="button"
                             variant="outline"
@@ -279,78 +310,79 @@ export default function CollectionsIndex({
             >
                 <PageLayout
                     filters={
-                        <DataTableToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            searchPlaceholder={
-                                isTrashed
-                                    ? 'Search trash…'
-                                    : 'Search collections…'
-                            }
-                            selectedCount={selected.length}
-                            onClearSelection={() => setSelected([])}
-                            bulkActions={
-                                <>
-                                    <AskAiButton
-                                        mode="labeled"
-                                        prompt={seedCollectionsBulkPrompt(
-                                            selectedRows,
-                                        )}
-                                    />
-                                    {!isTrashed &&
-                                        can(
-                                            PermissionEnum.CanDeleteCollections,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPendingBulkAction(
-                                                        'delete',
-                                                    )
-                                                }
-                                            >
-                                                Delete
-                                            </Button>
-                                        )}
-                                    {isTrashed &&
-                                        can(
-                                            PermissionEnum.CanRestoreCollections,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => bulk('restore')}
-                                            >
-                                                Restore
-                                            </Button>
-                                        )}
-                                    {isTrashed &&
-                                        can(
-                                            PermissionEnum.CanForceDeleteCollections,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPendingBulkAction(
-                                                        'force_delete',
-                                                    )
-                                                }
-                                            >
-                                                Delete permanently
-                                            </Button>
-                                        )}
-                                </>
-                            }
-                        />
+                        hideListChrome ? undefined : (
+                            <DataTableToolbar
+                                search={search}
+                                onSearchChange={setSearch}
+                                searchPlaceholder={
+                                    isTrashed
+                                        ? 'Search trash…'
+                                        : 'Search collections…'
+                                }
+                                selectedCount={selected.length}
+                                onClearSelection={() => setSelected([])}
+                                bulkActions={
+                                    <>
+                                        <AskAiButton
+                                            mode="toolbar"
+                                            prompt={seedCollectionsBulkPrompt(
+                                                selectedRows,
+                                            )}
+                                        />
+                                        {!isTrashed &&
+                                            can(
+                                                PermissionEnum.CanDeleteCollections,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive-outline"
+                                                    onClick={() =>
+                                                        setPendingBulkAction(
+                                                            'delete',
+                                                        )
+                                                    }
+                                                >
+                                                    Delete
+                                                </Button>
+                                            )}
+                                        {isTrashed &&
+                                            can(
+                                                PermissionEnum.CanRestoreCollections,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        bulk('restore')
+                                                    }
+                                                >
+                                                    Restore
+                                                </Button>
+                                            )}
+                                        {isTrashed &&
+                                            can(
+                                                PermissionEnum.CanForceDeleteCollections,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive-outline"
+                                                    onClick={() =>
+                                                        setPendingBulkAction(
+                                                            'force_delete',
+                                                        )
+                                                    }
+                                                >
+                                                    Delete permanently
+                                                </Button>
+                                            )}
+                                    </>
+                                }
+                            />
+                        )
                     }
                     filtersRight={
-                        hasSelection ? null : (
-                            <div className="flex items-center gap-1.5">
+                        hideListChrome || hasSelection ? null : (
+                            <div className="flex items-center gap-2">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
@@ -366,7 +398,6 @@ export default function CollectionsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
                                         aria-label={t(
                                             'collections.list.sortBy',
                                         )}
@@ -389,7 +420,6 @@ export default function CollectionsIndex({
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    className="size-8"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -411,6 +441,7 @@ export default function CollectionsIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {
@@ -425,15 +456,13 @@ export default function CollectionsIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active collections"
-                                        className="px-2.5"
+                                        aria-label={t('a11y.activeList')}
                                     >
                                         <FolderOpen className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
-                                        className="px-2.5"
+                                        aria-label={t('a11y.trashList')}
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>
@@ -442,57 +471,125 @@ export default function CollectionsIndex({
                         )
                     }
                 >
-                    <TablePanel>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-sidebar-border/70 text-left">
-                                    <th className="w-10 p-3">
-                                        <Checkbox
-                                            checked={
-                                                collections.length > 0 &&
-                                                selected.length ===
-                                                    collections.length
-                                            }
-                                            onCheckedChange={(c) =>
-                                                toggleAll(c === true)
-                                            }
-                                            aria-label="Select all"
-                                        />
-                                    </th>
-                                    <th className="p-3 font-medium">
-                                        {t('collections.list.name')}
-                                    </th>
-                                    <th className="p-3 font-medium">
-                                        {t('collections.list.slug')}
-                                    </th>
-                                    <th className="max-w-[16rem] p-3 font-medium">
-                                        {t('collections.list.description')}
-                                    </th>
-                                    <th className="p-3 font-medium">
-                                        {t('collections.list.singleton')}
-                                    </th>
-                                    <th className="w-16 p-3 font-medium">
-                                        {t('collections.list.status')}
-                                    </th>
-                                    <th className="p-3 text-right font-medium">
-                                        {t('collections.list.actions')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {collections.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={7}
-                                            className="p-4 text-muted-foreground"
-                                        >
-                                            {search
-                                                ? 'No collections match your search.'
-                                                : 'No collections yet.'}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    collections.map((c) => {
+                    {isListEmpty ? (
+                        <PageEmptyState
+                            icon={
+                                hasActiveFilters
+                                    ? SearchX
+                                    : isTrashed
+                                      ? Trash2
+                                      : FolderOpen
+                            }
+                            title={
+                                <EmptyStatus>
+                                    {hasActiveFilters
+                                        ? t(
+                                              'emptyState.collections.filteredTitle',
+                                          )
+                                        : isTrashed
+                                          ? t(
+                                                'emptyState.collections.trashTitle',
+                                            )
+                                          : t('emptyState.collections.title')}
+                                </EmptyStatus>
+                            }
+                            description={
+                                hasActiveFilters
+                                    ? t(
+                                          'emptyState.collections.filteredDescription',
+                                      )
+                                    : isTrashed
+                                      ? t(
+                                            'emptyState.collections.trashDescription',
+                                        )
+                                      : t('emptyState.collections.description')
+                            }
+                            action={
+                                hasActiveFilters ? (
+                                    <Button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearch('');
+                                            visit({ search: undefined });
+                                        }}
+                                    >
+                                        {t('common.clearFilters')}
+                                    </Button>
+                                ) : isTrashed ? (
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            visit({ trashed: false })
+                                        }
+                                    >
+                                        {t('common.back')}
+                                    </Button>
+                                ) : can(PermissionEnum.CanCreateCollections) ? (
+                                    <Button type="button" onClick={openCreate}>
+                                        <Plus className="size-4" />
+                                        {t('emptyState.collections.cta')}
+                                    </Button>
+                                ) : undefined
+                            }
+                            docsHref={
+                                hasActiveFilters || isTrashed
+                                    ? undefined
+                                    : 'https://docs.externa.qiick.io'
+                            }
+                            docsLabel={
+                                hasActiveFilters || isTrashed
+                                    ? undefined
+                                    : t('common.learnMore')
+                            }
+                        />
+                    ) : (
+                        <TablePanel
+                            footer={
+                                hasTablePaginationFooter(pagination) ? (
+                                    <TablePaginationFooter
+                                        pagination={pagination}
+                                    />
+                                ) : undefined
+                            }
+                        >
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-10">
+                                            <Checkbox
+                                                checked={
+                                                    collections.length > 0 &&
+                                                    selected.length ===
+                                                        collections.length
+                                                }
+                                                onCheckedChange={(c) =>
+                                                    toggleAll(c === true)
+                                                }
+                                                aria-label={t('a11y.selectAll')}
+                                            />
+                                        </TableHead>
+                                        <TableHead>
+                                            {t('collections.list.name')}
+                                        </TableHead>
+                                        <TableHead>
+                                            {t('collections.list.slug')}
+                                        </TableHead>
+                                        <TableHead className="max-w-[16rem]">
+                                            {t('collections.list.description')}
+                                        </TableHead>
+                                        <TableHead>
+                                            {t('collections.list.singleton')}
+                                        </TableHead>
+                                        <TableHead className="w-16">
+                                            {t('collections.list.status')}
+                                        </TableHead>
+                                        <TableHead className="text-right">
+                                            {t('collections.list.actions')}
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {collections.map((c) => {
                                         const openUrl = c.is_singleton
                                             ? collectionRoutes.show.url(c.id)
                                             : collectionRoutes.items.index.url(
@@ -510,9 +607,9 @@ export default function CollectionsIndex({
                                               );
 
                                         return (
-                                            <tr
+                                            <TableRow
                                                 key={c.id}
-                                                className="cursor-pointer border-b border-sidebar-border/40 last:border-0"
+                                                className="cursor-pointer"
                                                 tabIndex={
                                                     isTrashed ? undefined : 0
                                                 }
@@ -524,7 +621,12 @@ export default function CollectionsIndex({
                                                 aria-label={
                                                     isTrashed
                                                         ? undefined
-                                                        : `Open ${c.name}`
+                                                        : t(
+                                                              'collections.openCollection',
+                                                              {
+                                                                  name: c.name,
+                                                              },
+                                                          )
                                                 }
                                                 onClick={() => {
                                                     if (!isTrashed) {
@@ -545,8 +647,7 @@ export default function CollectionsIndex({
                                                     }
                                                 }}
                                             >
-                                                <td
-                                                    className="p-3"
+                                                <TableCell
                                                     onClick={(event) =>
                                                         event.stopPropagation()
                                                     }
@@ -563,8 +664,8 @@ export default function CollectionsIndex({
                                                         }
                                                         aria-label={`Select ${c.name}`}
                                                     />
-                                                </td>
-                                                <td className="p-3 font-medium">
+                                                </TableCell>
+                                                <TableCell className="max-w-[20rem] font-medium">
                                                     <div className="flex min-w-0 items-center gap-2">
                                                         <span
                                                             className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
@@ -598,11 +699,14 @@ export default function CollectionsIndex({
                                                             className="font-medium"
                                                         />
                                                     </div>
-                                                </td>
-                                                <td className="p-3 text-muted-foreground">
-                                                    {c.slug}
-                                                </td>
-                                                <td className="max-w-[16rem] p-3 text-muted-foreground">
+                                                </TableCell>
+                                                <TableCell className="max-w-[14rem]">
+                                                    <TruncatedText
+                                                        text={c.slug}
+                                                        className="font-mono text-xs text-muted-foreground"
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="max-w-[16rem] text-muted-foreground">
                                                     {c.description ? (
                                                         <span
                                                             className="line-clamp-2"
@@ -613,18 +717,18 @@ export default function CollectionsIndex({
                                                             {c.description}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-muted-foreground/60">
+                                                        <span className="text-muted-foreground">
                                                             —
                                                         </span>
                                                     )}
-                                                </td>
-                                                <td className="p-3">
+                                                </TableCell>
+                                                <TableCell>
                                                     {c.is_singleton ? (
                                                         <Tooltip>
                                                             <TooltipTrigger
                                                                 asChild
                                                             >
-                                                                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs">
+                                                                <Badge variant="muted">
                                                                     <Box
                                                                         className="size-3.5 shrink-0"
                                                                         aria-hidden
@@ -632,7 +736,7 @@ export default function CollectionsIndex({
                                                                     {t(
                                                                         'collections.meta.singletonShort',
                                                                     )}
-                                                                </span>
+                                                                </Badge>
                                                             </TooltipTrigger>
                                                             <TooltipContent>
                                                                 {t(
@@ -650,39 +754,42 @@ export default function CollectionsIndex({
                                                             —
                                                         </span>
                                                     )}
-                                                </td>
-                                                <td className="p-3">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <span
-                                                                className="inline-flex size-6 items-center justify-center"
-                                                                aria-label={
-                                                                    statusLabel
-                                                                }
-                                                            >
-                                                                <span
-                                                                    className={cn(
-                                                                        'size-2.5 rounded-full',
-                                                                        isActive
-                                                                            ? 'bg-emerald-500'
-                                                                            : 'bg-red-500',
-                                                                    )}
-                                                                    aria-hidden
-                                                                />
-                                                            </span>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            {statusLabel}
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </td>
-                                                <td className="p-3 text-right">
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={
+                                                            isActive
+                                                                ? 'success'
+                                                                : 'muted'
+                                                        }
+                                                        className="gap-2"
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'size-1.5 rounded-full',
+                                                                isActive
+                                                                    ? 'bg-success'
+                                                                    : 'bg-muted-foreground',
+                                                            )}
+                                                            aria-hidden
+                                                        />
+                                                        {statusLabel}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell
+                                                    className="text-right"
+                                                    onClick={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                    onKeyDown={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                >
                                                     <div
                                                         className="flex flex-nowrap items-center justify-end gap-1"
-                                                        onClick={(event) =>
-                                                            event.stopPropagation()
-                                                        }
-                                                        onKeyDown={(event) =>
+                                                        onPointerDown={(
+                                                            event,
+                                                        ) =>
                                                             event.stopPropagation()
                                                         }
                                                     >
@@ -700,8 +807,7 @@ export default function CollectionsIndex({
                                                                     <HeaderIconButton
                                                                         type="button"
                                                                         variant="outline"
-                                                                        size="icon"
-                                                                        className="size-8"
+                                                                        size="icon-sm"
                                                                         label="Restore"
                                                                         onClick={() =>
                                                                             router.post(
@@ -717,49 +823,48 @@ export default function CollectionsIndex({
                                                                 {can(
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete permanently"
-                                                                        onClick={() =>
-                                                                            setPendingRowDelete(
-                                                                                {
-                                                                                    id: c.id,
-                                                                                    name: c.name,
-                                                                                    force: true,
-                                                                                },
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger
+                                                                            asChild
+                                                                        >
+                                                                            <HeaderIconButton
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon-sm"
+                                                                                label="More actions"
+                                                                                data-test={`collection-row-menu-${c.id}`}
+                                                                            >
+                                                                                <MoreHorizontal className="size-3.5" />
+                                                                            </HeaderIconButton>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuItem
+                                                                                variant="destructive"
+                                                                                onSelect={() =>
+                                                                                    setPendingRowDelete(
+                                                                                        {
+                                                                                            id: c.id,
+                                                                                            name: c.name,
+                                                                                            force: true,
+                                                                                        },
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Delete
+                                                                                permanently
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
                                                                 )}
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <HeaderIconButton
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
-                                                                    label="Edit fields"
-                                                                    asChild
-                                                                >
-                                                                    <Link
-                                                                        href={FieldController.index.url(
-                                                                            c.id,
-                                                                        )}
-                                                                    >
-                                                                        <Rows3 className="size-3.5" />
-                                                                    </Link>
-                                                                </HeaderIconButton>
-                                                                <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
+                                                                    size="icon-sm"
                                                                     label="Edit"
+                                                                    data-test={`collection-row-edit-${c.id}`}
                                                                     onClick={() =>
                                                                         openEdit(
                                                                             c,
@@ -768,39 +873,69 @@ export default function CollectionsIndex({
                                                                 >
                                                                     <Pencil className="size-3.5" />
                                                                 </HeaderIconButton>
-                                                                {can(
-                                                                    PermissionEnum.CanDeleteCollections,
-                                                                ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete"
-                                                                        onClick={() =>
-                                                                            setPendingRowDelete(
-                                                                                {
-                                                                                    id: c.id,
-                                                                                    name: c.name,
-                                                                                    force: false,
-                                                                                },
-                                                                            )
-                                                                        }
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger
+                                                                        asChild
                                                                     >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
-                                                                )}
+                                                                        <HeaderIconButton
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            label="More actions"
+                                                                            data-test={`collection-row-menu-${c.id}`}
+                                                                        >
+                                                                            <MoreHorizontal className="size-3.5" />
+                                                                        </HeaderIconButton>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuItem
+                                                                            asChild
+                                                                        >
+                                                                            <Link
+                                                                                href={FieldController.index.url(
+                                                                                    c.id,
+                                                                                )}
+                                                                            >
+                                                                                <Rows3 className="size-3.5" />
+                                                                                Edit
+                                                                                fields
+                                                                            </Link>
+                                                                        </DropdownMenuItem>
+                                                                        {can(
+                                                                            PermissionEnum.CanDeleteCollections,
+                                                                        ) && (
+                                                                            <>
+                                                                                <DropdownMenuSeparator />
+                                                                                <DropdownMenuItem
+                                                                                    variant="destructive"
+                                                                                    data-test={`collection-row-delete-${c.id}`}
+                                                                                    onSelect={() =>
+                                                                                        setPendingRowDelete(
+                                                                                            {
+                                                                                                id: c.id,
+                                                                                                name: c.name,
+                                                                                                force: false,
+                                                                                            },
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    Delete
+                                                                                </DropdownMenuItem>
+                                                                            </>
+                                                                        )}
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
                                                             </>
                                                         )}
                                                     </div>
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </TablePanel>
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </TablePanel>
+                    )}
                 </PageLayout>
 
                 <CollectionFormDrawer
@@ -823,18 +958,38 @@ export default function CollectionsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected collections permanently?`
-                        : `Delete ${selected.length} selected collections?`
+                        ? selectedRows.length === 1
+                            ? t(
+                                  'collections.confirm.bulkForceDeleteTitleNamed',
+                                  {
+                                      name: selectedRows[0]?.name ?? '',
+                                  },
+                              )
+                            : t('collections.confirm.bulkForceDeleteTitle', {
+                                  count: selected.length,
+                              })
+                        : t('collections.confirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected collections will be permanently removed. This cannot be undone.'
-                        : 'Selected collections will be soft-deleted and moved to trash.'
+                        ? t('collections.confirm.bulkForceDeleteDescription')
+                        : t('collections.confirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
+                }
+                typedConfirmation={
+                    pendingBulkAction === 'force_delete' &&
+                    selectedRows.length === 1
+                        ? selectedRows[0]?.name
+                        : pendingBulkAction === 'force_delete' &&
+                            selectedRows.length > 1
+                          ? selectedRows.map((row) => row.name).join(', ')
+                          : undefined
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -867,19 +1022,30 @@ export default function CollectionsIndex({
                     }
                 }}
                 title={
-                    pendingRowDelete?.force
-                        ? 'Delete collection permanently?'
-                        : 'Delete collection?'
+                    pendingRowDelete
+                        ? pendingRowDelete.force
+                            ? t('collections.confirm.forceDeleteTitle', {
+                                  name: pendingRowDelete.name,
+                              })
+                            : t('collections.confirm.deleteTitle', {
+                                  name: pendingRowDelete.name,
+                              })
+                        : ''
                 }
                 description={
                     pendingRowDelete
                         ? pendingRowDelete.force
-                            ? `Delete "${pendingRowDelete.name}" permanently? This cannot be undone.`
-                            : `Delete "${pendingRowDelete.name}"? This collection will be soft-deleted.`
+                            ? t('collections.confirm.forceDeleteDescription')
+                            : t('collections.confirm.deleteDescription')
                         : ''
                 }
                 confirmLabel={
-                    pendingRowDelete?.force ? 'Delete permanently' : 'Delete'
+                    pendingRowDelete?.force
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
+                }
+                typedConfirmation={
+                    pendingRowDelete?.force ? pendingRowDelete.name : undefined
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {

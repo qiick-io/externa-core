@@ -9,12 +9,16 @@ import {
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { FieldNoteSlot } from '@/components/collections/item-field-choice-inputs';
 import { LocalizedField } from '@/components/collections/localized-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     getFieldDisplayName,
     getFieldNote,
@@ -28,9 +32,7 @@ import type {
 import { createSortableList } from '@/lib/create-sortable-list';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
+import type { FieldDef } from '@/types';
 
 const SUMMARY_TEXT_TYPES = new Set([
     'string',
@@ -38,14 +40,6 @@ const SUMMARY_TEXT_TYPES = new Set([
     'wysiwyg',
     'markdown',
 ]);
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
 
 type DefaultValue =
     | string
@@ -212,6 +206,7 @@ export function BlocksFieldInput({
     /** Root field max nesting; falls back to settings / default 3. */
     maxBlocksDepth?: number;
 }) {
+    const { t } = useTranslation();
     const blockTypes = parseBlocksFieldSettings(field.settings).blockTypes;
     const maxBlocksDepth =
         maxBlocksDepthProp ?? effectiveMaxBlocksDepth(field.settings);
@@ -455,7 +450,7 @@ export function BlocksFieldInput({
                                     <button
                                         type="button"
                                         className="drag-handle text-muted-foreground"
-                                        aria-label="Drag to reorder"
+                                        aria-label={t('a11y.dragToReorder')}
                                     >
                                         <GripVertical className="size-4" />
                                     </button>
@@ -468,8 +463,8 @@ export function BlocksFieldInput({
                                         {summary}
                                     </span>
                                 ) : null}
-                                <select
-                                    className={cn(inputLike, 'max-w-xs')}
+                                <NativeSelect
+                                    className="max-w-xs"
                                     value={block.type}
                                     disabled={readonly}
                                     onChange={(event) =>
@@ -487,38 +482,43 @@ export function BlocksFieldInput({
                                             {entry.label}
                                         </option>
                                     ))}
-                                </select>
+                                </NativeSelect>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
+                                        <ButtonGroup>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={index === 0}
+                                                aria-label={t(
+                                                    'a11y.moveBlockUp',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, -1)
+                                                }
+                                            >
+                                                <ArrowUp className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={
+                                                    index === blocks.length - 1
+                                                }
+                                                aria-label={t(
+                                                    'a11y.moveBlockDown',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, 1)
+                                                }
+                                            >
+                                                <ArrowDown className="size-4" />
+                                            </Button>
+                                        </ButtonGroup>
                                         <Button
                                             type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={index === 0}
-                                            aria-label="Move block up"
-                                            onClick={() =>
-                                                moveBlock(block.id, -1)
-                                            }
-                                        >
-                                            <ArrowUp className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={
-                                                index === blocks.length - 1
-                                            }
-                                            aria-label="Move block down"
-                                            onClick={() =>
-                                                moveBlock(block.id, 1)
-                                            }
-                                        >
-                                            <ArrowDown className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 duplicateBlock(block.id)
@@ -529,7 +529,6 @@ export function BlocksFieldInput({
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 removeBlock(block.id)
@@ -555,7 +554,7 @@ export function BlocksFieldInput({
 
                             <div
                                 className={cn(
-                                    'mt-4 space-y-5',
+                                    'mt-4 space-y-6',
                                     collapsed && 'hidden',
                                 )}
                             >
@@ -598,10 +597,7 @@ export function BlocksFieldInput({
                                                     <>
                                                         {nestedLabel}
                                                         {flags.required ? (
-                                                            <span className="text-destructive">
-                                                                {' '}
-                                                                *
-                                                            </span>
+                                                            <RequiredMarker />
                                                         ) : null}
                                                     </>
                                                 }
@@ -742,17 +738,14 @@ export function BlocksFieldInput({
                                                 );
                                             }}
                                         >
-                                            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                                            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                                                 <div className="min-w-0 flex-1">
                                                     <Label
                                                         htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
                                                     >
                                                         {nestedLabel}
                                                         {flags.required ? (
-                                                            <span className="text-destructive">
-                                                                {' '}
-                                                                *
-                                                            </span>
+                                                            <RequiredMarker />
                                                         ) : null}
                                                     </Label>
                                                 </div>
@@ -790,7 +783,6 @@ export function BlocksFieldInput({
                         <Button
                             key={blockType.key}
                             type="button"
-                            size="sm"
                             variant="outline"
                             onClick={() => addBlock(blockType.key)}
                         >

@@ -7,12 +7,14 @@ use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\LivePreviewToken;
-use App\Services\Collections\LivePreviewUrlBuilder;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Collections\LivePreviewAsOfResolverService;
+use App\Services\Collections\LivePreviewTokenService;
+use App\Services\Collections\LivePreviewUrlBuilderService;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 /**
  * Public CMS API receiver for Live Preview signed tokens (no API key).
@@ -23,10 +25,11 @@ class LivePreviewController extends Controller
 {
     public function __invoke(
         Request $request,
-        LivePreviewToken $tokens,
-        LivePreviewUrlBuilder $urlBuilder,
+        LivePreviewTokenService $tokens,
+        LivePreviewUrlBuilderService $urlBuilder,
+        LivePreviewAsOfResolverService $asOfResolver,
         CollectionLocaleResolver $locales,
-        CollectionPermissionEnforcer $permissionEnforcer,
+        CollectionPermissionEnforcerService $permissionEnforcer,
     ): JsonResponse {
         $token = (string) $request->query('token', '');
         if ($token === '') {
@@ -62,9 +65,12 @@ class LivePreviewController extends Controller
         }
 
         $version = $claims['version'];
+        $asOf = $claims['as_of'] !== null
+            ? Carbon::createFromTimestamp($claims['as_of'])
+            : null;
 
         if ($claims['content_hash'] !== null
-            && ! hash_equals($claims['content_hash'], $urlBuilder->contentHash($item, $version))) {
+            && ! hash_equals($claims['content_hash'], $urlBuilder->contentHash($item, $version, $asOf))) {
             return response()->json(['message' => 'Invalid or expired preview token.'], 403);
         }
 
@@ -73,6 +79,42 @@ class LivePreviewController extends Controller
         $overrideLocale = $claims['locale'];
         $locales->assertRequestedLocaleAllowed($overrideLocale);
         $locale = $locales->resolve($overrideLocale);
+
+        if ($asOf !== null) {
+            $resolution = $asOfResolver->resolve($item, $asOf);
+            if (! $resolution['visible']) {
+                return response()->json(['message' => 'Preview target not found.'], 404);
+            }
+
+            if ($resolution['use_draft'] && is_array($item->draft_data)) {
+                $data = $permissionEnforcer->stripData($request, $collection, $item->draft_data);
+                $payload = [
+                    'id' => $item->id,
+                    'collection_id' => $item->collection_id,
+                    'data' => $data,
+                    'created_at' => $item->created_at?->toIso8601String(),
+                    'updated_at' => $item->updated_at?->toIso8601String(),
+                    'published_at' => $asOf->utc()->toIso8601String(),
+                ];
+            } else {
+                if ($overrideLocale !== null) {
+                    $request->query->set('locale', $overrideLocale);
+                }
+                $payload = (new CollectionItemResource($item))->toArray($request);
+            }
+
+            return response()->json([
+                'data' => $payload,
+                'meta' => [
+                    'preview' => true,
+                    'version' => $version,
+                    'locale' => $locale,
+                    'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $claims['exp']),
+                    'as_of' => $asOf->utc()->format('Y-m-d\TH:i:s\Z'),
+                    'source' => $resolution['use_draft'] ? 'draft_overlay' : 'published',
+                ],
+            ]);
+        }
 
         if ($version === 'draft' && $collection->versioning && is_array($item->draft_data)) {
             $data = $permissionEnforcer->stripData($request, $collection, $item->draft_data);
@@ -97,6 +139,7 @@ class LivePreviewController extends Controller
                 'version' => $version,
                 'locale' => $locale,
                 'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $claims['exp']),
+                'as_of' => null,
             ],
         ]);
     }

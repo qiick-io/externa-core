@@ -5,10 +5,10 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\SafeReturnUrl;
 use Database\Seeders\PermissionSeeder;
 
@@ -62,21 +62,21 @@ test('put list-columns persists layout and field prefs', function () {
         ])
         ->assertRedirect();
 
-    $repo = app(SettingsRepository::class);
+    $repo = app(SettingsRepositoryService::class);
     expect($repo->get(
-        SettingsRepository::SCOPE_USER,
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_layout',
         $user->id,
     ))->toBe('kanban');
     expect($repo->get(
-        SettingsRepository::SCOPE_USER,
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_kanban_field',
         $user->id,
     ))->toBe('status');
     expect($repo->get(
-        SettingsRepository::SCOPE_USER,
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_calendar_field',
         $user->id,
@@ -99,15 +99,15 @@ test('items index exposes list layout props', function () {
         ],
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_layout',
         'kanban',
         $user->id,
     );
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_kanban_field',
         'status',
@@ -145,8 +145,8 @@ test('kanban index seeds per-column first page with totals', function () {
         ],
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $statuses = array_merge(
         array_fill(0, 35, 'todo'),
         array_fill(0, 10, 'doing'),
@@ -166,15 +166,15 @@ test('kanban index seeds per-column first page with totals', function () {
         );
     }
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_layout',
         'kanban',
         $user->id,
     );
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_kanban_field',
         'status',
@@ -220,8 +220,8 @@ test('kanban column endpoint paginates one column with filters', function () {
         ],
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     foreach (range(1, 32) as $index) {
         $item = CollectionItem::factory()->create([
             'collection_id' => $collection->id,
@@ -298,8 +298,8 @@ test('calendar index seeds visible month items by date field', function () {
         'settings' => ['date_mode' => 'date'],
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $inMonth = CollectionItem::factory()->create(['collection_id' => $collection->id]);
     $writer->sync(
@@ -321,15 +321,15 @@ test('calendar index seeds visible month items by date field', function () {
         ]),
     );
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_layout',
         'calendar',
         $user->id,
     );
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_calendar_field',
         'publish_on',
@@ -370,8 +370,8 @@ test('calendar month endpoint filters by date range and title', function () {
         'settings' => ['date_mode' => 'date'],
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     foreach ([
         ['title' => 'Alpha early', 'publish_on' => '2026-10-01'],
@@ -417,8 +417,8 @@ test('kanban field update redirects back to list via safe return', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync(
         $item,
         $collection,
@@ -434,7 +434,7 @@ test('kanban field update redirects back to list via safe return', function () {
     ])->assertRedirect($listUrl);
 
     $item->refresh();
-    $data = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $data = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($data['status'] ?? null)->toBe('done');
 });
 
@@ -462,8 +462,8 @@ test('calendar_move updates published date on versioned collection', function ()
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync(
         $item,
         $collection,
@@ -487,7 +487,7 @@ test('calendar_move updates published date on versioned collection', function ()
     ])->assertRedirect($listUrl);
 
     $item->refresh();
-    $data = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $data = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($data['publish_on'] ?? null)->toBe('2026-10-20')
         ->and($data['title'] ?? null)->toBe('Required title stays')
         ->and($item->draft_data)->toBeNull();
@@ -516,8 +516,8 @@ test('calendar_move keeps datetime clock and patches draft_data', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync(
         $item,
         $collection,
@@ -540,7 +540,7 @@ test('calendar_move keeps datetime clock and patches draft_data', function () {
     ])->assertRedirect();
 
     $item->refresh();
-    $published = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $published = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($published['published_at'] ?? null)->toBe('2026-10-20T14:30')
         ->and($item->draft_data['published_at'] ?? null)->toBe('2026-10-20T14:30')
         ->and($item->draft_data['title'] ?? null)->toBe('Draft title');
@@ -578,8 +578,8 @@ test('kanban board_move updates published status on versioned collection', funct
         'collection_id' => $collection->id,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($above, $collection, $normalizer->normalize($collection, ['status' => 'draft']));
     $writer->sync($below, $collection, $normalizer->normalize($collection, ['status' => 'draft']));
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['status' => 'published']));
@@ -599,7 +599,7 @@ test('kanban board_move updates published status on versioned collection', funct
     ])->assertRedirect($listUrl);
 
     $item->refresh();
-    $data = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $data = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($data['status'] ?? null)->toBe('draft')
         ->and($item->board_sort)->toBe(2000)
         ->and($item->draft_data)->toBeNull();
@@ -633,8 +633,8 @@ test('kanban board_move patches draft_data group field when draft exists', funct
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync(
         $item,
         $collection,
@@ -657,7 +657,7 @@ test('kanban board_move patches draft_data group field when draft exists', funct
     ])->assertRedirect();
 
     $item->refresh();
-    $published = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $published = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($published['status'] ?? null)->toBe('draft')
         ->and($item->draft_data['status'] ?? null)->toBe('draft')
         ->and($item->draft_data['title'] ?? null)->toBe('Draft title');

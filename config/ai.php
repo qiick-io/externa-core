@@ -74,6 +74,48 @@ return [
 
     'mcp' => [
         'enabled' => (bool) env('AI_MCP_ENABLED', false),
+        // When false, write/mutating MCP tools are not registered (even if AI_WRITE_TOOLS is on).
+        'write_enabled' => (bool) env('AI_MCP_WRITE_ENABLED', false),
+        'rate_limit_per_minute' => (int) env('AI_MCP_RATE_LIMIT_PER_MINUTE', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Shared AI / MCP tool registry (#202 / #203)
+    |--------------------------------------------------------------------------
+    |
+    | Write / destructive tools are denied by default. The env kill switch
+    | (AI_WRITE_TOOLS / AI_TOOLS_WRITE_ENABLED) must be true AND the tool class
+    | must be listed in write_allow (env) and/or project setting ai.write_tools.
+    | Mutating MCP calls then require human approval (PendingToolCall).
+    |
+    */
+
+    'tools' => [
+        'enabled' => (bool) env('AI_TOOLS_ENABLED', true),
+        // AI_WRITE_TOOLS is the #203 kill switch; AI_TOOLS_WRITE_ENABLED kept for #202 compat.
+        'write_enabled' => (bool) env('AI_WRITE_TOOLS', env('AI_TOOLS_WRITE_ENABLED', false)),
+        'write_allow' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_TOOLS_WRITE_ALLOW', '')),
+        ))),
+        'approval_ttl_minutes' => (int) env('AI_TOOLS_APPROVAL_TTL', 15),
+        'audit_retention_days' => (int) env('AI_TOOLS_AUDIT_RETENTION_DAYS', 90),
+        'redact_keys' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env(
+                'AI_TOOLS_REDACT_KEYS',
+                'auth_bearer,auth_header,authorization,bearer,password,token,api_key,apikey,secret,client_secret,email,phone,telephone,ssn,social_security_number,credit_card,card_number,cvv',
+            )),
+        ))),
+        'allow' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_TOOLS_ALLOW', '')),
+        ))),
+        'deny' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_TOOLS_DENY', '')),
+        ))),
     ],
 
     /*
@@ -87,11 +129,28 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Assistant
+    |--------------------------------------------------------------------------
+    |
+    | The provider the in-app assistant (AppAssistant) runs on. Each provider
+    | below may set `reasoning.effort` (low, medium or high) and the
+    | `context_window` (tokens) the Assistant shows next to its usage.
+    |
+    */
+
+    'assistant' => [
+        'provider' => env('AI_ASSISTANT_PROVIDER', 'local'),
+    ],
+
     'providers' => [
         'anthropic' => [
             'driver' => 'anthropic',
             'key' => env('ANTHROPIC_API_KEY'),
             'url' => env('ANTHROPIC_URL', 'https://api.anthropic.com/v1'),
+            'reasoning' => ['effort' => env('ANTHROPIC_REASONING_EFFORT', 'medium')],
+            'context_window' => (int) env('ANTHROPIC_CONTEXT_WINDOW', 200000),
         ],
 
         'azure' => [
@@ -133,6 +192,8 @@ return [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),
             'url' => env('GEMINI_URL', 'https://generativelanguage.googleapis.com/v1beta/'),
+            'reasoning' => ['effort' => env('GEMINI_REASONING_EFFORT', 'medium')],
+            'context_window' => (int) env('GEMINI_CONTEXT_WINDOW', 1048576),
         ],
 
         'groq' => [
@@ -160,6 +221,8 @@ return [
             'driver' => 'openai',
             'key' => env('OPENAI_API_KEY'),
             'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+            'reasoning' => ['effort' => env('OPENAI_REASONING_EFFORT', 'medium')],
+            'context_window' => (int) env('OPENAI_CONTEXT_WINDOW', 400000),
         ],
 
         // LM Studio / vLLM / other OpenAI-compatible gateways.
@@ -168,6 +231,9 @@ return [
             'driver' => 'openai',
             'key' => env('LOCAL_AI_API_KEY', ''),
             'url' => env('LOCAL_AI_URL', 'http://127.0.0.1:1234/v1'),
+            // Unset: the local model keeps its own reasoning behaviour.
+            'reasoning' => ['effort' => env('LOCAL_AI_REASONING_EFFORT')],
+            'context_window' => (int) env('LOCAL_AI_CONTEXT_WINDOW', 131072),
             'models' => [
                 'text' => [
                     'default' => env('LOCAL_AI_MODEL', 'local-model'),

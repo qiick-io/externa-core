@@ -8,8 +8,8 @@ use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\UserContentResponse;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -109,13 +109,13 @@ test('item chat attachment routes succeed with can-show-chat and fail when chat 
         }
     }
     unset($module);
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'sidebar_modules',
         $modules,
     );
-    expect(app(ProjectSettings::class)->isSidebarModuleEnabled('chat'))->toBeFalse();
+    expect(app(ProjectSettingsService::class)->isSidebarModuleEnabled('chat'))->toBeFalse();
 
     $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
         'file' => secRealUpload('notes2.txt', "hello again\n"),
@@ -184,7 +184,7 @@ test('chat upload over default size cap is rejected', function () {
     ]);
     $this->actingAs($user);
 
-    expect(app(ProjectSettings::class)->chatMaxUploadBytes())->toBe(25 * 1024 * 1024);
+    expect(app(ProjectSettingsService::class)->chatMaxUploadBytes())->toBe(25 * 1024 * 1024);
 
     $over = (25 * 1024 * 1024) + 1;
     $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [

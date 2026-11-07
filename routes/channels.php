@@ -5,7 +5,7 @@ use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Chat\ChatService;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -72,7 +72,7 @@ Broadcast::channel('collection-item.{collectionId}.{itemId}', function ($user, $
     // Bind the channel user — broadcast auth request() may not carry session user.
     request()->setUserResolver(static fn (): User => $user);
 
-    if (! app(CollectionPermissionEnforcer::class)->isItemReadable(request(), $collection, $item)) {
+    if (! app(CollectionPermissionEnforcerService::class)->isItemReadable(request(), $collection, $item)) {
         return false;
     }
 

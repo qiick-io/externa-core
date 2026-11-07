@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateAppearanceSettingsRequest;
-use App\Services\Settings\ProjectAppearance;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectAppearanceService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,8 +16,8 @@ use Inertia\Response;
 class AppearanceSettingsController extends Controller
 {
     public function __construct(
-        private readonly ProjectAppearance $projectAppearance,
-        private readonly SettingsRepository $settings,
+        private readonly ProjectAppearanceService $projectAppearance,
+        private readonly SettingsRepositoryService $settings,
     ) {}
 
     /**
@@ -36,7 +36,7 @@ class AppearanceSettingsController extends Controller
     public function update(UpdateAppearanceSettingsRequest $request): RedirectResponse
     {
         $this->settings->setMany(
-            SettingsRepository::SCOPE_PROJECT,
+            SettingsRepositoryService::SCOPE_PROJECT,
             'appearance',
             $request->appearanceValues(),
         );

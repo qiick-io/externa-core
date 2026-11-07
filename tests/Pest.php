@@ -12,8 +12,9 @@ use App\Models\File;
 use App\Models\FilePermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\FilePermissionGuard;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -36,6 +37,16 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Browser');
+
+// Bounded Playwright waits — default 5s is tight for Inertia+AI drawer opens in CI.
+pest()->browser()->timeout(10_000);
+
+// Drop ProjectSettings memo between Browser tests — RefreshDatabase alone leaves stale two_factor_required etc.
+uses()->afterEach(function () {
+    if (app()->bound(ProjectSettingsService::class)) {
+        app(ProjectSettingsService::class)->forgetRawCache();
+    }
+})->in('Browser');
 
 pest()->extend(TestCase::class)
     ->in('Unit');
@@ -91,7 +102,7 @@ function grantRoleActions(Role $role, Collection $collection, array $actions): v
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 }
 
 /**
@@ -153,7 +164,20 @@ function grantFileActions(Role $role, array $actions): void
         );
     }
 
-    app(FilePermissionGuard::class)->forget($role->id);
+    app(FilePermissionGuardService::class)->forget($role->id);
+}
+
+function filesPublicRole(): Role
+{
+    return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
+}
+
+/**
+ * @param  list<FilePermissionActionEnum|string>  $actions
+ */
+function grantPublicFileActions(array $actions): void
+{
+    grantFileActions(filesPublicRole(), $actions);
 }
 
 /**
@@ -392,6 +416,8 @@ function baseIntegrationsPayload(array $overrides = []): array
         'notifier_slack_webhook_url' => null,
         'notifier_telegram_bot_token' => null,
         'notifier_telegram_chat_id' => null,
+        'deploy_hooks' => [],
+        'deploy_on_publish' => false,
     ], $overrides);
 }
 

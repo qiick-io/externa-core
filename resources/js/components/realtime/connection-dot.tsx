@@ -1,24 +1,29 @@
 import { useTranslation } from 'react-i18next';
+import { AvatarBadge } from '@/components/ui/avatar';
 import { useEchoConnection } from '@/hooks/use-echo-connection';
 import type { EchoConnectionState } from '@/lib/echo';
 import { cn } from '@/lib/utils';
 
+/**
+ * Green when connected, amber while connecting, grey when realtime is off, red
+ * only when the connection is lost (an error, unlike a user being offline).
+ */
 function toneFor(state: EchoConnectionState): string {
     switch (state) {
         case 'connected':
-            return 'bg-emerald-500';
+            return 'bg-success';
         case 'connecting':
-            return 'bg-amber-400 animate-pulse';
+            return 'bg-warning animate-pulse';
         case 'disabled':
-            return 'bg-muted-foreground/40';
+            return 'bg-muted-foreground';
         default:
             return 'bg-destructive';
     }
 }
 
 /**
- * Presence-style badge for the Reverb WebSocket connection.
- * Absolute-position on the avatar’s top-right (parent must be `relative`).
+ * The Reverb WebSocket connection as an `AvatarBadge`: render it inside
+ * `<Avatar>`, so it sits bottom-right like every presence dot.
  */
 export function ConnectionDot({ className }: { className?: string }) {
     const { t } = useTranslation();
@@ -34,12 +39,8 @@ export function ConnectionDot({ className }: { className?: string }) {
                 : t('realtime.offline');
 
     return (
-        <span
-            className={cn(
-                'pointer-events-none absolute -top-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-sidebar',
-                toneFor(state),
-                className,
-            )}
+        <AvatarBadge
+            className={cn('pointer-events-none', toneFor(state), className)}
             title={label}
             aria-label={label}
             role="status"

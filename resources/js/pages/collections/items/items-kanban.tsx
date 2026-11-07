@@ -1,24 +1,16 @@
 import { Link, router } from '@inertiajs/react';
-import { GripVertical, Loader2 } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
-import type { CollectionView } from '@/types';
+import type { CollectionView, ItemRow } from '@/types';
 import type { QueryParams } from '@/wayfinder';
-
-type ItemRow = {
-    id: number;
-    data: Record<string, unknown>;
-    displays?: Record<string, string | null>;
-    updated_at?: string | null;
-    has_draft?: boolean;
-    approval_status?: string | null;
-};
 
 export type KanbanColumnPage = {
     value: string;
@@ -613,7 +605,7 @@ export function ItemsKanban({
                                         key={item.id}
                                         data-kanban-card
                                         data-item-id={item.id}
-                                        className="rounded-md border bg-background p-2.5 shadow-xs"
+                                        className="rounded-md border bg-background p-3 shadow-xs"
                                     >
                                         <div className="flex items-start gap-2">
                                             {canEdit && !isTrashed ? (
@@ -621,12 +613,14 @@ export function ItemsKanban({
                                                     type="button"
                                                     data-kanban-handle
                                                     className="mt-0.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
-                                                    aria-label="Drag"
+                                                    aria-label={t(
+                                                        'a11y.dragToReorder',
+                                                    )}
                                                 >
                                                     <GripVertical className="size-3.5" />
                                                 </button>
                                             ) : null}
-                                            <div className="min-w-0 flex-1 space-y-1.5">
+                                            <div className="min-w-0 flex-1 space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <Link
                                                         href={withReturnParam(
@@ -646,7 +640,7 @@ export function ItemsKanban({
                                                     {showDraft ? (
                                                         <Badge
                                                             variant="secondary"
-                                                            className="shrink-0 text-[10px]"
+                                                            className="shrink-0 text-xs"
                                                             data-test={`kanban-draft-badge-${item.id}`}
                                                         >
                                                             Draft
@@ -654,7 +648,7 @@ export function ItemsKanban({
                                                     ) : null}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                                    <span className="tabular-nums">
+                                                    <span className="font-mono tabular-nums">
                                                         #{item.id}
                                                     </span>
                                                     {updated ? (
@@ -672,7 +666,7 @@ export function ItemsKanban({
                                                                 ? 'destructive'
                                                                 : 'outline'
                                                         }
-                                                        className="text-[10px]"
+                                                        className="text-xs"
                                                         data-test={`kanban-approval-badge-${item.id}`}
                                                     >
                                                         {approvalLabel(
@@ -699,7 +693,6 @@ export function ItemsKanban({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
                                     className="w-full"
                                     disabled={column.loading}
                                     data-test={`kanban-load-more-${column.value || 'empty'}`}
@@ -707,7 +700,7 @@ export function ItemsKanban({
                                 >
                                     {column.loading ? (
                                         <>
-                                            <Loader2 className="size-3.5 animate-spin" />
+                                            <Spinner className="size-3.5" />
                                             {t(
                                                 'collections.itemsList.kanbanLoading',
                                             )}

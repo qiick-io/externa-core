@@ -1,11 +1,15 @@
 import { Form, Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
@@ -28,33 +32,50 @@ export default function Register() {
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
+                noValidate
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="first_name">
+                        <FieldGroup className="gap-6">
+                            <Field
+                                data-invalid={
+                                    errors.first_name ? true : undefined
+                                }
+                            >
+                                <FieldLabel htmlFor="first_name">
                                     {t('common.firstName')}
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     id="first_name"
                                     type="text"
                                     required
+                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
                                     autoComplete="given-name"
                                     name="first_name"
                                     placeholder={t('common.firstName')}
+                                    aria-invalid={
+                                        errors.first_name ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.first_name
+                                            ? 'first-name-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError
-                                    message={errors.first_name}
-                                    className="mt-2"
-                                />
-                            </div>
+                                <FieldError id="first-name-error">
+                                    {errors.first_name}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="last_name">
+                            <Field
+                                data-invalid={
+                                    errors.last_name ? true : undefined
+                                }
+                            >
+                                <FieldLabel htmlFor="last_name">
                                     {t('common.lastName')}
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     id="last_name"
                                     type="text"
@@ -62,17 +83,26 @@ export default function Register() {
                                     autoComplete="family-name"
                                     name="last_name"
                                     placeholder={t('common.lastName')}
+                                    aria-invalid={
+                                        errors.last_name ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.last_name
+                                            ? 'last-name-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError
-                                    message={errors.last_name}
-                                    className="mt-2"
-                                />
-                            </div>
+                                <FieldError id="last-name-error">
+                                    {errors.last_name}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">
+                            <Field
+                                data-invalid={errors.email ? true : undefined}
+                            >
+                                <FieldLabel htmlFor="email">
                                     {t('common.emailAddress')}
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
@@ -80,39 +110,77 @@ export default function Register() {
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
+                                    aria-invalid={
+                                        errors.email ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
                                 />
-                                <InputError message={errors.email} />
-                            </div>
+                                <FieldError id="email-error">
+                                    {errors.email}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">
+                            <Field
+                                data-invalid={
+                                    errors.password ? true : undefined
+                                }
+                            >
+                                <FieldLabel htmlFor="password">
                                     {t('common.password')}
-                                </Label>
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password"
                                     required
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder={t('common.password')}
+                                    aria-invalid={
+                                        errors.password ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError message={errors.password} />
-                            </div>
+                                <FieldError id="password-error">
+                                    {errors.password}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
+                            <Field
+                                data-invalid={
+                                    errors.password_confirmation
+                                        ? true
+                                        : undefined
+                                }
+                            >
+                                <FieldLabel htmlFor="password_confirmation">
                                     {t('common.confirmPassword')}
-                                </Label>
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder={t('common.confirmPassword')}
+                                    aria-invalid={
+                                        errors.password_confirmation
+                                            ? true
+                                            : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.password_confirmation
+                                            ? 'password-confirmation-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError
-                                    message={errors.password_confirmation}
-                                />
-                            </div>
+                                <FieldError id="password-confirmation-error">
+                                    {errors.password_confirmation}
+                                </FieldError>
+                            </Field>
 
                             <Button
                                 type="submit"
@@ -122,11 +190,11 @@ export default function Register() {
                                 {processing && <Spinner />}
                                 {t('auth.register.submit')}
                             </Button>
-                        </div>
+                        </FieldGroup>
 
                         <div className="text-center text-sm text-muted-foreground">
                             {t('auth.register.hasAccount')}{' '}
-                            <TextLink href={login()} tabIndex={7}>
+                            <TextLink href={login()}>
                                 {t('auth.register.logIn')}
                             </TextLink>
                         </div>

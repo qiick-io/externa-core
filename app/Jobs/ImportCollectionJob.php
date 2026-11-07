@@ -22,6 +22,18 @@ class ImportCollectionJob implements ShouldQueue
 
     public const CACHE_HOURS = 24;
 
+    public int $tries = 2;
+
+    public int $timeout = 600;
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [60, 120];
+    }
+
     public string $jobId;
 
     public function __construct(
@@ -100,6 +112,8 @@ class ImportCollectionJob implements ShouldQueue
      */
     public function failed(?Throwable $exception): void
     {
+        report($exception);
+
         $this->putStatus([
             'status' => 'failed',
             'processed' => 0,

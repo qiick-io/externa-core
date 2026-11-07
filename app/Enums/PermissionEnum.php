@@ -62,10 +62,20 @@ enum PermissionEnum: string
 
     case CanUseAi = 'can-use-ai';
 
+    /**
+     * Create, update, and delete project-level saved AI prompts (#195).
+     * Value is dotted (`ai.prompts.manage`) per product acceptance; listing/selecting
+     * prompts in chat only requires {@see self::CanUseAi}.
+     */
+    case CanManageAiPrompts = 'ai.prompts.manage';
+
     case CanShowChat = 'can-show-chat';
     case CanCreateDirectChats = 'can-create-direct-chats';
 
     case CanManageProjectSettings = 'can-manage-project-settings';
+
+    /** Trigger named deploy hooks (Vercel / Netlify / Cloudflare Pages / Forge). */
+    case DeployTrigger = 'deploy.trigger';
 
     case CanShowApiKeys = 'can-show-api-keys';
     case CanManageApiKeys = 'can-manage-api-keys';

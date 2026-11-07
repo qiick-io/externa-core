@@ -1,5 +1,8 @@
-/** Custom event the AI FAB listens for to open with a seeded composer. */
+/** Custom event the AI assistant panel listens for to open with a seeded composer. */
 export const AI_OPEN_EVENT = 'ai:open';
+
+/** Custom event that opens or closes the AI assistant panel (sidebar item, ⌘J). */
+export const AI_TOGGLE_EVENT = 'ai:toggle';
 
 export type AiOpenDetail = {
     prompt: string;
@@ -9,7 +12,18 @@ export type AiOpenDetail = {
 export const AI_PROMPT_ID_CAP = 50;
 
 /**
- * Open the floating AI assistant with a prefilled composer (does not send).
+ * Open or close the AI assistant panel on the current page, keeping its thread.
+ */
+export function toggleAiAssistant(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.dispatchEvent(new Event(AI_TOGGLE_EVENT));
+}
+
+/**
+ * Open the AI assistant panel with a prefilled composer (does not send).
  */
 export function openAiWithPrompt(prompt: string): void {
     if (typeof window === 'undefined') {
@@ -141,10 +155,6 @@ export function seedActivityLogPrompt(entry: {
     const summary = entry.description?.trim() || entry.event || 'activity';
 
     return `Working on activity log entry (activity_log_id=${entry.id}, summary=«${summary}»).`;
-}
-
-export function seedFilePrompt(file: { id: number; name: string }): string {
-    return `Working on file «${file.name}» (file_id=${file.id}).`;
 }
 
 export function seedFilesBulkPrompt(

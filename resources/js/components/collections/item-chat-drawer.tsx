@@ -1,35 +1,48 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    ChevronDown,
-    Copy,
-    FileText,
+    CircleAlert,
+    Ellipsis,
     MoreVertical,
     Paperclip,
     Pin,
-    Reply,
-    Send,
     Smile,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DragEvent, ReactElement, ReactNode } from 'react';
+import type { DragEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatAttachmentFile } from '@/components/chat/chat-attachment-file';
+import { ChatComposer } from '@/components/chat/chat-composer';
+import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
+import {
+    ChatMentionMenu,
+    handleMentionMenuKeyDown,
+} from '@/components/chat/chat-mention-menu';
+import {
+    ChatMessageActionsButton,
+    ChatMessageContextMenu,
+} from '@/components/chat/chat-message-actions-menu';
+import type { ChatMessageActions } from '@/components/chat/chat-message-actions-menu';
+import { ChatMessageReactions } from '@/components/chat/chat-message-reactions';
+import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
+import type { ChatMessageScrollerHandle } from '@/components/chat/chat-message-scroller';
 import { ChatOutgoingAttachPreview } from '@/components/chat/chat-outgoing-attach-preview';
 import type { PendingChatMessage } from '@/components/chat/chat-outgoing-attach-preview';
+import { ChatPinnedBar } from '@/components/chat/chat-pinned-bar';
+import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
+import { ChatUserHoverCard } from '@/components/chat/chat-user-hover-card';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
-} from '@/components/ui/context-menu';
 import {
     Dialog,
     DialogContent,
@@ -37,12 +50,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    Drawer,
-    DrawerBody,
-    DrawerContent,
-    DrawerFooter,
-} from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerFooter } from '@/components/ui/drawer';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -50,11 +58,16 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
+import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker';
 import {
     Message,
     MessageAvatar,
     MessageContent,
+    MessageGroup,
+    MessageHeader,
 } from '@/components/ui/message';
+import { MessageScrollerItem } from '@/components/ui/message-scroller';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     Popover,
     PopoverContent,
@@ -64,10 +77,12 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
-import { avatarColorForId, avatarStyleForId } from '@/lib/avatar-color';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
+import { formatDateTime, initialsFromName } from '@/lib/format';
 import {
     addChatAttachmentToField,
     chatAttachmentPreviewUrl,
@@ -82,7 +97,6 @@ import {
     pinMessage,
     postMessage,
     putChatNotify,
-    REACTION_EMOJIS,
     saveChatAttachmentToFiles,
     toggleReaction,
     uploadChatAttachment,
@@ -104,6 +118,7 @@ import {
 } from '@/lib/item-chat-mentions';
 import { applyReactionToggle } from '@/lib/item-chat-reactions';
 import { pendingMatchesEchoMessage } from '@/lib/pending-chat-match';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat/store';
 import { mergeLatestPage } from '@/stores/chat/types';
@@ -168,18 +183,12 @@ type Props = {
     canCreateDirect?: boolean;
 };
 
-function initials(name: string): string {
-    const parts = name.trim().split(/\s+/);
-
-    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
-}
-
 function renderMessageBody(
     body: string,
     mentions: ChatUser[],
     collections: ChatCollection[] = [],
 ): ReactNode {
-    const names = new Map(mentions.map((user) => [user.id, user.name]));
+    const users = new Map(mentions.map((user) => [user.id, user]));
     const collectionNames = new Map(
         collections.map((collection) => [collection.id, collection.name]),
     );
@@ -207,13 +216,37 @@ function renderMessageBody(
                 </Link>,
             );
         } else {
-            nodes.push(
-                <span
+            const user = users.get(id);
+            const text = `@${user?.name ?? `user ${id}`}`;
+            const label = user ? (
+                <Badge
                     key={`${match.index}-${id}`}
-                    className="rounded bg-primary/15 px-1 font-medium"
+                    variant="secondary"
+                    className="cursor-default bg-primary/15 px-1 align-baseline text-sm text-foreground"
+                    data-test="chat-mention"
+                    asChild
                 >
-                    @{names.get(id) ?? `user ${id}`}
-                </span>,
+                    <button type="button">{text}</button>
+                </Badge>
+            ) : (
+                <Badge
+                    key={`${match.index}-${id}`}
+                    variant="secondary"
+                    className="bg-primary/15 px-1 align-baseline text-sm text-foreground"
+                    data-test="chat-mention"
+                >
+                    {text}
+                </Badge>
+            );
+
+            nodes.push(
+                user ? (
+                    <ChatUserHoverCard key={`${match.index}-${id}`} user={user}>
+                        {label}
+                    </ChatUserHoverCard>
+                ) : (
+                    label
+                ),
             );
         }
 
@@ -232,7 +265,7 @@ function dayLabel(iso: string | null): string {
         return '';
     }
 
-    return new Date(iso).toLocaleDateString(undefined, {
+    return formatDateTime(iso, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -244,7 +277,7 @@ function commentTime(iso: string | null): string {
         return '';
     }
 
-    return new Date(iso).toLocaleTimeString(undefined, {
+    return formatDateTime(iso, {
         hour: '2-digit',
         minute: '2-digit',
     });
@@ -253,8 +286,6 @@ function commentTime(iso: string | null): string {
 /**
  * Chat drawer for a collection item.
  */
-const NEAR_BOTTOM_PX = 100;
-
 export function ItemChatDrawer({
     open,
     onOpenChange,
@@ -314,7 +345,10 @@ export function ItemChatDrawer({
     const messagesEntry = useChatStore((state) =>
         liveChatId ? state.messagesByChatId[liveChatId] : undefined,
     );
-    const messages = messagesEntry?.messages ?? [];
+    const messages = useMemo(
+        () => messagesEntry?.messages ?? [],
+        [messagesEntry?.messages],
+    );
     const hasMore = messagesEntry?.hasMore ?? false;
     const pinned = messagesEntry?.pinned ?? [];
     const setMessagesCache = useChatStore((state) => state.setMessagesCache);
@@ -361,21 +395,19 @@ export function ItemChatDrawer({
     const [addFieldFor, setAddFieldFor] = useState<ChatAttachment | null>(null);
     const [addFieldName, setAddFieldName] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [messagePendingDelete, setMessagePendingDelete] =
+        useState<ItemChatMessage | null>(null);
     const [editingDraft, setEditingDraft] = useState('');
     const [replyTo, setReplyTo] = useState<ItemChatMessage | null>(null);
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const messagesScrollRef = useRef<HTMLDivElement | null>(null);
+    const scrollerRef = useRef<ChatMessageScrollerHandle | null>(null);
+    // Own sends and own echoes jump to the latest message, even when scrolled up.
     const forceScrollBottomRef = useRef(false);
-    const scrollAnchorRef = useRef<{ height: number; top: number } | null>(
-        null,
-    );
-    const initialScrollDoneRef = useRef(false);
-    // Telegram: stick bottom unless user scrolled up on purpose.
-    const [pinnedToBottom, setPinnedToBottom] = useState(true);
-    const pinnedToBottomRef = useRef(true);
+    // Oldest loaded message before "Load older", to keep it in view after the prepend.
+    const olderAnchorIdRef = useRef<number | null>(null);
     const uploadGen = useRef(0);
     const pageLoadGen = useRef(0);
     const olderLoadGen = useRef(0);
@@ -397,34 +429,6 @@ export function ItemChatDrawer({
         pendingMessagesRef.current = pendingMessages;
     }, [pendingMessages]);
 
-    const syncPinnedToBottom = useCallback(() => {
-        const el = messagesScrollRef.current;
-
-        if (!el) {
-            return;
-        }
-
-        const near =
-            el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
-
-        pinnedToBottomRef.current = near;
-        setPinnedToBottom(near);
-    }, []);
-
-    const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-        requestAnimationFrame(() => {
-            const el = messagesScrollRef.current;
-
-            if (!el) {
-                return;
-            }
-
-            pinnedToBottomRef.current = true;
-            setPinnedToBottom(true);
-            el.scrollTo({ top: el.scrollHeight, behavior });
-        });
-    }, []);
-
     liveChatIdRef.current = liveChatId;
     chatCountRef.current = chatCount;
     onChatCountChangeRef.current = onChatCountChange;
@@ -437,71 +441,25 @@ export function ItemChatDrawer({
               : null;
 
     useEffect(() => {
-        initialScrollDoneRef.current = false;
-        pinnedToBottomRef.current = true;
-        setPinnedToBottom(true);
-    }, [scopeKey]);
-
-    useEffect(() => {
-        if (!open) {
-            initialScrollDoneRef.current = false;
-            pinnedToBottomRef.current = true;
-            setPinnedToBottom(true);
-
-            return;
-        }
-
-        // Wait until load-more finishes so soft-refresh cannot steal the anchor.
-        if (scrollAnchorRef.current && !loadingMore) {
-            const anchor = scrollAnchorRef.current;
-            scrollAnchorRef.current = null;
-            requestAnimationFrame(() => {
-                const el = messagesScrollRef.current;
-
-                if (el) {
-                    el.scrollTop = el.scrollHeight - anchor.height + anchor.top;
-                    syncPinnedToBottom();
-                }
-            });
-
-            return;
-        }
-
-        // Load-older prepend in flight — never fight the anchor.
-        if (scrollAnchorRef.current || loadingMore) {
-            return;
-        }
-
         if (forceScrollBottomRef.current) {
             forceScrollBottomRef.current = false;
-            scrollToBottom('smooth');
+            scrollerRef.current?.scrollToEnd({ behavior: 'smooth' });
+        }
+    }, [messages, pendingMessages]);
 
+    useEffect(() => {
+        const olderAnchorId = olderAnchorIdRef.current;
+
+        // Wait until load-more finishes so the prepend is in the DOM.
+        if (olderAnchorId === null || loadingMore) {
             return;
         }
 
-        if (!loading && messages.length > 0 && !initialScrollDoneRef.current) {
-            initialScrollDoneRef.current = true;
-            scrollToBottom('auto');
-
-            return;
-        }
-
-        if (
-            pinnedToBottomRef.current &&
-            !loading &&
-            (messages.length > 0 || pendingMessages.length > 0)
-        ) {
-            scrollToBottom('auto');
-        }
-    }, [
-        open,
-        loading,
-        loadingMore,
-        messages,
-        pendingMessages,
-        scrollToBottom,
-        syncPinnedToBottom,
-    ]);
+        olderAnchorIdRef.current = null;
+        scrollerRef.current?.scrollToMessage(String(olderAnchorId), {
+            align: 'start',
+        });
+    }, [loadingMore, messages]);
 
     const load = useCallback(
         (beforeId?: number): void => {
@@ -584,7 +542,7 @@ export function ItemChatDrawer({
                     }
 
                     if (beforeId) {
-                        scrollAnchorRef.current = null;
+                        olderAnchorIdRef.current = null;
                     }
 
                     setError(t('collections.itemChat.error'));
@@ -679,7 +637,7 @@ export function ItemChatDrawer({
                 // Ignore; viewer TTL will expire.
             });
         };
-    }, [open, scopeKey, variant]);
+    }, [open, scope, scopeKey, variant]);
 
     useEffect(() => {
         setMentionHighlight(0);
@@ -1112,6 +1070,18 @@ export function ItemChatDrawer({
         }, 0);
     };
 
+    const mentionMenu = {
+        isOpen: mentionsEnabled && mentionOpen && !attachDialogOpen,
+        hits: mentionHits,
+        highlightIndex: mentionHighlight,
+        onHighlightChange: setMentionHighlight,
+        onPick: pickMention,
+        onDismiss: (): void => {
+            setMentionOpen(false);
+            setMentionStart(null);
+        },
+    };
+
     const insertMentionTrigger = (): void => {
         if (!mentionsEnabled) {
             return;
@@ -1214,7 +1184,7 @@ export function ItemChatDrawer({
                 load();
             }
         },
-        [load, realtimeOn],
+        [appendMessage, load, patchThread, realtimeOn],
     );
 
     const runPendingPipeline = useCallback(
@@ -1602,14 +1572,45 @@ export function ItemChatDrawer({
     };
 
     const scrollToMessage = (id: number): void => {
-        document
-            .querySelector(`[data-message-id="${id}"]`)
-            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollerRef.current?.scrollToMessage(String(id), {
+            align: 'center',
+            behavior: 'smooth',
+        });
     };
+
+    /** Reply, copy, pin, react, edit and delete for one message's menus. */
+    const messageActionsFor = (
+        comment: ItemChatMessage,
+    ): ChatMessageActions => ({
+        canEdit: comment.can_edit,
+        canDelete: comment.can_delete,
+        isPinned: comment.is_pinned,
+        onReply: () => {
+            setReplyTo(comment);
+            // After the menu's close autofocus; run next tick.
+            window.setTimeout(() => {
+                textareaRef.current?.focus();
+            }, 0);
+        },
+        onCopy: () => copyMessageText(comment),
+        onPin: () => onPin(comment),
+        onReact: (emoji) => onReact(comment, emoji),
+        onEdit: () => {
+            setEditingId(comment.id);
+            setEditingDraft(
+                storedBodyToDraft(comment.body, comment.mentioned_users),
+            );
+        },
+        onDelete: () => setMessagePendingDelete(comment),
+    });
 
     const copyMessageText = (message: ItemChatMessage): void => {
         const text = storedBodyToDraft(message.body, message.mentioned_users);
-        void navigator.clipboard.writeText(text);
+        void copyTextToClipboard(text).then((copied) => {
+            if (!copied) {
+                toast.error(t('collections.itemChat.copyFailed'));
+            }
+        });
     };
 
     const onReact = (message: ItemChatMessage, emoji: string): void => {
@@ -1841,6 +1842,41 @@ export function ItemChatDrawer({
         onPickFiles(event.dataTransfer.files);
     };
 
+    /**
+     * Consecutive messages from one sender on one day form a group: the name
+     * and avatar show once, on the first message.
+     */
+    const messageGroups = useMemo(() => {
+        const groups: Array<{
+            key: number;
+            items: Array<{
+                comment: ItemChatMessage;
+                index: number;
+                isGroupStart: boolean;
+            }>;
+        }> = [];
+
+        messages.forEach((comment, index) => {
+            const previous = messages[index - 1];
+            const isGroupStart =
+                !previous ||
+                previous.user?.id !== comment.user?.id ||
+                dayLabel(previous.created_at) !== dayLabel(comment.created_at);
+
+            if (isGroupStart) {
+                groups.push({ key: comment.id, items: [] });
+            }
+
+            groups[groups.length - 1]!.items.push({
+                comment,
+                index,
+                isGroupStart,
+            });
+        });
+
+        return groups;
+    }, [messages]);
+
     const typingLabel = useMemo(() => {
         if (typingNames.length === 0) {
             return null;
@@ -1887,16 +1923,47 @@ export function ItemChatDrawer({
                 onDrop={onComposerDrop}
             >
                 <div className="relative flex min-h-0 flex-1 flex-col">
-                    <DrawerBody
-                        ref={messagesScrollRef}
-                        className="flex flex-col gap-3 pb-8"
-                        onScroll={syncPinnedToBottom}
+                    <ChatMessageScroller
+                        key={scopeKey ?? 'none'}
+                        scrollerRef={scrollerRef}
+                        empty={
+                            !loading && messages.length === 0 ? (
+                                <p className="m-auto text-sm text-muted-foreground">
+                                    {t('collections.itemChat.empty')}
+                                </p>
+                            ) : null
+                        }
+                        contentClassName="gap-3 px-6 pt-6 pb-8"
+                        overlay={
+                            loading || typingLabel ? (
+                                <div className="flex flex-col items-center gap-1">
+                                    {loading ? (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Spinner className="size-4" />
+                                            {t('collections.itemChat.loading')}
+                                        </div>
+                                    ) : null}
+                                    {typingLabel ? (
+                                        <Marker
+                                            role="status"
+                                            className="w-auto rounded-full bg-background/90 px-2 py-0.5 text-xs shadow-sm"
+                                        >
+                                            <MarkerIcon>
+                                                <Ellipsis className="animate-pulse" />
+                                            </MarkerIcon>
+                                            <MarkerContent>
+                                                {typingLabel}
+                                            </MarkerContent>
+                                        </Marker>
+                                    ) : null}
+                                </div>
+                            ) : null
+                        }
                     >
                         {hasMore ? (
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
                                 disabled={loading || loadingMore}
                                 onClick={() => {
                                     const oldestId = messages[0]?.id;
@@ -1905,15 +1972,7 @@ export function ItemChatDrawer({
                                         return;
                                     }
 
-                                    const el = messagesScrollRef.current;
-
-                                    if (el) {
-                                        scrollAnchorRef.current = {
-                                            height: el.scrollHeight,
-                                            top: el.scrollTop,
-                                        };
-                                    }
-
+                                    olderAnchorIdRef.current = oldestId;
                                     load(oldestId);
                                 }}
                             >
@@ -1923,585 +1982,484 @@ export function ItemChatDrawer({
                             </Button>
                         ) : null}
                         {error ? (
-                            <p className="text-sm text-destructive">{error}</p>
+                            <Alert variant="destructive">
+                                <CircleAlert />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
                         ) : null}
-                        {!loading && messages.length === 0 ? (
-                            <div className="flex flex-1 items-center justify-center">
-                                <p className="text-sm text-muted-foreground">
-                                    {t('collections.itemChat.empty')}
-                                </p>
-                            </div>
-                        ) : null}
-                        {pinned.length > 0 ? (
-                            <div className="flex flex-col gap-1 rounded-md border bg-muted/40 p-2">
-                                {pinned.map((row) => {
-                                    const pinnedUserId = row.user?.id ?? 0;
+                        <ChatPinnedBar
+                            rows={pinned.map((row) => ({
+                                id: row.id,
+                                author: row.user?.name ?? '',
+                                body:
+                                    row.body !== ''
+                                        ? renderMessageBody(
+                                              row.body,
+                                              row.mentioned_users ?? [],
+                                              row.mentioned_collections ?? [],
+                                          )
+                                        : '',
+                            }))}
+                            onSelect={scrollToMessage}
+                        />
+                        {messageGroups.map((group) => (
+                            <MessageGroup
+                                key={group.key}
+                                data-test="chat-message-group"
+                                className="gap-1"
+                            >
+                                {group.items.map(
+                                    ({ comment, index, isGroupStart }) => {
+                                        const userId = comment.user?.id ?? 0;
+                                        const mine =
+                                            comment.user?.id === viewerId;
+                                        const prevDay = dayLabel(
+                                            messages[index - 1]?.created_at ??
+                                                null,
+                                        );
+                                        const thisDay = dayLabel(
+                                            comment.created_at,
+                                        );
+                                        const showDay =
+                                            thisDay !== '' &&
+                                            thisDay !== prevDay;
 
-                                    return (
-                                        <button
-                                            key={row.id}
-                                            type="button"
-                                            className="flex items-center gap-2 text-left text-xs"
-                                            onClick={() =>
-                                                scrollToMessage(row.id)
-                                            }
-                                        >
-                                            <Pin className="size-3 shrink-0 text-muted-foreground" />
-                                            <span className="min-w-0 truncate">
-                                                <span
-                                                    className="font-medium"
-                                                    style={{
-                                                        color: avatarColorForId(
-                                                            pinnedUserId,
-                                                        ),
-                                                    }}
-                                                >
-                                                    {row.user?.name ?? ''}
-                                                </span>
-                                                {row.body !== '' ? (
-                                                    <>
-                                                        {': '}
-                                                        {renderMessageBody(
-                                                            row.body,
-                                                            row.mentioned_users ??
-                                                                [],
-                                                            row.mentioned_collections ??
-                                                                [],
-                                                        )}
-                                                    </>
+                                        return (
+                                            <MessageScrollerItem
+                                                key={comment.id}
+                                                messageId={String(comment.id)}
+                                            >
+                                                {showDay ? (
+                                                    <Marker
+                                                        variant="separator"
+                                                        role="separator"
+                                                        aria-label={thisDay}
+                                                        className="mb-2 text-xs"
+                                                    >
+                                                        <MarkerContent>
+                                                            {thisDay}
+                                                        </MarkerContent>
+                                                    </Marker>
                                                 ) : null}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ) : null}
-                        {messages.map((comment, index) => {
-                            const userId = comment.user?.id ?? 0;
-                            const mine = comment.user?.id === viewerId;
-                            const prevDay = dayLabel(
-                                messages[index - 1]?.created_at ?? null,
-                            );
-                            const thisDay = dayLabel(comment.created_at);
-                            const showDay =
-                                thisDay !== '' && thisDay !== prevDay;
-
-                            return (
-                                <div key={comment.id}>
-                                    {showDay ? (
-                                        <p className="mb-2 text-center text-xs text-muted-foreground">
-                                            {thisDay}
-                                        </p>
-                                    ) : null}
-                                    <div
-                                        data-message-id={comment.id}
-                                        className="flex items-start gap-2"
-                                    >
-                                        <Message align={mine ? 'end' : 'start'}>
-                                            {!mine ? (
-                                                <MessageAvatar
-                                                    className="size-8 text-[10px] font-medium"
-                                                    style={avatarStyleForId(
-                                                        userId,
-                                                    )}
-                                                >
-                                                    {initials(
-                                                        comment.user?.name ??
-                                                            '?',
-                                                    )}
-                                                </MessageAvatar>
-                                            ) : null}
-                                            <MessageContent>
-                                                <MessageActionsMenu
-                                                    canEdit={comment.can_edit}
-                                                    canDelete={
-                                                        comment.can_delete
-                                                    }
-                                                    isPinned={comment.is_pinned}
-                                                    onReply={() => {
-                                                        setReplyTo(comment);
-                                                        // After ContextMenu close autofocus; run next tick.
-                                                        window.setTimeout(
-                                                            () => {
-                                                                textareaRef.current?.focus();
-                                                            },
-                                                            0,
-                                                        );
-                                                    }}
-                                                    onCopy={() =>
-                                                        copyMessageText(comment)
-                                                    }
-                                                    onPin={() => onPin(comment)}
-                                                    onReact={(emoji) =>
-                                                        onReact(comment, emoji)
-                                                    }
-                                                    onEdit={() => {
-                                                        setEditingId(
-                                                            comment.id,
-                                                        );
-                                                        setEditingDraft(
-                                                            storedBodyToDraft(
-                                                                comment.body,
-                                                                comment.mentioned_users,
-                                                            ),
-                                                        );
-                                                    }}
-                                                    onDelete={() =>
-                                                        removeMessage(comment)
-                                                    }
-                                                >
-                                                    <Bubble
-                                                        variant="muted"
+                                                <div className="flex items-start gap-2">
+                                                    <Message
                                                         align={
                                                             mine
                                                                 ? 'end'
                                                                 : 'start'
                                                         }
-                                                        className={
-                                                            comment.attachments.some(
-                                                                isChatMediaAttachment,
-                                                            )
-                                                                ? 'min-w-[16rem]'
-                                                                : undefined
-                                                        }
                                                     >
-                                                        <BubbleContent
-                                                            className={cn(
-                                                                'flex w-full flex-col gap-1',
-                                                                mine &&
-                                                                    'text-foreground',
-                                                                // Media album needs definite min width:
-                                                                // Bubble is w-fit; min-w-0 + author
-                                                                // label collapses the grid for !mine.
-                                                                comment.attachments.some(
-                                                                    isChatMediaAttachment,
-                                                                )
-                                                                    ? 'min-w-[16rem] gap-0 p-0'
-                                                                    : 'min-w-0',
-                                                            )}
-                                                        >
-                                                            {(() => {
-                                                                const mediaAttachments =
-                                                                    comment.attachments.filter(
-                                                                        isChatMediaAttachment,
-                                                                    );
-                                                                const fileAttachments =
-                                                                    comment.attachments.filter(
-                                                                        (
-                                                                            attachment,
-                                                                        ) =>
-                                                                            !isChatMediaAttachment(
-                                                                                attachment,
-                                                                            ),
-                                                                    );
-                                                                const hasMedia =
-                                                                    mediaAttachments.length >
-                                                                    0;
-                                                                const pad =
-                                                                    hasMedia
-                                                                        ? 'px-3'
-                                                                        : undefined;
-                                                                const onAttachmentSaved =
-                                                                    (
-                                                                        next: ChatAttachment,
-                                                                    ): void => {
-                                                                        const id =
-                                                                            liveChatIdRef.current;
-
-                                                                        if (
-                                                                            !id
-                                                                        ) {
-                                                                            return;
-                                                                        }
-
-                                                                        mapMessages(
-                                                                            id,
-                                                                            (
-                                                                                prev,
-                                                                            ) =>
-                                                                                prev.map(
-                                                                                    (
-                                                                                        row,
-                                                                                    ) =>
-                                                                                        row.id ===
-                                                                                        comment.id
-                                                                                            ? {
-                                                                                                  ...row,
-                                                                                                  attachments:
-                                                                                                      row.attachments.map(
-                                                                                                          (
-                                                                                                              item,
-                                                                                                          ) =>
-                                                                                                              item.id ===
-                                                                                                              next.id
-                                                                                                                  ? next
-                                                                                                                  : item,
-                                                                                                      ),
-                                                                                              }
-                                                                                            : row,
-                                                                                ),
-                                                                        );
-                                                                    };
-
-                                                                return (
-                                                                    <>
-                                                                        {!mine ||
-                                                                        comment.reply_to ? (
-                                                                            <div
-                                                                                className={cn(
-                                                                                    'flex flex-col gap-1',
-                                                                                    pad,
-                                                                                    hasMedia &&
-                                                                                        'pt-2',
-                                                                                )}
-                                                                            >
-                                                                                {!mine ? (
-                                                                                    <div
-                                                                                        className="text-xs font-bold"
-                                                                                        style={{
-                                                                                            color: avatarColorForId(
-                                                                                                userId,
-                                                                                            ),
-                                                                                        }}
-                                                                                    >
-                                                                                        {
-                                                                                            comment
-                                                                                                .user
-                                                                                                ?.name
-                                                                                        }
-                                                                                    </div>
-                                                                                ) : null}
-                                                                                {comment.reply_to ? (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className="w-full rounded-md bg-black/5 px-2 py-1 text-left dark:bg-white/5"
-                                                                                        style={{
-                                                                                            borderLeftWidth: 2,
-                                                                                            borderLeftColor:
-                                                                                                avatarColorForId(
-                                                                                                    comment
-                                                                                                        .reply_to
-                                                                                                        .user
-                                                                                                        ?.id ??
-                                                                                                        0,
-                                                                                                ),
-                                                                                        }}
-                                                                                        onClick={() =>
-                                                                                            scrollToMessage(
-                                                                                                comment
-                                                                                                    .reply_to!
-                                                                                                    .id,
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <div
-                                                                                            className="text-[11px] font-medium"
-                                                                                            style={{
-                                                                                                color: avatarColorForId(
-                                                                                                    comment
-                                                                                                        .reply_to
-                                                                                                        .user
-                                                                                                        ?.id ??
-                                                                                                        0,
-                                                                                                ),
-                                                                                            }}
-                                                                                        >
-                                                                                            {
-                                                                                                comment
-                                                                                                    .reply_to
-                                                                                                    .user
-                                                                                                    ?.name
-                                                                                            }
-                                                                                        </div>
-                                                                                        <div className="truncate text-[11px] text-muted-foreground">
-                                                                                            {
-                                                                                                comment
-                                                                                                    .reply_to
-                                                                                                    .body
-                                                                                            }
-                                                                                        </div>
-                                                                                    </button>
-                                                                                ) : null}
-                                                                            </div>
-                                                                        ) : null}
-                                                                        {hasMedia ? (
-                                                                            <ChatMediaGallery
-                                                                                items={
-                                                                                    mediaAttachments
+                                                        {!mine ? (
+                                                            isGroupStart ? (
+                                                                <MessageAvatar className="self-start bg-transparent">
+                                                                    <Avatar>
+                                                                        {comment
+                                                                            .user
+                                                                            ?.avatar ? (
+                                                                            <AvatarImage
+                                                                                src={
+                                                                                    comment
+                                                                                        .user
+                                                                                        .avatar
                                                                                 }
-                                                                                scope={
-                                                                                    scope!
-                                                                                }
-                                                                                canCreateFiles={
-                                                                                    canCreateFiles
-                                                                                }
-                                                                                hasFileFields={
-                                                                                    fileFields.length >
-                                                                                    0
-                                                                                }
-                                                                                onSaved={
-                                                                                    onAttachmentSaved
-                                                                                }
-                                                                                onAddToField={(
-                                                                                    attachment,
-                                                                                ) => {
-                                                                                    setAddFieldFor(
-                                                                                        attachment,
-                                                                                    );
-                                                                                    setAddFieldName(
-                                                                                        fileFields[0]
-                                                                                            ?.name ??
-                                                                                            '',
-                                                                                    );
-                                                                                }}
+                                                                                alt=""
                                                                             />
                                                                         ) : null}
-                                                                        <div
+                                                                        <AvatarFallback
                                                                             className={cn(
-                                                                                'flex flex-col gap-1',
-                                                                                pad,
-                                                                                hasMedia &&
-                                                                                    'pt-1 pb-2',
+                                                                                avatarToneClass(
+                                                                                    userId,
+                                                                                ),
+                                                                                'text-xs font-medium',
                                                                             )}
                                                                         >
-                                                                            {editingId ===
-                                                                            comment.id ? (
-                                                                                <div className="flex min-w-[12rem] flex-col gap-2">
-                                                                                    <Textarea
-                                                                                        value={
-                                                                                            editingDraft
-                                                                                        }
-                                                                                        onChange={(
-                                                                                            event,
-                                                                                        ) =>
-                                                                                            setEditingDraft(
-                                                                                                event
-                                                                                                    .target
-                                                                                                    .value,
-                                                                                            )
-                                                                                        }
-                                                                                        rows={
-                                                                                            3
-                                                                                        }
-                                                                                    />
-                                                                                    <div className="flex gap-2">
-                                                                                        <Button
-                                                                                            type="button"
-                                                                                            size="sm"
-                                                                                            onClick={() =>
-                                                                                                saveEdit(
-                                                                                                    comment,
-                                                                                                )
-                                                                                            }
-                                                                                        >
-                                                                                            {t(
-                                                                                                'common.save',
-                                                                                            )}
-                                                                                        </Button>
-                                                                                        <Button
-                                                                                            type="button"
-                                                                                            size="sm"
-                                                                                            variant="ghost"
-                                                                                            onClick={() =>
-                                                                                                setEditingId(
-                                                                                                    null,
-                                                                                                )
-                                                                                            }
-                                                                                        >
-                                                                                            {t(
-                                                                                                'common.cancel',
-                                                                                            )}
-                                                                                        </Button>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ) : comment.body !==
-                                                                              '' ? (
-                                                                                <div className="whitespace-pre-wrap">
-                                                                                    {renderMessageBody(
-                                                                                        comment.body,
-                                                                                        comment.mentioned_users,
-                                                                                        comment.mentioned_collections,
-                                                                                    )}
-                                                                                </div>
-                                                                            ) : null}
-                                                                            {fileAttachments.length >
-                                                                            0 ? (
-                                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-1.5 overflow-y-auto">
-                                                                                    {fileAttachments.map(
-                                                                                        (
-                                                                                            attachment,
-                                                                                        ) => (
-                                                                                            <li
-                                                                                                key={
-                                                                                                    attachment.id
-                                                                                                }
-                                                                                                className="w-full min-w-0"
-                                                                                            >
-                                                                                                <AttachmentRow
-                                                                                                    attachment={
-                                                                                                        attachment
-                                                                                                    }
-                                                                                                    scope={
-                                                                                                        scope!
-                                                                                                    }
-                                                                                                    canCreateFiles={
-                                                                                                        canCreateFiles
-                                                                                                    }
-                                                                                                    hasFileFields={
-                                                                                                        fileFields.length >
-                                                                                                        0
-                                                                                                    }
-                                                                                                    onSaved={
-                                                                                                        onAttachmentSaved
-                                                                                                    }
-                                                                                                    onAddToField={() => {
-                                                                                                        setAddFieldFor(
-                                                                                                            attachment,
-                                                                                                        );
-                                                                                                        setAddFieldName(
-                                                                                                            fileFields[0]
-                                                                                                                ?.name ??
-                                                                                                                '',
-                                                                                                        );
-                                                                                                    }}
-                                                                                                />
-                                                                                            </li>
-                                                                                        ),
-                                                                                    )}
-                                                                                </ul>
-                                                                            ) : null}
-                                                                            <div className="flex items-center gap-1 self-end">
-                                                                                {comment.is_pinned ? (
-                                                                                    <Pin
-                                                                                        className="size-2.5 shrink-0 text-muted-foreground"
-                                                                                        aria-hidden
-                                                                                    />
-                                                                                ) : null}
-                                                                                <time
-                                                                                    className="text-[10px] leading-none text-muted-foreground tabular-nums"
-                                                                                    dateTime={
-                                                                                        comment.created_at ??
-                                                                                        undefined
-                                                                                    }
-                                                                                >
-                                                                                    {commentTime(
-                                                                                        comment.created_at,
-                                                                                    )}
-                                                                                </time>
-                                                                            </div>
-                                                                            {comment
+                                                                            {initialsFromName(
+                                                                                comment
+                                                                                    .user
+                                                                                    ?.name ??
+                                                                                    '?',
+                                                                            )}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                </MessageAvatar>
+                                                            ) : (
+                                                                // Keeps grouped bubbles aligned under the first one.
+                                                                <div
+                                                                    className="w-8 shrink-0"
+                                                                    aria-hidden
+                                                                />
+                                                            )
+                                                        ) : null}
+                                                        <MessageContent>
+                                                            {!mine &&
+                                                            isGroupStart ? (
+                                                                <MessageHeader className="font-medium text-foreground">
+                                                                    {comment.user ? (
+                                                                        <ChatUserHoverCard
+                                                                            user={
+                                                                                comment.user
+                                                                            }
+                                                                        >
+                                                                            <button
+                                                                                type="button"
+                                                                                className="cursor-default rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                                                data-test="chat-author-name"
+                                                                            >
+                                                                                {
+                                                                                    comment
+                                                                                        .user
+                                                                                        .name
+                                                                                }
+                                                                            </button>
+                                                                        </ChatUserHoverCard>
+                                                                    ) : null}
+                                                                </MessageHeader>
+                                                            ) : null}
+                                                            <div className="flex min-w-0 items-end gap-1 group-data-[align=end]/message:flex-row-reverse">
+                                                                <ChatMessageContextMenu
+                                                                    actions={messageActionsFor(
+                                                                        comment,
+                                                                    )}
+                                                                >
+                                                                    <Bubble
+                                                                        variant="muted"
+                                                                        align={
+                                                                            mine
+                                                                                ? 'end'
+                                                                                : 'start'
+                                                                        }
+                                                                        className={cn(
+                                                                            comment.attachments.some(
+                                                                                isChatMediaAttachment,
+                                                                            ) &&
+                                                                                'min-w-[16rem]',
+                                                                            // BubbleReactions overhang the bubble's bottom edge.
+                                                                            comment
                                                                                 .reactions
                                                                                 .length >
-                                                                            0 ? (
-                                                                                <div className="flex flex-wrap gap-1">
-                                                                                    {comment.reactions.map(
+                                                                                0 &&
+                                                                                'mb-4',
+                                                                        )}
+                                                                    >
+                                                                        <BubbleContent
+                                                                            className={cn(
+                                                                                'flex w-full flex-col gap-1',
+                                                                                mine &&
+                                                                                    'text-foreground',
+                                                                                // Media album needs definite min width:
+                                                                                // Bubble is w-fit; min-w-0 + author
+                                                                                // label collapses the grid for !mine.
+                                                                                comment.attachments.some(
+                                                                                    isChatMediaAttachment,
+                                                                                )
+                                                                                    ? 'min-w-[16rem] gap-0 p-0'
+                                                                                    : 'min-w-0',
+                                                                            )}
+                                                                        >
+                                                                            {(() => {
+                                                                                const mediaAttachments =
+                                                                                    comment.attachments.filter(
+                                                                                        isChatMediaAttachment,
+                                                                                    );
+                                                                                const fileAttachments =
+                                                                                    comment.attachments.filter(
                                                                                         (
-                                                                                            reaction,
-                                                                                        ) => (
-                                                                                            <button
-                                                                                                key={
-                                                                                                    reaction.emoji
-                                                                                                }
-                                                                                                type="button"
-                                                                                                title={(
-                                                                                                    reaction.users ??
-                                                                                                    []
-                                                                                                )
-                                                                                                    .map(
-                                                                                                        (
-                                                                                                            user,
-                                                                                                        ) =>
-                                                                                                            user.name,
-                                                                                                    )
-                                                                                                    .join(
-                                                                                                        ', ',
-                                                                                                    )}
+                                                                                            attachment,
+                                                                                        ) =>
+                                                                                            !isChatMediaAttachment(
+                                                                                                attachment,
+                                                                                            ),
+                                                                                    );
+                                                                                const hasMedia =
+                                                                                    mediaAttachments.length >
+                                                                                    0;
+                                                                                const pad =
+                                                                                    hasMedia
+                                                                                        ? 'px-3'
+                                                                                        : undefined;
+                                                                                const onAttachmentSaved =
+                                                                                    (
+                                                                                        next: ChatAttachment,
+                                                                                    ): void => {
+                                                                                        const id =
+                                                                                            liveChatIdRef.current;
+
+                                                                                        if (
+                                                                                            !id
+                                                                                        ) {
+                                                                                            return;
+                                                                                        }
+
+                                                                                        mapMessages(
+                                                                                            id,
+                                                                                            (
+                                                                                                prev,
+                                                                                            ) =>
+                                                                                                prev.map(
+                                                                                                    (
+                                                                                                        row,
+                                                                                                    ) =>
+                                                                                                        row.id ===
+                                                                                                        comment.id
+                                                                                                            ? {
+                                                                                                                  ...row,
+                                                                                                                  attachments:
+                                                                                                                      row.attachments.map(
+                                                                                                                          (
+                                                                                                                              item,
+                                                                                                                          ) =>
+                                                                                                                              item.id ===
+                                                                                                                              next.id
+                                                                                                                                  ? next
+                                                                                                                                  : item,
+                                                                                                                      ),
+                                                                                                              }
+                                                                                                            : row,
+                                                                                                ),
+                                                                                        );
+                                                                                    };
+
+                                                                                return (
+                                                                                    <>
+                                                                                        {comment.reply_to ? (
+                                                                                            <div
                                                                                                 className={cn(
-                                                                                                    'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] leading-none shadow-sm',
-                                                                                                    reaction.reacted
-                                                                                                        ? 'border-primary/60 bg-primary/15'
-                                                                                                        : 'border-border bg-card text-card-foreground',
+                                                                                                    'flex flex-col gap-1',
+                                                                                                    pad,
+                                                                                                    hasMedia &&
+                                                                                                        'pt-2',
                                                                                                 )}
-                                                                                                onClick={() =>
-                                                                                                    onReact(
-                                                                                                        comment,
-                                                                                                        reaction.emoji,
-                                                                                                    )
-                                                                                                }
                                                                                             >
-                                                                                                <span>
-                                                                                                    {
-                                                                                                        reaction.emoji
+                                                                                                <ChatReplyQuote
+                                                                                                    author={
+                                                                                                        comment
+                                                                                                            .reply_to
+                                                                                                            .user
+                                                                                                            ?.name
                                                                                                     }
-                                                                                                </span>
-                                                                                                <span className="flex items-center">
-                                                                                                    {(
-                                                                                                        reaction.users ??
-                                                                                                        []
-                                                                                                    )
-                                                                                                        .slice(
-                                                                                                            0,
-                                                                                                            3,
+                                                                                                    body={
+                                                                                                        comment
+                                                                                                            .reply_to
+                                                                                                            .body
+                                                                                                    }
+                                                                                                    onSelect={() =>
+                                                                                                        scrollToMessage(
+                                                                                                            comment
+                                                                                                                .reply_to!
+                                                                                                                .id,
                                                                                                         )
-                                                                                                        .map(
-                                                                                                            (
-                                                                                                                user,
-                                                                                                                index,
-                                                                                                            ) => (
-                                                                                                                <span
-                                                                                                                    key={
-                                                                                                                        user.id
+                                                                                                    }
+                                                                                                />
+                                                                                            </div>
+                                                                                        ) : null}
+                                                                                        {hasMedia ? (
+                                                                                            <ChatMediaGallery
+                                                                                                items={
+                                                                                                    mediaAttachments
+                                                                                                }
+                                                                                                scope={
+                                                                                                    scope!
+                                                                                                }
+                                                                                                canCreateFiles={
+                                                                                                    canCreateFiles
+                                                                                                }
+                                                                                                hasFileFields={
+                                                                                                    fileFields.length >
+                                                                                                    0
+                                                                                                }
+                                                                                                onSaved={
+                                                                                                    onAttachmentSaved
+                                                                                                }
+                                                                                                onAddToField={(
+                                                                                                    attachment,
+                                                                                                ) => {
+                                                                                                    setAddFieldFor(
+                                                                                                        attachment,
+                                                                                                    );
+                                                                                                    setAddFieldName(
+                                                                                                        fileFields[0]
+                                                                                                            ?.name ??
+                                                                                                            '',
+                                                                                                    );
+                                                                                                }}
+                                                                                            />
+                                                                                        ) : null}
+                                                                                        <div
+                                                                                            className={cn(
+                                                                                                'flex flex-col gap-1',
+                                                                                                pad,
+                                                                                                hasMedia &&
+                                                                                                    'pt-1 pb-2',
+                                                                                            )}
+                                                                                        >
+                                                                                            {editingId ===
+                                                                                            comment.id ? (
+                                                                                                <div className="flex min-w-[12rem] flex-col gap-2">
+                                                                                                    <Textarea
+                                                                                                        value={
+                                                                                                            editingDraft
+                                                                                                        }
+                                                                                                        onChange={(
+                                                                                                            event,
+                                                                                                        ) =>
+                                                                                                            setEditingDraft(
+                                                                                                                event
+                                                                                                                    .target
+                                                                                                                    .value,
+                                                                                                            )
+                                                                                                        }
+                                                                                                        rows={
+                                                                                                            3
+                                                                                                        }
+                                                                                                    />
+                                                                                                    <div className="flex gap-2">
+                                                                                                        <Button
+                                                                                                            type="button"
+                                                                                                            onClick={() =>
+                                                                                                                saveEdit(
+                                                                                                                    comment,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        >
+                                                                                                            {t(
+                                                                                                                'common.save',
+                                                                                                            )}
+                                                                                                        </Button>
+                                                                                                        <Button
+                                                                                                            type="button"
+                                                                                                            variant="ghost"
+                                                                                                            onClick={() =>
+                                                                                                                setEditingId(
+                                                                                                                    null,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        >
+                                                                                                            {t(
+                                                                                                                'common.cancel',
+                                                                                                            )}
+                                                                                                        </Button>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ) : comment.body !==
+                                                                                              '' ? (
+                                                                                                <div className="whitespace-pre-wrap">
+                                                                                                    {renderMessageBody(
+                                                                                                        comment.body,
+                                                                                                        comment.mentioned_users,
+                                                                                                        comment.mentioned_collections,
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            ) : null}
+                                                                                            {fileAttachments.length >
+                                                                                            0 ? (
+                                                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-2 overflow-y-auto">
+                                                                                                    {fileAttachments.map(
+                                                                                                        (
+                                                                                                            attachment,
+                                                                                                        ) => (
+                                                                                                            <li
+                                                                                                                key={
+                                                                                                                    attachment.id
+                                                                                                                }
+                                                                                                                className="w-full min-w-0"
+                                                                                                            >
+                                                                                                                <ChatAttachmentFile
+                                                                                                                    attachment={
+                                                                                                                        attachment
                                                                                                                     }
-                                                                                                                    className={cn(
-                                                                                                                        'flex size-4 items-center justify-center rounded-full text-[8px] font-semibold ring-1 ring-card',
-                                                                                                                        index >
-                                                                                                                            0 &&
-                                                                                                                            '-ml-1',
-                                                                                                                    )}
-                                                                                                                    style={avatarStyleForId(
-                                                                                                                        user.id,
-                                                                                                                    )}
-                                                                                                                    aria-hidden
-                                                                                                                >
-                                                                                                                    {initials(
-                                                                                                                        user.name,
-                                                                                                                    )}
-                                                                                                                </span>
-                                                                                                            ),
-                                                                                                        )}
-                                                                                                    {(reaction
-                                                                                                        .users
-                                                                                                        ?.length ??
-                                                                                                        0) >
-                                                                                                    3 ? (
-                                                                                                        <span className="-ml-1 flex size-4 items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-muted-foreground ring-1 ring-card">
-                                                                                                            +
-                                                                                                            {(reaction
-                                                                                                                .users
-                                                                                                                ?.length ??
-                                                                                                                0) -
-                                                                                                                3}
-                                                                                                        </span>
-                                                                                                    ) : null}
-                                                                                                </span>
-                                                                                            </button>
-                                                                                        ),
-                                                                                    )}
-                                                                                </div>
-                                                                            ) : null}
-                                                                        </div>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </BubbleContent>
-                                                    </Bubble>
-                                                </MessageActionsMenu>
-                                            </MessageContent>
-                                        </Message>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                                                                                                    scope={
+                                                                                                                        scope!
+                                                                                                                    }
+                                                                                                                    canCreateFiles={
+                                                                                                                        canCreateFiles
+                                                                                                                    }
+                                                                                                                    hasFileFields={
+                                                                                                                        fileFields.length >
+                                                                                                                        0
+                                                                                                                    }
+                                                                                                                    onSaved={
+                                                                                                                        onAttachmentSaved
+                                                                                                                    }
+                                                                                                                    onAddToField={() => {
+                                                                                                                        setAddFieldFor(
+                                                                                                                            attachment,
+                                                                                                                        );
+                                                                                                                        setAddFieldName(
+                                                                                                                            fileFields[0]
+                                                                                                                                ?.name ??
+                                                                                                                                '',
+                                                                                                                        );
+                                                                                                                    }}
+                                                                                                                />
+                                                                                                            </li>
+                                                                                                        ),
+                                                                                                    )}
+                                                                                                </ul>
+                                                                                            ) : null}
+                                                                                            <div className="flex items-center gap-1 self-end">
+                                                                                                {comment.is_pinned ? (
+                                                                                                    <Pin
+                                                                                                        className="size-2.5 shrink-0 text-muted-foreground"
+                                                                                                        aria-hidden
+                                                                                                    />
+                                                                                                ) : null}
+                                                                                                <time
+                                                                                                    className="text-xs leading-none text-muted-foreground tabular-nums"
+                                                                                                    dateTime={
+                                                                                                        comment.created_at ??
+                                                                                                        undefined
+                                                                                                    }
+                                                                                                >
+                                                                                                    {commentTime(
+                                                                                                        comment.created_at,
+                                                                                                    )}
+                                                                                                </time>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </>
+                                                                                );
+                                                                            })()}
+                                                                        </BubbleContent>
+                                                                        <ChatMessageReactions
+                                                                            reactions={
+                                                                                comment.reactions
+                                                                            }
+                                                                            align={
+                                                                                mine
+                                                                                    ? 'end'
+                                                                                    : 'start'
+                                                                            }
+                                                                            onToggle={(
+                                                                                emoji,
+                                                                            ) =>
+                                                                                onReact(
+                                                                                    comment,
+                                                                                    emoji,
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                    </Bubble>
+                                                                </ChatMessageContextMenu>
+                                                                <ChatMessageActionsButton
+                                                                    actions={messageActionsFor(
+                                                                        comment,
+                                                                    )}
+                                                                    align={
+                                                                        mine
+                                                                            ? 'end'
+                                                                            : 'start'
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </MessageContent>
+                                                    </Message>
+                                                </div>
+                                            </MessageScrollerItem>
+                                        );
+                                    },
+                                )}
+                            </MessageGroup>
+                        ))}
                         {pendingMessages.map((pending) => (
                             <ChatOutgoingAttachPreview
                                 key={pending.clientId}
@@ -2511,280 +2469,132 @@ export function ItemChatDrawer({
                                 onRemoveFile={removePendingFile}
                             />
                         ))}
-                    </DrawerBody>
-                    {!pinnedToBottom || loading || typingLabel ? (
-                        <div
-                            data-test="chat-thread-status"
-                            className="absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
-                        >
-                            {!pinnedToBottom ? (
+                    </ChatMessageScroller>
+                </div>
+                <DrawerFooter
+                    // In the hub pane, match the assistant page's composer inset.
+                    className={variant === 'pane' ? 'p-3' : undefined}
+                >
+                    {replyTo ? (
+                        <ChatReplyQuote
+                            author={replyTo.user?.name}
+                            body={storedBodyToDraft(
+                                replyTo.body,
+                                replyTo.mentioned_users,
+                            )}
+                            action={
                                 <Button
                                     type="button"
-                                    size="icon"
-                                    variant="secondary"
-                                    className="size-9 rounded-full shadow-md"
-                                    aria-label={t(
-                                        'collections.itemChat.scrollToBottom',
-                                    )}
-                                    onClick={() => scrollToBottom('smooth')}
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => setReplyTo(null)}
                                 >
-                                    <ChevronDown className="size-4" />
+                                    {t('common.cancel')}
                                 </Button>
-                            ) : null}
-                            {loading || typingLabel ? (
-                                <div className="pointer-events-none flex flex-col items-center gap-1">
-                                    {loading ? (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <Spinner className="size-4" />
-                                            {t('collections.itemChat.loading')}
-                                        </div>
-                                    ) : null}
-                                    {typingLabel ? (
-                                        <p className="text-xs text-muted-foreground">
-                                            {typingLabel}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            ) : null}
-                        </div>
-                    ) : null}
-                </div>
-                <DrawerFooter>
-                    {replyTo ? (
-                        <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5">
-                            <div
-                                className="min-w-0 flex-1 border-l-2 pl-2 text-xs"
-                                style={{
-                                    borderColor: avatarColorForId(
-                                        replyTo.user?.id ?? 0,
-                                    ),
-                                }}
-                            >
-                                <div
-                                    className="font-medium"
-                                    style={{
-                                        color: avatarColorForId(
-                                            replyTo.user?.id ?? 0,
-                                        ),
-                                    }}
-                                >
-                                    {replyTo.user?.name}
-                                </div>
-                                <div className="truncate text-muted-foreground">
-                                    {storedBodyToDraft(
-                                        replyTo.body,
-                                        replyTo.mentioned_users,
-                                    )}
-                                </div>
-                            </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 px-1"
-                                onClick={() => setReplyTo(null)}
-                            >
-                                {t('common.cancel')}
-                            </Button>
-                        </div>
-                    ) : null}
-                    <div className="relative">
-                        {mentionsEnabled &&
-                        mentionOpen &&
-                        mentionHits.length > 0 &&
-                        !attachDialogOpen ? (
-                            <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                {mentionHits.map((hit, index) => (
-                                    <button
-                                        key={`${hit.type}-${hit.id}`}
-                                        type="button"
-                                        className={
-                                            index === mentionHighlight
-                                                ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                        }
-                                        onMouseEnter={() =>
-                                            setMentionHighlight(index)
-                                        }
-                                        onClick={() => pickMention(hit)}
-                                    >
-                                        <span>
-                                            {hit.type === 'collection'
-                                                ? collectionMentionLabel(hit)
-                                                : hit.name}
-                                        </span>
-                                        {hit.type === 'user' && hit.email ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {hit.email}
-                                            </span>
-                                        ) : hit.type === 'collection' ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                collection
-                                            </span>
-                                        ) : null}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : null}
-                        <Textarea
-                            ref={textareaRef}
-                            value={draft}
-                            rows={3}
-                            placeholder={t('collections.itemChat.placeholder')}
-                            data-test="item-chat-composer"
-                            onChange={(event) =>
-                                onComposerChange(
-                                    event.target.value,
-                                    event.target.selectionStart,
-                                )
                             }
+                        />
+                    ) : null}
+                    <ChatMentionMenu
+                        {...mentionMenu}
+                        open={mentionMenu.isOpen}
+                        renderHit={(hit) => <ChatMentionHitLabel hit={hit} />}
+                        textareaRef={textareaRef}
+                    >
+                        <ChatComposer
+                            textareaRef={textareaRef}
+                            value={draft}
+                            onValueChange={onComposerChange}
+                            onSubmit={send}
+                            canSubmit={draft.trim() !== '' && !attachDialogOpen}
+                            placeholder={t('collections.itemChat.placeholder')}
+                            label={t('collections.itemChat.placeholder')}
+                            sendLabel={t('collections.itemChat.send')}
+                            textareaTestId="item-chat-composer"
+                            submitTestId="item-chat-send"
                             onKeyDown={(event) => {
-                                if (event.nativeEvent.isComposing) {
-                                    return;
-                                }
-
                                 if (
                                     mentionsEnabled &&
-                                    mentionOpen &&
-                                    mentionHits.length > 0
+                                    handleMentionMenuKeyDown(event, mentionMenu)
                                 ) {
-                                    if (event.key === 'ArrowDown') {
-                                        event.preventDefault();
-                                        setMentionHighlight(
-                                            (index) =>
-                                                (index + 1) %
-                                                mentionHits.length,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (event.key === 'ArrowUp') {
-                                        event.preventDefault();
-                                        setMentionHighlight(
-                                            (index) =>
-                                                (index -
-                                                    1 +
-                                                    mentionHits.length) %
-                                                mentionHits.length,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (
-                                        event.key === 'Enter' &&
-                                        !event.shiftKey &&
-                                        !event.metaKey &&
-                                        !event.ctrlKey
-                                    ) {
-                                        event.preventDefault();
-                                        pickMention(
-                                            mentionHits[mentionHighlight]!,
-                                        );
-
-                                        return;
-                                    }
-
-                                    if (event.key === 'Escape') {
-                                        event.preventDefault();
-                                        setMentionOpen(false);
-                                        setMentionStart(null);
-
-                                        return;
-                                    }
-                                }
-
-                                if (event.key === 'Enter' && event.shiftKey) {
                                     return;
                                 }
 
                                 if (event.key === ' ' && event.shiftKey) {
                                     event.preventDefault();
                                     insertAtCaret('\n');
-
-                                    return;
-                                }
-
-                                if (event.key === 'Enter') {
-                                    event.preventDefault();
-                                    send();
                                 }
                             }}
-                        />
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {mentionsEnabled ? (
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                aria-label={t('collections.itemChat.mention')}
-                                onClick={insertMentionTrigger}
-                            >
-                                @
-                            </Button>
-                        ) : null}
-                        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    aria-label={t('collections.itemChat.emoji')}
-                                >
-                                    <Smile className="size-4" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2" align="start">
-                                <div className="grid grid-cols-8 gap-1">
-                                    {EMOJI_GRID.map((emoji) => (
-                                        <button
-                                            key={emoji}
+                            actions={
+                                <>
+                                    {mentionsEnabled ? (
+                                        <Button
                                             type="button"
-                                            className="rounded p-1 text-lg hover:bg-muted"
-                                            onClick={() => {
-                                                insertAtCaret(emoji);
-                                                setEmojiOpen(false);
-                                            }}
+                                            size="icon"
+                                            variant="ghost"
+                                            aria-label={t(
+                                                'collections.itemChat.mention',
+                                            )}
+                                            onClick={insertMentionTrigger}
                                         >
-                                            {emoji}
-                                        </button>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t('collections.itemChat.attach')}
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <Paperclip className="size-4" />
-                        </Button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            className="hidden"
-                            multiple
-                            onChange={(event) => {
-                                onPickFiles(event.target.files);
-                                event.target.value = '';
-                            }}
+                                            @
+                                        </Button>
+                                    ) : null}
+                                    <Popover
+                                        open={emojiOpen}
+                                        onOpenChange={setEmojiOpen}
+                                    >
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                aria-label={t(
+                                                    'collections.itemChat.emoji',
+                                                )}
+                                            >
+                                                <Smile className="size-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            className="w-64 p-2"
+                                            align="start"
+                                        >
+                                            <ChatEmojiGrid
+                                                emojis={EMOJI_GRID}
+                                                onSelect={(emoji) => {
+                                                    insertAtCaret(emoji);
+                                                    setEmojiOpen(false);
+                                                }}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        aria-label={t(
+                                            'collections.itemChat.attach',
+                                        )}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                    >
+                                        <Paperclip className="size-4" />
+                                    </Button>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        multiple
+                                        onChange={(event) => {
+                                            onPickFiles(event.target.files);
+                                            event.target.value = '';
+                                        }}
+                                    />
+                                </>
+                            }
                         />
-                        <Button
-                            type="button"
-                            className="ml-auto"
-                            disabled={draft.trim() === '' || attachDialogOpen}
-                            aria-label={t('collections.itemChat.send')}
-                            onClick={send}
-                            data-test="item-chat-send"
-                        >
-                            <Send className="size-4" />
-                            {t('collections.itemChat.send')}
-                        </Button>
-                    </div>
+                    </ChatMentionMenu>
                 </DrawerFooter>
                 {composerDragOver ? (
                     <div
@@ -2822,6 +2632,9 @@ export function ItemChatDrawer({
                     <DrawerContent
                         data-test="item-chat-drawer"
                         className="data-[vaul-drawer-direction=right]:max-w-md"
+                        aria-label={
+                            thread?.title ?? t('collections.itemChat.title')
+                        }
                     >
                         {threadShell}
                     </DrawerContent>
@@ -2884,9 +2697,9 @@ export function ItemChatDrawer({
                             <Label htmlFor="item-chat-add-field">
                                 {t('collections.itemChat.selectField')}
                             </Label>
-                            <select
+                            <NativeSelect
                                 id="item-chat-add-field"
-                                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                                className="w-full"
                                 value={addFieldName}
                                 onChange={(event) =>
                                     setAddFieldName(event.target.value)
@@ -2897,7 +2710,7 @@ export function ItemChatDrawer({
                                         {field.name} ({field.type})
                                     </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                         </div>
                     )}
                     <DialogFooter>
@@ -2945,6 +2758,24 @@ export function ItemChatDrawer({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDestructiveDialog
+                open={messagePendingDelete !== null}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) {
+                        setMessagePendingDelete(null);
+                    }
+                }}
+                title={t('confirmDestructive.deleteMessageTitle')}
+                description={t('confirmDestructive.deleteMessageDescription')}
+                onConfirm={() => {
+                    if (messagePendingDelete !== null) {
+                        removeMessage(messagePendingDelete);
+                    }
+
+                    setMessagePendingDelete(null);
+                }}
+            />
         </>
     );
 }
@@ -3074,158 +2905,5 @@ function ChatMediaGallery({
                 }}
             />
         </>
-    );
-}
-
-function MessageActionsMenu({
-    canEdit,
-    canDelete,
-    isPinned,
-    onReply,
-    onCopy,
-    onPin,
-    onReact,
-    onEdit,
-    onDelete,
-    children,
-}: {
-    canEdit: boolean;
-    canDelete: boolean;
-    isPinned: boolean;
-    onReply: () => void;
-    onCopy: () => void;
-    onPin: () => void;
-    onReact: (emoji: string) => void;
-    onEdit: () => void;
-    onDelete: () => void;
-    children: ReactElement;
-}) {
-    const { t } = useTranslation();
-
-    return (
-        <ContextMenu modal={false}>
-            <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-            <ContextMenuContent
-                className="w-52"
-                onCloseAutoFocus={(event) => {
-                    // Keep Reply→composer focus; avoid restore onto message bubble.
-                    event.preventDefault();
-                }}
-            >
-                <div className="flex items-center gap-0.5 px-1 pb-1">
-                    {REACTION_EMOJIS.map((emoji) => (
-                        <button
-                            key={emoji}
-                            type="button"
-                            className="flex size-7 items-center justify-center rounded-md text-base hover:bg-accent"
-                            onClick={() => onReact(emoji)}
-                        >
-                            {emoji}
-                        </button>
-                    ))}
-                </div>
-                <ContextMenuSeparator />
-                <ContextMenuItem onSelect={onReply}>
-                    <Reply />
-                    {t('collections.itemChat.reply')}
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={onCopy}>
-                    <Copy />
-                    {t('collections.itemChat.copyText')}
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={onPin}>
-                    <Pin />
-                    {isPinned
-                        ? t('collections.itemChat.unpin')
-                        : t('collections.itemChat.pin')}
-                </ContextMenuItem>
-                {canEdit ? (
-                    <ContextMenuItem onSelect={onEdit}>
-                        {t('collections.itemChat.edit')}
-                    </ContextMenuItem>
-                ) : null}
-                {canDelete ? (
-                    <ContextMenuItem variant="destructive" onSelect={onDelete}>
-                        {t('common.delete')}
-                    </ContextMenuItem>
-                ) : null}
-            </ContextMenuContent>
-        </ContextMenu>
-    );
-}
-
-function AttachmentRow({
-    attachment,
-    scope,
-    canCreateFiles,
-    hasFileFields,
-    onSaved,
-    onAddToField,
-}: {
-    attachment: ChatAttachment;
-    scope: ChatScope;
-    canCreateFiles: boolean;
-    hasFileFields: boolean;
-    onSaved: (attachment: ChatAttachment) => void;
-    onAddToField: () => void;
-}) {
-    const { t } = useTranslation();
-    const href = chatAttachmentUrl(scope, attachment.id);
-
-    return (
-        <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 text-card-foreground shadow-sm">
-            <a
-                href={href}
-                className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-foreground no-underline hover:underline"
-                target="_blank"
-                rel="noreferrer"
-            >
-                <FileText
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden
-                />
-                <span className="truncate">{attachment.name}</span>
-            </a>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="size-6 shrink-0 text-muted-foreground"
-                        aria-label={t('collections.itemChat.more')}
-                        onContextMenu={(event) => event.stopPropagation()}
-                    >
-                        <MoreVertical className="size-3.5" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                        <a href={href} target="_blank" rel="noreferrer">
-                            {t('collections.itemChat.download')}
-                        </a>
-                    </DropdownMenuItem>
-                    {canCreateFiles ? (
-                        <DropdownMenuItem
-                            onSelect={() => {
-                                void saveChatAttachmentToFiles(
-                                    scope,
-                                    attachment.id,
-                                ).then((payload) =>
-                                    onSaved(payload.attachment),
-                                );
-                            }}
-                        >
-                            {t('collections.itemChat.saveToFiles')}
-                        </DropdownMenuItem>
-                    ) : null}
-                    {hasFileFields ? (
-                        <DropdownMenuItem onSelect={onAddToField}>
-                            {t('collections.itemChat.addToField')}
-                        </DropdownMenuItem>
-                    ) : null}
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
     );
 }

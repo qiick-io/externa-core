@@ -5,6 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
@@ -130,7 +131,7 @@ it('shows create and upload actions on empty grid area context menu', function (
 
     $page = visit('/files');
 
-    $page->assertSee('Drop files anywhere to upload')
+    $page->assertSee('Drop files to upload')
         ->rightClick('[data-testid="files-grid-area"]')
         ->assertPresent('[data-testid="files-empty-area-context-menu"]')
         ->assertSee('New Folder')
@@ -259,7 +260,8 @@ it('keeps mixed file cards square and truncates long titles', function () {
                     return false;
                 }
 
-                const aspectSquare = cards.every((card) => card.classList.contains('aspect-square'));
+                // Cards sit in a 1:1 AspectRatio box (its wrapper is the grid cell).
+                const aspectSquare = cards.every((card) => card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper'));
 
                 const sizes = cards.map((card) => {
                     const rect = card.getBoundingClientRect();
@@ -365,4 +367,314 @@ it('opens a folder picker dialog for move instead of a prompt', function () {
         ->assertNoJavaScriptErrors();
 
     expect($file->fresh()->parent_id)->toBe($destination->id);
+});
+
+it('keeps every checkbox-selected file and moves them all with one bulk action', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+
+    $destination = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Archive',
+        'path' => '/Archive',
+        'disk' => 'assets',
+    ]);
+
+    $files = collect(['first-pick.txt', 'second-pick.txt'])->map(
+        fn (string $name): File => File::query()->create([
+            'type' => FileTypeEnum::File,
+            'name' => $name,
+            'path' => '/'.$name,
+            'disk' => 'assets',
+            'storage_path' => '2026/07/'.$name,
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+        ]),
+    );
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->assertSee('first-pick.txt')
+        ->click('[aria-label="Select first-pick.txt"]')
+        ->assertSee('1 selected')
+        ->click('[aria-label="Select second-pick.txt"]')
+        ->assertSee('2 selected')
+        ->assertAttribute('[aria-label="Select first-pick.txt"]', 'aria-checked', 'true')
+        ->assertAttribute('[aria-label="Select second-pick.txt"]', 'aria-checked', 'true')
+        ->rightClick("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
+        ->assertPresent('[data-testid="folder-picker-dialog"]')
+        ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
+        ->click('[data-testid="folder-picker-confirm"]')
+        ->assertMissing('[data-testid="folder-picker-dialog"]')
+        ->assertNoJavaScriptErrors();
+
+    foreach ($files as $file) {
+        expect($file->fresh()->parent_id)->toBe($destination->id);
+    }
+});
+
+it('selects every visible file from the selection bar and keeps the actions on the right', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+    ]);
+
+    $files = collect(range(1, 3))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => "bulk-{$index}.txt",
+        'title' => "Bulk file {$index}",
+        'path' => "/bulk-{$index}.txt",
+        'disk' => 'assets',
+        'storage_path' => "2026/07/bulk-{$index}.txt",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$files->first()->id}\"]")
+        ->assertSee('1 selected')
+        ->assertAttribute('[data-testid="files-select-all"]', 'data-state', 'indeterminate')
+        ->assertScript(<<<'JS'
+(() => {
+  const bar = document.querySelector('[data-testid="files-select-all"]').closest('[data-slot="page-header"]').getBoundingClientRect();
+  const download = document.querySelector('[data-testid="files-action-download"]').getBoundingClientRect();
+
+  return bar.right - download.right < 8;
+})()
+JS)
+        ->click('[data-testid="files-select-all"]')
+        ->assertSee('3 selected')
+        ->assertAttribute('[data-testid="files-select-all"]', 'data-state', 'checked')
+        ->click('[data-testid="files-select-all"]')
+        ->assertMissing('[data-testid="files-select-all"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the selection actions inline after the selection grows and shrinks', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+        PermissionEnum::CanUseAi->value,
+    ]);
+
+    $files = collect(range(1, 2))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => "inline-{$index}.txt",
+        'title' => "Inline file {$index}",
+        'path' => "/inline-{$index}.txt",
+        'disk' => 'assets',
+        'storage_path' => "2026/07/inline-{$index}.txt",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$files->first()->id}\"]")
+        ->assertSee('1 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertScript(<<<'JS'
+(() => {
+  const askAi = document.querySelector('[data-testid="ask-ai-toolbar"]').getBoundingClientRect();
+  const download = document.querySelector('[data-testid="files-action-download"]').getBoundingClientRect();
+
+  return askAi.right < download.left && download.left - askAi.right < 120;
+})()
+JS)
+        ->click('button[aria-label="Select inline-2.txt"]')
+        ->assertSee('2 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertMissing('[data-testid="files-actions-more"]')
+        ->click('button[aria-label="Select inline-2.txt"]')
+        ->assertSee('1 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertMissing('[data-testid="files-actions-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('empties the trash in the background and refreshes when the job reports back', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanForceDeleteFiles->value,
+    ]);
+
+    collect(['old-a.txt', 'old-b.txt'])->each(fn (string $name): bool => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => $name,
+        'title' => $name,
+        'path' => "/{$name}",
+        'disk' => 'assets',
+        'storage_path' => "2026/11/{$name}",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ])->delete());
+
+    $this->actingAs($user);
+
+    $page = visit('/files?trashed=only');
+
+    $page->assertSee('old-a.txt')
+        ->click('[data-testid="files-empty-trash"]')
+        ->assertSee('Empty the trash?')
+        ->click('[data-test="confirm-destructive"]')
+        ->assertSee('Trash emptied')
+        ->assertDontSee('old-a.txt')
+        ->assertAttribute('[data-testid="files-empty-trash"]', 'disabled', '')
+        ->assertNoJavaScriptErrors();
+
+    expect(File::query()->withTrashed()->count())->toBe(0);
+});
+
+/**
+ * @return Collection<int, File>
+ */
+function createGridFiles(int $count): Collection
+{
+    return collect(range(1, $count))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => sprintf('grid-%03d.txt', $index),
+        'title' => sprintf('Grid file %03d', $index),
+        'path' => sprintf('/grid-%03d.txt', $index),
+        'disk' => 'assets',
+        'storage_path' => sprintf('2026/11/grid-%03d.txt', $index),
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+}
+
+it('fills a tall window with pages automatically and stops at the end of the list', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [PermissionEnum::CanShowFiles->value]);
+    createGridFiles(60);
+    $this->actingAs($user);
+
+    $page = visit('/files');
+    $page->resize(1440, 3200);
+
+    $page->wait(2)
+        ->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 60")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('loads more files on scroll without fetching everything up front', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [PermissionEnum::CanShowFiles->value]);
+    createGridFiles(144);
+    $this->actingAs($user);
+
+    // A laptop-sized window from the first paint (the default test window is 1728x1117).
+    // wait() resolves the page: calls on the device proxy itself open a new visit each time.
+    $page = visit('/files')->on()->macbookAir()->wait(1);
+
+    $page->assertScript("(n => n >= 48 && n <= 96)(document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length)")
+        ->assertPresent('[data-testid="files-load-more"]');
+
+    // Scroll the grid panel to the bottom, as the wheel would.
+    foreach (range(1, 4) as $_) {
+        $page->script(<<<'JS'
+            (() => {
+                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                    panel = panel.parentElement;
+                }
+                if (panel) {
+                    panel.scrollTop = panel.scrollHeight;
+                }
+            })()
+            JS);
+        $page->wait(1);
+    }
+
+    $page->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 144")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the loaded pages after a move and keeps loading on scroll', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+    $destination = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Archive',
+        'path' => '/Archive',
+        'disk' => 'assets',
+    ]);
+    $files = createGridFiles(144);
+    $this->actingAs($user);
+
+    $countCards = "document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length";
+    $page = visit('/files')->on()->macbookAir()->wait(1);
+    $loaded = $page->script($countCards);
+
+    expect($loaded)->toBeGreaterThan(48);
+
+    $page->rightClick("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
+        ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
+        ->click('[data-testid="folder-picker-confirm"]')
+        ->wait(1.5)
+        ->assertMissing("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->assertScript("{$countCards} === {$loaded}");
+
+    // Scroll the grid panel to the bottom, as the wheel would.
+    foreach (range(1, 4) as $_) {
+        $page->script(<<<'JS'
+            (() => {
+                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                    panel = panel.parentElement;
+                }
+                if (panel) {
+                    panel.scrollTop = panel.scrollHeight;
+                }
+            })()
+            JS);
+        $page->wait(1);
+    }
+
+    // The folder plus the 143 files left in the root.
+    $page->assertScript("{$countCards} === 144")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('draws the selected card ring inside the card so the grid edge cannot cut it', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $edge = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'edge.txt',
+        'path' => '/edge.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/edge.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->click("[data-testid=\"file-card-{$edge->id}\"]")
+        ->assertAttribute("[data-testid=\"file-card-{$edge->id}\"]", 'aria-pressed', 'true')
+        ->assertScript(<<<JS
+(() => {
+  const card = document.querySelector('[data-testid="file-card-{$edge->id}"]');
+  const ring = getComputedStyle(card, '::after').boxShadow;
+  return getComputedStyle(card).boxShadow === 'none' && ring.includes('inset') && !ring.startsWith('none');
+})()
+JS)
+        ->assertNoJavaScriptErrors();
 });

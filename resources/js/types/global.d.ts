@@ -1,6 +1,9 @@
 import type { ProjectAppearance } from '@/types/appearance';
 import type { Auth } from '@/types/auth';
-import type { SharedProjectSettings } from '@/types/project-settings';
+import type {
+    SharedDeployProps,
+    SharedProjectSettings,
+} from '@/types/project-settings';
 
 declare module '@inertiajs/core' {
     export interface InertiaConfig {
@@ -40,6 +43,7 @@ declare module '@inertiajs/core' {
             };
             projectAppearance: ProjectAppearance;
             projectSettings: SharedProjectSettings;
+            deploy: SharedDeployProps;
             [key: string]: unknown;
         };
     }

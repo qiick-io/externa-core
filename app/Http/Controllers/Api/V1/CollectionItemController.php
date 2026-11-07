@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Api\RelationIncludeHydrator;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
+use App\Services\Api\BatchCollectionItemsService;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Api\RelationIncludeHydratorService;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Support\Api\PublicApiIncludeParser;
+use App\Support\Api\PublicItemSortParser;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Public CMS API: CRUD for collection items gated by collection_permissions.
@@ -31,11 +31,12 @@ class CollectionItemController extends Controller
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
-        private CollectionItemDataNormalizer $itemDataNormalizer,
-        private CollectionItemValuesWriter $collectionItemValuesWriter,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private PublicApiResponseCache $responseCache,
+        private CreateCollectionItemAction $createCollectionItemAction,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
+        private BatchCollectionItemsService $batchCollectionItemsService,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private PublicApiResponseCacheService $responseCache,
+        private PublicItemSortParser $sortParser,
     ) {}
 
     public function index(Request $request, string $slug): JsonResponse
@@ -62,6 +63,7 @@ class CollectionItemController extends Controller
         $maxPerPage = max(1, (int) config('api.max_per_page', 100));
         $perPage = min(max($request->integer('per_page', 15), 1), $maxPerPage);
         $page = max($request->integer('page', 1), 1);
+        $sortKeys = $this->sortParser->parseRest($request, $collection);
 
         $version = $this->responseCache->version((int) $collection->id);
         $access = $this->apiAccess($request);
@@ -70,19 +72,24 @@ class CollectionItemController extends Controller
             'filter' => $stringFilters,
             'page' => $page,
             'per_page' => $perPage,
+            'sort' => $this->sortParser->cacheKey($sortKeys),
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
             'role_id' => $roleId,
             // File field expansion depends on file grants, not only role_id.
-            'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
             ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
         $key = $this->responseCache->itemsKey($slug, $version, $hash);
 
-        $payload = $this->responseCache->remember($key, function () use ($request, $collection, $stringFilters, $perPage, $page): array {
+        $payload = $this->responseCache->remember($key, function () use ($request, $collection, $stringFilters, $perPage, $page, $sortKeys): array {
             $collection->load(['fields' => fn ($q) => $q->ordered()]);
+
+            $queryLocale = $request->query('locale');
+            $localeOverride = is_string($queryLocale) && $queryLocale !== '' ? $queryLocale : null;
+            $locale = app(CollectionLocaleResolver::class)->resolve($localeOverride);
 
             $query = CollectionItem::query()
                 ->where('collection_id', $collection->id)
@@ -92,14 +99,15 @@ class CollectionItemController extends Controller
                     'userUpdated:id,first_name,last_name,email',
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ]);
-            $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
+            $this->itemQueryService->applyFilters($query, $collection, $stringFilters, null, $request);
             $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
+            $this->itemQueryService->applyPublicSort($query, $collection, $sortKeys, $locale);
 
-            $paginator = $query->latest('id')->paginate($perPage, ['*'], 'page', $page);
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
             $pageItems = $paginator->getCollection();
             $include = app(PublicApiIncludeParser::class)->parse($request->query('include'));
             if ($include !== []) {
-                app(RelationIncludeHydrator::class)->prewarm($pageItems, $collection, $include, $request);
+                app(RelationIncludeHydratorService::class)->prewarm($pageItems, $collection, $include, $request);
             }
 
             return [
@@ -132,7 +140,7 @@ class CollectionItemController extends Controller
             'include_all_translations' => $request->boolean('include_all_translations'),
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
             'role_id' => $roleId,
-            'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
             ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
@@ -169,23 +177,19 @@ class CollectionItemController extends Controller
         $collection = $this->findCollectionBySlug($slug);
         $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Create);
 
-        if ($collection->is_singleton && $collection->items()->exists()) {
-            throw ValidationException::withMessages([
-                'collection' => [__('A singleton collection already has its content item.')],
-            ]);
-        }
-
         $data = $request->input('data', []);
         if (! is_array($data)) {
             $data = [];
         }
-        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
 
-        $this->validateItemPayload($request, $collection, true);
-
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, true);
-        $item = $collection->items()->create([]);
-        $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
+        $item = $this->createCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            creating: true,
+            request: $request,
+            shouldAssertWritableFields: true,
+            writableMode: 'create',
+        ));
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
         return response()->json([
@@ -213,13 +217,17 @@ class CollectionItemController extends Controller
         if (! is_array($data)) {
             $data = [];
         }
-        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'update');
 
-        $this->validateItemPayload($request, $collection, false);
-
-        $merged = $this->itemDataNormalizer->mergeIncoming($this->collectionItemValuesAssembler->assemble($model), $data);
-        $normalized = $this->itemDataNormalizer->normalize($collection, $merged, false);
-        $this->collectionItemValuesWriter->sync($model, $collection, $normalized);
+        $model = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $model,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            request: $request,
+            shouldAssertWritableFields: true,
+            writableMode: 'update',
+        ));
         $model->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
         return response()->json([
@@ -248,23 +256,77 @@ class CollectionItemController extends Controller
         return response()->json(null, 204);
     }
 
-    private function validateItemPayload(Request $request, $collection, bool $creating): void
+    /**
+     * Batch-create items; each entry uses {@see CreateCollectionItemAction}.
+     */
+    public function batchStore(Request $request, string $slug): JsonResponse
     {
-        $data = $request->input('data');
-        $rules = app(CollectionItemDataRuleBuilder::class)->rules(
-            $collection,
-            $creating,
-            null,
-            is_array($data) ? $data : [],
+        $collection = $this->findCollectionBySlug($slug);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Create);
+
+        $maxBatchSize = $this->maxBatchSize();
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:'.$maxBatchSize],
+            'items.*' => ['required', 'array'],
+            'items.*.data' => ['nullable', 'array'],
+        ]);
+
+        /** @var list<array{data?: mixed}> $items */
+        $items = array_values($validated['items']);
+
+        return response()->json(
+            $this->batchCollectionItemsService->create($request, $collection, $items),
         );
-        $validator = Validator::make($request->all(), $rules);
-        $validator->after(function ($validator) use ($request, $collection): void {
-            $data = $request->input('data');
-            if (! is_array($data)) {
-                return;
-            }
-            app(CollectionItemDataRuleBuilder::class)->assertKnownKeysOnly($collection, $data);
-        });
-        $validator->validate();
+    }
+
+    /**
+     * Batch-update items; each entry uses {@see UpdateCollectionItemAction}.
+     */
+    public function batchUpdate(Request $request, string $slug): JsonResponse
+    {
+        $collection = $this->findCollectionBySlug($slug);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Update);
+
+        $maxBatchSize = $this->maxBatchSize();
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:'.$maxBatchSize],
+            'items.*' => ['required', 'array'],
+            'items.*.id' => ['required', 'integer', 'min:1'],
+            'items.*.data' => ['nullable', 'array'],
+        ]);
+
+        /** @var list<array{id: int, data?: mixed}> $items */
+        $items = array_values($validated['items']);
+
+        return response()->json(
+            $this->batchCollectionItemsService->update($request, $collection, $items),
+        );
+    }
+
+    /**
+     * Batch soft-delete items (same soft-delete path as single destroy).
+     */
+    public function batchDestroy(Request $request, string $slug): JsonResponse
+    {
+        $collection = $this->findCollectionBySlug($slug);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Delete);
+
+        $maxBatchSize = $this->maxBatchSize();
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:'.$maxBatchSize],
+            'ids.*' => ['required', 'integer', 'min:1', 'distinct'],
+        ]);
+
+        /** @var list<int> $ids */
+        $ids = array_values($validated['ids']);
+
+        return response()->json(
+            $this->batchCollectionItemsService->delete($request, $collection, $ids),
+        );
+    }
+
+    private function maxBatchSize(): int
+    {
+        return max(1, (int) config('api.max_batch_size', 100));
     }
 }

@@ -28,12 +28,3 @@ export function contentLocaleMeta(code: string): ContentLocaleCatalogEntry {
         }
     );
 }
-
-/**
- * @param codes - Enabled locale codes in display order
- */
-export function contentLocalesMeta(
-    codes: string[],
-): ContentLocaleCatalogEntry[] {
-    return codes.map(contentLocaleMeta);
-}

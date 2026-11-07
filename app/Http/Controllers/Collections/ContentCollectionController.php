@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\ApplyCollectionPackRequest;
@@ -9,21 +12,21 @@ use App\Http\Requests\Collections\BulkCollectionActionRequest;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Collections\ApplyCollectionPackService;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -34,6 +37,8 @@ use Inertia\Response;
  */
 class ContentCollectionController extends Controller
 {
+    use ValidatesListPerPageTrait;
+
     /**
      * @var list<string>
      */
@@ -45,12 +50,12 @@ class ContentCollectionController extends Controller
     ];
 
     public function __construct(
-        private CollectionItemDataNormalizer $itemDataNormalizer,
-        private CollectionItemValuesWriter $collectionItemValuesWriter,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CreateCollectionItemAction $createCollectionItemAction,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
+        private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private FieldConditionEvaluator $fieldConditionEvaluator,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -89,8 +94,27 @@ class ContentCollectionController extends Controller
             ))
             ->values();
 
+        // ponytail: readability is resolved per collection in PHP, so page in memory;
+        // fine for collection counts (tens–hundreds), move to SQL if that ever grows.
+        $perPage = $this->validatedListPerPage($request);
+        $paginator = new LengthAwarePaginator(
+            $collections->forPage(LengthAwarePaginator::resolveCurrentPage(), $perPage)->values(),
+            $collections->count(),
+            $perPage,
+            LengthAwarePaginator::resolveCurrentPage(),
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
+        $paginatorPayload = $paginator->toArray();
+
         return Inertia::render('collections/collections/index', [
-            'collections' => $collections,
+            'collections' => $paginatorPayload['data'],
+            'pagination' => [
+                'current_page' => $paginatorPayload['current_page'],
+                'last_page' => $paginatorPayload['last_page'],
+                'per_page' => $paginatorPayload['per_page'],
+                'total' => $paginatorPayload['total'],
+                'links' => $paginatorPayload['links'],
+            ],
             'filters' => [
                 'trashed' => $trashed,
                 'search' => $search,
@@ -118,7 +142,7 @@ class ContentCollectionController extends Controller
         $generator = app(UniqueCollectionSlugGenerator::class);
         $available = $slug !== ''
             && (bool) preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)
-            && $generator->available($slug, $excludeId);
+            && $generator->isAvailable($slug, $excludeId);
 
         return response()->json([
             'available' => $available,
@@ -287,9 +311,12 @@ class ContentCollectionController extends Controller
         $item = $collection->items()->first();
 
         if (! $item instanceof CollectionItem) {
-            $normalized = $this->itemDataNormalizer->normalize($collection, $incoming, true);
-            $created = $collection->items()->create([]);
-            $this->collectionItemValuesWriter->sync($created, $collection, $normalized);
+            $this->createCollectionItemAction->execute(new CollectionItemWriteData(
+                collection: $collection,
+                data: $incoming,
+                creating: true,
+                shouldValidate: false,
+            ));
 
             return redirect()->route('collections.show', $collection)
                 ->with('success', __('Content saved.'));
@@ -317,9 +344,16 @@ class ContentCollectionController extends Controller
             }
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
-
-        $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
+        $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
         return redirect()->route('collections.show', $collection)
             ->with('success', __('Content updated.'));

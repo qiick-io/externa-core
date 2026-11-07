@@ -1,20 +1,32 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowDownAZ, ArrowUpAZ, Trash2, UserPlus, Users } from 'lucide-react';
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import {
+    ArrowDownAZ,
+    ArrowUpAZ,
+    SearchX,
+    Trash2,
+    UserPlus,
+    Users,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    DataTable,
+    dataTableSelectColumn,
+} from '@/components/admin/data-table';
+import type { DataTableSort } from '@/components/admin/data-table';
+import { DataTableColumnHeader } from '@/components/admin/data-table-column-header';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { TruncatedText } from '@/components/admin/truncated-text';
+import { UserAvatar } from '@/components/admin/user-avatar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { EmptyStatus } from '@/components/empty-status';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -23,32 +35,39 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
-import { getInitialsFromParts } from '@/hooks/use-initials';
 import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { seedUserPrompt, seedUsersBulkPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { cn } from '@/lib/utils';
+import usersRoutes from '@/routes/users';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
 type UserSortField =
     'first_name' | 'last_name' | 'email' | 'created_at' | 'updated_at';
 type UserSortDirection = 'asc' | 'desc';
+
+const USER_SORT_FIELDS: readonly UserSortField[] = [
+    'first_name',
+    'last_name',
+    'email',
+    'created_at',
+    'updated_at',
+];
+
+/**
+ * @param value - Candidate sort field (URL, Select, column header).
+ * @returns Whether the users list can sort by it.
+ */
+function isUserSortField(value: string): value is UserSortField {
+    return (USER_SORT_FIELDS as readonly string[]).includes(value);
+}
 
 type Filters = {
     search?: string;
@@ -56,14 +75,6 @@ type Filters = {
     sort?: UserSortField;
     direction?: UserSortDirection;
 };
-
-const USER_SORT_FIELDS: { value: UserSortField; label: string }[] = [
-    { value: 'first_name', label: 'Name' },
-    { value: 'last_name', label: 'Last name' },
-    { value: 'email', label: 'Email' },
-    { value: 'created_at', label: 'Created' },
-    { value: 'updated_at', label: 'Updated' },
-];
 
 /**
  * Admin users list with search and form drawer.
@@ -78,6 +89,15 @@ export default function AdminUsersIndex({
     filters?: Filters;
 }) {
     const users = normalizePaginated(usersProp);
+    const { t } = useTranslation();
+
+    const userSortFields: { value: UserSortField; label: string }[] = [
+        { value: 'first_name', label: t('common.firstName') },
+        { value: 'last_name', label: t('common.lastName') },
+        { value: 'email', label: t('common.email') },
+        { value: 'created_at', label: t('users.columns.created') },
+        { value: 'updated_at', label: t('users.columns.updated') },
+    ];
     const { can } = useCan();
     const requestLeave = useRequestLeave();
     const onlineUsers = useOnlineUsers();
@@ -89,7 +109,15 @@ export default function AdminUsersIndex({
     const [direction, setDirection] = useState<UserSortDirection>(
         filters.direction ?? 'desc',
     );
-    const [selected, setSelected] = useState<number[]>([]);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const selected = useMemo(
+        () =>
+            Object.keys(rowSelection)
+                .filter((id) => rowSelection[id])
+                .map(Number),
+        [rowSelection],
+    );
+
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<AdminUserRow | null>(null);
     const [pendingBulkAction, setPendingBulkAction] = useState<
@@ -123,7 +151,7 @@ export default function AdminUsersIndex({
     });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Users', href: adminRoutes.users.index() }],
+        () => [{ title: 'Users', href: usersRoutes.index.url() }],
         [],
     );
 
@@ -137,19 +165,20 @@ export default function AdminUsersIndex({
                 overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
-                adminRoutes.users.index({
+                usersRoutes.index.url({
                     query: {
                         search: nextSearch || undefined,
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(users.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, users.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -158,32 +187,27 @@ export default function AdminUsersIndex({
         setDirection(filters.direction ?? 'desc');
     }, [filters.search, filters.sort, filters.direction]);
 
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
+
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
+
     useEffect(() => {
-        // Only refetch when the user changes search. Mount / pagination remounts
-        // leave search === filters.search; visiting without `page` would reset to page 1.
-        if (search === (filters.search ?? '')) {
+        setRowSelection({});
+    }, [isTrashed]);
+
+    const changeSort = (nextSort: DataTableSort): void => {
+        if (!isUserSortField(nextSort.id)) {
             return;
         }
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        setSelected([]);
-    }, [isTrashed]);
-
-    const toggleAll = (checked: boolean): void => {
-        setSelected(checked ? users.data.map((u) => u.id) : []);
-    };
-
-    const toggleRow = (id: number): void => {
-        setSelected((prev) =>
-            prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id],
-        );
+        setSort(nextSort.id);
+        setDirection(nextSort.direction);
+        visit({ sort: nextSort.id, direction: nextSort.direction });
     };
 
     const openCreate = (): void => {
@@ -222,16 +246,19 @@ export default function AdminUsersIndex({
 
     const bulk = (action: string): void => {
         router.post(
-            adminRoutes.users.bulkActions(),
+            usersRoutes.bulkActions.url(),
             { ids: selected, action },
             {
                 preserveScroll: true,
-                onSuccess: () => setSelected([]),
+                onSuccess: () => setRowSelection({}),
             },
         );
     };
 
     const hasSelection = selected.length > 0;
+    const hasActiveFilters = search.trim() !== '';
+    const isListEmpty = users.data.length === 0;
+    const hideListChrome = isListEmpty && !hasActiveFilters && !isTrashed;
 
     const userDisplayName = (user: AdminUserRow): string =>
         [user.first_name, user.last_name].filter(Boolean).join(' ') ||
@@ -241,6 +268,113 @@ export default function AdminUsersIndex({
         selected.includes(user.id),
     );
 
+    const columns: ColumnDef<AdminUserRow>[] = [
+        dataTableSelectColumn<AdminUserRow>({
+            selectAllLabel: t('a11y.selectAll'),
+            getRowLabel: (user) =>
+                t('a11y.selectRow', { name: userDisplayName(user) }),
+        }),
+        {
+            accessorKey: 'first_name',
+            enableSorting: true,
+            meta: { cellClassName: 'max-w-[12rem] font-medium' },
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('users.columns.name')}
+                />
+            ),
+            cell: ({ row }) => (
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <UserAvatar
+                        user={row.original}
+                        isOnline={onlineUsers.has(row.original.id)}
+                    />
+                    <TruncatedText text={userDisplayName(row.original)} />
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'email',
+            enableSorting: true,
+            meta: { cellClassName: 'max-w-[12rem] text-muted-foreground' },
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('users.columns.email')}
+                />
+            ),
+            cell: ({ row }) => <TruncatedText text={row.original.email} />,
+        },
+        {
+            id: 'roles',
+            header: t('users.columns.roles'),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {row.original.roles.map((role) => (
+                        <Badge key={role.id} variant="secondary">
+                            {role.name}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'groups',
+            header: t('users.columns.groups'),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {row.original.groups.map((group) => (
+                        <Badge key={group.id} variant="outline">
+                            {group.name}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'status',
+            header: t('users.columns.status'),
+            cell: ({ row }) =>
+                row.original.is_active ? (
+                    <Badge variant="success" className="gap-1.5">
+                        <span
+                            className="size-1.5 rounded-full bg-success"
+                            aria-hidden
+                        />
+                        {t('users.status.active')}
+                    </Badge>
+                ) : (
+                    <Badge variant="muted" className="gap-1.5">
+                        <span
+                            className="size-1.5 rounded-full bg-muted-foreground"
+                            aria-hidden
+                        />
+                        {t('users.status.inactive')}
+                    </Badge>
+                ),
+        },
+        {
+            id: 'actions',
+            header: t('users.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+                isRowClickIgnored: true,
+            },
+            cell: ({ row }) => (
+                <AskAiButton
+                    stopPropagation
+                    prompt={seedUserPrompt({
+                        id: row.original.id,
+                        name: userDisplayName(row.original),
+                        email: row.original.email,
+                    })}
+                />
+            ),
+        },
+    ];
+
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
@@ -248,12 +382,12 @@ export default function AdminUsersIndex({
                 !isTrashed && can(PermissionEnum.CanCreateUsers) ? (
                     <Button type="button" onClick={openCreate}>
                         <UserPlus className="mr-1 size-4" />
-                        New user
+                        {t('users.newUser')}
                     </Button>
                 ) : undefined
             }
         >
-            <Head title="Users" />
+            <Head title={t('users.title')} />
 
             <Drawer
                 direction="right"
@@ -262,100 +396,102 @@ export default function AdminUsersIndex({
             >
                 <PageLayout
                     filters={
-                        <DataTableToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            searchPlaceholder={
-                                isTrashed ? 'Search trash…' : 'Search users…'
-                            }
-                            selectedCount={selected.length}
-                            onClearSelection={() => setSelected([])}
-                            bulkActions={
-                                <>
-                                    <AskAiButton
-                                        mode="labeled"
-                                        prompt={seedUsersBulkPrompt(
-                                            selectedRows.map((user) => ({
-                                                id: user.id,
-                                                name: userDisplayName(user),
-                                                email: user.email,
-                                            })),
-                                        )}
-                                    />
-                                    {!isTrashed &&
-                                        can(PermissionEnum.CanDeleteUsers) && (
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPendingBulkAction(
-                                                        'delete',
-                                                    )
-                                                }
-                                            >
-                                                Delete
-                                            </Button>
-                                        )}
-                                    {isTrashed &&
-                                        can(PermissionEnum.CanRestoreUsers) && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => bulk('restore')}
-                                            >
-                                                Restore
-                                            </Button>
-                                        )}
-                                    {isTrashed &&
-                                        can(
-                                            PermissionEnum.CanForceDeleteUsers,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPendingBulkAction(
-                                                        'force_delete',
-                                                    )
-                                                }
-                                            >
-                                                Delete permanently
-                                            </Button>
-                                        )}
-                                </>
-                            }
-                        />
+                        hideListChrome ? undefined : (
+                            <DataTableToolbar
+                                search={search}
+                                onSearchChange={setSearch}
+                                searchPlaceholder={
+                                    isTrashed
+                                        ? t('users.searchTrashPlaceholder')
+                                        : t('users.searchPlaceholder')
+                                }
+                                selectedCount={selected.length}
+                                onClearSelection={() => setRowSelection({})}
+                                bulkActions={
+                                    <>
+                                        <AskAiButton
+                                            mode="toolbar"
+                                            prompt={seedUsersBulkPrompt(
+                                                selectedRows.map((user) => ({
+                                                    id: user.id,
+                                                    name: userDisplayName(user),
+                                                    email: user.email,
+                                                })),
+                                            )}
+                                        />
+                                        {!isTrashed &&
+                                            can(
+                                                PermissionEnum.CanDeleteUsers,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive-outline"
+                                                    onClick={() =>
+                                                        setPendingBulkAction(
+                                                            'delete',
+                                                        )
+                                                    }
+                                                >
+                                                    {t('common.delete')}
+                                                </Button>
+                                            )}
+                                        {isTrashed &&
+                                            can(
+                                                PermissionEnum.CanRestoreUsers,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        bulk('restore')
+                                                    }
+                                                >
+                                                    {t('common.restore')}
+                                                </Button>
+                                            )}
+                                        {isTrashed &&
+                                            can(
+                                                PermissionEnum.CanForceDeleteUsers,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive-outline"
+                                                    onClick={() =>
+                                                        setPendingBulkAction(
+                                                            'force_delete',
+                                                        )
+                                                    }
+                                                >
+                                                    {t(
+                                                        'common.deletePermanently',
+                                                    )}
+                                                </Button>
+                                            )}
+                                    </>
+                                }
+                            />
+                        )
                     }
                     filtersRight={
-                        hasSelection ? null : (
+                        hideListChrome || hasSelection ? null : (
                             <div className="flex items-center gap-1.5">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
-                                        if (
-                                            value === 'first_name' ||
-                                            value === 'last_name' ||
-                                            value === 'email' ||
-                                            value === 'created_at' ||
-                                            value === 'updated_at'
-                                        ) {
+                                        if (isUserSortField(value)) {
                                             setSort(value);
                                             visit({ sort: value });
                                         }
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        aria-label="Sort by"
+                                        aria-label={t('users.sortBy')}
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent align="end">
-                                        {USER_SORT_FIELDS.map((field) => (
+                                        {userSortFields.map((field) => (
                                             <SelectItem
                                                 key={field.value}
                                                 value={field.value}
@@ -369,11 +505,10 @@ export default function AdminUsersIndex({
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    className="size-8"
                                     aria-label={
                                         direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
+                                            ? t('common.sortAscending')
+                                            : t('common.sortDescending')
                                     }
                                     onClick={() => {
                                         const nextDirection =
@@ -391,6 +526,7 @@ export default function AdminUsersIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {
@@ -405,14 +541,14 @@ export default function AdminUsersIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active users"
+                                        aria-label={t('users.activeUsers')}
                                         className="px-2.5"
                                     >
                                         <Users className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
@@ -422,187 +558,76 @@ export default function AdminUsersIndex({
                         )
                     }
                 >
-                    <TablePanel
-                        footer={
-                            users.last_page > 1 ? (
-                                <TablePagination links={users.links ?? []} />
-                            ) : undefined
-                        }
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-10">
-                                        <Checkbox
-                                            checked={
-                                                users.data.length > 0 &&
-                                                selected.length ===
-                                                    users.data.length
-                                            }
-                                            onCheckedChange={(c) =>
-                                                toggleAll(c === true)
-                                            }
-                                        />
-                                    </TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Roles</TableHead>
-                                    <TableHead>Groups</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="w-[1%] text-right">
-                                        Actions
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {users.data.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={7}
-                                            className="text-muted-foreground"
-                                        >
-                                            No users found.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    users.data.map((user) => (
-                                        <TableRow
-                                            key={user.id}
-                                            className={
-                                                can(PermissionEnum.CanEditUsers)
-                                                    ? 'cursor-pointer'
-                                                    : undefined
-                                            }
-                                            onClick={() => openEdit(user)}
-                                        >
-                                            <TableCell
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <Checkbox
-                                                    checked={selected.includes(
-                                                        user.id,
-                                                    )}
-                                                    onCheckedChange={() =>
-                                                        toggleRow(user.id)
-                                                    }
-                                                />
-                                            </TableCell>
-                                            <TableCell className="max-w-[12rem] font-medium">
-                                                <span className="inline-flex min-w-0 items-center gap-2">
-                                                    <span className="relative shrink-0">
-                                                        <Avatar
-                                                            userId={user.id}
-                                                            className="size-7"
-                                                        >
-                                                            <AvatarFallback className="text-[10px] font-medium">
-                                                                {getInitialsFromParts(
-                                                                    user.first_name,
-                                                                    user.last_name,
-                                                                ) ||
-                                                                    user.email
-                                                                        .charAt(
-                                                                            0,
-                                                                        )
-                                                                        .toUpperCase()}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span
-                                                            className={cn(
-                                                                'absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-background',
-                                                                onlineUsers.has(
-                                                                    user.id,
-                                                                )
-                                                                    ? 'bg-emerald-500'
-                                                                    : 'bg-muted-foreground/30',
-                                                            )}
-                                                            title={
-                                                                onlineUsers.has(
-                                                                    user.id,
-                                                                )
-                                                                    ? 'Online'
-                                                                    : 'Offline'
-                                                            }
-                                                            data-test="user-online-dot"
-                                                            data-online={
-                                                                onlineUsers.has(
-                                                                    user.id,
-                                                                )
-                                                                    ? '1'
-                                                                    : '0'
-                                                            }
-                                                            aria-hidden
-                                                        />
-                                                    </span>
-                                                    <TruncatedText
-                                                        text={userDisplayName(
-                                                            user,
-                                                        )}
-                                                    />
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="max-w-[12rem] text-muted-foreground">
-                                                <TruncatedText
-                                                    text={user.email}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {user.roles.map((r) => (
-                                                        <Badge
-                                                            key={r.id}
-                                                            variant="secondary"
-                                                        >
-                                                            {r.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {user.groups.map((g) => (
-                                                        <Badge
-                                                            key={g.id}
-                                                            variant="outline"
-                                                        >
-                                                            {g.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {user.is_active ? (
-                                                    <Badge>Active</Badge>
-                                                ) : (
-                                                    <Badge variant="outline">
-                                                        Inactive
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell
-                                                className="text-right"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <AskAiButton
-                                                    stopPropagation
-                                                    prompt={seedUserPrompt({
-                                                        id: user.id,
-                                                        name: userDisplayName(
-                                                            user,
-                                                        ),
-                                                        email: user.email,
-                                                    })}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TablePanel>
+                    {isListEmpty ? (
+                        <PageEmptyState
+                            icon={
+                                hasActiveFilters
+                                    ? SearchX
+                                    : isTrashed
+                                      ? Trash2
+                                      : Users
+                            }
+                            title={
+                                <EmptyStatus>
+                                    {hasActiveFilters
+                                        ? t('emptyState.users.filteredTitle')
+                                        : isTrashed
+                                          ? t('emptyState.users.trashTitle')
+                                          : t('emptyState.users.title')}
+                                </EmptyStatus>
+                            }
+                            description={
+                                hasActiveFilters
+                                    ? t('emptyState.users.filteredDescription')
+                                    : isTrashed
+                                      ? t('emptyState.users.trashDescription')
+                                      : t('emptyState.users.description')
+                            }
+                            action={
+                                hasActiveFilters ? (
+                                    <Button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearch('');
+                                            visit({ search: undefined });
+                                        }}
+                                    >
+                                        {t('common.clearFilters')}
+                                    </Button>
+                                ) : isTrashed ? (
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            visit({ trashed: false })
+                                        }
+                                    >
+                                        {t('common.back')}
+                                    </Button>
+                                ) : can(PermissionEnum.CanCreateUsers) ? (
+                                    <Button type="button" onClick={openCreate}>
+                                        <UserPlus className="size-4" />
+                                        {t('emptyState.users.cta')}
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    ) : (
+                        <DataTable
+                            columns={columns}
+                            data={users.data}
+                            getRowId={(user) => String(user.id)}
+                            sort={{ id: sort, direction }}
+                            onSortChange={changeSort}
+                            rowSelection={rowSelection}
+                            onRowSelectionChange={setRowSelection}
+                            pagination={users}
+                            onRowClick={
+                                can(PermissionEnum.CanEditUsers)
+                                    ? openEdit
+                                    : undefined
+                            }
+                        />
+                    )}
                 </PageLayout>
 
                 <UserFormDrawer
@@ -631,18 +656,22 @@ export default function AdminUsersIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected users permanently?`
-                        : `Delete ${selected.length} selected users?`
+                        ? t('users.confirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('users.confirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected users will be permanently removed. This cannot be undone.'
-                        : 'Selected users will be soft-deleted and moved to trash.'
+                        ? t('users.confirm.bulkForceDeleteDescription')
+                        : t('users.confirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingBulk}
                 onConfirm={() => {
@@ -652,13 +681,13 @@ export default function AdminUsersIndex({
 
                     setConfirmingBulk(true);
                     router.post(
-                        adminRoutes.users.bulkActions(),
+                        usersRoutes.bulkActions.url(),
                         { ids: selected, action: pendingBulkAction },
                         {
                             preserveScroll: true,
                             onFinish: () => setConfirmingBulk(false),
                             onSuccess: () => {
-                                setSelected([]);
+                                setRowSelection({});
                                 setPendingBulkAction(null);
                             },
                             onError: () => setPendingBulkAction(null),

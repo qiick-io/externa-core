@@ -1,7 +1,12 @@
 import { UsersRound } from 'lucide-react';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { avatarStyleForId, avatarTextColor } from '@/lib/avatar-color';
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarGroup,
+    AvatarGroupCount,
+} from '@/components/ui/avatar';
+import { avatarToneClass } from '@/lib/avatar-tone';
 import {
     chatAvatarStackPlan,
     initialsFromName,
@@ -11,6 +16,7 @@ import type {
     ChatParticipantRef,
     ChatThreadIdentity,
 } from '@/lib/chat-thread-identity';
+import { contrastingForeground } from '@/lib/contrasting-foreground';
 import { cn } from '@/lib/utils';
 
 function FaceCircle({
@@ -21,8 +27,10 @@ function FaceCircle({
     className?: string;
 }) {
     return (
-        <Avatar userId={face.id} className={className}>
-            <AvatarFallback className="text-[10px] font-medium">
+        <Avatar className={className}>
+            <AvatarFallback
+                className={cn(avatarToneClass(face.id), 'text-xs font-medium')}
+            >
                 {initialsFromName(face.name)}
             </AvatarFallback>
         </Avatar>
@@ -34,23 +42,23 @@ function StackedFaces({ faces }: { faces: ChatParticipantRef[] }) {
     const visible = faces.slice(0, shown);
 
     return (
-        <span className="flex shrink-0 items-center" aria-hidden>
-            {visible.map((face, index) => (
+        <AvatarGroup
+            className="shrink-0 *:data-[slot=avatar]:ring-card"
+            aria-hidden
+        >
+            {visible.map((face) => (
                 <FaceCircle
                     key={`${face.type}-${face.id}`}
                     face={face}
-                    className={cn(
-                        'size-7 ring-2 ring-card',
-                        index > 0 && '-ml-2',
-                    )}
+                    className="size-7"
                 />
             ))}
             {overflow > 0 ? (
-                <span className="relative -ml-2 flex size-7 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-card">
+                <AvatarGroupCount className="size-7 text-xs font-medium ring-card">
                     +{overflow}
-                </span>
+                </AvatarGroupCount>
             ) : null}
-        </span>
+        </AvatarGroup>
     );
 }
 
@@ -71,13 +79,21 @@ export function ChatThreadAvatar({
                 .trim()
                 .charAt(0)
                 .toUpperCase() || '?';
+        // The collection's own colour setting wins; otherwise a theme avatar tone.
         const style = color
-            ? { backgroundColor: color, color: avatarTextColor(color) }
-            : avatarStyleForId(thread.collection_id ?? thread.id);
+            ? {
+                  backgroundColor: color,
+                  color: contrastingForeground(color) ?? undefined,
+              }
+            : undefined;
 
         return (
             <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium"
+                className={cn(
+                    'flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium',
+                    !color &&
+                        avatarToneClass(thread.collection_id ?? thread.id),
+                )}
                 style={style}
                 aria-hidden
             >
@@ -97,12 +113,12 @@ export function ChatThreadAvatar({
     const others = otherUserFaces(thread.participants, viewerId);
 
     if (others.length === 0) {
-        const style = avatarStyleForId(thread.id);
-
         return (
             <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-full"
-                style={style}
+                className={cn(
+                    'flex size-10 shrink-0 items-center justify-center rounded-full',
+                    avatarToneClass(thread.id),
+                )}
                 aria-hidden
             >
                 <UsersRound className="size-5" />
@@ -114,8 +130,13 @@ export function ChatThreadAvatar({
         const other = others[0]!;
 
         return (
-            <Avatar userId={other.id} className="size-10">
-                <AvatarFallback className="text-sm font-medium">
+            <Avatar className="size-10">
+                <AvatarFallback
+                    className={cn(
+                        avatarToneClass(other.id),
+                        'text-sm font-medium',
+                    )}
+                >
                     {initialsFromName(other.name)}
                 </AvatarFallback>
             </Avatar>

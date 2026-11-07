@@ -32,6 +32,10 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
+    ButtonGroup,
+    ButtonGroupSeparator,
+} from '@/components/ui/button-group';
+import {
     Dialog,
     DialogContent,
     DialogFooter,
@@ -53,11 +57,11 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
+import { useAiAvailability } from '@/hooks/use-ai-availability';
 import { useCan } from '@/hooks/use-can';
 import { useRegisterActiveUploads } from '@/hooks/use-register-active-uploads';
 import AppLayout from '@/layouts/app-layout';
 import { getQueryParam, patchLocationQuery } from '@/lib/admin-query-params';
-import adminRoutes from '@/lib/admin-routes';
 import { openAiWithPrompt, seedFilesBulkPrompt } from '@/lib/ai-open';
 import {
     addFileUpload,
@@ -82,6 +86,7 @@ import {
     listFileTagsCatalog,
     listFilesPage,
     moveFile,
+    queueEmptyFilesTrash,
     queueFilesZipDownload,
     renameFile,
     restoreFile,
@@ -104,6 +109,7 @@ import {
     notifyNotificationsUpdated,
 } from '@/lib/notifications-api';
 import { toast } from '@/lib/toast';
+import filesRoutes from '@/routes/files';
 import type { BreadcrumbItem } from '@/types';
 import type {
     AdminFileRow,
@@ -165,6 +171,12 @@ export default function AdminFilesIndex({
     // ponytail: ref lock + generation beat double-click / stale load-more races
     const loadingMoreRef = useRef(false);
     const listGenerationRef = useRef(0);
+    // Pages on screen, read by refreshPage without re-creating it on every load.
+    const loadedPageRef = useRef(page);
+
+    useEffect(() => {
+        loadedPageRef.current = page;
+    }, [page]);
     const [search, setSearch] = useState('');
     const [detailFile, setDetailFile] = useState<AdminFileRow | null>(null);
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -196,6 +208,10 @@ export default function AdminFilesIndex({
         useState(0);
     const pendingZipJobIdsRef = useRef(new Set<string>());
     const [pendingZipJobCount, setPendingZipJobCount] = useState(0);
+    const pendingTrashJobIdsRef = useRef(new Set<string>());
+    const [pendingTrashJobCount, setPendingTrashJobCount] = useState(0);
+    const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false);
+    const [queueingEmptyTrash, setQueueingEmptyTrash] = useState(false);
     const [pendingDestructive, setPendingDestructive] = useState<{
         action: 'delete' | 'force_delete';
         targets: AdminFileRow[];
@@ -216,6 +232,7 @@ export default function AdminFilesIndex({
     const canTag = can(PermissionEnum.CanTagFiles);
     const canUpdateMetadata = can(PermissionEnum.CanUpdateFileMetadata);
     const canUseAi = can(PermissionEnum.CanUseAi);
+    const { isAvailable: isAiAvailable } = useAiAvailability();
     const isTrashed = trashed === 'trashed';
     const uploadsEnabled = canCreate && !isTrashed;
 
@@ -273,6 +290,7 @@ export default function AdminFilesIndex({
             canTag,
             canUpdateMetadata,
             canUseAi,
+            isAiAvailable,
         }),
         [
             canEdit,
@@ -286,6 +304,7 @@ export default function AdminFilesIndex({
             canTag,
             canUpdateMetadata,
             canUseAi,
+            isAiAvailable,
         ],
     );
 
@@ -419,7 +438,7 @@ export default function AdminFilesIndex({
         const crumbs: BreadcrumbItem[] = [
             {
                 title: t('files.title'),
-                href: adminRoutes.files.index({ query: listQuery }),
+                href: filesRoutes.index.url(undefined, { query: listQuery }),
             },
         ];
 
@@ -427,7 +446,7 @@ export default function AdminFilesIndex({
             for (const crumb of initialBreadcrumbs) {
                 crumbs.push({
                     title: crumb.name,
-                    href: adminRoutes.files.index(crumb.id, {
+                    href: filesRoutes.index.url(crumb.id, {
                         query: listQuery,
                     }),
                 });
@@ -443,27 +462,49 @@ export default function AdminFilesIndex({
         listGenerationRef.current = requestGeneration;
         loadingMoreRef.current = false;
         setLoadingMore(false);
-        // ponytail: after file upload, immediately fetch fresh page-1 data from the API
-        // to ensure newly uploaded files appear. Inertia reload can cache stale responses.
+        // Reload every page already on screen, so uploads, moves and deletes keep the
+        // list as long as it was (and the scroll position) instead of cutting it to page 1.
+        const loadedPages = loadedPageRef.current;
+        const fetchPage = (pageNumber: number) =>
+            listFilesPage({
+                parentId,
+                trashed: isTrashed ? 'only' : null,
+                page: pageNumber,
+                search: search.trim() || undefined,
+                tagIds: selectedTagIds,
+                sort,
+                direction,
+            });
         void (async () => {
             try {
-                const next = await listFilesPage({
-                    parentId,
-                    trashed: isTrashed ? 'only' : null,
-                    page: 1,
-                    search: search.trim() || undefined,
-                    tagIds: selectedTagIds,
-                    sort,
-                    direction,
-                });
+                const first = await fetchPage(1);
+                const lastLoadedPage = Math.min(loadedPages, first.last_page);
+                const rest = await Promise.all(
+                    Array.from({ length: lastLoadedPage - 1 }, (_, index) =>
+                        fetchPage(index + 2),
+                    ),
+                );
 
                 if (requestGeneration !== listGenerationRef.current) {
                     return;
                 }
 
-                setFiles(next.data);
-                setPage(next.current_page);
-                setLastPage(next.last_page);
+                const seenIds = new Set<number>();
+                const merged = [first, ...rest]
+                    .flatMap((paginator) => paginator.data)
+                    .filter((file) => {
+                        if (seenIds.has(file.id)) {
+                            return false;
+                        }
+
+                        seenIds.add(file.id);
+
+                        return true;
+                    });
+
+                setFiles(merged);
+                setPage(lastLoadedPage);
+                setLastPage(rest.at(-1)?.last_page ?? first.last_page);
             } catch {
                 // Fallback to Inertia reload if API fetch fails
                 router.visit(window.location.href, {
@@ -486,7 +527,11 @@ export default function AdminFilesIndex({
     }, []);
 
     useEffect(() => {
-        if (pendingDuplicationJobCount === 0 && pendingZipJobCount === 0) {
+        if (
+            pendingDuplicationJobCount === 0 &&
+            pendingZipJobCount === 0 &&
+            pendingTrashJobCount === 0
+        ) {
             return;
         }
 
@@ -503,8 +548,10 @@ export default function AdminFilesIndex({
                 const pendingDuplicationJobIds =
                     pendingDuplicationJobIdsRef.current;
                 const pendingZipJobIds = pendingZipJobIdsRef.current;
+                const pendingTrashJobIds = pendingTrashJobIdsRef.current;
                 let resolvedDuplication = false;
                 let resolvedZip = false;
+                let resolvedTrash = false;
 
                 for (const notification of payload.data) {
                     const jobId = notification.data.job_id;
@@ -533,6 +580,23 @@ export default function AdminFilesIndex({
                                 notification.data.title ??
                                     t('files.toasts.duplicationFailed'),
                             );
+                        }
+                    }
+
+                    if (pendingTrashJobIds.has(jobId)) {
+                        pendingTrashJobIds.delete(jobId);
+                        resolvedTrash = true;
+
+                        if (notification.data.type === 'files_trash_emptied') {
+                            toast.success(t('files.toasts.trashEmptied'), {
+                                description: notification.data.body,
+                            });
+                            refreshPage();
+                        } else if (
+                            notification.data.type ===
+                            'files_trash_empty_failed'
+                        ) {
+                            toast.error(t('files.toasts.trashEmptyFailed'));
                         }
                     }
 
@@ -580,7 +644,11 @@ export default function AdminFilesIndex({
                     setPendingZipJobCount(pendingZipJobIds.size);
                 }
 
-                if (resolvedDuplication || resolvedZip) {
+                if (resolvedTrash) {
+                    setPendingTrashJobCount(pendingTrashJobIds.size);
+                }
+
+                if (resolvedDuplication || resolvedZip || resolvedTrash) {
                     notifyNotificationsUpdated();
                 }
             } catch {
@@ -597,7 +665,13 @@ export default function AdminFilesIndex({
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage, t]);
+    }, [
+        pendingDuplicationJobCount,
+        pendingZipJobCount,
+        pendingTrashJobCount,
+        refreshPage,
+        t,
+    ]);
 
     const buildFilesIndexUrl = useCallback(
         (
@@ -626,10 +700,10 @@ export default function AdminFilesIndex({
             };
 
             if (nextTrashed === 'trashed' || folderId === null) {
-                return adminRoutes.files.index({ query });
+                return filesRoutes.index.url(undefined, { query });
             }
 
-            return adminRoutes.files.index(folderId, { query });
+            return filesRoutes.index.url(folderId, { query });
         },
         [direction, parentId, selectedTagIds, sort, trashed],
     );
@@ -1261,6 +1335,10 @@ export default function AdminFilesIndex({
                         setTagDialogOpen(true);
                         break;
                     case 'ask_ai':
+                        if (!isAiAvailable) {
+                            break;
+                        }
+
                         openAiWithPrompt(
                             seedFilesBulkPrompt(
                                 selected.map((file) => ({
@@ -1296,9 +1374,31 @@ export default function AdminFilesIndex({
             trackPendingDuplication,
             trackPendingZip,
             openFileDetails,
+            isAiAvailable,
             t,
         ],
     );
+
+    const emptyTrash = async (): Promise<void> => {
+        setQueueingEmptyTrash(true);
+
+        try {
+            const jobId = await queueEmptyFilesTrash();
+
+            pendingTrashJobIdsRef.current.add(jobId);
+            setPendingTrashJobCount(pendingTrashJobIdsRef.current.size);
+            setEmptyTrashDialogOpen(false);
+            toast.info(t('files.toasts.trashEmptying'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('files.toasts.trashEmptyFailed'),
+            );
+        } finally {
+            setQueueingEmptyTrash(false);
+        }
+    };
 
     const executePendingDestructive = async (): Promise<void> => {
         if (!pendingDestructive) {
@@ -1404,6 +1504,20 @@ export default function AdminFilesIndex({
             breadcrumbs={pageBreadcrumbs}
             headerActions={
                 <>
+                    {isTrashed && canForceDelete && (
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={
+                                files.length === 0 || pendingTrashJobCount > 0
+                            }
+                            onClick={() => setEmptyTrashDialogOpen(true)}
+                            data-testid="files-empty-trash"
+                        >
+                            <Trash2 className="size-4" />
+                            {t('files.toolbar.emptyTrash')}
+                        </Button>
+                    )}
                     {canCreate && !isTrashed && (
                         <HeaderIconButton
                             type="button"
@@ -1433,33 +1547,51 @@ export default function AdminFilesIndex({
                                 } as React.InputHTMLAttributes<HTMLInputElement>)}
                                 onChange={handleUploadInputChange}
                             />
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button type="button">
-                                        <Upload className="mr-1 size-4" />
-                                        {t('files.toolbar.upload')}
-                                        <ChevronDown className="ml-1 size-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                    >
-                                        <Upload className="size-4" />
-                                        {t('files.toolbar.uploadFile')}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            folderInputRef.current?.click()
-                                        }
-                                    >
-                                        <FolderOpen className="size-4" />
-                                        {t('files.toolbar.uploadFolder')}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ButtonGroup>
+                                <Button
+                                    type="button"
+                                    data-test="files-upload"
+                                    onClick={() =>
+                                        fileInputRef.current?.click()
+                                    }
+                                >
+                                    <Upload />
+                                    {t('files.toolbar.upload')}
+                                </Button>
+                                <ButtonGroupSeparator />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            data-test="files-upload-menu"
+                                            aria-label={t(
+                                                'files.toolbar.uploadOptions',
+                                            )}
+                                        >
+                                            <ChevronDown />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                fileInputRef.current?.click()
+                                            }
+                                        >
+                                            <Upload className="size-4" />
+                                            {t('files.toolbar.uploadFile')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                folderInputRef.current?.click()
+                                            }
+                                        >
+                                            <FolderOpen className="size-4" />
+                                            {t('files.toolbar.uploadFolder')}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </ButtonGroup>
                         </>
                     )}
                 </>
@@ -1474,14 +1606,18 @@ export default function AdminFilesIndex({
                 className="min-h-0 flex-1"
             >
                 <div className="flex min-h-0 flex-1">
+                    {/* scrollContent: the grid scrolls inside the panel (it was clipped with no scroll on short windows). */}
                     <PageLayout
                         className="min-h-0 min-w-0 flex-1"
+                        scrollContent
                         filters={
                             selection.selectedIds.length > 0 ? (
-                                <div className="flex min-w-0 items-center gap-2">
+                                <div className="flex w-full min-w-0 items-center gap-2">
                                     <FilesSelectionToolbar
                                         count={selection.selectedIds.length}
+                                        visibleCount={files.length}
                                         actions={toolbarActions}
+                                        onSelectAll={selection.selectAll}
                                         onClear={selection.clearSelection}
                                         onAction={(action) => {
                                             void runAction(action);
@@ -1509,7 +1645,7 @@ export default function AdminFilesIndex({
                         }
                         filtersRight={
                             selection.selectedIds.length > 0 ? null : (
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-2">
                                     <Select
                                         value={sort}
                                         onValueChange={(value) => {
@@ -1524,7 +1660,6 @@ export default function AdminFilesIndex({
                                         }}
                                     >
                                         <SelectTrigger
-                                            size="sm"
                                             aria-label={t(
                                                 'files.toolbar.sortBy',
                                             )}
@@ -1551,7 +1686,6 @@ export default function AdminFilesIndex({
                                         type="button"
                                         variant="outline"
                                         size="icon"
-                                        className="size-8"
                                         aria-label={
                                             direction === 'asc'
                                                 ? t('files.toolbar.sortAsc')
@@ -1573,6 +1707,7 @@ export default function AdminFilesIndex({
                                         )}
                                     </Button>
                                     <ToggleGroup
+                                        variant="outline"
                                         type="single"
                                         value={trashed}
                                         onValueChange={(value) => {
@@ -1589,7 +1724,6 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.activeFiles',
                                             )}
-                                            className="px-2.5"
                                         >
                                             <Files className="size-4" />
                                         </ToggleGroupItem>
@@ -1598,7 +1732,6 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.trash',
                                             )}
-                                            className="px-2.5"
                                         >
                                             <Trash2 className="size-4" />
                                         </ToggleGroupItem>
@@ -1787,6 +1920,18 @@ export default function AdminFilesIndex({
                 }}
                 blockedFolders={blockedMoveFolders}
                 onConfirm={handleConfirmMove}
+            />
+
+            <ConfirmDestructiveDialog
+                open={emptyTrashDialogOpen}
+                onOpenChange={setEmptyTrashDialogOpen}
+                title={t('files.toolbar.emptyTrashTitle')}
+                description={t('files.toolbar.emptyTrashDescription')}
+                confirmLabel={t('files.toolbar.emptyTrash')}
+                confirming={queueingEmptyTrash}
+                onConfirm={() => {
+                    void emptyTrash();
+                }}
             />
 
             <ConfirmDestructiveDialog

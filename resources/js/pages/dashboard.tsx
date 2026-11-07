@@ -1,16 +1,18 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
+    Activity,
+    FolderOpen,
+    HardDrive,
+    HeartPulse,
+    Inbox,
+    LayoutGrid,
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { PageLayout } from '@/components/layout/page-layout';
+import { StatCard } from '@/components/stat-card';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -19,6 +21,13 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+} from '@/components/ui/chart';
+import type { ChartConfig } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
     Table,
     TableBody,
     TableCell,
@@ -26,10 +35,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
-import { cn } from '@/lib/utils';
+import { formatBytes } from '@/lib/format';
 import { dashboard } from '@/routes';
+import activityLogs from '@/routes/activity-logs';
+import dashboardRoutes from '@/routes/dashboard';
+import files from '@/routes/files';
 import type { BreadcrumbItem } from '@/types';
 
 type LatestActivityItem = {
@@ -158,29 +170,11 @@ type DashboardProps = {
     activityOverTime?: ActivityOverTimeItem[];
     contentEventBreakdown?: ContentEventBreakdown;
     health?: HealthMetrics;
+    /** The tab, from the URL: `/dashboard` or `/dashboard/{view}`. */
+    view: DashboardView;
 };
 
-type DashboardTab = 'overview' | 'health';
-
-/**
- * Formats a byte count using binary units (B through TB).
- * @param {number} bytes - Raw byte count.
- * @returns {string} Human-readable size string.
- */
-function formatBytes(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let unitIndex = 0;
-    let value = bytes;
-
-    while (value >= 1024 && unitIndex < units.length - 1) {
-        value = value / 1024;
-        unitIndex += 1;
-    }
-
-    const rounded = unitIndex === 0 ? value.toFixed(0) : value.toFixed(1);
-
-    return `${rounded} ${units[unitIndex]}`;
-}
+type DashboardView = 'overview' | 'health';
 
 /**
  * Main dashboard with activity, storage, and upload health widgets.
@@ -200,18 +194,9 @@ export default function Dashboard({
     activityOverTime = [],
     contentEventBreakdown = { created: 0, updated: 0, deleted: 0 },
     health,
+    view,
 }: DashboardProps) {
     const { t } = useTranslation();
-    const [tab, setTab] = useState<DashboardTab>(() => {
-        if (typeof window === 'undefined') {
-            return 'overview';
-        }
-
-        return new URLSearchParams(window.location.search).get('tab') ===
-            'health'
-            ? 'health'
-            : 'overview';
-    });
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('dashboard.title'),
@@ -227,58 +212,44 @@ export default function Dashboard({
         { event: t('dashboard.deleted'), count: contentEventBreakdown.deleted },
     ];
 
-    const selectTab = (value: DashboardTab): void => {
-        setTab(value);
-        const url = new URL(window.location.href);
-
-        if (value === 'health') {
-            url.searchParams.set('tab', 'health');
-        } else {
-            url.searchParams.delete('tab');
-        }
-
-        window.history.replaceState({}, '', url.pathname + url.search);
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={t('dashboard.title')} />
-            <PageLayout
-                scrollContent
-                subheader={
-                    <nav
-                        className="inline-flex items-center gap-3 text-sm"
-                        data-test="dashboard-tabs"
-                        aria-label={t('dashboard.tabsLabel')}
-                    >
-                        {(['overview', 'health'] as const).map((value) => (
-                            <button
-                                key={value}
-                                type="button"
-                                onClick={() => selectTab(value)}
-                                className={cn(
-                                    'border-b-2 pb-0.5 transition-colors',
-                                    tab === value
-                                        ? 'border-foreground font-medium text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground',
-                                )}
-                                data-test={`dashboard-tab-${value}`}
-                                aria-current={
-                                    tab === value ? 'page' : undefined
-                                }
-                            >
-                                {value === 'overview'
-                                    ? t('dashboard.tabOverview')
-                                    : t('dashboard.tabHealth')}
-                            </button>
-                        ))}
-                    </nav>
-                }
-            >
-                {tab === 'health' ? (
+            <DashboardTabs view={view} />
+            <PageLayout scrollContent>
+                {view === 'health' ? (
                     <DashboardHealthPanel health={health} />
                 ) : (
                     <div className="flex flex-col gap-4">
+                        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.files')}
+                                value={fileStats.files_count.toLocaleString()}
+                                headline={t('dashboard.statFilesHeadline', {
+                                    count: fileStats.folders_count,
+                                })}
+                            />
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.totalSize')}
+                                value={formatBytes(fileStats.files_size_sum)}
+                                context={t('dashboard.statSizeContext')}
+                            />
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.statUploadsInProgress')}
+                                value={uploadHealth.in_progress_count.toLocaleString()}
+                                context={t('dashboard.statInProgressContext')}
+                            />
+                            <StatCard
+                                className="xl:col-span-3"
+                                label={t('dashboard.statStaleUploads')}
+                                value={uploadHealth.stale_count.toLocaleString()}
+                                context={t('dashboard.statStaleContext')}
+                            />
+                        </section>
+
                         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
                             <Card className="xl:col-span-4">
                                 <CardHeader className="pb-3">
@@ -290,7 +261,14 @@ export default function Dashboard({
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="max-h-64 overflow-auto rounded-md border">
+                                    <div
+                                        role="region"
+                                        aria-label={t(
+                                            'dashboard.insightsCollections',
+                                        )}
+                                        className="max-h-64 overflow-auto"
+                                        tabIndex={0}
+                                    >
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
@@ -299,7 +277,7 @@ export default function Dashboard({
                                                             'dashboard.collection',
                                                         )}
                                                     </TableHead>
-                                                    <TableHead className="w-[6rem] text-right">
+                                                    <TableHead className="w-[6rem] text-right tabular-nums">
                                                         {t('dashboard.items')}
                                                     </TableHead>
                                                 </TableRow>
@@ -311,11 +289,11 @@ export default function Dashboard({
                                                             <div className="truncate font-medium">
                                                                 {row.name}
                                                             </div>
-                                                            <div className="truncate text-xs text-muted-foreground">
+                                                            <div className="truncate font-mono text-xs text-muted-foreground">
                                                                 {row.slug}
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell className="text-right tabular-nums">
                                                             {row.items_count.toLocaleString()}
                                                         </TableCell>
                                                     </TableRow>
@@ -324,12 +302,33 @@ export default function Dashboard({
                                                 0 ? (
                                                     <TableRow>
                                                         <TableCell
-                                                            className="py-6 text-center text-muted-foreground"
+                                                            className="p-3"
                                                             colSpan={2}
                                                         >
-                                                            {t(
-                                                                'dashboard.noCollections',
-                                                            )}
+                                                            <PageEmptyState
+                                                                icon={
+                                                                    FolderOpen
+                                                                }
+                                                                title={t(
+                                                                    'dashboard.noCollections',
+                                                                )}
+                                                                description={t(
+                                                                    'emptyState.dashboard.collectionsDescription',
+                                                                )}
+                                                                action={
+                                                                    <Button
+                                                                        asChild
+                                                                    >
+                                                                        <Link href="/collections">
+                                                                            {t(
+                                                                                'emptyState.dashboard.collectionsCta',
+                                                                            )}
+                                                                        </Link>
+                                                                    </Button>
+                                                                }
+                                                                compact
+                                                                className="border-0"
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : null}
@@ -353,39 +352,27 @@ export default function Dashboard({
                                         {activityLast7.every(
                                             (row) => row.count === 0,
                                         ) ? (
-                                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                                {t('dashboard.noActivity7d')}
-                                            </div>
+                                            <PageEmptyState
+                                                icon={Activity}
+                                                title={t(
+                                                    'dashboard.noActivity7d',
+                                                )}
+                                                description={t(
+                                                    'emptyState.dashboard.activityDescription',
+                                                )}
+                                                compact
+                                                className="h-full border-0"
+                                            />
                                         ) : (
-                                            <ResponsiveContainer
-                                                width="100%"
-                                                height="100%"
-                                            >
-                                                <BarChart data={activityLast7}>
-                                                    <CartesianGrid
-                                                        strokeDasharray="3 3"
-                                                        vertical={false}
-                                                    />
-                                                    <XAxis
-                                                        dataKey="date"
-                                                        tick={{ fontSize: 11 }}
-                                                        tickFormatter={(
-                                                            value: string,
-                                                        ) => value.slice(5)}
-                                                    />
-                                                    <YAxis
-                                                        allowDecimals={false}
-                                                        tick={{ fontSize: 11 }}
-                                                        width={32}
-                                                    />
-                                                    <Tooltip />
-                                                    <Bar
-                                                        dataKey="count"
-                                                        fill="var(--color-primary)"
-                                                        radius={[4, 4, 0, 0]}
-                                                    />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                            <DashboardBarChart
+                                                data={activityLast7}
+                                                categoryKey="date"
+                                                label={t('dashboard.events')}
+                                                color="var(--color-primary)"
+                                                tickFormatter={(value) =>
+                                                    value.slice(5)
+                                                }
+                                            />
                                         )}
                                     </div>
                                 </CardContent>
@@ -405,38 +392,24 @@ export default function Dashboard({
                                         {eventBreakdownChart.every(
                                             (row) => row.count === 0,
                                         ) ? (
-                                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                                {t('dashboard.noContentEvents')}
-                                            </div>
+                                            <PageEmptyState
+                                                icon={Inbox}
+                                                title={t(
+                                                    'dashboard.noContentEvents',
+                                                )}
+                                                description={t(
+                                                    'emptyState.dashboard.genericDescription',
+                                                )}
+                                                compact
+                                                className="h-full border-0"
+                                            />
                                         ) : (
-                                            <ResponsiveContainer
-                                                width="100%"
-                                                height="100%"
-                                            >
-                                                <BarChart
-                                                    data={eventBreakdownChart}
-                                                >
-                                                    <CartesianGrid
-                                                        strokeDasharray="3 3"
-                                                        vertical={false}
-                                                    />
-                                                    <XAxis
-                                                        dataKey="event"
-                                                        tick={{ fontSize: 11 }}
-                                                    />
-                                                    <YAxis
-                                                        allowDecimals={false}
-                                                        tick={{ fontSize: 11 }}
-                                                        width={32}
-                                                    />
-                                                    <Tooltip />
-                                                    <Bar
-                                                        dataKey="count"
-                                                        fill="var(--color-chart-2, var(--color-primary))"
-                                                        radius={[4, 4, 0, 0]}
-                                                    />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                            <DashboardBarChart
+                                                data={eventBreakdownChart}
+                                                categoryKey="event"
+                                                label={t('dashboard.events')}
+                                                color="var(--color-chart-2, var(--color-primary))"
+                                            />
                                         )}
                                     </div>
                                 </CardContent>
@@ -455,7 +428,14 @@ export default function Dashboard({
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                                        <div className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1">
+                                        <div
+                                            role="region"
+                                            aria-label={t(
+                                                'dashboard.latestActivity',
+                                            )}
+                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
+                                            tabIndex={0}
+                                        >
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
@@ -469,7 +449,7 @@ export default function Dashboard({
                                                                 'dashboard.descriptionCol',
                                                             )}
                                                         </TableHead>
-                                                        <TableHead className="w-[10rem] text-right">
+                                                        <TableHead className="w-[10rem] text-right tabular-nums">
                                                             {t(
                                                                 'dashboard.when',
                                                             )}
@@ -509,7 +489,7 @@ export default function Dashboard({
                                                                             : '—'}
                                                                     </div>
                                                                 </TableCell>
-                                                                <TableCell className="text-right text-xs text-muted-foreground">
+                                                                <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                     {activity.created_at
                                                                         ? new Date(
                                                                               activity.created_at,
@@ -523,12 +503,33 @@ export default function Dashboard({
                                                     0 ? (
                                                         <TableRow>
                                                             <TableCell
-                                                                className="py-6 text-center text-muted-foreground"
+                                                                className="p-3"
                                                                 colSpan={3}
                                                             >
-                                                                {t(
-                                                                    'dashboard.noActivity',
-                                                                )}
+                                                                <PageEmptyState
+                                                                    icon={Inbox}
+                                                                    title={t(
+                                                                        'dashboard.noActivity',
+                                                                    )}
+                                                                    description={t(
+                                                                        'emptyState.dashboard.activityDescription',
+                                                                    )}
+                                                                    action={
+                                                                        <Button
+                                                                            asChild
+                                                                        >
+                                                                            <Link
+                                                                                href={activityLogs.index.url()}
+                                                                            >
+                                                                                {t(
+                                                                                    'emptyState.dashboard.activityCta',
+                                                                                )}
+                                                                            </Link>
+                                                                        </Button>
+                                                                    }
+                                                                    compact
+                                                                    className="border-0"
+                                                                />
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : null}
@@ -537,7 +538,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="flex justify-end">
                                             <Link
-                                                href={adminRoutes.activityLogs.index()}
+                                                href={activityLogs.index.url()}
                                                 className="text-sm underline underline-offset-4"
                                             >
                                                 {t('dashboard.viewAll')}
@@ -545,84 +546,7 @@ export default function Dashboard({
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-7 xl:h-full xl:grid-rows-2">
-                                    <Card className="h-full min-h-0 gap-4">
-                                        <CardHeader className="shrink-0 pb-3">
-                                            <CardTitle>
-                                                {t('dashboard.storageOverview')}
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t(
-                                                    'dashboard.storageOverviewDesc',
-                                                )}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="grid grid-cols-3 gap-3">
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.files')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {fileStats.files_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.folders')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {fileStats.folders_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.totalSize')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {formatBytes(
-                                                        fileStats.files_size_sum,
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card className="h-full min-h-0 gap-4">
-                                        <CardHeader className="shrink-0 pb-3">
-                                            <CardTitle>
-                                                {t('dashboard.uploadHealth')}
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t(
-                                                    'dashboard.uploadHealthDesc',
-                                                )}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.inProgress')}
-                                                </div>
-                                                <div className="text-2xl font-semibold">
-                                                    {uploadHealth.in_progress_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {t('dashboard.stale')}
-                                                </div>
-                                                <div
-                                                    className={
-                                                        uploadHealth.stale_count >
-                                                        0
-                                                            ? 'text-2xl font-semibold text-destructive'
-                                                            : 'text-2xl font-semibold'
-                                                    }
-                                                >
-                                                    {uploadHealth.stale_count.toLocaleString()}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-7 xl:h-full xl:grid-rows-1">
                                     <Card className="h-full max-h-[22rem] min-h-[14rem] gap-4 xl:max-h-none xl:min-h-0">
                                         <CardHeader className="shrink-0 pb-3">
                                             <CardTitle>
@@ -638,12 +562,17 @@ export default function Dashboard({
                                             <Deferred
                                                 data="largestFiles"
                                                 fallback={
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {t('dashboard.loading')}
-                                                    </div>
+                                                    <DashboardTableSkeleton />
                                                 }
                                             >
-                                                <div className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1">
+                                                <div
+                                                    role="region"
+                                                    aria-label={t(
+                                                        'dashboard.largestFiles',
+                                                    )}
+                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
+                                                    tabIndex={0}
+                                                >
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -652,7 +581,7 @@ export default function Dashboard({
                                                                         'dashboard.file',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[7rem] text-right">
+                                                                <TableHead className="w-[7rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.size',
                                                                     )}
@@ -685,7 +614,7 @@ export default function Dashboard({
                                                                             }
                                                                         </div>
                                                                     </TableCell>
-                                                                    <TableCell className="text-right">
+                                                                    <TableCell className="text-right tabular-nums">
                                                                         {formatBytes(
                                                                             file.size,
                                                                         )}
@@ -698,14 +627,37 @@ export default function Dashboard({
                                                             ).length === 0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noFiles',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                HardDrive
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noFiles',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.filesDescription',
+                                                                            )}
+                                                                            action={
+                                                                                <Button
+                                                                                    asChild
+                                                                                >
+                                                                                    <Link
+                                                                                        href={files.index.url()}
+                                                                                    >
+                                                                                        {t(
+                                                                                            'emptyState.dashboard.filesCta',
+                                                                                        )}
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            }
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -730,12 +682,17 @@ export default function Dashboard({
                                             <Deferred
                                                 data="storageTrend"
                                                 fallback={
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {t('dashboard.loading')}
-                                                    </div>
+                                                    <DashboardTableSkeleton />
                                                 }
                                             >
-                                                <div className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1">
+                                                <div
+                                                    role="region"
+                                                    aria-label={t(
+                                                        'dashboard.storageTrend',
+                                                    )}
+                                                    className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
+                                                    tabIndex={0}
+                                                >
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -744,7 +701,7 @@ export default function Dashboard({
                                                                         'dashboard.date',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[8rem] text-right">
+                                                                <TableHead className="w-[8rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.added',
                                                                     )}
@@ -764,7 +721,7 @@ export default function Dashboard({
                                                                                 row.date
                                                                             }
                                                                         </TableCell>
-                                                                        <TableCell className="text-right">
+                                                                        <TableCell className="text-right tabular-nums">
                                                                             {formatBytes(
                                                                                 row.bytes_added,
                                                                             )}
@@ -776,14 +733,24 @@ export default function Dashboard({
                                                             0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noData',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                Inbox
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noData',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.genericDescription',
+                                                                            )}
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -808,7 +775,7 @@ export default function Dashboard({
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="overflow-x-auto rounded-md border">
+                                            <div className="overflow-x-auto">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
@@ -817,7 +784,7 @@ export default function Dashboard({
                                                                     'dashboard.descriptionCol',
                                                                 )}
                                                             </TableHead>
-                                                            <TableHead className="w-[10rem] text-right">
+                                                            <TableHead className="w-[10rem] text-right tabular-nums">
                                                                 {t(
                                                                     'dashboard.when',
                                                                 )}
@@ -853,7 +820,7 @@ export default function Dashboard({
                                                                                 : '—'}
                                                                         </div>
                                                                     </TableCell>
-                                                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                                                    <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                         {event.created_at
                                                                             ? new Date(
                                                                                   event.created_at,
@@ -867,12 +834,22 @@ export default function Dashboard({
                                                         0 ? (
                                                             <TableRow>
                                                                 <TableCell
-                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    className="p-3"
                                                                     colSpan={2}
                                                                 >
-                                                                    {t(
-                                                                        'dashboard.noSuspicious',
-                                                                    )}
+                                                                    <PageEmptyState
+                                                                        icon={
+                                                                            Inbox
+                                                                        }
+                                                                        title={t(
+                                                                            'dashboard.noSuspicious',
+                                                                        )}
+                                                                        description={t(
+                                                                            'emptyState.dashboard.genericDescription',
+                                                                        )}
+                                                                        compact
+                                                                        className="border-0"
+                                                                    />
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
@@ -894,7 +871,7 @@ export default function Dashboard({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="overflow-x-auto">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -903,7 +880,7 @@ export default function Dashboard({
                                                                         'dashboard.user',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[6rem] text-right">
+                                                                <TableHead className="w-[6rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.events',
                                                                     )}
@@ -923,7 +900,7 @@ export default function Dashboard({
                                                                                 user.label
                                                                             }
                                                                         </TableCell>
-                                                                        <TableCell className="text-right">
+                                                                        <TableCell className="text-right tabular-nums">
                                                                             {user.activity_count.toLocaleString()}
                                                                         </TableCell>
                                                                     </TableRow>
@@ -933,14 +910,24 @@ export default function Dashboard({
                                                             0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noActivity',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                Inbox
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noActivity',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.genericDescription',
+                                                                            )}
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -963,7 +950,7 @@ export default function Dashboard({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="overflow-x-auto">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -972,7 +959,7 @@ export default function Dashboard({
                                                                         'dashboard.upload',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[6rem] text-right">
+                                                                <TableHead className="w-[6rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.chunks',
                                                                     )}
@@ -1010,7 +997,7 @@ export default function Dashboard({
                                                                                       )}
                                                                             </div>
                                                                         </TableCell>
-                                                                        <TableCell className="text-right text-xs text-muted-foreground">
+                                                                        <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                             {upload.uploaded_chunks.toLocaleString()}
                                                                             /
                                                                             {upload.total_chunks.toLocaleString()}
@@ -1022,14 +1009,24 @@ export default function Dashboard({
                                                             0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noStuckUploads',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                Inbox
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noStuckUploads',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.genericDescription',
+                                                                            )}
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -1053,12 +1050,10 @@ export default function Dashboard({
                                         <Deferred
                                             data="fileStatsByDisk"
                                             fallback={
-                                                <div className="text-sm text-muted-foreground">
-                                                    {t('dashboard.loading')}
-                                                </div>
+                                                <DashboardTableSkeleton />
                                             }
                                         >
-                                            <div className="overflow-x-auto rounded-md border">
+                                            <div className="overflow-x-auto">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
@@ -1067,12 +1062,12 @@ export default function Dashboard({
                                                                     'dashboard.disk',
                                                                 )}
                                                             </TableHead>
-                                                            <TableHead className="text-right">
+                                                            <TableHead className="text-right tabular-nums">
                                                                 {t(
                                                                     'dashboard.files',
                                                                 )}
                                                             </TableHead>
-                                                            <TableHead className="text-right">
+                                                            <TableHead className="text-right tabular-nums">
                                                                 {t(
                                                                     'dashboard.size',
                                                                 )}
@@ -1092,10 +1087,10 @@ export default function Dashboard({
                                                                             row.disk
                                                                         }
                                                                     </TableCell>
-                                                                    <TableCell className="text-right">
+                                                                    <TableCell className="text-right tabular-nums">
                                                                         {row.files_count.toLocaleString()}
                                                                     </TableCell>
-                                                                    <TableCell className="text-right">
+                                                                    <TableCell className="text-right tabular-nums">
                                                                         {formatBytes(
                                                                             row.files_size_sum,
                                                                         )}
@@ -1107,12 +1102,22 @@ export default function Dashboard({
                                                         0 ? (
                                                             <TableRow>
                                                                 <TableCell
-                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    className="p-3"
                                                                     colSpan={3}
                                                                 >
-                                                                    {t(
-                                                                        'dashboard.noData',
-                                                                    )}
+                                                                    <PageEmptyState
+                                                                        icon={
+                                                                            Inbox
+                                                                        }
+                                                                        title={t(
+                                                                            'dashboard.noData',
+                                                                        )}
+                                                                        description={t(
+                                                                            'emptyState.dashboard.genericDescription',
+                                                                        )}
+                                                                        compact
+                                                                        className="border-0"
+                                                                    />
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
@@ -1131,31 +1136,60 @@ export default function Dashboard({
     );
 }
 
-function MetricCard({
-    label,
-    value,
-    tone = 'default',
-}: {
-    label: string;
-    value: string;
-    tone?: 'default' | 'danger' | 'ok';
-}) {
+const VIEW_ICONS = {
+    overview: LayoutGrid,
+    health: HeartPulse,
+} as const;
+
+/**
+ * Overview / Health as line tabs under the header, each a link to its own URL
+ * (app-ui `docs/page.md`, "Views: tabs under the header").
+ */
+function DashboardTabs({ view }: { view: DashboardView }) {
+    const { t } = useTranslation();
+    const views: DashboardView[] = ['overview', 'health'];
+
     return (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardDescription>{label}</CardDescription>
-                <CardTitle
-                    className={cn(
-                        'text-xl',
-                        tone === 'danger' && 'text-destructive',
-                        tone === 'ok' &&
-                            'text-emerald-600 dark:text-emerald-400',
-                    )}
-                >
-                    {value}
-                </CardTitle>
-            </CardHeader>
-        </Card>
+        <Tabs
+            value={view}
+            activationMode="manual"
+            className="overflow-x-auto border-b px-4"
+        >
+            <TabsList
+                variant="line"
+                aria-label={t('dashboard.tabsLabel')}
+                data-test="dashboard-tabs"
+            >
+                {views.map((item) => {
+                    const Icon = VIEW_ICONS[item];
+
+                    return (
+                        <TabsTrigger
+                            key={item}
+                            value={item}
+                            data-test={`dashboard-tab-${item}`}
+                            // Each tab is a link to its own URL, so there is no tab panel to point at.
+                            aria-controls={undefined}
+                            asChild
+                        >
+                            <Link
+                                href={
+                                    item === 'overview'
+                                        ? dashboard.url()
+                                        : dashboardRoutes.view.url(item)
+                                }
+                                preserveScroll
+                            >
+                                <Icon />
+                                {item === 'overview'
+                                    ? t('dashboard.tabOverview')
+                                    : t('dashboard.tabHealth')}
+                            </Link>
+                        </TabsTrigger>
+                    );
+                })}
+            </TabsList>
+        </Tabs>
     );
 }
 
@@ -1189,88 +1223,112 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
             count: health.slow_queries_24h,
         },
     ];
+    const pulseContext = health.pulse_enabled
+        ? t('dashboard.healthPulseDesc', { ingest: health.pulse_ingest })
+        : t('dashboard.healthPulseOff');
+    const horizonStats = [
+        {
+            label: t('dashboard.healthHorizonStatus'),
+            value:
+                horizon.status === 'running'
+                    ? t('dashboard.healthHorizonRunning')
+                    : t('dashboard.healthHorizonStopped'),
+        },
+        {
+            label: t('dashboard.healthHorizonPending'),
+            value: horizon.pending.toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthHorizonFailed'),
+            value: horizon.failed.toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthHorizonProcesses'),
+            value: horizon.processes.toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthHorizonThroughput'),
+            value: (horizon.jobs_per_minute ?? 0).toLocaleString(),
+        },
+        {
+            label: t('dashboard.healthFailedJobs'),
+            value: health.failed_jobs.toLocaleString(),
+        },
+    ];
 
     return (
         <div className="flex flex-col gap-4" data-test="dashboard-health">
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthQueue')}
                     value={health.queue_connection}
                 />
-                <MetricCard
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthBroadcast')}
                     value={health.broadcast_connection}
                 />
-                <MetricCard
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthRedis')}
                     value={
                         health.redis_ok
                             ? t('dashboard.healthOk')
                             : t('dashboard.healthDown')
                     }
-                    tone={health.redis_ok ? 'ok' : 'danger'}
                 />
-                <MetricCard
+                <StatCard
+                    className="xl:col-span-3"
                     label={t('dashboard.healthPendingJobs')}
                     value={health.pending_jobs.toLocaleString()}
+                    headline={t('dashboard.statFailedJobsHeadline', {
+                        count: health.failed_jobs,
+                    })}
                 />
             </section>
 
+            {health.pulse_available ? (
+                <section
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12"
+                    aria-label={t('dashboard.healthPulseTitle')}
+                >
+                    {pulseChart.map((row) => (
+                        <StatCard
+                            key={row.metric}
+                            className="xl:col-span-4"
+                            label={row.metric}
+                            value={row.count.toLocaleString()}
+                            context={pulseContext}
+                        />
+                    ))}
+                </section>
+            ) : null}
+
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                <Card className="xl:col-span-5">
-                    <CardHeader className="pb-3">
-                        <CardTitle>{t('dashboard.healthPulseTitle')}</CardTitle>
-                        <CardDescription>
-                            {health.pulse_enabled
-                                ? t('dashboard.healthPulseDesc', {
-                                      ingest: health.pulse_ingest,
-                                  })
-                                : t('dashboard.healthPulseOff')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {!health.pulse_available ? (
+                {!health.pulse_available ? (
+                    <Card className="xl:col-span-5">
+                        <CardHeader className="pb-3">
+                            <CardTitle>
+                                {t('dashboard.healthPulseTitle')}
+                            </CardTitle>
+                            <CardDescription>{pulseContext}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
                             <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthPulseEmpty')}
                             </p>
-                        ) : (
-                            <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthExceptions')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            health.exceptions_24h > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        {health.exceptions_24h.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthSlowJobs')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {health.slow_jobs_24h.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthSlowQueries')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {health.slow_queries_24h.toLocaleString()}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                ) : null}
 
-                <Card className="xl:col-span-7">
+                <Card
+                    className={
+                        health.pulse_available
+                            ? 'xl:col-span-12'
+                            : 'xl:col-span-7'
+                    }
+                >
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthPulseChartTitle')}
@@ -1282,139 +1340,69 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     <CardContent>
                         <div className="h-44 w-full">
                             {!health.pulse_available || pulseQuiet ? (
-                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                    {t('dashboard.healthPulseQuiet')}
-                                </div>
+                                <PageEmptyState
+                                    icon={Activity}
+                                    title={t('dashboard.healthPulseQuiet')}
+                                    description={t(
+                                        'emptyState.dashboard.genericDescription',
+                                    )}
+                                    compact
+                                    className="h-full border-0"
+                                />
                             ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={pulseChart}>
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            vertical={false}
-                                        />
-                                        <XAxis
-                                            dataKey="metric"
-                                            tick={{ fontSize: 11 }}
-                                        />
-                                        <YAxis
-                                            allowDecimals={false}
-                                            tick={{ fontSize: 11 }}
-                                            width={32}
-                                        />
-                                        <Tooltip />
-                                        <Bar
-                                            dataKey="count"
-                                            fill="var(--color-primary)"
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <DashboardBarChart
+                                    data={pulseChart}
+                                    categoryKey="metric"
+                                    label={t('dashboard.events')}
+                                    color="var(--color-primary)"
+                                />
                             )}
                         </div>
                     </CardContent>
                 </Card>
             </section>
 
+            {horizon.available ? (
+                <section
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12"
+                    aria-label={t('dashboard.healthHorizonTitle')}
+                >
+                    {horizonStats.map((stat) => (
+                        <StatCard
+                            key={stat.label}
+                            className="xl:col-span-4"
+                            label={stat.label}
+                            value={stat.value}
+                            context={t('dashboard.healthHorizonTitle')}
+                        />
+                    ))}
+                </section>
+            ) : null}
+
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                <Card className="xl:col-span-5">
-                    <CardHeader className="pb-3">
-                        <CardTitle>
-                            {t('dashboard.healthHorizonTitle')}
-                        </CardTitle>
-                        <CardDescription>
-                            {horizon.available
-                                ? t('dashboard.healthHorizonDesc')
-                                : t('dashboard.healthHorizonUnavailable')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {!horizon.available ? (
+                {!horizon.available ? (
+                    <Card className="xl:col-span-5">
+                        <CardHeader className="pb-3">
+                            <CardTitle>
+                                {t('dashboard.healthHorizonTitle')}
+                            </CardTitle>
+                            <CardDescription>
+                                {t('dashboard.healthHorizonUnavailable')}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
                             <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthHorizonEmpty')}
                             </p>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonStatus')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            horizon.status === 'running'
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : 'text-destructive',
-                                        )}
-                                    >
-                                        {horizon.status === 'running'
-                                            ? t(
-                                                  'dashboard.healthHorizonRunning',
-                                              )
-                                            : t(
-                                                  'dashboard.healthHorizonStopped',
-                                              )}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonPending')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {horizon.pending.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonFailed')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            horizon.failed > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        {horizon.failed.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonProcesses')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {horizon.processes.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthHorizonThroughput')}
-                                    </div>
-                                    <div className="text-2xl font-semibold">
-                                        {(
-                                            horizon.jobs_per_minute ?? 0
-                                        ).toLocaleString()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('dashboard.healthFailedJobs')}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'text-2xl font-semibold',
-                                            health.failed_jobs > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        {health.failed_jobs.toLocaleString()}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                ) : null}
 
-                <Card className="xl:col-span-7">
+                <Card
+                    className={
+                        horizon.available ? 'xl:col-span-12' : 'xl:col-span-7'
+                    }
+                >
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthWorkloadsTitle')}
@@ -1426,11 +1414,17 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     <CardContent>
                         {!horizon.available ||
                         horizon.workloads.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('dashboard.healthWorkloadsEmpty')}
-                            </p>
+                            <PageEmptyState
+                                icon={Inbox}
+                                title={t('dashboard.healthWorkloadsEmpty')}
+                                description={t(
+                                    'emptyState.dashboard.genericDescription',
+                                )}
+                                compact
+                                className="border-0"
+                            />
                         ) : (
-                            <div className="overflow-x-auto rounded-md border">
+                            <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -1439,17 +1433,17 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                                     'dashboard.healthWorkloadQueue',
                                                 )}
                                             </TableHead>
-                                            <TableHead className="w-[6rem] text-right">
+                                            <TableHead className="w-[6rem] text-right tabular-nums">
                                                 {t(
                                                     'dashboard.healthWorkloadLength',
                                                 )}
                                             </TableHead>
-                                            <TableHead className="w-[6rem] text-right">
+                                            <TableHead className="w-[6rem] text-right tabular-nums">
                                                 {t(
                                                     'dashboard.healthWorkloadWait',
                                                 )}
                                             </TableHead>
-                                            <TableHead className="w-[6rem] text-right">
+                                            <TableHead className="w-[6rem] text-right tabular-nums">
                                                 {t(
                                                     'dashboard.healthWorkloadProcesses',
                                                 )}
@@ -1462,13 +1456,13 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                                 <TableCell className="font-medium">
                                                     {row.name}
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right tabular-nums">
                                                     {row.length.toLocaleString()}
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right tabular-nums">
                                                     {row.wait.toLocaleString()}s
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right tabular-nums">
                                                     {row.processes.toLocaleString()}
                                                 </TableCell>
                                             </TableRow>
@@ -1480,6 +1474,75 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     </CardContent>
                 </Card>
             </section>
+        </div>
+    );
+}
+
+/**
+ * One-series bar chart on the shadcn ChartContainer: theme-coloured bars and the chart
+ * tooltip (ChartTooltipContent) instead of recharts' default one. `data` rows carry a
+ * `count` and the category under `categoryKey`.
+ */
+function DashboardBarChart({
+    data,
+    categoryKey,
+    label,
+    color,
+    tickFormatter,
+}: {
+    data: Array<Record<string, unknown>>;
+    categoryKey: string;
+    label: string;
+    color: string;
+    tickFormatter?: (value: string) => string;
+}) {
+    const chartConfig = { count: { label, color } } satisfies ChartConfig;
+
+    return (
+        <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-full w-full"
+        >
+            <BarChart data={data} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                    dataKey={categoryKey}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={tickFormatter}
+                />
+                <YAxis
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    width={32}
+                />
+                <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent />}
+                />
+                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+            </BarChart>
+        </ChartContainer>
+    );
+}
+
+/**
+ * Placeholder rows for a deferred dashboard table while its data loads.
+ */
+function DashboardTableSkeleton() {
+    const { t } = useTranslation();
+
+    return (
+        <div
+            role="status"
+            aria-label={t('dashboard.loading')}
+            className="flex flex-col gap-2"
+        >
+            {Array.from({ length: 4 }, (_, index) => (
+                <Skeleton key={index} className="h-8 w-full" />
+            ))}
         </div>
     );
 }

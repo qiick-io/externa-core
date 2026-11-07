@@ -1,28 +1,18 @@
 import { Head, router } from '@inertiajs/react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DataTable } from '@/components/admin/data-table';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
-import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { PageLayout } from '@/components/layout/page-layout';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import permissionsRoutes from '@/routes/permissions';
 import { edit as editProfile } from '@/routes/profile';
 import type { AdminPermissionRow, BreadcrumbItem, Paginated } from '@/types';
 
@@ -49,18 +39,29 @@ export default function AdminPermissionsIndex({
             },
             {
                 title: t('settings.layout.permissions'),
-                href: adminRoutes.permissions.index(),
+                href: permissionsRoutes.index.url(),
             },
         ],
         [t],
     );
 
+    const columns: ColumnDef<AdminPermissionRow>[] = [
+        {
+            id: 'name',
+            header: t('permissions.columns.name'),
+            meta: { cellClassName: 'font-mono text-sm' },
+            cell: ({ row }) => row.original.name,
+        },
+        {
+            id: 'guard',
+            header: t('permissions.columns.guard'),
+            meta: { cellClassName: 'text-muted-foreground' },
+            cell: ({ row }) => row.original.guard_name,
+        },
+    ];
+
     const sync = (): void => {
-        router.post(
-            adminRoutes.permissions.sync(),
-            {},
-            { preserveScroll: true },
-        );
+        router.post(permissionsRoutes.sync.url(), {}, { preserveScroll: true });
     };
 
     return (
@@ -71,7 +72,7 @@ export default function AdminPermissionsIndex({
                     <HeaderIconButton
                         type="button"
                         variant="outline"
-                        label="Sync from enum"
+                        label={t('permissions.sync')}
                         onClick={sync}
                     >
                         <RefreshCw className="size-4" />
@@ -93,48 +94,17 @@ export default function AdminPermissionsIndex({
                         </>
                     }
                 >
-                    <TablePanel
-                        footer={
-                            permissions.last_page > 1 ? (
-                                <TablePagination
-                                    links={permissions.links ?? []}
-                                />
-                            ) : undefined
+                    <DataTable
+                        columns={columns}
+                        data={permissions.data ?? []}
+                        getRowId={(permission) => String(permission.id)}
+                        pagination={permissions}
+                        emptyState={
+                            <span className="text-muted-foreground">
+                                {t('permissions.empty')}
+                            </span>
                         }
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Guard</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {(permissions.data ?? []).length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={2}
-                                            className="text-muted-foreground"
-                                        >
-                                            No permissions in database. Run
-                                            sync.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    (permissions.data ?? []).map((perm) => (
-                                        <TableRow key={perm.id}>
-                                            <TableCell className="font-mono text-sm">
-                                                {perm.name}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {perm.guard_name}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TablePanel>
+                    />
                 </PageLayout>
             </SettingsLayout>
         </AppLayout>

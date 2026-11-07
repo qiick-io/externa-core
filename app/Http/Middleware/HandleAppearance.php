@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\Settings\ProjectAppearance;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectAppearanceService;
+use App\Services\Settings\ProjectSettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
@@ -21,7 +21,7 @@ class HandleAppearance
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $projectAppearance = app(ProjectAppearance::class)->shared();
+        $projectAppearance = app(ProjectAppearanceService::class)->shared();
         $cookie = $request->cookie('appearance');
 
         View::share(
@@ -44,7 +44,8 @@ class HandleAppearance
         View::share('projectColorForeground', $projectAppearance['primaryForeground']);
         View::share('projectColorDark', $projectAppearance['projectColorDark']);
         View::share('projectColorDarkForeground', $projectAppearance['primaryForegroundDark']);
-        View::share('projectName', app(ProjectSettings::class)->displayName());
+        View::share('projectThemeCss', $projectAppearance['themeCss']);
+        View::share('projectName', app(ProjectSettingsService::class)->displayName());
 
         return $next($request);
     }

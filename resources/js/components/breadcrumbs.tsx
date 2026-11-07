@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import {
     Breadcrumb,
@@ -22,10 +23,15 @@ export function Breadcrumbs({
 }: {
     breadcrumbs: BreadcrumbItemType[];
 }) {
+    const { t } = useTranslation();
+
     return (
         <>
             {breadcrumbs.length > 0 && (
-                <Breadcrumb className="min-w-0">
+                <Breadcrumb
+                    className="min-w-0"
+                    aria-label={t('a11y.breadcrumb')}
+                >
                     <BreadcrumbList className="flex-nowrap overflow-hidden">
                         {breadcrumbs.map((item, index) => {
                             const isLast = index === breadcrumbs.length - 1;

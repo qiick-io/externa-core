@@ -2,8 +2,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import type {
     FieldConditionOperator,
@@ -60,7 +61,6 @@ export function FieldConditionsSettings({
                 </p>
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() =>
                         onChange({
@@ -83,17 +83,17 @@ export function FieldConditionsSettings({
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <p className="text-sm text-muted-foreground">
                 When rules match, apply the flags below. Flat AND / OR only — no
                 nested groups.
             </p>
 
-            <div className="grid gap-1 sm:max-w-xs">
-                <Label htmlFor="condition_logic">Match</Label>
-                <select
+            <Field className="sm:max-w-xs">
+                <FieldLabel htmlFor="condition_logic">Match</FieldLabel>
+                <NativeSelect
                     id="condition_logic"
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    className="w-full"
                     value={conditions.logic}
                     onChange={(event) =>
                         onChange({
@@ -104,8 +104,8 @@ export function FieldConditionsSettings({
                 >
                     <option value="and">All rules (AND)</option>
                     <option value="or">Any rule (OR)</option>
-                </select>
-            </div>
+                </NativeSelect>
+            </Field>
 
             <div className="space-y-3">
                 {conditions.rules.map((rule, index) => (
@@ -113,10 +113,10 @@ export function FieldConditionsSettings({
                         key={index}
                         className="grid gap-2 rounded-lg border border-dashed p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
                     >
-                        <div className="grid gap-1">
-                            <Label>Field</Label>
-                            <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        <Field>
+                            <FieldLabel>Field</FieldLabel>
+                            <NativeSelect
+                                className="w-full"
                                 value={rule.field}
                                 onChange={(event) => {
                                     const rules = conditions.rules.map(
@@ -137,12 +137,12 @@ export function FieldConditionsSettings({
                                         {name}
                                     </option>
                                 ))}
-                            </select>
-                        </div>
-                        <div className="grid gap-1">
-                            <Label>Operator</Label>
-                            <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            </NativeSelect>
+                        </Field>
+                        <Field>
+                            <FieldLabel>Operator</FieldLabel>
+                            <NativeSelect
+                                className="w-full"
                                 value={rule.operator}
                                 onChange={(event) => {
                                     const operator = event.target
@@ -172,18 +172,18 @@ export function FieldConditionsSettings({
                                         {operator.label}
                                     </option>
                                 ))}
-                            </select>
-                        </div>
+                            </NativeSelect>
+                        </Field>
                         {VALUELESS.includes(rule.operator) ? (
                             <div />
                         ) : (
-                            <div className="grid gap-1">
-                                <Label>
+                            <Field>
+                                <FieldLabel>
                                     {rule.operator === 'in' ||
                                     rule.operator === 'not_in'
                                         ? 'Values (comma-separated)'
                                         : 'Value'}
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     value={String(rule.value ?? '')}
                                     placeholder={
@@ -206,7 +206,7 @@ export function FieldConditionsSettings({
                                         onChange({ ...conditions, rules });
                                     }}
                                 />
-                            </div>
+                            </Field>
                         )}
                         <Button
                             type="button"
@@ -232,7 +232,6 @@ export function FieldConditionsSettings({
 
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() =>
                         onChange({
@@ -316,7 +315,6 @@ export function FieldConditionsSettings({
 
             <Button
                 type="button"
-                size="sm"
                 variant="ghost"
                 onClick={() => onChange(null)}
             >

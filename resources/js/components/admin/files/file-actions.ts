@@ -31,6 +31,8 @@ export type FileActionPermissions = {
     canTag: boolean;
     canUpdateMetadata: boolean;
     canUseAi?: boolean;
+    /** Shared AI availability (`useAiAvailability`); `false` disables Ask AI with the offline reason. */
+    isAiAvailable?: boolean;
 };
 
 const ACTION_ICONS: Record<FileActionKey, FileActionDefinition['icon']> = {
@@ -136,6 +138,10 @@ export function resolveFileActions(
             label: t('files.actions.askAi'),
             icon: ACTION_ICONS.ask_ai,
             available: Boolean(permissions.canUseAi),
+            disabledReason:
+                permissions.isAiAvailable === false
+                    ? t('ai.aiOfflineHint')
+                    : undefined,
         },
         {
             key: 'delete',
@@ -161,11 +167,12 @@ export function resolveFileActions(
 
     return candidates
         .filter((action) => action.available)
-        .map(({ key, label, icon, destructive }) => ({
+        .map(({ key, label, icon, destructive, disabledReason }) => ({
             key,
             label,
             icon,
             destructive,
+            ...(disabledReason ? { disabledReason } : {}),
         }));
 }
 

@@ -5,6 +5,16 @@ role="${1:-app}"
 
 cd /var/www/html
 
+# Refuse well-known placeholder DB passwords in production (#272).
+if [[ "${APP_ENV:-local}" == "production" ]]; then
+  case "${DB_PASSWORD:-}" in
+    ''|'change-me'|'changeme'|'password'|'secret')
+      echo "Refusing to start: set a strong DB_PASSWORD (got placeholder/empty) when APP_ENV=production." >&2
+      exit 1
+      ;;
+  esac
+fi
+
 mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/{public,private,zips,tmp} bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
@@ -107,6 +117,15 @@ if [[ -f artisan ]]; then
   fi
 fi
 
+# Long-lived workers must not stay root (blast radius). App (nginx/php-fpm) stays root
+# so it can bind :80; workers drop to www-data after root-only setup above.
+run_worker() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    exec setpriv --reuid=www-data --regid=www-data --init-groups -- "$@"
+  fi
+  exec "$@"
+}
+
 case "$role" in
   app)
     stop_nginx_daemon
@@ -114,19 +133,19 @@ case "$role" in
     exec nginx -g 'daemon off;'
     ;;
   horizon)
-    exec php artisan horizon
+    run_worker php artisan horizon
     ;;
   reverb)
-    exec php artisan reverb:start --host=0.0.0.0 --port="${REVERB_SERVER_PORT:-8080}"
+    run_worker php artisan reverb:start --host=0.0.0.0 --port="${REVERB_SERVER_PORT:-8080}"
     ;;
   scheduler)
-    exec php artisan schedule:work
+    run_worker php artisan schedule:work
     ;;
   pulse)
-    exec php artisan pulse:work
+    run_worker php artisan pulse:work
     ;;
   queue)
-    exec php artisan queue:work --sleep=1 --tries=3 --timeout=90
+    run_worker php artisan queue:work --sleep=1 --tries=3 --timeout=90
     ;;
   *)
     exec "$@"

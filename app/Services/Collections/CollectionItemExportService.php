@@ -4,7 +4,7 @@ namespace App\Services\Collections;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -18,8 +18,8 @@ class CollectionItemExportService
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
-        private CollectionItemValuesAssembler $assembler,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionItemValuesAssemblerService $assembler,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     /**
@@ -127,7 +127,7 @@ class CollectionItemExportService
     ): StreamedResponse {
         $format = strtolower($format);
         if (! in_array($format, ['csv', 'json'], true)) {
-            abort(422, 'format must be csv or json.');
+            abort(422, __('format must be csv or json.'));
         }
 
         $payload = $this->collectRows($collection, $filters, $sort, $direction, $request);

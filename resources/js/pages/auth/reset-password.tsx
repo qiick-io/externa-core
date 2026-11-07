@@ -1,10 +1,14 @@
 import { Form, Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import { update } from '@/routes/password';
@@ -31,11 +35,14 @@ export default function ResetPassword({ token, email }: Props) {
                 {...update.form()}
                 transform={(data) => ({ ...data, token, email })}
                 resetOnSuccess={['password', 'password_confirmation']}
+                noValidate
             >
                 {({ processing, errors }) => (
-                    <div className="grid gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">{t('common.email')}</Label>
+                    <FieldGroup className="gap-6">
+                        <Field data-invalid={errors.email ? true : undefined}>
+                            <FieldLabel htmlFor="email">
+                                {t('common.email')}
+                            </FieldLabel>
                             <Input
                                 id="email"
                                 type="email"
@@ -44,44 +51,73 @@ export default function ResetPassword({ token, email }: Props) {
                                 value={email}
                                 className="mt-1 block w-full"
                                 readOnly
+                                aria-invalid={errors.email ? true : undefined}
+                                aria-describedby={
+                                    errors.email ? 'email-error' : undefined
+                                }
                             />
-                            <InputError
-                                message={errors.email}
-                                className="mt-2"
-                            />
-                        </div>
+                            <FieldError id="email-error">
+                                {errors.email}
+                            </FieldError>
+                        </Field>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">
+                        <Field
+                            data-invalid={errors.password ? true : undefined}
+                        >
+                            <FieldLabel htmlFor="password">
                                 {t('common.password')}
-                            </Label>
+                            </FieldLabel>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 autoComplete="new-password"
-                                className="mt-1 block w-full"
+                                className="mt-1"
+                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                                 placeholder={t('common.password')}
+                                aria-invalid={
+                                    errors.password ? true : undefined
+                                }
+                                aria-describedby={
+                                    errors.password
+                                        ? 'password-error'
+                                        : undefined
+                                }
                             />
-                            <InputError message={errors.password} />
-                        </div>
+                            <FieldError id="password-error">
+                                {errors.password}
+                            </FieldError>
+                        </Field>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="password_confirmation">
+                        <Field
+                            data-invalid={
+                                errors.password_confirmation ? true : undefined
+                            }
+                        >
+                            <FieldLabel htmlFor="password_confirmation">
                                 {t('common.confirmPassword')}
-                            </Label>
+                            </FieldLabel>
                             <PasswordInput
                                 id="password_confirmation"
                                 name="password_confirmation"
                                 autoComplete="new-password"
-                                className="mt-1 block w-full"
+                                className="mt-1"
                                 placeholder={t('common.confirmPassword')}
+                                aria-invalid={
+                                    errors.password_confirmation
+                                        ? true
+                                        : undefined
+                                }
+                                aria-describedby={
+                                    errors.password_confirmation
+                                        ? 'password-confirmation-error'
+                                        : undefined
+                                }
                             />
-                            <InputError
-                                message={errors.password_confirmation}
-                                className="mt-2"
-                            />
-                        </div>
+                            <FieldError id="password-confirmation-error">
+                                {errors.password_confirmation}
+                            </FieldError>
+                        </Field>
 
                         <Button
                             type="submit"
@@ -92,7 +128,7 @@ export default function ResetPassword({ token, email }: Props) {
                             {processing && <Spinner />}
                             {t('auth.resetPassword.submit')}
                         </Button>
-                    </div>
+                    </FieldGroup>
                 )}
             </Form>
         </AuthLayout>

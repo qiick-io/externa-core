@@ -1,5 +1,6 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export type AccordionGroupSettings = {
     accordionMode: boolean;
@@ -58,7 +59,7 @@ export function GroupsSettings({
               ];
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="accordion_mode"
                     label="Max one section open"
@@ -75,9 +76,11 @@ export function GroupsSettings({
                         }))
                     }
                 />
-                <div className="grid gap-2">
-                    <Label htmlFor="accordion_start">Initial state</Label>
-                    <select
+                <Field>
+                    <FieldLabel htmlFor="accordion_start">
+                        Initial state
+                    </FieldLabel>
+                    <NativeSelect
                         id="accordion_start"
                         value={
                             accordionSettings.accordionMode &&
@@ -92,15 +95,15 @@ export function GroupsSettings({
                                     .value as AccordionGroupSettings['start'],
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         {startChoices.map((choice) => (
                             <option key={choice.value} value={choice.value}>
                                 {choice.label}
                             </option>
                         ))}
-                    </select>
-                </div>
+                    </NativeSelect>
+                </Field>
                 <p className="text-sm text-muted-foreground">
                     Sections are typically Raw groups nested under this
                     accordion (two empty ones are created automatically). Use
@@ -113,10 +116,12 @@ export function GroupsSettings({
 
     if (fieldType === 'group_detail') {
         return (
-            <div className="space-y-5">
-                <div className="grid gap-2">
-                    <Label htmlFor="detail_start">Initial state</Label>
-                    <select
+            <div className="space-y-6">
+                <Field>
+                    <FieldLabel htmlFor="detail_start">
+                        Initial state
+                    </FieldLabel>
+                    <NativeSelect
                         id="detail_start"
                         value={detailSettings.start}
                         onChange={(event) =>
@@ -126,19 +131,19 @@ export function GroupsSettings({
                                     .value as DetailGroupSettings['start'],
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
-                    </select>
-                </div>
+                    </NativeSelect>
+                </Field>
             </div>
         );
     }
 
     if (fieldType === 'group_tabs') {
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="tabs_fill_width"
                     label="Fill width"

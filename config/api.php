@@ -19,7 +19,7 @@ return [
     | Request cost budget (60 s window)
     |--------------------------------------------------------------------------
     |
-    | Extra abuse control stacked after ResolveApiAccess. 0 = disabled
+    | Extra abuse control stacked after ResolveApiAccessMiddleware. 0 = disabled
     | (open default until operators set API_COST_LIMIT).
     |
     */
@@ -29,6 +29,8 @@ return [
     'cost' => [
         'base' => (int) env('API_COST_BASE', 1),
         'include' => (int) env('API_COST_INCLUDE', 2),
+        /** Per dotted relational filter key (`author.name`), stacked with #113 budget. */
+        'filter_relation' => (int) env('API_COST_FILTER_RELATION', 2),
         'mutation' => (int) env('API_COST_MUTATION', 5),
     ],
 
@@ -45,6 +47,17 @@ return [
     'max_body_bytes' => (int) env('API_MAX_BODY_BYTES', 0),
 
     'max_per_page' => (int) env('API_MAX_PER_PAGE', 100),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Batch item write ceiling
+    |--------------------------------------------------------------------------
+    |
+    | Max entries per Public CMS API batch create/update/delete request (#125).
+    |
+    */
+
+    'max_batch_size' => max(1, (int) env('API_MAX_BATCH_SIZE', 100)),
 
     /*
     |--------------------------------------------------------------------------

@@ -5,7 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
@@ -99,17 +99,17 @@ test('authorized users can view and update appearance settings', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('appearance.edit'));
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
 
-    expect($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color'))
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color'))
         ->toBe('#112233')
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color_dark'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color_dark'))
         ->toBe('#aabbcc')
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_logo'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_logo'))
         ->toBe($logo->id)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_logo_dark'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_logo_dark'))
         ->toBe($logoDark->id)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'default_appearance'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'default_appearance'))
         ->toBe('dark');
 
     $this->actingAs($user)
@@ -123,8 +123,8 @@ test('authorized users can view and update appearance settings', function () {
             ->where('appearance.project_logo_dark.id', $logoDark->id)
             ->where('projectAppearance.projectColor', '#112233')
             ->where('projectAppearance.projectColorDark', '#aabbcc')
-            ->where('projectAppearance.primaryForeground', '#ffffff')
-            ->where('projectAppearance.primaryForegroundDark', '#000000')
+            ->where('projectAppearance.primaryForeground', '#FFFFFF')
+            ->where('projectAppearance.primaryForegroundDark', '#0E171E')
             ->where('projectAppearance.defaultAppearance', 'dark')
             ->where('projectAppearance.logoUrl', fn ($url) => is_string($url) && $url !== '')
             ->where('projectAppearance.logoDarkUrl', fn ($url) => is_string($url) && $url !== '')
@@ -154,8 +154,8 @@ test('light project color yields dark primary foreground in shared appearance', 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('projectAppearance.projectColor', '#f8fafc')
             ->where('projectAppearance.projectColorDark', '#0f172a')
-            ->where('projectAppearance.primaryForeground', '#000000')
-            ->where('projectAppearance.primaryForegroundDark', '#ffffff')
+            ->where('projectAppearance.primaryForeground', '#0E171E')
+            ->where('projectAppearance.primaryForegroundDark', '#FFFFFF')
         );
 });
 
@@ -173,9 +173,9 @@ test('unset dark project color falls back to light brand', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('appearance.edit'));
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
 
-    expect($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color_dark'))
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color_dark'))
         ->toBeNull();
 
     $this->actingAs($user)
@@ -214,11 +214,11 @@ test('dark project logo is optional when updating appearance', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('appearance.edit'));
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
 
-    expect($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_logo'))
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_logo'))
         ->toBe($logo->id)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_logo_dark'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_logo_dark'))
         ->toBeNull();
 
     $this->actingAs($user)
@@ -233,14 +233,14 @@ test('dark project logo is optional when updating appearance', function () {
 
 test('settings repository isolates project and user scopes', function () {
     $user = User::factory()->create();
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
 
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color', '#111111');
-    $repository->set(SettingsRepository::SCOPE_USER, 'appearance', 'project_color', '#222222', $user->id);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color', '#111111');
+    $repository->set(SettingsRepositoryService::SCOPE_USER, 'appearance', 'project_color', '#222222', $user->id);
 
-    expect($repository->get(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color'))
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color'))
         ->toBe('#111111')
-        ->and($repository->get(SettingsRepository::SCOPE_USER, 'appearance', 'project_color', $user->id))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_USER, 'appearance', 'project_color', $user->id))
         ->toBe('#222222')
         ->and(Setting::query()->count())
         ->toBe(2);
@@ -251,9 +251,9 @@ test('shell emits light and dark brand vars without lightening primary', functio
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color', '#0f172a');
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'appearance', 'project_color_dark', '#38bdf8');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color', '#0f172a');
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'project_color_dark', '#38bdf8');
 
     $this->actingAs($user)
         ->get(route('appearance.edit'))

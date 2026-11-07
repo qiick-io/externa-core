@@ -1,19 +1,40 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Check, Search, X } from 'lucide-react';
+import { Check, FolderOpen, Search, SearchX, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Toggle } from '@/components/ui/toggle';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
+import collectionRoutes from '@/routes/collections';
 import { edit as editProfile } from '@/routes/profile';
+import rolesRoutes from '@/routes/roles';
 import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
 
 type RoleFormRole = AdminRoleRow & {
@@ -203,13 +224,13 @@ export default function AdminRoleForm({
             },
             {
                 title: t('settings.layout.roles'),
-                href: adminRoutes.roles.index(),
+                href: rolesRoutes.index.url(),
             },
             {
                 title: isEdit ? 'Edit role' : 'New role',
                 href: isEdit
-                    ? adminRoutes.roles.edit(role!.id)
-                    : adminRoutes.roles.create(),
+                    ? rolesRoutes.edit.url(role!.id)
+                    : rolesRoutes.create.url(),
             },
         ],
         [isEdit, role, t],
@@ -330,9 +351,9 @@ export default function AdminRoleForm({
         const opts = { preserveScroll: true };
 
         if (isEdit) {
-            form.put(adminRoutes.roles.update(role!.id), opts);
+            form.put(rolesRoutes.update.url(role!.id), opts);
         } else {
-            form.post(adminRoutes.roles.store(), opts);
+            form.post(rolesRoutes.store.url(), opts);
         }
     };
 
@@ -344,6 +365,7 @@ export default function AdminRoleForm({
                 <div className="flex min-h-0 flex-1 flex-col gap-6">
                     <form
                         className="flex w-full flex-col gap-6"
+                        noValidate
                         onSubmit={(e) => {
                             e.preventDefault();
                             submit();
@@ -367,7 +389,7 @@ export default function AdminRoleForm({
                                     className="flex items-center gap-2"
                                 />
                                 <Button variant="outline" asChild>
-                                    <Link href={adminRoutes.roles.index()}>
+                                    <Link href={rolesRoutes.index.url()}>
                                         Cancel
                                     </Link>
                                 </Button>
@@ -380,19 +402,37 @@ export default function AdminRoleForm({
                             </div>
                         </div>
 
-                        <div className="grid max-w-md gap-2">
-                            <Label htmlFor="role_name">Name</Label>
-                            <Input
-                                id="role_name"
-                                value={form.data.name}
-                                onChange={(e) =>
-                                    form.setData('name', e.target.value)
+                        <FieldGroup className="max-w-md">
+                            <Field
+                                data-invalid={
+                                    form.errors.name ? true : undefined
                                 }
-                                required
-                                disabled={isSystem}
-                            />
-                            <InputError message={form.errors.name} />
-                        </div>
+                            >
+                                <FieldLabel htmlFor="role_name">
+                                    Name
+                                </FieldLabel>
+                                <Input
+                                    id="role_name"
+                                    value={form.data.name}
+                                    onChange={(e) =>
+                                        form.setData('name', e.target.value)
+                                    }
+                                    required
+                                    disabled={isSystem}
+                                    aria-invalid={
+                                        form.errors.name ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        form.errors.name
+                                            ? 'role-name-error'
+                                            : undefined
+                                    }
+                                />
+                                <FieldError id="role-name-error">
+                                    {form.errors.name}
+                                </FieldError>
+                            </Field>
+                        </FieldGroup>
 
                         {!isPublic && (
                             <div className="space-y-6">
@@ -410,11 +450,11 @@ export default function AdminRoleForm({
                                         );
 
                                     return (
-                                        <section
+                                        <FieldSet
                                             key={group.section}
                                             className="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
                                         >
-                                            <div className="mb-3 flex items-center gap-2">
+                                            <div className="mb-3 flex flex-wrap items-center gap-2">
                                                 <Checkbox
                                                     id={`section-${group.section}`}
                                                     checked={allChecked}
@@ -425,12 +465,20 @@ export default function AdminRoleForm({
                                                         )
                                                     }
                                                 />
-                                                <Label
-                                                    htmlFor={`section-${group.section}`}
-                                                    className="text-base font-semibold"
+                                                <FieldLegend
+                                                    variant="label"
+                                                    className="mb-0"
                                                 >
-                                                    {group.label}
-                                                </Label>
+                                                    <Label
+                                                        htmlFor={`section-${group.section}`}
+                                                        className="text-base font-semibold"
+                                                    >
+                                                        {group.label}
+                                                    </Label>
+                                                </FieldLegend>
+                                                <FieldDescription className="font-mono text-xs">
+                                                    {group.section}
+                                                </FieldDescription>
                                             </div>
                                             <div className="grid gap-2 sm:grid-cols-2">
                                                 {group.show_permission && (
@@ -488,7 +536,7 @@ export default function AdminRoleForm({
                                                     ),
                                                 )}
                                             </div>
-                                        </section>
+                                        </FieldSet>
                                     );
                                 })}
                                 {createDirectChatsPermission ? (
@@ -504,6 +552,7 @@ export default function AdminRoleForm({
                                                         c === true,
                                                     )
                                                 }
+                                                aria-label="Create private chats"
                                             />
                                             <span>Create private chats</span>
                                         </label>
@@ -529,33 +578,31 @@ export default function AdminRoleForm({
                                 </p>
                             </div>
 
-                            <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b bg-muted/40">
-                                            <th className="px-3 py-2 text-left font-medium">
-                                                Resource
-                                            </th>
+                            <div className="overflow-x-auto rounded-xl bg-card">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Resource</TableHead>
                                             {FILE_ACTIONS.map((action) => (
-                                                <th
+                                                <TableHead
                                                     key={action.key}
-                                                    className="px-2 py-2 text-center font-medium"
+                                                    className="text-center"
                                                 >
                                                     {action.label}
-                                                </th>
+                                                </TableHead>
                                             ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr className="border-b last:border-0">
-                                            <td className="px-3 py-2">
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>
                                                 <div className="font-medium">
                                                     Files
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
+                                                <div className="font-mono text-xs text-muted-foreground">
                                                     /api/v1/files
                                                 </div>
-                                            </td>
+                                            </TableCell>
                                             {FILE_ACTIONS.map((action) => {
                                                 const allowed =
                                                     form.data.file_permissions[
@@ -563,27 +610,27 @@ export default function AdminRoleForm({
                                                     ];
 
                                                 return (
-                                                    <td
+                                                    <TableCell
                                                         key={action.key}
-                                                        className="px-2 py-2 text-center"
+                                                        className="text-center"
                                                     >
-                                                        <button
-                                                            type="button"
-                                                            aria-pressed={
-                                                                allowed
-                                                            }
+                                                        <Toggle
+                                                            variant="outline"
+                                                            pressed={allowed}
                                                             aria-label={`${action.label} for files: ${allowed ? 'allowed' : 'denied'}`}
                                                             title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
                                                             className={cn(
-                                                                'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
+                                                                'px-0',
                                                                 allowed
-                                                                    ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                                    : 'border-destructive/50 bg-destructive/10 text-destructive',
+                                                                    ? 'border-success/50 bg-success/15 text-success hover:bg-success/25 hover:text-success data-[state=on]:bg-success/15 data-[state=on]:text-success'
+                                                                    : 'border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive',
                                                             )}
-                                                            onClick={() =>
+                                                            onPressedChange={(
+                                                                pressed,
+                                                            ) =>
                                                                 toggleFileAction(
                                                                     action.key,
-                                                                    !allowed,
+                                                                    pressed,
                                                                 )
                                                             }
                                                         >
@@ -604,17 +651,17 @@ export default function AdminRoleForm({
                                                                     aria-hidden
                                                                 />
                                                             )}
-                                                        </button>
-                                                    </td>
+                                                        </Toggle>
+                                                    </TableCell>
                                                 );
                                             })}
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
                             </div>
-                            <InputError
-                                message={form.errors.file_permissions}
-                            />
+                            <FieldError id="role-file-permissions-error">
+                                {form.errors.file_permissions}
+                            </FieldError>
                         </section>
 
                         <section className="space-y-3">
@@ -641,41 +688,80 @@ export default function AdminRoleForm({
                                             }
                                             placeholder="Search collections…"
                                             className="pl-9"
-                                            aria-label="Search collections"
+                                            aria-label={t('a11y.search')}
                                         />
                                     </div>
                                 ) : null}
                             </div>
 
                             {collections.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No collections yet.
-                                </p>
+                                <PageEmptyState
+                                    icon={FolderOpen}
+                                    title={t(
+                                        'emptyState.roleCollections.title',
+                                    )}
+                                    description={t(
+                                        'emptyState.roleCollections.description',
+                                    )}
+                                    action={
+                                        <Button asChild>
+                                            <Link
+                                                href={collectionRoutes.index.url()}
+                                            >
+                                                {t(
+                                                    'emptyState.roleCollections.cta',
+                                                )}
+                                            </Link>
+                                        </Button>
+                                    }
+                                    compact
+                                />
                             ) : filteredCollections.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No collections match.
-                                </p>
+                                <PageEmptyState
+                                    icon={SearchX}
+                                    title={
+                                        <EmptyStatus>
+                                            {t(
+                                                'emptyState.roleCollections.filteredTitle',
+                                            )}
+                                        </EmptyStatus>
+                                    }
+                                    description={t(
+                                        'emptyState.roleCollections.filteredDescription',
+                                    )}
+                                    action={
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                setCollectionSearch('')
+                                            }
+                                        >
+                                            {t('common.clearFilters')}
+                                        </Button>
+                                    }
+                                    compact
+                                />
                             ) : (
-                                <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b bg-muted/40">
-                                                <th className="px-3 py-2 text-left font-medium">
+                                <div className="overflow-x-auto rounded-xl bg-card">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="border-b bg-muted/40">
+                                                <TableHead className="text-left">
                                                     Collection
-                                                </th>
+                                                </TableHead>
                                                 {COLLECTION_ACTIONS.map(
                                                     (action) => (
-                                                        <th
+                                                        <TableHead
                                                             key={action.key}
-                                                            className="px-2 py-2 text-center font-medium"
+                                                            className="text-center"
                                                         >
                                                             {action.label}
-                                                        </th>
+                                                        </TableHead>
                                                     ),
                                                 )}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
                                             {filteredCollections.map(
                                                 (collection) => {
                                                     const key = String(
@@ -709,19 +795,19 @@ export default function AdminRoleForm({
                                                         <Fragment
                                                             key={collection.id}
                                                         >
-                                                            <tr className="border-b last:border-0">
-                                                                <td className="px-3 py-2">
+                                                            <TableRow>
+                                                                <TableCell>
                                                                     <div className="font-medium">
                                                                         {
                                                                             collection.name
                                                                         }
                                                                     </div>
-                                                                    <div className="text-xs text-muted-foreground">
+                                                                    <div className="font-mono text-xs text-muted-foreground">
                                                                         {
                                                                             collection.slug
                                                                         }
                                                                     </div>
-                                                                </td>
+                                                                </TableCell>
                                                                 {COLLECTION_ACTIONS.map(
                                                                     (
                                                                         action,
@@ -733,30 +819,32 @@ export default function AdminRoleForm({
                                                                             ];
 
                                                                         return (
-                                                                            <td
+                                                                            <TableCell
                                                                                 key={
                                                                                     action.key
                                                                                 }
-                                                                                className="px-2 py-2 text-center"
+                                                                                className="text-center"
                                                                             >
-                                                                                <button
-                                                                                    type="button"
-                                                                                    aria-pressed={
+                                                                                <Toggle
+                                                                                    variant="outline"
+                                                                                    pressed={
                                                                                         allowed
                                                                                     }
                                                                                     aria-label={`${action.label} for ${collection.name}: ${allowed ? 'allowed' : 'denied'}`}
                                                                                     title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
                                                                                     className={cn(
-                                                                                        'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
+                                                                                        'px-0',
                                                                                         allowed
-                                                                                            ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                                                            : 'border-destructive/50 bg-destructive/10 text-destructive',
+                                                                                            ? 'border-success/50 bg-success/15 text-success hover:bg-success/25 hover:text-success data-[state=on]:bg-success/15 data-[state=on]:text-success'
+                                                                                            : 'border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive',
                                                                                     )}
-                                                                                    onClick={() =>
+                                                                                    onPressedChange={(
+                                                                                        pressed,
+                                                                                    ) =>
                                                                                         toggleCollectionAction(
                                                                                             collection.id,
                                                                                             action.key,
-                                                                                            !allowed,
+                                                                                            pressed,
                                                                                         )
                                                                                     }
                                                                                 >
@@ -777,24 +865,24 @@ export default function AdminRoleForm({
                                                                                             aria-hidden
                                                                                         />
                                                                                     )}
-                                                                                </button>
-                                                                            </td>
+                                                                                </Toggle>
+                                                                            </TableCell>
                                                                         );
                                                                     },
                                                                 )}
-                                                            </tr>
+                                                            </TableRow>
                                                             {anyGrant &&
                                                             fieldOptions.length >
                                                                 0 ? (
-                                                                <tr
+                                                                <TableRow
                                                                     key={`${collection.id}-rules`}
-                                                                    className="border-b bg-muted/20 last:border-0"
+                                                                    className="bg-muted/20"
                                                                 >
-                                                                    <td
+                                                                    <TableCell
                                                                         colSpan={
                                                                             5
                                                                         }
-                                                                        className="space-y-3 px-3 py-3"
+                                                                        className="space-y-3"
                                                                     >
                                                                         <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                                                             Fields
@@ -820,7 +908,7 @@ export default function AdminRoleForm({
                                                                                             key={
                                                                                                 field.name
                                                                                             }
-                                                                                            className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-2.5 text-xs"
+                                                                                            className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-3 text-xs"
                                                                                         >
                                                                                             <span
                                                                                                 className="min-w-0 truncate font-medium"
@@ -840,7 +928,7 @@ export default function AdminRoleForm({
                                                                                                         key={
                                                                                                             action.key
                                                                                                         }
-                                                                                                        className="flex items-center gap-1.5 whitespace-nowrap"
+                                                                                                        className="flex items-center gap-2 whitespace-nowrap"
                                                                                                     >
                                                                                                         <Checkbox
                                                                                                             checked={
@@ -889,8 +977,8 @@ export default function AdminRoleForm({
                                                                                         }
                                                                                         className="flex flex-wrap items-center gap-2"
                                                                                     >
-                                                                                        <select
-                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                        <NativeSelect
+                                                                                            className="min-w-28 flex-1"
                                                                                             value={
                                                                                                 rule.field
                                                                                             }
@@ -934,9 +1022,9 @@ export default function AdminRoleForm({
                                                                                                     </option>
                                                                                                 ),
                                                                                             )}
-                                                                                        </select>
-                                                                                        <select
-                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                        </NativeSelect>
+                                                                                        <NativeSelect
+                                                                                            className="min-w-28"
                                                                                             value={
                                                                                                 rule.operator
                                                                                             }
@@ -975,13 +1063,13 @@ export default function AdminRoleForm({
                                                                                             <option value="not_empty">
                                                                                                 not_empty
                                                                                             </option>
-                                                                                        </select>
+                                                                                        </NativeSelect>
                                                                                         {rule.operator !==
                                                                                             'empty' &&
                                                                                         rule.operator !==
                                                                                             'not_empty' ? (
                                                                                             <Input
-                                                                                                className="h-8 max-w-40 text-xs"
+                                                                                                className="max-w-40"
                                                                                                 value={
                                                                                                     rule.value ??
                                                                                                     ''
@@ -1012,8 +1100,7 @@ export default function AdminRoleForm({
                                                                                         <Button
                                                                                             type="button"
                                                                                             variant="ghost"
-                                                                                            size="sm"
-                                                                                            className="h-8 px-2 text-xs"
+                                                                                            className="px-2"
                                                                                             onClick={() =>
                                                                                                 setItemFilterRules(
                                                                                                     collection.id,
@@ -1036,8 +1123,6 @@ export default function AdminRoleForm({
                                                                             <Button
                                                                                 type="button"
                                                                                 variant="outline"
-                                                                                size="sm"
-                                                                                className="h-8 text-xs"
                                                                                 onClick={() =>
                                                                                     setItemFilterRules(
                                                                                         collection.id,
@@ -1061,20 +1146,20 @@ export default function AdminRoleForm({
                                                                                 rule
                                                                             </Button>
                                                                         </div>
-                                                                    </td>
-                                                                </tr>
+                                                                    </TableCell>
+                                                                </TableRow>
                                                             ) : null}
                                                         </Fragment>
                                                     );
                                                 },
                                             )}
-                                        </tbody>
-                                    </table>
+                                        </TableBody>
+                                    </Table>
                                 </div>
                             )}
-                            <InputError
-                                message={form.errors.collection_permissions}
-                            />
+                            <FieldError id="role-collection-permissions-error">
+                                {form.errors.collection_permissions}
+                            </FieldError>
                         </section>
                     </form>
                 </div>

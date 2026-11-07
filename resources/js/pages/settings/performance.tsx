@@ -4,6 +4,14 @@ import { useTranslation } from 'react-i18next';
 import PerformanceSettingsController from '@/actions/App/Http/Controllers/Settings/PerformanceSettingsController';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemTitle,
+} from '@/components/ui/item';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -128,7 +136,7 @@ export default function PerformanceSettingsPage({
             <h1 className="sr-only">{t('settings.performance.head')}</h1>
 
             <SettingsLayout>
-                <div className="space-y-10">
+                <div className="space-y-12">
                     <div className="space-y-6">
                         <Heading
                             variant="small"
@@ -334,7 +342,6 @@ export default function PerformanceSettingsPage({
                                     {links.jobs && (
                                         <Button
                                             variant="outline"
-                                            size="sm"
                                             asChild
                                             data-test="performance-link-jobs"
                                         >
@@ -348,7 +355,6 @@ export default function PerformanceSettingsPage({
                                     {links.pulse && (
                                         <Button
                                             variant="outline"
-                                            size="sm"
                                             asChild
                                             data-test="performance-link-pulse"
                                         >
@@ -362,7 +368,6 @@ export default function PerformanceSettingsPage({
                                     {links.horizon && (
                                         <Button
                                             variant="outline"
-                                            size="sm"
                                             asChild
                                             data-test="performance-link-horizon"
                                         >
@@ -389,32 +394,38 @@ export default function PerformanceSettingsPage({
                             )}
                         />
 
-                        <div className="space-y-6">
+                        <ItemGroup className="gap-3">
                             {flushActions.map((action) => (
-                                <div key={action.key} className="space-y-3">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-medium">
-                                            {action.title}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
+                                <Item
+                                    key={action.key}
+                                    role="listitem"
+                                    variant="outline"
+                                    size="sm"
+                                >
+                                    <ItemContent>
+                                        <ItemTitle>{action.title}</ItemTitle>
+                                        <ItemDescription className="line-clamp-none">
                                             {action.description}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={flushing !== null}
-                                        data-test={`performance-flush-${action.key}`}
-                                        onClick={() => runFlush(action)}
-                                    >
-                                        {flushing === action.key
-                                            ? t('settings.performance.flushing')
-                                            : action.button}
-                                    </Button>
-                                </div>
+                                        </ItemDescription>
+                                    </ItemContent>
+                                    <ItemActions>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={flushing !== null}
+                                            data-test={`performance-flush-${action.key}`}
+                                            onClick={() => runFlush(action)}
+                                        >
+                                            {flushing === action.key
+                                                ? t(
+                                                      'settings.performance.flushing',
+                                                  )
+                                                : action.button}
+                                        </Button>
+                                    </ItemActions>
+                                </Item>
                             ))}
-                        </div>
+                        </ItemGroup>
                     </div>
                 </div>
             </SettingsLayout>

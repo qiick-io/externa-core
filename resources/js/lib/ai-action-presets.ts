@@ -17,21 +17,6 @@ export type AiActionPreset = {
 };
 
 /**
- * English fallback labels for {@link AiActionPresetCategory}.
- * UI uses `ai.categories.*` via react-i18next; keep these for non-React callers.
- */
-export const AI_ACTION_PRESET_CATEGORY_LABELS: Record<
-    AiActionPresetCategory,
-    string
-> = {
-    common: 'Common',
-    data: 'Data & import',
-    files: 'Files',
-    admin: 'Admin',
-    advanced: 'Advanced',
-};
-
-/**
  * Built-in AI action presets shipped with the assistant UI.
  * Titles/descriptions are English source strings; the drawer localizes via `ai.presets.<id>.*`.
  * Prompt bodies stay English-neutral so the agent matches reply language to the user.

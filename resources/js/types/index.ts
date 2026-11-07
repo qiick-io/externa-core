@@ -7,6 +7,8 @@ export {
     collectionToFormRow,
     resolveCollectionColor,
 } from './collections';
+export type * from './fields';
+export type * from './items';
 export type * from './navigation';
 export type * from './project-settings';
 export type * from './ui';

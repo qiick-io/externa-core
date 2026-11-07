@@ -6,6 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Authorization\SuperAdminGuardService;
@@ -20,11 +21,19 @@ use Stringable;
 /**
  * AI tool for listing and mutating application users (CRUD, restore, force-delete).
  */
-class ManageUsers implements Approvable, Tool
+class ManageUsers implements Approvable, ClassifiesToolActionsInterface, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;
     use RequiresDestructiveApprovalTrait;
+
+    /**
+     * @return list<string>
+     */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'restore'];
+    }
 
     /**
      * @return list<string>
@@ -48,6 +57,10 @@ class ManageUsers implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {
@@ -367,7 +380,7 @@ class ManageUsers implements Approvable, Tool
 
         if (
             is_array($decoded)
-            && $superAdminGuard->includesSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
+            && $superAdminGuard->hasSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
             && ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
         ) {
             return 'Error: Only a super-admin can grant super-admin access.';

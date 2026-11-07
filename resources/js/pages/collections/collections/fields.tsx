@@ -217,7 +217,13 @@ export default function CollectionsFields({
             />
 
             <PageLayout
-                description={`${collection.slug} · ${t('collections.fieldSchema')}`}
+                description={
+                    <>
+                        <span className="font-mono">{collection.slug}</span>
+                        {' · '}
+                        {t('collections.fieldSchema')}
+                    </>
+                }
                 filters={
                     <div className="relative max-w-md flex-1">
                         <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -242,7 +248,7 @@ export default function CollectionsFields({
                 )}
 
                 {fields.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-sidebar-border/70 p-10 text-center dark:border-sidebar-border">
+                    <div className="rounded-xl border border-dashed border-sidebar-border/70 p-12 text-center dark:border-sidebar-border">
                         <p className="text-sm text-muted-foreground">
                             {t('collections.noFieldsYet')}
                         </p>
@@ -271,7 +277,7 @@ export default function CollectionsFields({
                     </div>
                 ) : searchQueryActive && filteredFields.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">
-                        No fields match your search.
+                        {t('collections.noFieldsMatch')}
                     </p>
                 ) : (
                     <CollectionFieldsList

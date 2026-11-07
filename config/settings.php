@@ -10,6 +10,7 @@ return [
 
     'appearance' => [
         'keys' => [
+            'theme_preset',
             'project_color',
             'project_color_dark',
             'project_logo',
@@ -18,6 +19,7 @@ return [
             'default_appearance',
         ],
         'defaults' => [
+            'theme_preset' => 'teal',
             'project_color' => null,
             'project_color_dark' => null,
             'project_logo' => null,
@@ -62,6 +64,8 @@ return [
             'notifier_telegram_bot_token',
             'notifier_telegram_chat_id',
             'notifier_event_types',
+            'deploy_hooks',
+            'deploy_on_publish',
             'oidc_enabled',
             'oidc_issuer',
             'oidc_client_id',
@@ -98,7 +102,8 @@ return [
             // ponytail: weak matches prior non-prod Password::defaults(null); tighten via settings UI
             'password_policy' => 'weak',
             'login_max_attempts' => 5,
-            'registration_enabled' => true,
+            // Secure-by-default for fresh installs; existing DB-stored values win (#272).
+            'registration_enabled' => false,
             'default_user_role' => null,
             'email_verification_required' => false,
             'two_factor_required' => false,
@@ -157,6 +162,9 @@ return [
             'notifier_telegram_chat_id' => null,
             // null = all selectable domain events (legacy default)
             'notifier_event_types' => null,
+            // Named deploy hooks; each URL stored encrypted via Crypt
+            'deploy_hooks' => [],
+            'deploy_on_publish' => false,
             'oidc_enabled' => false,
             'oidc_issuer' => null,
             'oidc_client_id' => null,
@@ -173,6 +181,12 @@ return [
             'files_max_upload_bytes' => null,
             // Default chat attachment cap (25 MiB); null still allowed via settings UI for unlimited
             'chat_max_upload_bytes' => 25 * 1024 * 1024,
+            // null/empty = config/files.php upload_allowed_mimes (1.3.0 floor)
+            'upload_allowed_mimes' => null,
+            // null/empty = no extra extension filter (MIME allowlist still applies)
+            'upload_allowed_extensions' => null,
+            // SVG is XSS-prone when served/inlined; opt-in only (hard floor otherwise)
+            'upload_allow_svg' => false,
         ],
         'sidebar_module_ids' => [
             'ai',

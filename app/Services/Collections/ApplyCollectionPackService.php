@@ -14,7 +14,7 @@ use InvalidArgumentException;
 final class ApplyCollectionPackService
 {
     public function __construct(
-        private readonly PackFieldCreator $packFieldCreator,
+        private readonly PackFieldCreatorService $packFieldCreator,
     ) {}
 
     /**

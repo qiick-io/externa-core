@@ -3,8 +3,8 @@
 namespace App\Jobs\GitExport;
 
 use App\Models\CollectionItem;
-use App\Services\GitExport\GitExportDocumentBuilder;
-use App\Services\GitExport\GitExportRepository;
+use App\Services\GitExport\GitExportDocumentBuilderService;
+use App\Services\GitExport\GitExportRepositoryService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -34,10 +34,10 @@ class ExportCollectionItemToGitJob implements ShouldQueue
     }
 
     public function handle(
-        GitExportRepository $repository,
-        GitExportDocumentBuilder $builder,
+        GitExportRepositoryService $repository,
+        GitExportDocumentBuilderService $builder,
     ): void {
-        if (! $repository->enabled()) {
+        if (! $repository->isEnabled()) {
             return;
         }
 

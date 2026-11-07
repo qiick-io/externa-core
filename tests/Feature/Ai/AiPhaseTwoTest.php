@@ -17,9 +17,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -59,8 +59,8 @@ function phaseTwoAttachment(User $user, string $name, string $content, string $m
 function phaseTwoWriteItem(Collection $collection, array $data): CollectionItem
 {
     $item = $collection->items()->create([]);
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($collection, $data, true);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 
     return $item;
 }
@@ -161,7 +161,7 @@ test('csv upsert updates an existing item', function () {
 
     expect($result)->toContain('"updated": 1')
         ->and($collection->items()->count())->toBe(1)
-        ->and(app(CollectionItemValuesAssembler::class)->assemble($item->fresh())['title'])->toBe('New');
+        ->and(app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh())['title'])->toBe('New');
 });
 
 test('remote json dry run writes nothing and upsert updates existing item', function () {
@@ -204,7 +204,7 @@ test('remote json dry run writes nothing and upsert updates existing item', func
 
     expect($result)->toContain('"updated": 1')
         ->and($collection->items()->count())->toBe(1)
-        ->and(app(CollectionItemValuesAssembler::class)->assemble($item->fresh())['title'])->toBe('Remote');
+        ->and(app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh())['title'])->toBe('Remote');
 });
 
 test('xlsx attachment imports rows', function () {

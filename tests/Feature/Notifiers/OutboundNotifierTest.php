@@ -8,10 +8,10 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\User;
-use App\Services\Notifiers\OutboundNotifierMessageFormatter;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Notifiers\OutboundNotifierMessageFormatterService;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -21,8 +21,8 @@ beforeEach(function () {
 
 function configureSlackNotifier(string $url = 'https://hooks.slack.com/services/T/B/x'): void
 {
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_slack_webhook_url',
         $url,
@@ -33,15 +33,15 @@ function configureTelegramNotifier(
     string $token = '123456:ABC',
     string $chatId = '-100123',
 ): void {
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_bot_token',
-        ProjectSettings::encryptNotifierTelegramBotToken($token),
+        ProjectSettingsService::encryptNotifierTelegramBotToken($token),
     );
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_chat_id',
         $chatId,
@@ -52,7 +52,7 @@ test('dispatcher queues slack notifier without webhook url', function () {
     Queue::fake();
     configureSlackNotifier();
 
-    app(OutboundWebhookDispatcher::class)->dispatch('item.updated', [
+    app(OutboundWebhookDispatcherService::class)->dispatch('item.updated', [
         'collection_slug' => 'posts',
         'item_id' => 7,
     ]);
@@ -70,7 +70,7 @@ test('dispatcher queues telegram notifier when token and chat configured', funct
     Queue::fake();
     configureTelegramNotifier();
 
-    app(OutboundWebhookDispatcher::class)->dispatch('ping', []);
+    app(OutboundWebhookDispatcherService::class)->dispatch('ping', []);
 
     Queue::assertPushed(DeliverTelegramOutboundNotifierJob::class, function (DeliverTelegramOutboundNotifierJob $job): bool {
         return $job->type === 'ping'
@@ -86,7 +86,7 @@ test('slack job posts text payload', function () {
     ]);
 
     $job = new DeliverSlackOutboundNotifierJob('ping', 'Externa test');
-    $job->handle(app(ProjectSettings::class));
+    $job->handle(app(ProjectSettingsService::class));
 
     Http::assertSent(function ($request): bool {
         return $request->url() === 'https://hooks.slack.com/services/T/B/x'
@@ -101,7 +101,7 @@ test('telegram job posts sendMessage with HTML parse_mode', function () {
     ]);
 
     $job = new DeliverTelegramOutboundNotifierJob('item.created', '<b>Item created</b>');
-    $job->handle(app(ProjectSettings::class));
+    $job->handle(app(ProjectSettingsService::class));
 
     Http::assertSent(function ($request): bool {
         return str_contains($request->url(), 'bot123456:ABC/sendMessage')
@@ -126,7 +126,7 @@ test('formatter uses HTML for telegram and mrkdwn for slack', function () {
         'admin_url' => 'https://example.test/collections/17/items/604',
     ];
 
-    $slack = OutboundNotifierMessageFormatter::format('item.updated', $data);
+    $slack = OutboundNotifierMessageFormatterService::format('item.updated', $data);
     expect($slack)->toContain('*Item updated*')
         ->and($slack)->toContain('Hello world')
         ->and($slack)->toContain('QA Collection')
@@ -136,10 +136,10 @@ test('formatter uses HTML for telegram and mrkdwn for slack', function () {
         ->and($slack)->toContain('<https://example.test/collections/17/items/604|Open in Externa>')
         ->and($slack)->not->toContain('<b>');
 
-    $telegram = OutboundNotifierMessageFormatter::format(
+    $telegram = OutboundNotifierMessageFormatterService::format(
         'item.updated',
         $data,
-        OutboundNotifierMessageFormatter::CHANNEL_TELEGRAM,
+        OutboundNotifierMessageFormatterService::CHANNEL_TELEGRAM,
     );
     expect($telegram)->toContain('<b>Item updated</b>')
         ->and($telegram)->toContain('<b>Hello world</b>')
@@ -149,13 +149,13 @@ test('formatter uses HTML for telegram and mrkdwn for slack', function () {
 });
 
 test('telegram formatter escapes HTML in dynamic values', function () {
-    $telegram = OutboundNotifierMessageFormatter::format(
+    $telegram = OutboundNotifierMessageFormatterService::format(
         'item.updated',
         [
             'event_title' => 'Item updated',
             'collection_slug' => 'a<b>&c',
         ],
-        OutboundNotifierMessageFormatter::CHANNEL_TELEGRAM,
+        OutboundNotifierMessageFormatterService::CHANNEL_TELEGRAM,
     );
 
     expect($telegram)->toContain('<code>a&lt;b&gt;&amp;c</code>');
@@ -194,7 +194,7 @@ test('context builder enriches item title actor status and admin url', function 
     Queue::fake();
     configureTelegramNotifier();
 
-    app(OutboundWebhookDispatcher::class)->dispatchItem('item.updated', $item, $collection);
+    app(OutboundWebhookDispatcherService::class)->dispatchItem('item.updated', $item, $collection);
 
     Queue::assertPushed(DeliverTelegramOutboundNotifierJob::class, function (DeliverTelegramOutboundNotifierJob $job) use ($item, $collection): bool {
         return str_contains($job->message, '<b>Item updated</b>')
@@ -222,7 +222,7 @@ test('telegram job exception includes bot api description', function () {
 
     $job = new DeliverTelegramOutboundNotifierJob('ping', 'test');
 
-    expect(fn () => $job->handle(app(ProjectSettings::class)))
+    expect(fn () => $job->handle(app(ProjectSettingsService::class)))
         ->toThrow(RuntimeException::class, 'HTTP 404 — Not Found');
 });
 
@@ -231,8 +231,8 @@ test('notifiers respect withoutWebhooks suppression', function () {
     configureSlackNotifier();
     configureTelegramNotifier();
 
-    OutboundWebhookDispatcher::withoutWebhooks(function (): void {
-        app(OutboundWebhookDispatcher::class)->dispatch('ping', []);
+    OutboundWebhookDispatcherService::withoutWebhooks(function (): void {
+        app(OutboundWebhookDispatcherService::class)->dispatch('ping', []);
     });
 
     Queue::assertNothingPushed();
@@ -242,25 +242,25 @@ test('notifier event type filter skips disabled domain events but allows ping', 
     Queue::fake();
     configureTelegramNotifier();
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_event_types',
         ['item.published'],
     );
 
-    app(OutboundWebhookDispatcher::class)->dispatch('item.updated', [
+    app(OutboundWebhookDispatcherService::class)->dispatch('item.updated', [
         'collection_slug' => 'posts',
         'item_id' => 1,
     ]);
     Queue::assertNotPushed(DeliverTelegramOutboundNotifierJob::class);
 
-    app(OutboundWebhookDispatcher::class)->dispatch('item.published', [
+    app(OutboundWebhookDispatcherService::class)->dispatch('item.published', [
         'collection_slug' => 'posts',
         'item_id' => 1,
     ]);
     Queue::assertPushed(DeliverTelegramOutboundNotifierJob::class, 1);
 
-    app(OutboundWebhookDispatcher::class)->dispatch('ping', []);
+    app(OutboundWebhookDispatcherService::class)->dispatch('ping', []);
     Queue::assertPushed(DeliverTelegramOutboundNotifierJob::class, 2);
 });

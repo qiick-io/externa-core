@@ -53,7 +53,8 @@ const applyClasses = (preferences: AccessibilityPreferences): void => {
         HIGH_CONTRAST_CLASS,
         preferences.highContrastEnabled,
     );
-    // OS prefers-reduced-motion is honored in CSS; class only forces user on.
+    // OS `prefers-reduced-motion` always wins in CSS; this class forces reduce
+    // when the in-app toggle is on and the OS setting is off.
     document.documentElement.classList.toggle(
         REDUCE_MOTION_CLASS,
         preferences.reduceMotionEnabled,

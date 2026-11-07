@@ -1,4 +1,4 @@
-import adminRoutes from '@/lib/admin-routes';
+import groups from '@/routes/groups';
 import type { AdminSelectOption } from '@/types/admin';
 import { PaginatedMultiSelect } from './paginated-multi-select';
 import type { PaginatedMultiSelectProps } from './paginated-multi-select';
@@ -29,7 +29,7 @@ export function UserGroupMultiSelect({
 
     return (
         <PaginatedMultiSelect
-            fetchUrl={adminRoutes.groups.index()}
+            fetchUrl={groups.index.url()}
             placeholder={placeholder}
             initialOptions={resolvedInitial}
             {...props}

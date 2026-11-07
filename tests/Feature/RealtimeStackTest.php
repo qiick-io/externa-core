@@ -5,7 +5,7 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use App\Notifications\FileDuplicationCompletedNotification;
 use App\Notifications\ItemChatNotification;
-use App\Services\Dashboard\DashboardHealthMetrics;
+use App\Services\Dashboard\DashboardHealthMetricsService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
@@ -228,7 +228,7 @@ test('inertia shares realtime flag and dashboard health props', function () {
 });
 
 test('dashboard health metrics service returns expected keys', function () {
-    $summary = app(DashboardHealthMetrics::class)->summary();
+    $summary = app(DashboardHealthMetricsService::class)->summary();
 
     expect($summary)->toHaveKeys([
         'queue_connection',

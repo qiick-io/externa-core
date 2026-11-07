@@ -1,5 +1,5 @@
 """
-Public CMS GraphQL API — same auth/permissions as /api/v1 (ResolveApiAccess + CollectionPermissionGuard).
+Public CMS GraphQL API — same auth/permissions as /api/v1 (ResolveApiAccessMiddleware + CollectionPermissionGuard).
 """
 
 scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
@@ -14,9 +14,16 @@ type Query {
 
     items(
         collection: String!
+        """
+        Filter map (same dialect as REST): field names, system keys
+        `id` / `created_at` / `updated_at` / `published_at`, and depth-1
+        `relation.field` paths. Unsupported system operators or invalid
+        datetime values raise a validation error (HTTP 422).
+        """
         filter: JSON
         page: Int = 1
         perPage: Int = 15
+        sort: [String!]
     ): ItemPage!
         @field(resolver: "App\\GraphQL\\Queries\\ItemsQuery")
 
@@ -48,6 +55,7 @@ type Item {
     data: JSON!
     created_at: DateTime
     updated_at: DateTime
+    published_at: DateTime
     user_created_id: ID
     user_updated_id: ID
 }

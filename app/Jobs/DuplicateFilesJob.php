@@ -18,6 +18,10 @@ class DuplicateFilesJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 2;
+
+    public int $timeout = 300;
+
     /**
      * @param  list<int>  $fileIds
      */
@@ -29,7 +33,15 @@ class DuplicateFilesJob implements ShouldQueue
     ) {}
 
     /**
-     * Copy files and notify the user on success or failure.
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [30, 60];
+    }
+
+    /**
+     * Copy files and notify the user on success.
      */
     public function handle(FileService $fileService): void
     {
@@ -39,39 +51,46 @@ class DuplicateFilesJob implements ShouldQueue
             return;
         }
 
-        try {
-            $copiedFiles = count($this->fileIds) === 1
-                ? [$fileService->copy(
-                    File::query()->findOrFail($this->fileIds[0]),
-                    $this->targetParentId,
-                )]
-                : $fileService->bulkCopy($this->fileIds, $this->targetParentId);
+        $copiedFiles = count($this->fileIds) === 1
+            ? [$fileService->copy(
+                File::query()->findOrFail($this->fileIds[0]),
+                $this->targetParentId,
+            )]
+            : $fileService->bulkCopy($this->fileIds, $this->targetParentId);
 
-            $firstCopy = $copiedFiles[0] ?? null;
-            $folderId = null;
+        $firstCopy = $copiedFiles[0] ?? null;
+        $folderId = null;
 
-            if ($firstCopy !== null) {
-                $folderId = $firstCopy->isFolder()
-                    ? $firstCopy->id
-                    : $firstCopy->parent_id;
-            }
-
-            $user->notify(new FileDuplicationCompletedNotification(
-                jobId: $this->jobUuid,
-                count: count($copiedFiles),
-                firstFileId: $firstCopy?->id,
-                firstFilePath: $firstCopy?->path,
-                folderId: $folderId,
-            ));
-        } catch (Throwable $exception) {
-            report($exception);
-
-            $user->notify(new FileDuplicationFailedNotification(
-                jobId: $this->jobUuid,
-                message: $exception->getMessage(),
-            ));
-
-            throw $exception;
+        if ($firstCopy !== null) {
+            $folderId = $firstCopy->isFolder()
+                ? $firstCopy->id
+                : $firstCopy->parent_id;
         }
+
+        $user->notify(new FileDuplicationCompletedNotification(
+            jobId: $this->jobUuid,
+            count: count($copiedFiles),
+            firstFileId: $firstCopy?->id,
+            firstFilePath: $firstCopy?->path,
+            folderId: $folderId,
+        ));
+    }
+
+    /**
+     * Notify the requester once retries are exhausted.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        report($exception);
+
+        $user = User::query()->find($this->userId);
+        if ($user === null) {
+            return;
+        }
+
+        $user->notify(new FileDuplicationFailedNotification(
+            jobId: $this->jobUuid,
+            message: $exception?->getMessage() ?? 'File duplication failed.',
+        ));
     }
 }

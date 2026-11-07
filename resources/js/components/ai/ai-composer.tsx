@@ -1,16 +1,26 @@
 import {
-    ArrowUp,
+    File as FileIcon,
     FlaskConical,
     LayoutList,
+    Library,
     Mic,
     MicOff,
     Paperclip,
-    Square,
+    Sparkles,
     X,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import type { FormEvent, KeyboardEvent, MouseEvent } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChatComposer } from '@/components/chat/chat-composer';
+import {
+    Attachment,
+    AttachmentAction,
+    AttachmentActions,
+    AttachmentContent,
+    AttachmentGroup,
+    AttachmentMedia,
+    AttachmentTitle,
+} from '@/components/ui/attachment';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -18,10 +28,8 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { AiChatAttachment } from '@/lib/ai-chat';
+import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { cn } from '@/lib/utils';
-
-const MIN_TEXTAREA_HEIGHT_PX = 40;
-const MAX_TEXTAREA_HEIGHT_PX = 168; // ~7 rows at text-sm
 
 type AiComposerProps = {
     value: string;
@@ -33,6 +41,11 @@ type AiComposerProps = {
     placeholder?: string;
     attachments?: AiChatAttachment[];
     onRemoveAttachment?: (attachmentId: string) => void;
+    contextAttachments?: AiPendingContextAttachment[];
+    onRemoveContextAttachment?: (
+        kind: AiPendingContextAttachment['kind'],
+        id: number,
+    ) => void;
     onAttach?: () => void;
     isUploadingAttachment?: boolean;
     attachDisabled?: boolean;
@@ -61,6 +74,8 @@ export function AiComposer({
     placeholder,
     attachments = [],
     onRemoveAttachment,
+    contextAttachments = [],
+    onRemoveContextAttachment,
     onAttach,
     isUploadingAttachment = false,
     attachDisabled = false,
@@ -76,281 +91,235 @@ export function AiComposer({
     const { t } = useTranslation();
     const resolvedPlaceholder = placeholder ?? t('ai.askPlaceholder');
     const resolvedAttachTooltip = attachTooltip ?? t('ai.attachShortTooltip');
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-    useEffect(() => {
-        const textarea = textareaRef.current;
-
-        if (!textarea) {
-            return;
-        }
-
-        textarea.style.height = '0px';
-        const nextHeight = Math.min(
-            Math.max(textarea.scrollHeight, MIN_TEXTAREA_HEIGHT_PX),
-            MAX_TEXTAREA_HEIGHT_PX,
-        );
-        textarea.style.height = `${nextHeight}px`;
-        textarea.style.overflowY =
-            textarea.scrollHeight > MAX_TEXTAREA_HEIGHT_PX ? 'auto' : 'hidden';
-    }, [value]);
-
-    const canSubmit =
-        !disabled &&
-        !isStreaming &&
-        !isUploadingAttachment &&
-        value.trim() !== '';
-
-    const handleFormSubmit = (event: FormEvent) => {
-        event.preventDefault();
-
-        // Never send while streaming — Stop must not fall through to submit.
-        if (isStreaming || !canSubmit) {
-            return;
-        }
-
-        onSubmit();
-    };
-
-    const handleStopClick = (event: MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onStop?.();
-    };
-
-    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (
-            event.key !== 'Enter' ||
-            event.shiftKey ||
-            event.nativeEvent.isComposing
-        ) {
-            return;
-        }
-
-        event.preventDefault();
-
-        if (isStreaming || !canSubmit) {
-            return;
-        }
-
-        onSubmit();
-    };
+    const canSubmit = !isUploadingAttachment && value.trim() !== '';
+    const hasChips = attachments.length > 0 || contextAttachments.length > 0;
 
     return (
-        <form className={cn('w-full', className)} onSubmit={handleFormSubmit}>
-            <div
-                className={cn(
-                    'rounded-2xl border border-border bg-background shadow-xs',
-                    'focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
-                )}
-            >
-                {attachments.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 px-3 pt-3">
-                        {attachments.map((attachment) => (
-                            <span
-                                key={attachment.id}
-                                className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs"
-                            >
-                                <Paperclip className="size-3" />
-                                <span className="max-w-[12rem] truncate">
-                                    {attachment.name}
-                                </span>
-                                {onRemoveAttachment ? (
-                                    <button
-                                        type="button"
-                                        className="rounded-sm p-0.5 hover:bg-background"
-                                        onClick={() =>
-                                            onRemoveAttachment(attachment.id)
-                                        }
-                                        aria-label={t('ai.removeAttachment', {
-                                            name: attachment.name,
-                                        })}
-                                        disabled={isStreaming || disabled}
-                                    >
-                                        <X className="size-3" />
-                                    </button>
-                                ) : null}
-                            </span>
+        <ChatComposer
+            className={className}
+            value={value}
+            onValueChange={(nextValue) => onChange(nextValue)}
+            onSubmit={onSubmit}
+            canSubmit={canSubmit}
+            isStreaming={isStreaming}
+            onStop={onStop}
+            disabled={disabled}
+            placeholder={resolvedPlaceholder}
+            label={t('ai.messageAria')}
+            sendLabel={t('ai.sendAria')}
+            stopLabel={t('ai.stopAria')}
+            header={
+                hasChips ? (
+                    <AttachmentGroup>
+                        {contextAttachments.map((attachment) => (
+                            <ComposerChip
+                                key={`${attachment.kind}-${attachment.id}`}
+                                name={attachment.name}
+                                icon={
+                                    attachment.kind === 'item' ? (
+                                        <Library />
+                                    ) : attachment.kind === 'file' ? (
+                                        <FileIcon />
+                                    ) : (
+                                        <Sparkles />
+                                    )
+                                }
+                                removeDisabled={isStreaming || disabled}
+                                onRemove={
+                                    onRemoveContextAttachment
+                                        ? () =>
+                                              onRemoveContextAttachment(
+                                                  attachment.kind,
+                                                  attachment.id,
+                                              )
+                                        : undefined
+                                }
+                            />
                         ))}
-                    </div>
-                ) : null}
-
-                <textarea
-                    ref={textareaRef}
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={resolvedPlaceholder}
-                    disabled={disabled || isStreaming}
-                    rows={1}
-                    className={cn(
-                        'block w-full resize-none border-0 bg-transparent px-3 pt-3 pb-2',
-                        'text-sm text-foreground outline-none placeholder:text-muted-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50',
-                    )}
-                    style={{
-                        minHeight: MIN_TEXTAREA_HEIGHT_PX,
-                        maxHeight: MAX_TEXTAREA_HEIGHT_PX,
-                    }}
-                    aria-label={t('ai.messageAria')}
-                />
-
-                <div className="flex items-center justify-between gap-2 px-2 pb-2">
-                    <div className="flex items-center gap-1">
-                        {onOpenPresets ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
+                        {attachments.map((attachment) => (
+                            <ComposerChip
+                                key={attachment.id}
+                                name={attachment.name}
+                                icon={<Paperclip />}
+                                removeDisabled={isStreaming || disabled}
+                                onRemove={
+                                    onRemoveAttachment
+                                        ? () =>
+                                              onRemoveAttachment(attachment.id)
+                                        : undefined
+                                }
+                            />
+                        ))}
+                    </AttachmentGroup>
+                ) : null
+            }
+            actions={
+                <>
+                    {onOpenPresets ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-muted-foreground"
+                                    disabled={disabled || isStreaming}
+                                    onClick={onOpenPresets}
+                                    aria-label={t('ai.usefulActionsAria')}
+                                >
+                                    <LayoutList className="size-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('ai.usefulActionsAria')}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                    {onAttach ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-muted-foreground"
+                                    disabled={
+                                        disabled ||
+                                        isStreaming ||
+                                        isUploadingAttachment ||
+                                        attachDisabled
+                                    }
+                                    onClick={onAttach}
+                                    aria-label={t('ai.attachAria')}
+                                >
+                                    <Paperclip className="size-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {resolvedAttachTooltip}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                    {onDryRunModeChange ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant={dryRunMode ? 'secondary' : 'ghost'}
+                                    className="gap-1.5 px-2"
+                                    disabled={disabled || isStreaming}
+                                    onClick={() =>
+                                        onDryRunModeChange(!dryRunMode)
+                                    }
+                                    aria-pressed={dryRunMode}
+                                >
+                                    <FlaskConical className="size-3.5" />
+                                    {t('ai.simulation')}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('ai.simulationHint')}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                </>
+            }
+            trailingActions={
+                onToggleVoice ? (
+                    speechSupported ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className={cn(
+                                        'text-muted-foreground',
+                                        isListening &&
+                                            'bg-primary/10 text-primary',
+                                    )}
+                                    disabled={disabled || isStreaming}
+                                    onClick={onToggleVoice}
+                                    aria-label={t('ai.dictationAria')}
+                                    aria-pressed={isListening}
+                                >
+                                    {isListening ? (
+                                        <MicOff
+                                            className="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    ) : (
+                                        <Mic
+                                            className="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {isListening
+                                    ? t('ai.stopDictation')
+                                    : t('ai.voiceDictation')}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex items-center">
                                     <Button
                                         type="button"
                                         size="icon"
                                         variant="ghost"
-                                        className="size-8 text-muted-foreground"
-                                        disabled={disabled || isStreaming}
-                                        onClick={onOpenPresets}
-                                        aria-label={t('ai.usefulActionsAria')}
+                                        className="text-muted-foreground"
+                                        disabled
+                                        aria-label={t('ai.dictationAria')}
                                     >
-                                        <LayoutList className="size-4" />
+                                        <Mic className="size-4" />
                                     </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('ai.usefulActionsAria')}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                        {onAttach ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        className="size-8 text-muted-foreground"
-                                        disabled={
-                                            disabled ||
-                                            isStreaming ||
-                                            isUploadingAttachment ||
-                                            attachDisabled
-                                        }
-                                        onClick={onAttach}
-                                        aria-label={t('ai.attachAria')}
-                                    >
-                                        <Paperclip className="size-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {resolvedAttachTooltip}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                        {onDryRunModeChange ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant={
-                                            dryRunMode ? 'secondary' : 'ghost'
-                                        }
-                                        className="h-8 gap-1.5 px-2 text-xs"
-                                        disabled={disabled || isStreaming}
-                                        onClick={() =>
-                                            onDryRunModeChange(!dryRunMode)
-                                        }
-                                        aria-pressed={dryRunMode}
-                                    >
-                                        <FlaskConical className="size-3.5" />
-                                        {t('ai.simulation')}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('ai.simulationHint')}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                    </div>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('ai.dictationUnsupported')}
+                            </TooltipContent>
+                        </Tooltip>
+                    )
+                ) : null
+            }
+        />
+    );
+}
 
-                    <div className="flex items-center gap-1">
-                        {onToggleVoice ? (
-                            speechSupported ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className={cn(
-                                                'size-8 text-muted-foreground',
-                                                isListening &&
-                                                    'bg-primary/10 text-primary',
-                                            )}
-                                            disabled={disabled || isStreaming}
-                                            onClick={onToggleVoice}
-                                            aria-label={t('ai.dictationAria')}
-                                        >
-                                            {isListening ? (
-                                                <MicOff className="size-4" />
-                                            ) : (
-                                                <Mic className="size-4" />
-                                            )}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {isListening
-                                            ? t('ai.stopDictation')
-                                            : t('ai.voiceDictation')}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ) : (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span className="inline-flex items-center">
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="ghost"
-                                                className="size-8 text-muted-foreground"
-                                                disabled
-                                                aria-label={t(
-                                                    'ai.dictationAria',
-                                                )}
-                                            >
-                                                <Mic className="size-4" />
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {t('ai.dictationUnsupported')}
-                                    </TooltipContent>
-                                </Tooltip>
-                            )
-                        ) : null}
+/** One pending attachment or context entry above the composer textarea. */
+function ComposerChip({
+    name,
+    icon,
+    removeDisabled,
+    onRemove,
+}: {
+    name: string;
+    icon: ReactNode;
+    removeDisabled: boolean;
+    onRemove?: () => void;
+}) {
+    const { t } = useTranslation();
 
-                        {isStreaming && onStop ? (
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="destructive"
-                                className="relative z-10 size-8 rounded-full"
-                                disabled={false}
-                                onClick={handleStopClick}
-                                aria-label={t('ai.stopAria')}
-                            >
-                                <Square className="size-3.5 fill-current" />
-                            </Button>
-                        ) : (
-                            <Button
-                                type="submit"
-                                size="icon"
-                                className="size-8 rounded-full"
-                                disabled={!canSubmit || isStreaming}
-                                aria-label={t('ai.sendAria')}
-                            >
-                                <ArrowUp className="size-4" />
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </form>
+    return (
+        <Attachment size="xs" className="min-w-0">
+            <AttachmentMedia>{icon}</AttachmentMedia>
+            <AttachmentContent className="max-w-48">
+                <AttachmentTitle>{name}</AttachmentTitle>
+            </AttachmentContent>
+            {onRemove ? (
+                <AttachmentActions>
+                    <AttachmentAction
+                        aria-label={t('ai.removeAttachment', { name })}
+                        disabled={removeDisabled}
+                        onClick={onRemove}
+                    >
+                        <X />
+                    </AttachmentAction>
+                </AttachmentActions>
+            ) : null}
+        </Attachment>
     );
 }

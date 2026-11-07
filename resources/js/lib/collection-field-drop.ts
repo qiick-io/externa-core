@@ -8,30 +8,6 @@ export type FieldDropLayoutIntent =
     'below-new-row' | 'beside' | 'into-group' | null;
 
 /**
- * @param oldIndex - Index of the dragged field
- * @param overIndex - Index of the drop target field
- * @param intent - Vertical/horizontal before vs after the target
- * @returns insert target index, or null when order is already correct
- */
-export function targetIndexForFieldDrop(
-    oldIndex: number,
-    overIndex: number,
-    intent: FieldDropIntent,
-): number | null {
-    let insertIndex = intent === 'before' ? overIndex : overIndex + 1;
-
-    if (oldIndex < insertIndex) {
-        insertIndex -= 1;
-    }
-
-    if (oldIndex === insertIndex) {
-        return null;
-    }
-
-    return insertIndex;
-}
-
-/**
  * Half over full/fill (or full over half) is vertical-only: force the half onto
  * its own row so it never pairs into the full's row during packing.
  */

@@ -10,8 +10,8 @@ use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemEmbedding;
-use App\Services\Ai\EmbeddingSimilarity;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Ai\EmbeddingSimilarityService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Embeddings;
@@ -50,7 +50,11 @@ class SearchSimilarCollectionItems implements Tool
                 return 'Error: collection_id and query are required.';
             }
 
-            $assembler = app(CollectionItemValuesAssembler::class);
+            if (! $this->isAiCollectionReadable($collection)) {
+                return 'Error: Collection not found.';
+            }
+
+            $assembler = app(CollectionItemValuesAssemblerService::class);
             $limit = min(max($request->integer('limit', 10), 1), 50);
 
             if (config('ai.embeddings.enabled')) {
@@ -79,12 +83,14 @@ class SearchSimilarCollectionItems implements Tool
     private function searchWithEmbeddings(
         Collection $collection,
         string $query,
-        CollectionItemValuesAssembler $assembler,
+        CollectionItemValuesAssemblerService $assembler,
         int $limit,
     ): ?string {
         try {
             $queryVector = Embeddings::for([$query])->generate()->first();
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return null;
         }
 
@@ -106,7 +112,7 @@ class SearchSimilarCollectionItems implements Tool
             return null;
         }
 
-        $matches = app(EmbeddingSimilarity::class)
+        $matches = app(EmbeddingSimilarityService::class)
             ->topMatches($queryVector, (int) $collection->id, $limit)
             ->map(function (array $row) use ($assembler, $collection): ?array {
                 $item = CollectionItem::query()->find($row['collection_item_id']);
@@ -140,7 +146,7 @@ class SearchSimilarCollectionItems implements Tool
     private function searchTextFallback(
         Collection $collection,
         string $query,
-        CollectionItemValuesAssembler $assembler,
+        CollectionItemValuesAssemblerService $assembler,
         int $limit,
     ): string {
         // ponytail: scan at most 500 recent items when embeddings off / empty

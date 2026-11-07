@@ -10,6 +10,142 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 
+
+## [1.4.0] - 2026-11-02
+
+### Upgrade notes
+- **Docker workers as www-data (#320):** existing bind-mounted `storage/` / `bootstrap/cache` volumes that were created as root may need a one-time `chown -R www-data:www-data storage bootstrap/cache` (or recreate the volume). The entrypoint still `chown`s when it starts as root.
+- **Run `php artisan externa:upgrade`** (or `migrate` + `permissions:sync`). It now computes `files.effective_access` for existing files (no manual backfill), re-owns API keys created by deactivated users to the first active super-admin, and grants the built-in `admin` role the new `deploy.trigger` and `ai.prompts.manage` permissions (#434, #439).
+- **AI write tools are denied by default** (#203): chat keeps the read actions of `Manage*` tools; writes need `AI_WRITE_TOOLS=true` plus the per-tool allowlist and human approval (#439).
+- **Security headers are on by default** (#187): review `SECURITY_*` if you embed the admin in a frame or need a custom CSP.
+- **PostgreSQL 15 or later** is required for the `collections_items_values` null-locale unique index (`NULLS NOT DISTINCT`, #278).
+- **AI reasoning settings (#570):** the assistant asks real providers for medium reasoning effort. Tune or turn it off with `OPENAI_REASONING_EFFORT`, `ANTHROPIC_REASONING_EFFORT`, `GEMINI_REASONING_EFFORT` and `LOCAL_AI_REASONING_EFFORT` (unset = none). `AI_ASSISTANT_PROVIDER` picks the assistant's provider (default `local`) and `*_CONTEXT_WINDOW` sets the context size shown in the chat.
+- **Removed packages (#520, #568):** `laravel/sail`, `@headlessui/react`, the unused Radix packages and the Wayfinder Vite plugin are gone; run `composer install` and `npm ci` after pulling.
+
+### Security
+- Symfony components updated to 8.1.11 for the 2026-11-04 advisories: HtmlSanitizer host-allowlist bypass (CVE-2026-118517) and `srcset` sanitising, Filesystem path-root handling, HttpFoundation, HttpKernel, Serializer, Routing and a YAML parse-time DoS. Composer and npm packages are refreshed within their ranges; dev tooling moves to Vitest 5 and jsdom 29 (#516).
+- Secure-by-default install: registration off for fresh installs, IP throttle (5/min) on register/forgot/reset, passkeys limiter keyed on IP, Docker entrypoint refuses `change-me` DB passwords in production, safer `.env.example` (`APP_DEBUG=false`, webhook token guidance) (#272).
+- Outbound webhooks send `X-Externa-Signature-V2` over `"{timestamp}.{body}"` (legacy `X-Externa-Signature` kept for one minor); inbound collection-import requires `X-AI-Webhook-Timestamp` within 300s, signs `"{timestamp}.{body}"`, and rejects replayed signatures (#273).
+- Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, DNS-pinned byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
+- Run Horizon, Reverb, scheduler, Pulse and queue workers as `www-data` (via `setpriv`) instead of root in the production image entrypoint (#320).
+- Bind API keys to an optional owner (`owner_id`) so effective access is key role ∩ scopes ∩ owner ACL; revoke keys when the owner is deactivated or deleted (#215).
+- Add per-key `files_scope` (`none`|`read`|`all`) so scoped API keys can opt out of Files API access; migration defaults existing keys to `all`; response cache factors include the setting (#322).
+- Add project Files upload allowlist (extensions/MIME) with SVG opt-in; hard floor still blocks executables/HTML/SSI even if listed (#327).
+- Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
+- **Files API:** on installs upgraded from 1.3.0, `GET /api/v1/files` no longer lists private files, or files in private folders, to roles without `read_private`; a file whose `effective_access` is not computed yet is hidden instead of treated as public (#434).
+- **MCP authorization parity:** MCP resources and tools enforce the same collection, item, field and file permissions as the chat tools, plus the API key's `collection_slugs`, `files_scope` and `read_only`. `publish_item` and `tag_file` run through the AI tool executor (kill switch, allowlist, human approval) and the admin publish checks, so publishing no longer fires deploy hooks without approval (#435).
+- **Security headers for the admin UI** (#187): `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a default `Content-Security-Policy` on web/Inertia responses (API, GraphQL and responses with their own CSP are skipped). Env keys: `SECURITY_HEADERS_ENABLED` (default `true`), `SECURITY_CSP`, `SECURITY_X_FRAME_OPTIONS` (default `DENY`), `SECURITY_REFERRER_POLICY` (default `strict-origin-when-cross-origin`), `SECURITY_PERMISSIONS_POLICY` (default `camera=(), microphone=(self), geolocation=(), payment=(), usb=()`).
+
+### Added
+- Optional first-party MCP server (`/mcp`, `laravel/mcp`): `AI_MCP_ENABLED` / `AI_MCP_WRITE_ENABLED`, owned API keys with `mcp:read`/`mcp:write` scopes, permission-aware tools/resources over the shared AI tool registry, dedicated `mcp` rate limiter; OAuth/Passport deferred (#121).
+- Consistent admin empty states via shadcn `Empty` (`PageEmptyState`): icon, title, description, primary CTA, optional docs link; hide list chrome for no-records vs Clear filters for no-results (#234).
+- Safe field type / translatable conversion for fields with existing content: documented conversion matrix (string↔textarea↔markdown, string→select, translatable flips), dry-run preview, chunked `externa:field-convert` artisan command, admin convert dialog, AI `convert_field` (approval-gated), activity log + `source=convert` revisions; historical revisions stay snapshots and restore adapts or rejects incompatible values (#220).
+- Six built-in appearance theme presets (Teal default, Blue, Indigo, Violet, Rose, Slate) alongside optional custom brand hex, with AI-role override when the Violet preset or a violet-ish custom hex is selected (#243).
+- Public CMS API batch item create/update/delete (`POST|PATCH|DELETE /api/v1/collections/{slug}/items/batch`) with `API_MAX_BATCH_SIZE` (default 100), atomic-per-item results, shared #269 write Actions, per-item activity log and existing `item.*` webhooks (no batch event types) (#125).
+- Public REST/GraphQL system-column filters on items (`filter[id]`, `filter[created_at]`, `filter[updated_at]`, `filter[published_at]`) with typed operators and ISO-8601 datetime validation (#333).
+- Public REST/GraphQL depth-1 relational filters (`filter[author.name][_eq]=…`); hard cap on join depth (422 above), related-collection readability gate (same as `?include=`), OpenAPI notes, and `API_COST_FILTER_RELATION` cost-budget interaction (#124).
+- AppAssistant Agent Skills (`HasSkills` + `resources/skills/{collection-operations,collection-import,approvals}/SKILL.md`) loaded on demand via `LoadSkill` for CMS/operator playbooks; playbook texts are drafts for maintainer review (#181).
+- File manager Flysystem disks for Google Cloud Storage (`FILES_DISK=gcs`) and Azure Blob (`FILES_DISK=azure`) via `spatie/laravel-google-cloud-storage` and `azure-oss/storage-blob-laravel`, with env keys, README notes, and Pest smoke coverage (#188).
+- AppAssistant conversation context attachments: permission-filtered item/file picker, project-level saved prompts CRUD (`ai.prompts.manage`), and send-time AuthZ re-check so revoked access cannot leak into the model prompt (#195).
+- Live Preview optional `as_of` token claim (max 90 days ahead): point-in-time overlay of scheduled `publish_at` drafts / hide after `unpublish_at`, admin “Preview at…” picker, and `GET /api/v1/preview` meta (`as_of`, `source`) (#222).
+- Project deploy hooks (Vercel / Netlify / Cloudflare Pages / Forge): encrypted named URLs, `deploy.trigger` permission, admin Deploy button, optional deploy-on-publish, activity log, and last-run status (#196).
+- Admin a11y phase 3: overlay focus restore (Sheet/Drawer/Dialog + file detail panel), Inertia `#main-content` focus after navigation, polite/assertive live announcements (toasts, notifications, AI final answer, empty-table status), targeted reduced-motion rules that keep Radix/vaul overlays unmounting, and scroll-padding for sticky toolbar/FAB (#254).
+- Admin a11y phase 4 automation: `eslint-plugin-jsx-a11y` (errors on shared React, warnings on pages), Pest Browser axe smoke on key routes (required `browser` gate on code PRs), `npm run a11y:contrast` theme-token CI check, screen reader checklist, and third-party limits doc (#255).
+- Server-side i18n: `lang/it.json` / `lang/de.json` for `__()` flash and validation strings, with Pest key parity coverage (#282).
+- Prompt-injection and denied-permission Pest suite for chat + MCP (`tests/Feature/Ai/Security/*`) with scripted compromised-LLM driver, ≥20 payloads × roles × surfaces, audit/approval assertions, and SECURITY checklist link (#204).
+- Human approval + audit log for AI tool calls: write/destructive tools denied by default (`AI_WRITE_TOOLS` kill switch + per-tool allowlist), chat `Approvable` for write actions, MCP `PendingToolCall` admin inbox (15m TTL), redacted `ai_tool` audit trail with retention prune (`ai:prune-tool-audit`) (#203).
+- Shared permission-aware AI tool registry (`AiToolRegistryService` / `AiToolExecutorService`) with chat + MCP adapters, config gates (`ai.tools.*`), and AuthZ parity tests (#202).
+- Admin a11y phase 2 controls: `html lang` sync on locale change, content-locale `lang` + flag text alternatives, native field-row button, required-field text marker, and expanded `a11y.*` icon-only labels (en/de/it) (#253).
+- Admin a11y phase 2 foundations: `Icon` decorative-by-default semantics, translated dialog/sheet Close + sidebar toggle, unread/notifications names, and new `a11y.*` keys with locale parity coverage (#253).
+- Add `@qiick/externa-sdk` TypeScript Public CMS client under `packages/sdk` (OpenAPI-generated types + CI freshness check); initial package version `0.1.0` (#119).
+- Public CMS `sort` query param (REST CSV / GraphQL `[String!]`, max 3 keys, `-` = desc) for system `id`/`created_at`/`updated_at`/`published_at` and sortable fields; expose `published_at` on item payloads; indexes on `(collection_id, published_at|created_at|updated_at)` (#224).
+- Add Vitest frontend unit runner and CI step for `resources/js` lib/hook tests (#285).
+- Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
+- AI tool actions `ManageCollectionItems` `publish` and `ManageFiles` `tag` (write actions, approval required) (#435).
+- File manager "Empty trash": a queued job permanently deletes every trashed file and folder and notifies the requester when done (`DELETE /files/trash`, `can-force-delete-files`) (#497).
+- Files selection bar select-all (loaded files), Assistant conversation search by title (`GET /ai/conversations?q=`), and a rows-per-page select on admin lists (10 / 20 / 50 / 100, kept in `per_page`) (#480, #492, #505).
+- The AI assistant opens as a side panel on the current page from the sidebar Assistant hover action or ⌘J / Ctrl+J; the floating button is removed and the panel links to the full page (#499, #503).
+- Blue theme preset (Excubia's brand blue) (#508).
+- AI answers show the model's reasoning (collapsed, "Thought for N s"), every tool call with its input, result or error, the sources it cited and the tokens used, live while streaming and again after a reload (#565, #566, #570, #572).
+- Chat: a user card on author names and mentions (avatar, role, online status), reactions with a tooltip of who reacted, and pinned messages and reply quotes as clickable rows (#575, #576).
+- Admin lists (users, groups, roles, API keys, permissions, activity log, jobs, pending tool calls) are server-driven data tables with sortable columns, faceted filters and row actions (#523, #526–#528, #530, #533, #535, #537, #561).
+- Deleting a chat, a saved prompt or a message asks for confirmation (#522).
+
+### Changed
+- Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
+- Self-host Geist / Geist Mono via `@fontsource-variable/*` (Vite-bundled); drop Instrument Sans and `fonts.bunny.net` from the admin shell; apply `font-mono` to obvious slugs, IDs, API paths, and versions (#228).
+- Replace hand-styled native `<select>` with shadcn `NativeSelect` (activity-log filters, role form, item filters, field settings, layout editor, blocks/m2a, chat drawer) (#232).
+- Sidebar brand active state uses teal `--sidebar-accent*` tokens with de-emphasized inactive items (`ink-600`), a 3px teal left bar on `data-[active=true]`, and settings secondary nav aligned to `SidebarMenu` / `SidebarGroupLabel` styling (#238).
+- Lucide-only icon cleanup: replace hand-drawn multi-select chevron with `ChevronsUpDown`, switch the icon picker to `lucide-react/dynamic` (`DynamicIcon`, no full `icons` map), upgrade `lucide-react` to ^1.61, and replace `react-file-icon` with Lucide `File*` glyphs on a muted tile (#241).
+- Unified violet `ai` theme tokens (`--ai` / `--ai-hover` / `--ai-foreground` / `--ai-bg` / `--ai-text` / `--ai-border`) for all AI surfaces; Button/Badge `ai` variants; replace orange/rose/amber AI accents on sidebar Assistant, FAB, translate beam, and Sparkles icons (#242).
+- Admin table conventions: muted uppercase `TableHead`, shadcn `Pagination` for Laravel link rows, `TablePanel` without extra border, combined name+slug cells, `tabular-nums` on numeric columns, and remaining raw tables migrated to `Table*` (#236).
+- Item-edit form column capped at `max-w-3xl`; short inputs (number, color, date, slug) default to half-width / content-sized controls; section titles use small muted semibold; published readonly fields use a distinct muted style (not 50% opacity); API key creation opens in a Dialog from the header primary button (#237).
+- Replace hand-rolled appearance tabs, color+hex fields, sidebar unread pills, and password strength bar with shadcn `ToggleGroup`, `InputGroup`, `SidebarMenuBadge`/`Badge`, and `Progress`; drop `@headlessui/react` Transition in favour of `tw-animate-css`; auth split panel uses `bg-ink-950`; delete unused starter `welcome.tsx` (#239).
+- Replace arbitrary sub-12px / rem font sizes with `text-xs` (and scale tokens) in page code; tighten off-scale spacing toward 2/3/4/6/8/12; add `scripts/check-ui-tokens.mjs` guardrail for arbitrary `text-[…]`, raw palette classes, and `#hex` in `className` outside `components/ui` (#240).
+- Wrap remaining `withMessages` / `abort` user-facing literals in `__()`; AI/admin UI `t()` coverage, locale-aware dates/numbers, speech + `document.documentElement.lang` follow app locale (#282).
+- Boolean ("Toggle") item fields and appearance sidebar module toggles use shadcn `Switch`; `radio_group` item fields use shadcn `RadioGroup` instead of native radios (#233).
+- Destructive and unsaved-changes confirms use shadcn `AlertDialog` (overlay `--overlay` token); irreversible collection force-delete requires typing the collection name (#230).
+- Collection create/edit drawer, field settings form, and dynamic item fields use shadcn `Field*` / `FieldError` with `aria-invalid` / `aria-describedby` (#231).
+- Admin users/groups drawers, API keys, and roles form use shadcn `Field*` with `aria-invalid` / `aria-describedby`; role permission groups use `FieldSet` (#231).
+- Remaining settings forms (appearance, project tabs, delete-user, two-factor setup) use shadcn `Field*` with `aria-invalid` / `aria-describedby` (#231).
+- Bump `laravel/mcp` to `^1.1.2` (GHSA-m25c-38v7-94p8), `laravel/boost` to 2.10.4, `laravel/framework` to 13.39.0, and `laravel/wayfinder` to 0.1.23 (#375).
+- Calm destructive row/bulk actions (outline/ghost), shared collections/items row menu pattern, and button size scale (`sm`/`default`/`lg`/`icon`/`icon-sm`) (#229).
+- Settings profile and security password forms use shadcn `Field*` with `aria-invalid` / `aria-describedby` (#231).
+- Admin a11y foundations: CONTRIBUTING rules, contrast pair table, zoom-safe viewport guard, skip/`main` on auth card+split layouts, light `--ring` teal-500 for 3:1 (#252).
+- Admin a11y landmarks polish: real `<nav aria-label>` in sidebar (desktop + mobile Sheet) and header variant, labelled file-detail/chat asides, translated breadcrumb + item-chat drawer names (#252).
+- Auth forms use shadcn `Field` / `FieldLabel` / `FieldError` with `aria-invalid` + `aria-describedby` and `noValidate` (#231).
+- Semantic status Badge/Alert variants (`success`/`warning`/`info`/`muted`) and replace hardcoded green/emerald/amber/red status surfaces with theme tokens (#235).
+- Faster PR → `develop` CI: path-aware stubs for required checks; Pest PHP 8.4-only + Vitest on code PRs; full matrix + browser on push/`main`/nightly (#381).
+- Scale chat hub and file transforms: shared `FileTransformUrlBuilder`, SQL-scoped/paginated hub listing with eager item labels, queued chat notifications with JSON-contains subscriber lookup, bulk `collections_items_values` inserts (#280).
+- Extract shared `MiniUserMapper` for Public API `user_created` / `user_updated` payloads (#338).
+- Move job-monitor and AI conversation DB access out of controllers into `JobMonitorQueryService` / `AiConversationMutationService` (#334).
+- Rename legacy `App\Services` classes to `*Service` suffix; empty Arch Services ignore list (#336).
+- Stream SHA-256 hashing for file uploads and chunk finalize (`hash_file` / `hash_update`) so large files are not loaded into a PHP string for hashing (#189).
+- Denormalize `files.effective_access` (with backfill command) so file list AuthZ no longer loads the full tree (#186).
+- Route web, REST, GraphQL, AI, import, chat, revision restore, and publish through shared `CreateCollectionItemAction` / `UpdateCollectionItemAction` so validation and draft versioning stay in parity (#269).
+- Bump `laravel/ai` constraint to `^1.1` (resolved v1.3.0) (#180).
+- Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
+- `check-ui-tokens` fails on stale baseline entries, so allowances for fixed raw palette and hex usage cannot hide a later regression (#452).
+- New `--primary-hover` token for primary button and link-badge hover (AA in light and dark) (#449).
+- Theme presets now only define brand colours over one shared base in `config/theme-presets.php`; the appearance preview reads them from the server (no client copy); the dark shell is two-tone again (sidebar `ink-900` over `ink-950` content) and the `app.css` fallbacks match the default preset (#506–#509).
+- Admin layout pass: framed content panel with flat tables (lists, dashboard cards, chat and assistant hubs), sticky table headers, a three-area list footer (range, pages, rows per page), dashboard tabs as a header segmented control, and the chat and assistant pages on one shared layout with one composer (#484–#487, #493–#505).
+- Controls follow one size scale (24 / 32 / 40) and one field focus style; selection bars show count and select-all on the left and icon actions on the right; activity log date filters use one range picker; settings group the AI pages under "AI" (#462, #472, #489–#492, #508).
+- Sidebar and settings nav: full-height active bar with square left corners and a theme-primary Assistant item; groups list shows an initials avatar and member avatars; activity log filters use one responsive grid with the export menu in the header (#463, #466, #473, #478, #479, #481).
+- The files grid loads more files automatically while scrolling, 48 per page; the Load more button stays as a fallback (#514).
+- The admin UI is rebuilt on standard shadcn/ui and AI Elements: pickers and autocompletes on Command, lists on Item, forms on Field, toggles on Toggle, loaders on Spinner/Skeleton/Empty, chats on Message, Bubble, Message Scroller and Attachment; nine primitives re-pulled from current shadcn (#517–#580).
+- Success messages appear as a short message at the top centre; errors, warnings and info as top-right notifications; form validation errors show under their fields (#519).
+- Avatars: per-user colours on the shadcn avatar, presence as a badge at the bottom right everywhere (green online, grey offline, red only when the realtime connection is lost), groups show three members and +N (#545, #560).
+- Dashboard views are routed tabs with stat cards and chart containers (#517, #542).
+
+### Fixed
+- AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
+- Axe smoke: Playwright `inDarkMode`/`inLightMode` first paint + sync `color-scheme` with `.dark` (CSS + boot script); underline uses `decoration-muted-foreground`; dashboard overflow panels are named `region` landmarks with `tabIndex={0}` (scrollable-region-focusable) (#255).
+- Dark primary button AA: `.dark` `--primary-foreground` uses dark brand fg / ink-950 (not light `#fff`); placeholder opacity 1; darker dark `--muted-foreground` (ink-200) for axe smoke (#255).
+- Visible focus ring (offset, full-opacity `--ring` teal-600/teal-400) and 3:1 `--input` (ink-400/500) borders on shadcn UI controls, item-form chrome, and password affordances (WCAG 1.4.11 / 2.4.7) (#227).
+- Wrap chat message create, direct-chat create, bulk item actions, kanban rank shifts, and AI collection duplicate in transactions/`lockForUpdate`; authorize bulk items before mutate; report (not 500) broadcast failures after a saved write; Postgres `collections_items_values` unique uses `NULLS NOT DISTINCT` with dedupe (#278).
+- Stabilize Browser Pest suite waits/selectors and clear ProjectSettings memo between tests (#345).
+- Add job timeouts/retries/`failed()` notifications and `report()` on soft-fail catches; make embedding job unique (#279).
+- Make scheduled publish atomic (`lockForUpdate` + transaction) and prevent schedule command overlap (#270).
+- Fix flaky `ImportRemoteJsonTest` on PostgreSQL by selecting the imported item by slug (#331).
+- Security headers allow AI chat voice input (`microphone=(self)`) and image/video previews from the configured files disk (S3 / GCS / Azure / CDN origin in `media-src` and `img-src`); in local dev the Vite origin, including Herd HTTPS, is read from `public/hot` (#440).
+- AI chat: `Manage*` tools are available again for their read actions while AI write tools are off (#439).
+- API keys: the `owner_id` backfill no longer assigns a key to a deactivated creator, so existing keys keep working after the upgrade (#439).
+- Relational API filters (`filter[relation.field]`) work on PostgreSQL and MySQL/MariaDB: many-to-one no longer fails with `text = bigint`; many-to-many and one-to-many match the exact related id and check every linked item (#436).
+- Appearance settings: the theme preset picker and live preview are back, saving keeps the selected preset, a custom brand colour is stored only when set, and the preview keeps the dark palette in dark mode (#437).
+- Focus ring and focused input border stay at least 3:1 when the custom brand colour has low contrast; otherwise the teal ring is used (#453).
+- Restored work that stale squash merges had reverted (#449, #452, #457): sidebar `<nav aria-label>` landmark and violet AI accent on the Assistant item; shared empty states (collections, users, API keys, roles, items, file grid); collections table name/slug cell; settings save bar status announcements; full-opacity focus ring on colour fields; appearance `ToggleGroup` and `ink-950` auth panel; Assistant context picker; item form field sizing and read-only style; translated a11y labels; `lucide-react` ^1.61 without `react-file-icon`; `is/has/can` boolean method names (guarded by an Arch test).
+- Collection row menu: "Delete" opens the confirm dialog instead of navigating into the collection (#438).
+- CI: the full browser suite completes (no silent 20-minute hang), a failing `assets` job fails the required checks, and `resources/skills/**` changes run the full gate (#438).
+- Select menus flip upward near the window edge and drop the dark tinted trigger background; file thumbnails that fail to load fall back to the type icon; user menu labels, the deploy-on-publish switch and AI tools checkboxes are aligned (#482, #483, #495, #496, #508).
+- Files multi-select keeps every ticked file; Ask AI entry points are disabled while AI is offline, with provider-neutral copy; the item edit sub-header stays steady; the collections list shows name, slug and description columns again (#464, #465, #476, #477, #488).
+- `externa:upgrade` also clears the cached GraphQL schema (`lighthouse:clear-cache`), so the new GraphQL sort and filter arguments work right after an in-place upgrade (#510).
+- Items can be created from the admin on collections with versioning enabled; the create form was read-only with no Save button (#512).
+- GraphQL `item`, `createItem` and `updateItem` return `created_at` / `updated_at` instead of a DateTime error (#511).
+- The files grid scrolls on short windows instead of clipping the last rows, and uploading, moving or deleting files keeps the loaded files instead of resetting to the first page (#514).
+- Form field controls fill their field width (#555); item form tabs keep every field mounted, so switching tabs no longer loses input (#540).
+- The 404 page gets the app props and renders inside the app shell; the error boundary uses the shared empty state (#544).
+- The selected file's outline is no longer cut by the files grid (#574).
+
 ## [1.3.0] - 2026-10-24
 
 ### Security
@@ -32,6 +168,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Reject `type` / `translatable` changes on fields that already have stored values (admin + AI); lock Translatable checkbox in the field form (#219)
 
 ### Added
+- Community profile: Code of Conduct, PR template, and feature-request issue form (#332).
 
 - Optional API key scopes: collection slug allowlist + `read_only` (effective access = role ACL ∩ key scopes; null/empty scopes keep legacy behaviour) for REST + GraphQL; admin create form fields (#116)
 - Table-driven AuthZ regression Pest datasets for collection CRUD × actors, published/draft item filters, file public/private/inherited access, `include=files`, GraphQL read, and `EffectivePermissionResolver` / `FilePermissionGuard` matrices (#114)
@@ -264,7 +401,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.4.0
 [1.3.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.3.0
 [1.2.3]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.3
 [1.2.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.2

@@ -5,11 +5,16 @@ import {
     MAX_CHUNK_RETRIES,
     CHUNK_RETRY_BASE_DELAY_MS,
 } from '@/lib/files-api';
+import { assertOk, parseError } from '@/lib/http';
 
 export type ChatUser = {
     id: number;
     name: string;
     email?: string;
+    /** Profile picture URL; initials show when it is missing. */
+    avatar?: string | null;
+    /** The user's role name, shown on the chat user hover card. */
+    role?: string | null;
 };
 
 export type ChatAttachment = {
@@ -100,38 +105,6 @@ function roots(scope: ChatScope): { thread: string; root: string } {
     const base = `/collections/${scope.collectionId}/items/${scope.itemId}/chat`;
 
     return { thread: base, root: base };
-}
-
-async function parseError(
-    response: Response,
-    fallback: string,
-): Promise<string> {
-    try {
-        const payload = (await response.json()) as {
-            message?: string;
-            errors?: Record<string, string[]>;
-        };
-
-        if (payload.message) {
-            return payload.message;
-        }
-
-        const first = Object.values(payload.errors ?? {})[0]?.[0];
-
-        if (first) {
-            return first;
-        }
-    } catch {
-        /* non-JSON */
-    }
-
-    return fallback;
-}
-
-async function assertOk(response: Response, fallback: string): Promise<void> {
-    if (!response.ok) {
-        throw new Error(await parseError(response, fallback));
-    }
 }
 
 export async function fetchMessages(

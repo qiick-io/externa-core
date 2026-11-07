@@ -36,7 +36,7 @@ class UniqueCollectionSlugGenerator
     /**
      * Whether the normalized slug is free (includes soft-deleted rows).
      */
-    public function available(string $nameOrSlug, ?int $excludeCollectionId = null): bool
+    public function isAvailable(string $nameOrSlug, ?int $excludeCollectionId = null): bool
     {
         $slug = Str::slug($nameOrSlug);
 

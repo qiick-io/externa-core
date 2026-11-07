@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Support\Facades\Cache;
 
 it('serves OpenAPI 3 JSON without an API key', function (): void {
@@ -20,14 +20,14 @@ it('serves OpenAPI 3 JSON without an API key', function (): void {
 });
 
 it('serves OpenAPI even when the public API origin allowlist is set', function (): void {
-    Cache::forget(ProjectSettings::PUBLIC_API_ORIGINS_CACHE_KEY);
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    Cache::forget(ProjectSettingsService::PUBLIC_API_ORIGINS_CACHE_KEY);
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
 
     $this->getJson('/api/v1/openapi.json')
         ->assertOk()

@@ -9,8 +9,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionPermission;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Collections\CollectionItemDataAccessor;
 use App\Support\Collections\CollectionLocaleResolver;
 use Database\Seeders\PermissionSeeder;
@@ -90,7 +90,7 @@ test('project settings persist content locales and resolver reads them', functio
         ]))
         ->assertSessionHasNoErrors();
 
-    $settings = app(ProjectSettings::class);
+    $settings = app(ProjectSettingsService::class);
     expect($settings->contentLocales())->toBe(['it', 'en', 'de-DE'])
         ->and($settings->defaultContentLocale())->toBe('it')
         ->and($settings->fallbackContentLocales())->toBe(['it', 'en']);
@@ -108,8 +108,8 @@ test('item validation rejects unknown translation locale keys', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
-    app(SettingsRepository::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->setMany(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         [
             'content_locales' => ['en', 'it'],
@@ -145,8 +145,8 @@ test('item validation rejects unknown translation locale keys', function () {
 });
 
 test('api rejects disabled locale query parameter', function () {
-    app(SettingsRepository::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->setMany(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         [
             'content_locales' => ['en', 'it'],
@@ -201,8 +201,8 @@ test('api rejects disabled locale query parameter', function () {
 });
 
 test('disabling a locale keeps orphan translations in the database', function () {
-    $repository = app(SettingsRepository::class);
-    $repository->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    $repository = app(SettingsRepositoryService::class);
+    $repository->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'content_locales' => ['en', 'it'],
         'default_content_locale' => 'en',
         'fallback_content_locales' => ['en', 'it'],
@@ -232,7 +232,7 @@ test('disabling a locale keeps orphan translations in the database', function ()
         'value' => 'Ciao',
     ]);
 
-    $repository->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    $repository->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'content_locales' => ['en'],
         'default_content_locale' => 'en',
         'fallback_content_locales' => ['en'],

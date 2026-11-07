@@ -272,7 +272,6 @@ export function DatetimeLocalPicker({
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
                             className="w-full"
                             disabled={disabled}
                             onClick={() => {
@@ -331,7 +330,7 @@ export function DateFieldInput({
 
     if (mode === 'time') {
         return (
-            <div className="relative">
+            <div className="relative w-full">
                 <Input
                     id={id}
                     type="time"
@@ -349,7 +348,7 @@ export function DateFieldInput({
     }
 
     return (
-        <div>
+        <div className="w-full">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
@@ -362,6 +361,8 @@ export function DateFieldInput({
                             fieldControlHeight,
                             'w-full justify-between font-normal',
                             !selected && 'text-muted-foreground',
+                            readonly &&
+                                'disabled:cursor-default disabled:bg-muted/50 disabled:opacity-100',
                         )}
                     >
                         <span className="truncate">
@@ -448,7 +449,6 @@ export function DateFieldInput({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="sm"
                                 className="w-full"
                                 disabled={readonly}
                                 onClick={() => {

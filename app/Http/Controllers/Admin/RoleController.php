@@ -10,11 +10,12 @@ use App\Http\Requests\Admin\DuplicateRoleRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\RoleResource;
 use App\Models\Role;
-use App\Services\Api\CollectionPermissionSync;
-use App\Services\Api\FilePermissionSync;
+use App\Services\Api\CollectionPermissionSyncService;
+use App\Services\Api\FilePermissionSyncService;
 use App\Support\Authorization\PermissionGrouper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -30,12 +31,13 @@ use Spatie\Permission\PermissionRegistrar;
 class RoleController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
     use ValidatesSearchQueryTrait;
 
     public function __construct(
         private readonly PermissionGrouper $permissionGrouper,
-        private readonly CollectionPermissionSync $collectionPermissionSync,
-        private readonly FilePermissionSync $filePermissionSync,
+        private readonly CollectionPermissionSyncService $collectionPermissionSync,
+        private readonly FilePermissionSyncService $filePermissionSync,
     ) {}
 
     /**
@@ -71,7 +73,7 @@ class RoleController extends Controller
         }
 
         $roles = $query
-            ->paginate($request->integer('per_page', 15))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         if ($request->expectsJson()) {
@@ -136,7 +138,7 @@ class RoleController extends Controller
     public function duplicate(DuplicateRoleRequest $request, Role $role): RedirectResponse
     {
         if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
-            abort(403, 'This role cannot be duplicated.');
+            abort(403, __('This role cannot be duplicated.'));
         }
 
         $data = $request->validated();
@@ -213,7 +215,7 @@ class RoleController extends Controller
 
         if ($role->isLockedSystemRole()) {
             if (array_key_exists('name', $data) && $data['name'] !== $role->name) {
-                abort(403, 'System roles cannot be renamed.');
+                abort(403, __('System roles cannot be renamed.'));
             }
         } elseif (array_key_exists('name', $data)) {
             $role->update(['name' => $data['name']]);
@@ -246,7 +248,7 @@ class RoleController extends Controller
         $this->authorizePermission(PermissionEnum::CanDeleteRoles->value);
 
         if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
-            abort(403, 'This role cannot be deleted.');
+            abort(403, __('This role cannot be deleted.'));
         }
 
         $role->delete();

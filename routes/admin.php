@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApiKeyController;
 use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\JobMonitorController;
+use App\Http\Controllers\Admin\PendingToolCallController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -165,6 +166,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('jobs/{uuid}', [JobMonitorController::class, 'destroy'])
             ->middleware('permission:'.PermissionEnum::CanManageJobs->value)
             ->name('jobs.destroy');
+
+        Route::get('pending-tool-calls', [PendingToolCallController::class, 'index'])
+            ->middleware('permission:'.PermissionEnum::CanUseAi->value)
+            ->name('pending-tool-calls.index');
+        Route::post('pending-tool-calls/{pendingToolCall}/approve', [PendingToolCallController::class, 'approve'])
+            ->middleware('permission:'.PermissionEnum::CanUseAi->value)
+            ->name('pending-tool-calls.approve');
+        Route::post('pending-tool-calls/{pendingToolCall}/reject', [PendingToolCallController::class, 'reject'])
+            ->middleware('permission:'.PermissionEnum::CanUseAi->value)
+            ->name('pending-tool-calls.reject');
     });
 
     /*
@@ -182,6 +193,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('bulk', [FileController::class, 'bulk'])->name('bulk');
             Route::post('download', [FileController::class, 'downloadMany'])->name('download-many');
             Route::get('zips/{jobId}', [FileController::class, 'downloadPreparedZip'])->name('zips.download');
+            Route::delete('trash', [FileController::class, 'emptyTrash'])->name('trash.empty');
             Route::patch('{file}', [FileController::class, 'update'])->name('update');
             Route::post('{file}/replace', [FileController::class, 'replace'])->name('replace');
             Route::post('{file}/copy', [FileController::class, 'copy'])->name('copy');

@@ -4,16 +4,18 @@ namespace App\GraphQL\Queries;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\PublicApiResponseCache;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Api\PublicApiResponseCacheService;
 use App\Support\Api\ApiAccess;
 
 final class ItemQuery
 {
     use AuthorizesGraphqlCollectionTrait;
+    use SerializesGraphqlItemTrait;
 
     /**
      * @param  array{collection: string, id: string}  $args
@@ -25,7 +27,7 @@ final class ItemQuery
         $this->authorize($collection, CollectionPermissionActionEnum::Read);
 
         $request = request();
-        $cache = app(PublicApiResponseCache::class);
+        $cache = app(PublicApiResponseCacheService::class);
         $version = $cache->version((int) $collection->id);
         $access = app(ApiAccess::class);
         $roleId = $access->roleId();
@@ -33,13 +35,14 @@ final class ItemQuery
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
             'role_id' => $roleId,
-            'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
             ...$access->responseCacheScopeFactors(),
             'surface' => 'graphql',
         ]);
         $key = $cache->itemKey($collection->slug, $args['id'], $version, $hash);
 
-        return $cache->remember($key, function () use ($collection, $args, $request): ?array {
+        // Convert after the cache read so entries cached before the fix are served correctly too.
+        $payload = $cache->remember($key, function () use ($collection, $args, $request): ?array {
             $item = CollectionItem::query()
                 ->where('collection_id', $collection->id)
                 ->whereKey($args['id'])
@@ -55,9 +58,11 @@ final class ItemQuery
                 return null;
             }
 
-            app(CollectionPermissionEnforcer::class)->assertItemReadable($request, $collection, $item);
+            app(CollectionPermissionEnforcerService::class)->assertItemReadable($request, $collection, $item);
 
             return (new CollectionItemResource($item))->toArray($request);
         });
+
+        return is_array($payload) ? $this->withGraphqlTimestamps($payload) : null;
     }
 }

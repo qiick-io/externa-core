@@ -1,18 +1,19 @@
 import { ChevronDown } from 'lucide-react';
+import { Accordion as AccordionPrimitive } from 'radix-ui';
 import { Fragment, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+    Accordion,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    settings?: Record<string, unknown> | null;
-};
+import type { FieldDef } from '@/types';
 
 type RenderFieldsOptions = {
     /** Hide field labels (accordion/tab leaf sections — header is the label). */
@@ -157,65 +158,56 @@ function GroupTabsRenderer<T extends FieldDef>({
                     {headerMenu}
                 </div>
             ) : (
-                <div className="flex items-stretch border-b border-input">
-                    <div className="flex min-w-0 flex-1 overflow-x-auto">
-                        {visible.map((child, index) => {
-                            const label = getFieldDisplayName(
-                                child.field.settings,
-                                child.field.name,
-                                locales,
-                            );
-                            const isActive =
-                                resolvedActive === child.field.name;
-
-                            return (
-                                <button
+                <Tabs
+                    value={resolvedActive}
+                    onValueChange={setActiveTab}
+                    className="gap-0"
+                >
+                    <div className="flex items-stretch border-b border-input">
+                        <TabsList
+                            variant="line"
+                            className="h-auto min-w-0 flex-1 justify-start overflow-x-auto px-2"
+                        >
+                            {visible.map((child) => (
+                                <TabsTrigger
                                     key={child.field.id}
-                                    type="button"
+                                    value={child.field.name}
                                     data-tab-name={child.field.name}
-                                    className={cn(
-                                        // py-3.5 ≈ old strip py-2 + button py-1.5 (same header height)
-                                        'border-r border-input px-3 py-3.5 text-sm last:border-r-0',
-                                        index === 0 && 'rounded-tl-lg',
-                                        isActive
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted text-muted-foreground',
-                                    )}
-                                    onClick={() =>
-                                        setActiveTab(child.field.name)
-                                    }
+                                    className="flex-none py-3"
                                 >
-                                    {label}
-                                </button>
-                            );
-                        })}
+                                    {getFieldDisplayName(
+                                        child.field.settings,
+                                        child.field.name,
+                                        locales,
+                                    )}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        {headerMenu ? (
+                            <div className="ml-auto flex shrink-0 items-center border-l border-input px-1">
+                                {headerMenu}
+                            </div>
+                        ) : null}
                     </div>
-                    {headerMenu ? (
-                        <div className="ml-auto flex shrink-0 items-center border-l border-input px-1">
-                            {headerMenu}
-                        </div>
-                    ) : null}
-                </div>
-            )}
-            <div className="p-4">
-                {visible.length === 0 ? (
-                    <div className="min-h-4" aria-hidden />
-                ) : (
-                    visible.map((child) => (
-                        <div
+                    {/* forceMount: inactive panels stay in the form DOM, so Save posts their values. */}
+                    {visible.map((child) => (
+                        <TabsContent
                             key={child.field.id}
+                            value={child.field.name}
+                            forceMount
                             data-tab-panel={child.field.name}
-                            className={
-                                resolvedActive === child.field.name
-                                    ? 'block space-y-3'
-                                    : 'hidden'
-                            }
+                            className="space-y-3 p-4 data-[state=inactive]:hidden"
                         >
                             {sectionBody(child, renderLevel, renderFields)}
-                        </div>
-                    ))
-                )}
-            </div>
+                        </TabsContent>
+                    ))}
+                </Tabs>
+            )}
+            {visible.length === 0 ? (
+                <div className="p-4">
+                    <div className="min-h-4" aria-hidden />
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -288,26 +280,44 @@ function GroupAccordionRenderer<T extends FieldDef>({
         return new Set();
     });
 
-    const toggleItem = (name: string) => {
-        if (maxOneOpen) {
-            setOpenItems(openItems.has(name) ? new Set() : new Set([name]));
-        } else {
-            setOpenItems((current) => {
-                const next = new Set(current);
-
-                if (next.has(name)) {
-                    next.delete(name);
-                } else {
-                    next.add(name);
-                }
-
-                return next;
-            });
-        }
-    };
-
     const groupLabel = getFieldDisplayName(field.settings, field.name, locales);
     const fillWidth = settingsFlagEnabled(field.settings?.fill_width);
+
+    const accordionItems = visible.map((child) => {
+        const label = getFieldDisplayName(
+            child.field.settings,
+            child.field.name,
+            locales,
+        );
+        const isOpen = openItems.has(child.field.name);
+
+        return (
+            <AccordionItem key={child.field.id} value={child.field.name}>
+                <div className="flex items-center gap-0.5 px-4 hover:bg-muted/40">
+                    <div className="min-w-0 flex-1">
+                        <AccordionTrigger
+                            data-accordion-section={child.field.name}
+                            className="py-3 hover:no-underline"
+                        >
+                            {label}
+                        </AccordionTrigger>
+                    </div>
+                    {isLayoutGroupType(child.field.type)
+                        ? renderGroupMenu?.(child.field)
+                        : null}
+                </div>
+                {/* Radix forceMount keeps the inputs in the form DOM while collapsed (Save posts them);
+                    the open/close animation runs on the inner body, see ForceMountedCollapsibleBody. */}
+                <AccordionPrimitive.Content forceMount>
+                    <ForceMountedCollapsibleBody open={isOpen}>
+                        <div className="space-y-3 px-4 pb-4">
+                            {sectionBody(child, renderLevel, renderFields)}
+                        </div>
+                    </ForceMountedCollapsibleBody>
+                </AccordionPrimitive.Content>
+            </AccordionItem>
+        );
+    });
 
     // Keep empty accordion shell visible (fields builder ↔ item form parity).
     return (
@@ -326,57 +336,25 @@ function GroupAccordionRenderer<T extends FieldDef>({
             </div>
             {visible.length === 0 ? (
                 <div className="min-h-4 px-4 py-3" aria-hidden />
+            ) : maxOneOpen ? (
+                <Accordion
+                    type="single"
+                    collapsible
+                    value={[...openItems][0] ?? ''}
+                    onValueChange={(value) =>
+                        setOpenItems(value ? new Set([value]) : new Set())
+                    }
+                >
+                    {accordionItems}
+                </Accordion>
             ) : (
-                <div className="divide-y divide-border">
-                    {visible.map((child) => {
-                        const label = getFieldDisplayName(
-                            child.field.settings,
-                            child.field.name,
-                            locales,
-                        );
-                        const isOpen = openItems.has(child.field.name);
-
-                        return (
-                            <Collapsible
-                                key={child.field.id}
-                                open={isOpen}
-                                onOpenChange={() =>
-                                    toggleItem(child.field.name)
-                                }
-                            >
-                                <div className="flex items-center gap-0.5 px-4 hover:bg-muted/40">
-                                    <CollapsibleTrigger
-                                        data-accordion-section={
-                                            child.field.name
-                                        }
-                                        className="flex min-w-0 items-center gap-2 py-3 text-left text-sm font-medium"
-                                    >
-                                        <ChevronDown
-                                            className={cn(
-                                                'size-4 shrink-0 text-muted-foreground transition-transform',
-                                                isOpen && 'rotate-180',
-                                            )}
-                                        />
-                                        {label}
-                                    </CollapsibleTrigger>
-                                    {isLayoutGroupType(child.field.type)
-                                        ? renderGroupMenu?.(child.field)
-                                        : null}
-                                </div>
-                                {/* Keep inputs in the form DOM while collapsed so Save still posts values. */}
-                                <ForceMountedCollapsibleBody open={isOpen}>
-                                    <div className="space-y-3 px-4 pb-4">
-                                        {sectionBody(
-                                            child,
-                                            renderLevel,
-                                            renderFields,
-                                        )}
-                                    </div>
-                                </ForceMountedCollapsibleBody>
-                            </Collapsible>
-                        );
-                    })}
-                </div>
+                <Accordion
+                    type="multiple"
+                    value={[...openItems]}
+                    onValueChange={(value) => setOpenItems(new Set(value))}
+                >
+                    {accordionItems}
+                </Accordion>
             )}
         </div>
     );
@@ -414,7 +392,6 @@ function DetailGroupCollapsible({
                 {headerMenu ? (
                     <div
                         className="shrink-0"
-                        onClick={(event) => event.stopPropagation()}
                         onPointerDown={(event) => event.stopPropagation()}
                     >
                         {headerMenu}

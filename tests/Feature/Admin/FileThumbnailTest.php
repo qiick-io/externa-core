@@ -5,7 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
 use App\Services\FileTransformService;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -174,8 +174,8 @@ test('thumbnail endpoint honors a named transform preset key', function () {
     ]);
     $this->actingAs($user);
 
-    app(SettingsRepository::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->setMany(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         [
             'allowed_transformations' => ['thumbnail'],

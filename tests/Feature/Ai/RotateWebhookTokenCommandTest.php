@@ -45,6 +45,7 @@ it('accepts old and new tokens during grace after rotate', function (): void {
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
 
     foreach (['old-secret', $new] as $secret) {
+        $timestamp = (string) now()->timestamp;
         $this->call(
             'POST',
             route('ai.webhooks.collection-import'),
@@ -54,7 +55,8 @@ it('accepts old and new tokens during grace after rotate', function (): void {
             [
                 'CONTENT_TYPE' => 'application/json',
                 'HTTP_ACCEPT' => 'application/json',
-                'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, $secret),
+                'HTTP_X_AI_WEBHOOK_TIMESTAMP' => $timestamp,
+                'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, $secret, $timestamp),
             ],
             $rawBody,
         )->assertSuccessful();
@@ -79,6 +81,7 @@ it('rejects the previous token after grace expiry (time travel)', function (): v
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
 
+    $timestamp = (string) now()->timestamp;
     $this->call(
         'POST',
         route('ai.webhooks.collection-import'),
@@ -88,7 +91,8 @@ it('rejects the previous token after grace expiry (time travel)', function (): v
         [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, 'old-secret'),
+            'HTTP_X_AI_WEBHOOK_TIMESTAMP' => $timestamp,
+            'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, 'old-secret', $timestamp),
         ],
         $rawBody,
     )->assertUnauthorized();

@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Used when project settings have not yet configured content_locales.
-    | Runtime source of truth: ProjectSettings → content_locales.
+    | Runtime source of truth: ProjectSettingsService → content_locales.
     |
     */
 
@@ -23,7 +23,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Used when project settings have not yet configured fallback_content_locales.
-    | Runtime source of truth: ProjectSettings → fallback_content_locales.
+    | Runtime source of truth: ProjectSettingsService → fallback_content_locales.
     |
     */
 

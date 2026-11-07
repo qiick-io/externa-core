@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\File;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -86,7 +86,7 @@ class FileTransformService
      */
     public function ensureTransform(File $file, ?array $preset = null, ?string $key = null): string
     {
-        if (! $this->transformationsEnabled()) {
+        if (! $this->isTransformationsEnabled()) {
             throw new RuntimeException('Image transformations are disabled.');
         }
 
@@ -99,7 +99,7 @@ class FileTransformService
                 return $this->ensureThumbnail($file);
             }
 
-            $preset = app(ProjectSettings::class)->transformPreset($key);
+            $preset = app(ProjectSettingsService::class)->transformPreset($key);
             if ($preset === null) {
                 throw new RuntimeException("Unknown transform preset [{$key}].");
             }
@@ -199,17 +199,21 @@ class FileTransformService
     {
         try {
             // Floor at MAX_SIZE so grid can request 512 even when project presets top out lower.
-            return max(self::MAX_SIZE, app(ProjectSettings::class)->maxTransformSize());
-        } catch (\Throwable) {
+            return max(self::MAX_SIZE, app(ProjectSettingsService::class)->maxTransformSize());
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return self::MAX_SIZE;
         }
     }
 
-    public function transformationsEnabled(): bool
+    public function isTransformationsEnabled(): bool
     {
         try {
-            return app(ProjectSettings::class)->transformationsEnabled();
-        } catch (\Throwable) {
+            return app(ProjectSettingsService::class)->isTransformationsEnabled();
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return true;
         }
     }
@@ -288,8 +292,9 @@ class FileTransformService
         $presets = [];
 
         try {
-            $presets = app(ProjectSettings::class)->presetTransformations();
-        } catch (\Throwable) {
+            $presets = app(ProjectSettingsService::class)->presetTransformations();
+        } catch (\Throwable $exception) {
+            report($exception);
             $presets = [];
         }
 

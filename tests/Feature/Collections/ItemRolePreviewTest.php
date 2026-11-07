@@ -8,8 +8,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -35,10 +35,10 @@ test('preview as role strips unreadable fields and reports readable payload', fu
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, [
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, [
             'title' => 'Hello',
             'secret' => 'hidden',
         ], true),
@@ -85,10 +85,10 @@ test('preview as public reports unreadable when public lacks collection read', f
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, [
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, [
             'title' => 'Hello',
         ], true),
     );

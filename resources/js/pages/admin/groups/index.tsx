@@ -1,19 +1,30 @@
 import { Head, router } from '@inertiajs/react';
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ArrowDownAZ, ArrowUpAZ, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    DataTable,
+    dataTableSelectColumn,
+} from '@/components/admin/data-table';
+import type { DataTableSort } from '@/components/admin/data-table';
+import { DataTableColumnHeader } from '@/components/admin/data-table-column-header';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { TruncatedText } from '@/components/admin/truncated-text';
+import { UserAvatar } from '@/components/admin/user-avatar';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { PageLayout } from '@/components/layout/page-layout';
 import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
+    Avatar,
+    AvatarFallback,
+    AvatarGroup,
+    AvatarGroupCount,
+} from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -22,28 +33,40 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { avatarToneClass } from '@/lib/avatar-tone';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import { cn } from '@/lib/utils';
+import groupsRoutes from '@/routes/groups';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
+
+/** Member avatars shown before the count in the Members column. */
+const MEMBER_AVATAR_LIMIT = 3;
 
 type GroupSortField = 'name' | 'created_at' | 'updated_at';
 type GroupSortDirection = 'asc' | 'desc';
+
+const GROUP_SORT_FIELDS: readonly GroupSortField[] = [
+    'name',
+    'created_at',
+    'updated_at',
+];
+
+/**
+ * @param value - Candidate sort field (URL, Select, column header).
+ * @returns Whether the groups list can sort by it.
+ */
+function isGroupSortField(value: string): value is GroupSortField {
+    return (GROUP_SORT_FIELDS as readonly string[]).includes(value);
+}
 
 type Filters = {
     search?: string;
@@ -51,12 +74,6 @@ type Filters = {
     sort?: GroupSortField;
     direction?: GroupSortDirection;
 };
-
-const GROUP_SORT_FIELDS: { value: GroupSortField; label: string }[] = [
-    { value: 'name', label: 'Name' },
-    { value: 'created_at', label: 'Created' },
-    { value: 'updated_at', label: 'Updated' },
-];
 
 /**
  * Admin groups list with search, trash, and form drawer.
@@ -69,6 +86,13 @@ export default function AdminGroupsIndex({
     filters?: Filters;
 }) {
     const groups = normalizePaginated(groupsProp);
+    const { t } = useTranslation();
+
+    const groupSortFields: { value: GroupSortField; label: string }[] = [
+        { value: 'name', label: t('common.name') },
+        { value: 'created_at', label: t('common.created') },
+        { value: 'updated_at', label: t('common.updated') },
+    ];
     const { can } = useCan();
     const requestLeave = useRequestLeave();
     const isTrashed = filters.trashed === true;
@@ -77,7 +101,14 @@ export default function AdminGroupsIndex({
     const [direction, setDirection] = useState<GroupSortDirection>(
         filters.direction ?? 'asc',
     );
-    const [selected, setSelected] = useState<number[]>([]);
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const selected = useMemo(
+        () =>
+            Object.keys(rowSelection)
+                .filter((id) => rowSelection[id])
+                .map(Number),
+        [rowSelection],
+    );
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<AdminGroupRow | null>(null);
     const [pendingBulkAction, setPendingBulkAction] = useState<
@@ -114,7 +145,7 @@ export default function AdminGroupsIndex({
     });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Groups', href: adminRoutes.groups.index() }],
+        () => [{ title: 'Groups', href: groupsRoutes.index.url() }],
         [],
     );
 
@@ -128,19 +159,20 @@ export default function AdminGroupsIndex({
                 overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
-                adminRoutes.groups.index({
+                groupsRoutes.index.url({
                     query: {
                         search: nextSearch || undefined,
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(groups.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, groups.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -149,23 +181,28 @@ export default function AdminGroupsIndex({
         setDirection(filters.direction ?? 'asc');
     }, [filters.search, filters.sort, filters.direction]);
 
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
+
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
+
     useEffect(() => {
-        // Only refetch when the user changes search. Mount / pagination remounts
-        // leave search === filters.search; visiting without `page` would reset to page 1.
-        if (search === (filters.search ?? '')) {
+        setRowSelection({});
+    }, [isTrashed]);
+
+    const changeSort = (nextSort: DataTableSort): void => {
+        if (!isGroupSortField(nextSort.id)) {
             return;
         }
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        setSelected([]);
-    }, [isTrashed]);
+        setSort(nextSort.id);
+        setDirection(nextSort.direction);
+        visit({ sort: nextSort.id, direction: nextSort.direction });
+    };
 
     const openCreate = (): void => {
         setEditing(null);
@@ -203,11 +240,11 @@ export default function AdminGroupsIndex({
 
     const bulk = (action: string): void => {
         router.post(
-            adminRoutes.groups.bulkActions(),
+            groupsRoutes.bulkActions.url(),
             { ids: selected, action },
             {
                 preserveScroll: true,
-                onSuccess: () => setSelected([]),
+                onSuccess: () => setRowSelection({}),
             },
         );
     };
@@ -217,6 +254,168 @@ export default function AdminGroupsIndex({
     const selectedRows = groups.data.filter((group) =>
         selected.includes(group.id),
     );
+
+    const columns: ColumnDef<AdminGroupRow>[] = [
+        dataTableSelectColumn<AdminGroupRow>({
+            selectAllLabel: t('a11y.selectAll'),
+            getRowLabel: (group) => t('a11y.selectRow', { name: group.name }),
+        }),
+        {
+            accessorKey: 'name',
+            enableSorting: true,
+            meta: { cellClassName: 'max-w-[14rem] font-medium' },
+            header: ({ column }) => (
+                <DataTableColumnHeader
+                    column={column}
+                    title={t('groups.columns.name')}
+                />
+            ),
+            cell: ({ row }) => (
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <Avatar
+                        className="size-7"
+                        data-test="group-avatar"
+                        aria-hidden
+                    >
+                        <AvatarFallback
+                            className={cn(
+                                avatarToneClass(`group-${row.original.id}`),
+                                'text-xs font-medium',
+                            )}
+                        >
+                            {row.original.name.trim().charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <TruncatedText text={row.original.name} />
+                </span>
+            ),
+        },
+        {
+            id: 'slug',
+            header: t('groups.columns.slug'),
+            meta: { cellClassName: 'max-w-[14rem]' },
+            cell: ({ row }) => (
+                <TruncatedText
+                    text={row.original.slug}
+                    className="font-mono text-xs text-muted-foreground"
+                />
+            ),
+        },
+        {
+            id: 'roles',
+            header: t('groups.columns.roles'),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {(row.original.roles ?? []).map((role) => (
+                        <Badge key={role.id} variant="secondary">
+                            {role.name}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'members',
+            header: t('groups.columns.members'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right tabular-nums',
+            },
+            cell: ({ row }) => {
+                const members = row.original.users ?? [];
+                const total = row.original.users_count ?? members.length;
+                const shown = members.slice(0, MEMBER_AVATAR_LIMIT);
+                const hidden = total - shown.length;
+
+                if (members.length === 0) {
+                    return total > 0 ? total : '—';
+                }
+
+                return (
+                    <AvatarGroup
+                        className="justify-end"
+                        aria-label={t('groups.membersCount', { count: total })}
+                        data-test={`group-member-avatars-${row.original.id}`}
+                    >
+                        {shown.map((member) => (
+                            <UserAvatar
+                                key={member.id}
+                                user={member}
+                                size="sm"
+                            />
+                        ))}
+                        {hidden > 0 ? (
+                            <AvatarGroupCount
+                                className="text-xs"
+                                data-test="group-member-count"
+                            >
+                                +{hidden}
+                            </AvatarGroupCount>
+                        ) : null}
+                    </AvatarGroup>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            header: t('groups.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+                isRowClickIgnored: true,
+            },
+            cell: ({ row }) => {
+                const group = row.original;
+
+                if (!isTrashed) {
+                    return (
+                        <AskAiButton
+                            stopPropagation
+                            prompt={seedGroupPrompt(group)}
+                        />
+                    );
+                }
+
+                return (
+                    <ButtonGroup
+                        aria-label={t('groups.columns.actions')}
+                        className="ml-auto"
+                    >
+                        {can(PermissionEnum.CanRestoreGroups) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                data-test={`group-row-restore-${group.id}`}
+                                onClick={() =>
+                                    router.post(
+                                        groupsRoutes.restore.url(group.id),
+                                        {},
+                                        { preserveScroll: true },
+                                    )
+                                }
+                            >
+                                {t('common.restore')}
+                            </Button>
+                        )}
+                        {can(PermissionEnum.CanForceDeleteGroups) && (
+                            <Button
+                                type="button"
+                                variant="destructive-outline"
+                                size="sm"
+                                data-test={`group-row-force-delete-${group.id}`}
+                                onClick={() =>
+                                    setPendingForceDeleteGroupId(group.id)
+                                }
+                            >
+                                {t('common.deletePermanently')}
+                            </Button>
+                        )}
+                    </ButtonGroup>
+                );
+            },
+        },
+    ];
 
     const pendingForceDeleteGroup = groups.data.find(
         (group) => group.id === pendingForceDeleteGroupId,
@@ -229,12 +428,12 @@ export default function AdminGroupsIndex({
                 can(PermissionEnum.CanCreateGroups) && !isTrashed ? (
                     <Button type="button" onClick={openCreate}>
                         <Plus className="mr-1 size-4" />
-                        New group
+                        {t('groups.newGroup')}
                     </Button>
                 ) : undefined
             }
         >
-            <Head title="User groups" />
+            <Head title={t('groups.title')} />
 
             <Drawer
                 direction="right"
@@ -247,14 +446,16 @@ export default function AdminGroupsIndex({
                             search={search}
                             onSearchChange={setSearch}
                             searchPlaceholder={
-                                isTrashed ? 'Search trash…' : 'Search groups…'
+                                isTrashed
+                                    ? t('groups.searchTrashPlaceholder')
+                                    : t('groups.searchPlaceholder')
                             }
                             selectedCount={selected.length}
-                            onClearSelection={() => setSelected([])}
+                            onClearSelection={() => setRowSelection({})}
                             bulkActions={
                                 <>
                                     <AskAiButton
-                                        mode="labeled"
+                                        mode="toolbar"
                                         prompt={seedGroupsBulkPrompt(
                                             selectedRows,
                                         )}
@@ -263,15 +464,14 @@ export default function AdminGroupsIndex({
                                         can(PermissionEnum.CanDeleteGroups) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
-                                                size="sm"
+                                                variant="destructive-outline"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'delete',
                                                     )
                                                 }
                                             >
-                                                Delete
+                                                {t('common.delete')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -281,10 +481,9 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
-                                                Restore
+                                                {t('common.restore')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -293,15 +492,14 @@ export default function AdminGroupsIndex({
                                         ) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
-                                                size="sm"
+                                                variant="destructive-outline"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'force_delete',
                                                     )
                                                 }
                                             >
-                                                Delete permanently
+                                                {t('common.deletePermanently')}
                                             </Button>
                                         )}
                                 </>
@@ -314,25 +512,20 @@ export default function AdminGroupsIndex({
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
-                                        if (
-                                            value === 'name' ||
-                                            value === 'created_at' ||
-                                            value === 'updated_at'
-                                        ) {
+                                        if (isGroupSortField(value)) {
                                             setSort(value);
                                             visit({ sort: value });
                                         }
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        aria-label="Sort by"
+                                        aria-label={t('groups.sortBy')}
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent align="end">
-                                        {GROUP_SORT_FIELDS.map((field) => (
+                                        {groupSortFields.map((field) => (
                                             <SelectItem
                                                 key={field.value}
                                                 value={field.value}
@@ -346,11 +539,10 @@ export default function AdminGroupsIndex({
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    className="size-8"
                                     aria-label={
                                         direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
+                                            ? t('common.sortAscending')
+                                            : t('common.sortDescending')
                                     }
                                     onClick={() => {
                                         const nextDirection =
@@ -368,6 +560,7 @@ export default function AdminGroupsIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {
@@ -382,14 +575,14 @@ export default function AdminGroupsIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active groups"
+                                        aria-label={t('groups.title')}
                                         className="px-2.5"
                                     >
                                         <UsersRound className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
@@ -399,180 +592,26 @@ export default function AdminGroupsIndex({
                         )
                     }
                 >
-                    <TablePanel
-                        footer={
-                            groups.last_page > 1 ? (
-                                <TablePagination links={groups.links ?? []} />
-                            ) : undefined
+                    <DataTable
+                        columns={columns}
+                        data={groups.data}
+                        getRowId={(group) => String(group.id)}
+                        sort={{ id: sort, direction }}
+                        onSortChange={changeSort}
+                        rowSelection={rowSelection}
+                        onRowSelectionChange={setRowSelection}
+                        pagination={groups}
+                        onRowClick={
+                            can(PermissionEnum.CanEditGroups) && !isTrashed
+                                ? openEdit
+                                : undefined
                         }
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-10">
-                                        <Checkbox
-                                            checked={
-                                                groups.data.length > 0 &&
-                                                selected.length ===
-                                                    groups.data.length
-                                            }
-                                            onCheckedChange={(c) =>
-                                                setSelected(
-                                                    c === true
-                                                        ? groups.data.map(
-                                                              (g) => g.id,
-                                                          )
-                                                        : [],
-                                                )
-                                            }
-                                        />
-                                    </TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Slug</TableHead>
-                                    <TableHead>Roles</TableHead>
-                                    <TableHead>Members</TableHead>
-                                    <TableHead className="w-[1%] text-right">
-                                        Actions
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {groups.data.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={6}
-                                            className="text-muted-foreground"
-                                        >
-                                            No groups yet.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    groups.data.map((group) => (
-                                        <TableRow
-                                            key={group.id}
-                                            className={
-                                                can(
-                                                    PermissionEnum.CanEditGroups,
-                                                ) && !isTrashed
-                                                    ? 'cursor-pointer'
-                                                    : undefined
-                                            }
-                                            onClick={() => openEdit(group)}
-                                        >
-                                            <TableCell
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <Checkbox
-                                                    checked={selected.includes(
-                                                        group.id,
-                                                    )}
-                                                    onCheckedChange={() =>
-                                                        setSelected((prev) =>
-                                                            prev.includes(
-                                                                group.id,
-                                                            )
-                                                                ? prev.filter(
-                                                                      (id) =>
-                                                                          id !==
-                                                                          group.id,
-                                                                  )
-                                                                : [
-                                                                      ...prev,
-                                                                      group.id,
-                                                                  ],
-                                                        )
-                                                    }
-                                                />
-                                            </TableCell>
-                                            <TableCell className="max-w-[14rem] font-medium">
-                                                <TruncatedText
-                                                    text={group.name}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {group.slug}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {(group.roles ?? []).map(
-                                                        (r) => (
-                                                            <Badge
-                                                                key={r.id}
-                                                                variant="secondary"
-                                                            >
-                                                                {r.name}
-                                                            </Badge>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {group.users_count ?? '—'}
-                                            </TableCell>
-                                            <TableCell
-                                                className="text-right"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                {isTrashed ? (
-                                                    <div className="inline-flex gap-1">
-                                                        {can(
-                                                            PermissionEnum.CanRestoreGroups,
-                                                        ) && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    router.post(
-                                                                        adminRoutes.groups.restore(
-                                                                            group.id,
-                                                                        ),
-                                                                        {},
-                                                                        {
-                                                                            preserveScroll: true,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            >
-                                                                Restore
-                                                            </Button>
-                                                        )}
-                                                        {can(
-                                                            PermissionEnum.CanForceDeleteGroups,
-                                                        ) && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    setPendingForceDeleteGroupId(
-                                                                        group.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Delete forever
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <AskAiButton
-                                                        stopPropagation
-                                                        prompt={seedGroupPrompt(
-                                                            group,
-                                                        )}
-                                                    />
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TablePanel>
+                        emptyState={
+                            <span className="text-muted-foreground">
+                                {t('groups.empty')}
+                            </span>
+                        }
+                    />
                 </PageLayout>
 
                 <GroupFormDrawer
@@ -601,18 +640,22 @@ export default function AdminGroupsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected groups permanently?`
-                        : `Delete ${selected.length} selected groups?`
+                        ? t('groups.confirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('groups.confirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected groups will be permanently removed. This cannot be undone.'
-                        : 'Selected groups will be soft-deleted and moved to trash.'
+                        ? t('groups.confirm.bulkForceDeleteDescription')
+                        : t('groups.confirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -622,13 +665,13 @@ export default function AdminGroupsIndex({
 
                     setConfirmingDestructive(true);
                     router.post(
-                        adminRoutes.groups.bulkActions(),
+                        groupsRoutes.bulkActions.url(),
                         { ids: selected, action: pendingBulkAction },
                         {
                             preserveScroll: true,
                             onFinish: () => setConfirmingDestructive(false),
                             onSuccess: () => {
-                                setSelected([]);
+                                setRowSelection({});
                                 setPendingBulkAction(null);
                             },
                             onError: () => setPendingBulkAction(null),
@@ -644,13 +687,16 @@ export default function AdminGroupsIndex({
                         setPendingForceDeleteGroupId(null);
                     }
                 }}
-                title="Delete group permanently?"
-                description={
+                title={
                     pendingForceDeleteGroup
-                        ? `Delete "${pendingForceDeleteGroup.name}" permanently? This cannot be undone.`
-                        : 'This cannot be undone.'
+                        ? t('groups.confirm.forceDeleteTitle', {
+                              name: pendingForceDeleteGroup.name,
+                          })
+                        : t('groups.confirm.forceDeleteDescription')
                 }
-                confirmLabel="Delete permanently"
+                description={t('groups.confirm.forceDeleteDescription')}
+                confirmLabel={t('confirmDestructive.deletePermanently')}
+                typedConfirmation={pendingForceDeleteGroup?.name}
                 confirming={confirmingDestructive}
                 onConfirm={() => {
                     if (pendingForceDeleteGroupId === null) {
@@ -659,9 +705,7 @@ export default function AdminGroupsIndex({
 
                     setConfirmingDestructive(true);
                     router.delete(
-                        adminRoutes.groups.forceDelete(
-                            pendingForceDeleteGroupId,
-                        ),
+                        groupsRoutes.forceDelete.url(pendingForceDeleteGroupId),
                         {
                             preserveScroll: true,
                             onFinish: () => setConfirmingDestructive(false),

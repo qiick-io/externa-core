@@ -1,10 +1,13 @@
+import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import {
     supportsDefaultValue,
     FIELD_LAYOUT_WIDTH_OPTIONS,
+    fieldLayoutWidthLabel,
 } from '@/lib/collection-field-types';
 import type { CommonFieldSettings } from '@/lib/collection-field-types';
 
@@ -26,18 +29,21 @@ export function CommonAdvancedSettings({
     settings,
     onChange,
 }: CommonAdvancedSettingsProps) {
+    const { t } = useTranslation();
     const showDefault = supportsDefaultValue(fieldType);
     const isGroup = isLayoutGroupType(fieldType);
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             {!isGroup && (
-                <div className="grid gap-2">
-                    <Label htmlFor="field_layout_width">Field width</Label>
-                    <p className="text-sm text-muted-foreground">
+                <Field>
+                    <FieldLabel htmlFor="field_layout_width">
+                        Field width
+                    </FieldLabel>
+                    <FieldDescription>
                         How much horizontal space this field takes in the form.
-                    </p>
-                    <select
+                    </FieldDescription>
+                    <NativeSelect
                         id="field_layout_width"
                         value={settings.layoutWidth}
                         onChange={(event) =>
@@ -47,15 +53,15 @@ export function CommonAdvancedSettings({
                                     .value as typeof current.layoutWidth,
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
-                        {FIELD_LAYOUT_WIDTH_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
+                        {FIELD_LAYOUT_WIDTH_OPTIONS.map((width) => (
+                            <option key={width} value={width}>
+                                {fieldLayoutWidthLabel(width, t)}
                             </option>
                         ))}
-                    </select>
-                </div>
+                    </NativeSelect>
+                </Field>
             )}
             {!isGroup && (
                 <SettingCheckbox
@@ -102,12 +108,14 @@ export function CommonAdvancedSettings({
                 }
             />
             {showDefault ? (
-                <div className="grid gap-2">
-                    <Label htmlFor="common_default_value">Default value</Label>
-                    <p className="text-sm text-muted-foreground">
+                <Field>
+                    <FieldLabel htmlFor="common_default_value">
+                        Default value
+                    </FieldLabel>
+                    <FieldDescription>
                         Applied when creating a new item if the field is left
                         empty.
-                    </p>
+                    </FieldDescription>
                     <Input
                         id="common_default_value"
                         value={
@@ -124,7 +132,7 @@ export function CommonAdvancedSettings({
                         }
                         placeholder="Applied on create when empty"
                     />
-                </div>
+                </Field>
             ) : null}
         </div>
     );

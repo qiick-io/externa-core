@@ -5,59 +5,275 @@ on:
     branches:
       - develop
       - main
-      - master
-      - workos
   pull_request:
     branches:
       - develop
       - main
-      - master
-      - workos
+  schedule:
+    # Nightly full matrix + browser (UTC).
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Gate policy (#381 / #255):
+# - Required check NAMES stay: ci (8.4), ci (8.5), ci-mysql, ci-mariadb, ci-pgsql, browser
+#   (stubs report success when the heavy work is skipped so branch protection stays green).
+# - pull_request → develop (code): Pest on PHP 8.4 only; other PHP/DB stub; browser runs axe smoke.
+# - docs/md-only PR → develop: all Pest/browser stub.
+# - push → develop/main, PR → main, schedule: full matrix + full browser suite.
+# - Required jobs run with if: always() and fail first when changes/assets did not succeed,
+#   so a broken build can never surface as a skipped (= passing) required check (#438).
 
 jobs:
-  ci:
+  changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      run_assets: ${{ steps.mode.outputs.run_assets }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect change mode
+        id: mode
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # full | lite | docs
+          MODE=full
+
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            mapfile -t FILES < <(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" || true)
+
+            if [[ ${#FILES[@]} -eq 0 ]]; then
+              MODE=lite
+            else
+              CODE=0
+              for f in "${FILES[@]}"; do
+                case "$f" in
+                  # Docs = top-level *.md, docs/, .github templates. Nested *.md (e.g. resources/skills/*/SKILL.md) is code (#438).
+                  docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE*|.github/pull_request_template.md|.github/RELEASE_TEMPLATE.md)
+                    ;;
+                  */*)
+                    CODE=1
+                    break
+                    ;;
+                  *.md)
+                    ;;
+                  *)
+                    CODE=1
+                    break
+                    ;;
+                esac
+              done
+              if [[ $CODE -eq 0 ]]; then
+                MODE=docs
+              else
+                MODE=lite
+              fi
+            fi
+          fi
+
+          # push / schedule / PR→main always full
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.base_ref }}" == "main" ]]; then
+            MODE=full
+          fi
+
+          RUN_ASSETS=false
+          if [[ "$MODE" == "full" || "$MODE" == "lite" ]]; then
+            RUN_ASSETS=true
+          fi
+
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "run_assets=$RUN_ASSETS" >> "$GITHUB_OUTPUT"
+          echo "CI mode=$MODE run_assets=$RUN_ASSETS"
+
+  assets:
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Stub (docs-only PR)
+        if: needs.changes.outputs.run_assets != 'true'
+        run: |
+          mkdir -p public/build
+          echo '{}' > public/build/manifest.json
+          echo "Docs-only / no Pest assets needed (#381)."
+
+      - name: Checkout code
+        if: needs.changes.outputs.run_assets == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup PHP
+        if: needs.changes.outputs.run_assets == 'true'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        if: needs.changes.outputs.run_assets == 'true'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Get Composer cache directory
+        if: needs.changes.outputs.run_assets == 'true'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        if: needs.changes.outputs.run_assets == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
+
+      - name: Install Composer Dependencies
+        if: needs.changes.outputs.run_assets == 'true'
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy Environment File
+        if: needs.changes.outputs.run_assets == 'true'
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        if: needs.changes.outputs.run_assets == 'true'
+        run: php artisan key:generate
+
+      - name: Install Node Dependencies
+        if: needs.changes.outputs.run_assets == 'true'
+        run: npm ci
+
+      - name: Build Assets
+        if: needs.changes.outputs.run_assets == 'true'
+        run: npm run build
+
+      - name: Upload built assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vite-build
+          path: public/build
+          retention-days: 1
+          if-no-files-found: error
+
+  ci:
+    name: ci (${{ matrix.php-version }})
+    needs: [changes, assets]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         php-version: ['8.4', '8.5']
 
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
+      - name: Resolve whether to run Pest
+        id: gate
+        shell: bash
+        run: |
+          MODE="${{ needs.changes.outputs.mode }}"
+          PHP="${{ matrix.php-version }}"
+          RUN=false
+          if [[ "$MODE" == "full" ]]; then
+            RUN=true
+          elif [[ "$MODE" == "lite" && "$PHP" == "8.4" ]]; then
+            RUN=true
+          fi
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE php=$PHP run=$RUN"
+
+      - name: Stub success (skipped for this PR gate)
+        if: steps.gate.outputs.run != 'true'
+        run: echo "Stub success for required check ci (${{ matrix.php-version }}) — mode=${{ needs.changes.outputs.mode }} (#381)."
+
       - name: Checkout code
-        uses: actions/checkout@v6
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        if: steps.gate.outputs.run == 'true'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install Node Dependencies
-        run: npm i
+        if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Get Composer cache directory
+        if: steps.gate.outputs.run == 'true'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ matrix.php-version }}-
 
       - name: Install Dependencies
+        if: steps.gate.outputs.run == 'true'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Copy Environment File
+        if: steps.gate.outputs.run == 'true'
         run: cp .env.example .env
 
       - name: Generate Application Key
+        if: steps.gate.outputs.run == 'true'
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
+      - name: Download built assets
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
 
       - name: Tests
-        run: ./vendor/bin/pest
+        if: steps.gate.outputs.run == 'true'
+        run: ./vendor/bin/pest --parallel
+
+  # DB + browser jobs always run (required check names). Heavy work only when mode=full;
+  # otherwise a step stub reports success. Services may still boot on stubs — cheap vs Pest.
 
   ci-mysql:
+    needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       mysql:
         image: mysql:8.4
@@ -71,40 +287,64 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
+      - name: Stub success (PR → develop reduced gate)
+        if: needs.changes.outputs.mode != 'full'
+        run: echo "Stub success for required check ci-mysql — mode=${{ needs.changes.outputs.mode }} (#381)."
       - name: Checkout code
-        uses: actions/checkout@v6
-
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        if: needs.changes.outputs.mode == 'full'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: pdo_mysql
           tools: composer:v2
-
+          coverage: none
       - name: Setup Node
-        uses: actions/setup-node@v6
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
-
+          cache: npm
       - name: Install Node Dependencies
-        run: npm i
-
+        if: needs.changes.outputs.mode == 'full'
+        run: npm ci
+      - name: Get Composer cache directory
+        if: needs.changes.outputs.mode == 'full'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer packages
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
       - name: Install Dependencies
+        if: needs.changes.outputs.mode == 'full'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
       - name: Copy Environment File
+        if: needs.changes.outputs.mode == 'full'
         run: cp .env.example .env
-
       - name: Generate Application Key
+        if: needs.changes.outputs.mode == 'full'
         run: php artisan key:generate
-
-      - name: Build Assets
-        run: npm run build
-
+      - name: Download built assets
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
       - name: Tests
-        run: ./vendor/bin/pest
+        if: needs.changes.outputs.mode == 'full'
+        run: ./vendor/bin/pest --parallel
         env:
           DB_CONNECTION: mysql
           DB_HOST: 127.0.0.1
@@ -116,7 +356,10 @@ jobs:
           DB_COLLATION: utf8mb4_unicode_ci
 
   ci-mariadb:
+    needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       mariadb:
         image: mariadb:11.4
@@ -132,40 +375,64 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
+      - name: Stub success (PR → develop reduced gate)
+        if: needs.changes.outputs.mode != 'full'
+        run: echo "Stub success for required check ci-mariadb — mode=${{ needs.changes.outputs.mode }} (#381)."
       - name: Checkout code
-        uses: actions/checkout@v6
-
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        if: needs.changes.outputs.mode == 'full'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: pdo_mysql
           tools: composer:v2
-
+          coverage: none
       - name: Setup Node
-        uses: actions/setup-node@v6
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
-
+          cache: npm
       - name: Install Node Dependencies
-        run: npm i
-
+        if: needs.changes.outputs.mode == 'full'
+        run: npm ci
+      - name: Get Composer cache directory
+        if: needs.changes.outputs.mode == 'full'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer packages
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
       - name: Install Dependencies
+        if: needs.changes.outputs.mode == 'full'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
       - name: Copy Environment File
+        if: needs.changes.outputs.mode == 'full'
         run: cp .env.example .env
-
       - name: Generate Application Key
+        if: needs.changes.outputs.mode == 'full'
         run: php artisan key:generate
-
-      - name: Build Assets
-        run: npm run build
-
+      - name: Download built assets
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
       - name: Tests
-        run: ./vendor/bin/pest
+        if: needs.changes.outputs.mode == 'full'
+        run: ./vendor/bin/pest --parallel
         env:
           DB_CONNECTION: mariadb
           DB_HOST: 127.0.0.1
@@ -177,7 +444,10 @@ jobs:
           DB_COLLATION: utf8mb4_unicode_ci
 
   ci-pgsql:
+    needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -192,40 +462,69 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
+      - name: Stub success (PR → develop reduced gate)
+        if: needs.changes.outputs.mode != 'full'
+        run: echo "Stub success for required check ci-pgsql — mode=${{ needs.changes.outputs.mode }} (#381)."
       - name: Checkout code
-        uses: actions/checkout@v6
-
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        if: needs.changes.outputs.mode == 'full'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: pdo_pgsql
           tools: composer:v2
-
+          coverage: none
       - name: Setup Node
-        uses: actions/setup-node@v6
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
-
+          cache: npm
       - name: Install Node Dependencies
-        run: npm i
-
+        if: needs.changes.outputs.mode == 'full'
+        run: npm ci
+      - name: Get Composer cache directory
+        if: needs.changes.outputs.mode == 'full'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer packages
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
       - name: Install Dependencies
+        if: needs.changes.outputs.mode == 'full'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
       - name: Copy Environment File
+        if: needs.changes.outputs.mode == 'full'
         run: cp .env.example .env
-
       - name: Generate Application Key
+        if: needs.changes.outputs.mode == 'full'
         run: php artisan key:generate
-
-      - name: Build Assets
-        run: npm run build
-
+      - name: Allow PostgreSQL createdb for parallel Pest
+        if: needs.changes.outputs.mode == 'full'
+        env:
+          PGPASSWORD: password
+        run: psql -h 127.0.0.1 -U externa -d externa -c "ALTER USER externa CREATEDB;"
+      - name: Download built assets
+        if: needs.changes.outputs.mode == 'full'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
       - name: Tests
-        run: ./vendor/bin/pest
+        if: needs.changes.outputs.mode == 'full'
+        run: ./vendor/bin/pest --parallel
         env:
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
@@ -234,44 +533,79 @@ jobs:
           DB_USERNAME: externa
           DB_PASSWORD: password
 
-  # Dedicated Browser job (fail-soft): not in phpunit.xml Unit/Feature suites.
+  # Required check name `browser` (#381). Docs-only → stub.
+  # lite (PR → develop code): axe smoke only (#255). full: entire Browser suite.
   browser:
+    needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 20
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
+      - name: Stub success (docs-only PR)
+        if: needs.changes.outputs.mode == 'docs'
+        run: echo "Stub success for required check browser — mode=docs (#381)."
       - name: Checkout code
-        uses: actions/checkout@v6
-
+        if: needs.changes.outputs.mode != 'docs'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        if: needs.changes.outputs.mode != 'docs'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           tools: composer:v2
-
+          coverage: none
       - name: Setup Node
-        uses: actions/setup-node@v6
+        if: needs.changes.outputs.mode != 'docs'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
-
+          cache: npm
       - name: Install Node Dependencies
-        run: npm i
-
+        if: needs.changes.outputs.mode != 'docs'
+        run: npm ci
       - name: Install Playwright Browsers
+        if: needs.changes.outputs.mode != 'docs'
         run: npx playwright install --with-deps chromium
-
+      - name: Get Composer cache directory
+        if: needs.changes.outputs.mode != 'docs'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer packages
+        if: needs.changes.outputs.mode != 'docs'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
       - name: Install Dependencies
+        if: needs.changes.outputs.mode != 'docs'
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
       - name: Copy Environment File
+        if: needs.changes.outputs.mode != 'docs'
         run: cp .env.example .env
-
       - name: Generate Application Key
+        if: needs.changes.outputs.mode != 'docs'
         run: php artisan key:generate
-
-      - name: Build Assets
-        run: npm run build
-
-      - name: Browser Tests (File Manager)
-        run: ./vendor/bin/pest tests/Browser/FileManagerBrowserTest.php
+      - name: Download built assets
+        if: needs.changes.outputs.mode != 'docs'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
+      - name: Axe smoke (PR → develop)
+        if: needs.changes.outputs.mode == 'lite'
+        run: ./vendor/bin/pest tests/Browser/A11ySmokeBrowserTest.php
         env:
           QUEUE_CONNECTION: sync
+          LOCAL_AI_URL: http://127.0.0.1:9/v1
+      - name: Browser Tests
+        if: needs.changes.outputs.mode == 'full'
+        run: ./vendor/bin/pest tests/Browser
+        env:
+          QUEUE_CONNECTION: sync
+          LOCAL_AI_URL: http://127.0.0.1:9/v1

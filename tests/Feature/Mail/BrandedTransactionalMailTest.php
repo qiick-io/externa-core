@@ -4,7 +4,7 @@ use App\Enums\FileTypeEnum;
 use App\Models\File;
 use App\Models\User;
 use App\Notifications\FileZipReadyNotification;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Storage;
  */
 function seedMailBrandingAppearance(string $projectName = 'Externa Brand', string $color = '#c45c26'): array
 {
-    $repository = app(SettingsRepository::class);
-    $repository->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    $repository = app(SettingsRepositoryService::class);
+    $repository->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'name' => $projectName,
     ]);
 
@@ -29,7 +29,7 @@ function seedMailBrandingAppearance(string $projectName = 'Externa Brand', strin
         'mime_type' => 'image/png',
     ]);
 
-    $repository->setMany(SettingsRepository::SCOPE_PROJECT, 'appearance', [
+    $repository->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', [
         'project_color' => $color,
         'project_logo' => $logo->id,
     ]);
@@ -66,10 +66,10 @@ test('verify email HTML uses project branding without Laravel logo', function ()
 });
 
 test('mail falls back to mark v3 teal when project color unset', function () {
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'name' => 'Default Teal Project',
     ]);
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'appearance', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', [
         'project_color' => null,
         'project_logo' => null,
     ]);
@@ -83,10 +83,10 @@ test('mail falls back to mark v3 teal when project color unset', function () {
 });
 
 test('mail falls back to project name text when logo unset', function () {
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'name' => 'Text Only Project',
     ]);
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'appearance', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', [
         'project_color' => '#00aa55',
         'project_logo' => null,
     ]);

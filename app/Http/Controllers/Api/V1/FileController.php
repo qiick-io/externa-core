@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
-use App\Services\Api\FilePermissionGuard;
+use App\Services\Api\FilePermissionGuardService;
 use App\Services\FileService;
 use App\Services\FileTransformService;
 use App\Support\Files\FilesDisk;
@@ -51,7 +51,7 @@ class FileController extends Controller
         $search = $validated['search'] ?? null;
 
         $query = $this->listQuery($parentId, $search);
-        $query = app(FilePermissionGuard::class)->constrainReadable(
+        $query = app(FilePermissionGuardService::class)->constrainReadable(
             $query,
             $this->apiAccess($request)->roleId(),
         );

@@ -118,5 +118,5 @@
         "resources/js/**/*.d.ts",
         "resources/js/**/*.tsx"
     ],
-    "exclude": ["resources/js/**/*.test.ts"]
+    "exclude": ["resources/js/**/*.test.ts", "resources/js/**/*.test.tsx", "resources/js/**/*.spec.ts", "resources/js/**/*.spec.tsx"]
 }

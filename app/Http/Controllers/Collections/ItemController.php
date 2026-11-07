@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
@@ -11,6 +14,7 @@ use App\Http\Requests\Collections\BulkItemActionRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
@@ -18,23 +22,23 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Collections\CollectionItemApprovalService;
-use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
-use App\Services\Collections\CollectionItemPublisher;
+use App\Services\Collections\CollectionItemPublisherService;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemRevisionRecorder;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\CollectionListColumnsNormalizer;
-use App\Services\Collections\CollectionListDisplayEnricher;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionItemRevisionRecorderService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionListColumnsNormalizerService;
+use App\Services\Collections\CollectionListDisplayEnricherService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Services\Collections\ItemRolePreviewService;
-use App\Services\Collections\LivePreviewUrlBuilder;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\LivePreviewAsOfResolverService;
+use App\Services\Collections\LivePreviewUrlBuilderService;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\SafeReturnUrl;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Database\Eloquent\Builder;
@@ -46,6 +50,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -55,6 +60,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ItemController extends Controller
 {
+    use ValidatesListPerPageTrait;
+
     /** First page size per kanban column (scroll fetches the next page). */
     private const KANBAN_PER_PAGE = 30;
 
@@ -63,22 +70,23 @@ class ItemController extends Controller
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
-        private CollectionItemDataNormalizer $itemDataNormalizer,
-        private CollectionItemValuesWriter $collectionItemValuesWriter,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CollectionItemDataNormalizerService $itemDataNormalizer,
+        private CreateCollectionItemAction $createCollectionItemAction,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
+        private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
-        private CollectionListColumnsNormalizer $listColumnsNormalizer,
-        private CollectionListDisplayEnricher $listDisplayEnricher,
-        private SettingsRepository $settingsRepository,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionListColumnsNormalizerService $listColumnsNormalizer,
+        private CollectionListDisplayEnricherService $listDisplayEnricher,
+        private SettingsRepositoryService $settingsRepository,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
-        private LivePreviewUrlBuilder $livePreviewUrlBuilder,
-        private CollectionItemPublisher $itemPublisher,
-        private CollectionItemRevisionRecorder $revisionRecorder,
+        private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
+        private CollectionItemPublisherService $itemPublisher,
+        private CollectionItemRevisionRecorderService $revisionRecorder,
         private CollectionItemApprovalService $itemApprovals,
-        private EffectivePermissionResolver $permissionResolver,
-        private FieldConditionEvaluator $fieldConditionEvaluator,
+        private EffectivePermissionResolverService $permissionResolver,
+        private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -204,7 +212,7 @@ class ItemController extends Controller
             );
             $sortState = $this->itemQueryService->applySort($query, $collection, $sort, $direction);
 
-            $paginator = $query->paginate(15)->withQueryString();
+            $paginator = $query->paginate($this->validatedListPerPage($request))->withQueryString();
             $rows = $this->mapItemRows(
                 $request,
                 $collection,
@@ -384,7 +392,7 @@ class ItemController extends Controller
 
         $format = strtolower((string) $request->query('format', 'csv'));
         if (! in_array($format, ['csv', 'json'], true)) {
-            abort(422, 'format must be csv or json.');
+            abort(422, __('format must be csv or json.'));
         }
 
         $filters = $request->query('filter', []);
@@ -433,7 +441,7 @@ class ItemController extends Controller
         abort_if($user === null, 403);
 
         $this->settingsRepository->set(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             'collection_list',
             'collection_'.$collection->id,
             $request->input('columns'),
@@ -441,7 +449,7 @@ class ItemController extends Controller
         );
 
         $this->settingsRepository->set(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             'collection_list',
             'collection_'.$collection->id.'_aligns',
             $request->input('aligns', []),
@@ -450,7 +458,7 @@ class ItemController extends Controller
 
         if ($request->exists('layout')) {
             $this->settingsRepository->set(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_layout',
                 $request->input('layout') ?? 'table',
@@ -460,7 +468,7 @@ class ItemController extends Controller
 
         if ($request->exists('kanban_field')) {
             $this->settingsRepository->set(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_kanban_field',
                 $request->input('kanban_field'),
@@ -470,7 +478,7 @@ class ItemController extends Controller
 
         if ($request->exists('calendar_field')) {
             $this->settingsRepository->set(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_calendar_field',
                 $request->input('calendar_field'),
@@ -535,7 +543,7 @@ class ItemController extends Controller
         }
         $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
 
-        $item = $this->persistNewItem($collection, $data, creating: true);
+        $item = $this->persistNewItem($collection, $data);
 
         return $this->redirectAfterItemSave(
             $collection,
@@ -679,6 +687,7 @@ class ItemController extends Controller
         $validated = $request->validate([
             'version' => ['nullable', 'string', 'in:draft,published'],
             'locale' => ['nullable', 'string', 'max:16'],
+            'as_of' => ['nullable', 'string', 'max:64'],
         ]);
 
         $version = (string) ($validated['version'] ?? 'published');
@@ -686,13 +695,29 @@ class ItemController extends Controller
             ? $validated['locale']
             : null;
 
+        $asOf = null;
+        $asOfRaw = isset($validated['as_of']) && is_string($validated['as_of'])
+            ? trim($validated['as_of'])
+            : '';
+        if ($asOfRaw !== '') {
+            try {
+                $asOf = app(LivePreviewAsOfResolverService::class)->parseBounded($asOfRaw);
+            } catch (InvalidArgumentException $exception) {
+                throw ValidationException::withMessages([
+                    'as_of' => [$exception->getMessage()],
+                ]);
+            }
+        }
+
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
         try {
-            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user);
-        } catch (RuntimeException $exception) {
-            return response()->json(['message' => $exception->getMessage()], 422);
+            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user, $asOf);
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'as_of' => [$exception->getMessage()],
+            ]);
         }
 
         return response()->json($built);
@@ -778,7 +803,7 @@ class ItemController extends Controller
                 403,
             );
 
-            $copy = $this->persistNewItem($collection, $data, creating: true);
+            $copy = $this->persistNewItem($collection, $data);
 
             return $this->redirectAfterItemSave(
                 $collection,
@@ -788,32 +813,29 @@ class ItemController extends Controller
             );
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
+        $scheduleWarningDate = null;
+        if (
+            $version === 'draft'
+            && $collection->approvals_required
+            && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
+            && $item->publish_at !== null
+        ) {
+            $scheduleWarningDate = $item->publish_at->timezone(config('app.timezone'))
+                ->toDayDateTimeString();
+        }
+
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $version === 'draft' ? 'draft' : 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
         if ($version === 'draft') {
-            $item->draft_data = $normalized;
-            $scheduleWarningDate = null;
-            // Editing an approved/rejected draft invalidates approval.
-            if (
-                $collection->approvals_required
-                && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
-            ) {
-                if ($item->publish_at !== null) {
-                    $scheduleWarningDate = $item->publish_at->timezone(config('app.timezone'))
-                        ->toDayDateTimeString();
-                }
-                $item->approval_status = 'draft';
-                $item->rejection_note = null;
-                $item->submitted_by = null;
-                $item->reviewed_by = null;
-                $item->reviewed_at = null;
-            }
-            $item->save();
-            $this->revisionRecorder->record($item, [
-                'source' => 'draft',
-                'version' => 'draft',
-            ], $normalized);
-
             $success = $scheduleWarningDate !== null
                 ? __('Draft saved. Approval was reset; the scheduled publish on :date will not run until the item is approved again.', [
                     'date' => $scheduleWarningDate,
@@ -828,8 +850,6 @@ class ItemController extends Controller
                 draft: true,
             );
         }
-
-        $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
 
         return $this->redirectAfterItemSave(
             $collection,
@@ -884,15 +904,17 @@ class ItemController extends Controller
             $data[$key] = $value;
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
-        $this->collectionItemValuesWriter->sync(
-            $item->fresh(),
-            $collection,
-            $normalized,
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
             revisionMeta: ['source' => 'board_move'],
-        );
-
-        $item->refresh();
+        ));
 
         if (is_array($item->draft_data)) {
             $draft = $item->draft_data;
@@ -978,15 +1000,17 @@ class ItemController extends Controller
             $data[$key] = $value;
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
-        $this->collectionItemValuesWriter->sync(
-            $item->fresh(),
-            $collection,
-            $normalized,
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
             revisionMeta: ['source' => 'calendar_move'],
-        );
-
-        $item->refresh();
+        ));
 
         if (is_array($item->draft_data)) {
             $draft = $item->draft_data;
@@ -1033,57 +1057,67 @@ class ItemController extends Controller
         ?int $afterItemId,
         ?int $beforeItemId,
     ): void {
-        $after = null;
-        if ($afterItemId !== null && $afterItemId !== $item->id) {
-            $after = CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKey($afterItemId)
-                ->first();
-        }
-
-        $before = null;
-        if ($beforeItemId !== null && $beforeItemId !== $item->id) {
-            $before = CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKey($beforeItemId)
-                ->first();
-        }
-
-        if ($after !== null) {
-            if ($after->board_sort === null) {
-                $after->board_sort = 1000;
-                $after->save();
+        CollectionItem::query()->getConnection()->transaction(function () use ($item, $collection, $afterItemId, $beforeItemId): void {
+            $after = null;
+            if ($afterItemId !== null && $afterItemId !== $item->id) {
+                $after = CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKey($afterItemId)
+                    ->lockForUpdate()
+                    ->first();
             }
-            $afterSort = (int) $after->board_sort;
+
+            $before = null;
+            if ($beforeItemId !== null && $beforeItemId !== $item->id) {
+                $before = CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKey($beforeItemId)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
             CollectionItem::query()
                 ->where('collection_id', $collection->id)
-                ->whereKeyNot($item->id)
-                ->whereNotNull('board_sort')
-                ->where('board_sort', '>', $afterSort)
-                ->increment('board_sort', 1000);
-            $item->board_sort = $afterSort + 1000;
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->first();
 
-            return;
-        }
+            if ($after !== null) {
+                if ($after->board_sort === null) {
+                    $after->board_sort = 1000;
+                    $after->save();
+                }
+                $afterSort = (int) $after->board_sort;
+                CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKeyNot($item->id)
+                    ->whereNotNull('board_sort')
+                    ->where('board_sort', '>', $afterSort)
+                    ->increment('board_sort', 1000);
+                $item->board_sort = $afterSort + 1000;
 
-        if ($before !== null) {
-            if ($before->board_sort === null) {
-                $before->board_sort = 2000;
-                $before->save();
+                return;
             }
-            $beforeSort = (int) $before->board_sort;
-            CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKeyNot($item->id)
-                ->whereNotNull('board_sort')
-                ->where('board_sort', '>=', $beforeSort)
-                ->increment('board_sort', 1000);
-            $item->board_sort = $beforeSort;
 
-            return;
-        }
+            if ($before !== null) {
+                if ($before->board_sort === null) {
+                    $before->board_sort = 2000;
+                    $before->save();
+                }
+                $beforeSort = (int) $before->board_sort;
+                CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKeyNot($item->id)
+                    ->whereNotNull('board_sort')
+                    ->where('board_sort', '>=', $beforeSort)
+                    ->increment('board_sort', 1000);
+                $item->board_sort = $beforeSort;
 
-        $item->board_sort = 1000;
+                return;
+            }
+
+            $item->board_sort = 1000;
+        });
     }
 
     /**
@@ -1443,17 +1477,22 @@ class ItemController extends Controller
 
         $items = $query->get();
 
-        foreach ($items as $item) {
-            if ($action !== 'restore') {
+        // Authorize every selected item before mutating any (no partial apply on AuthZ fail).
+        if ($action !== 'restore') {
+            foreach ($items as $item) {
                 $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
             }
-
-            match ($action) {
-                'delete' => $item->delete(),
-                'restore' => $item->restore(),
-                'force_delete' => $item->forceDelete(),
-            };
         }
+
+        CollectionItem::query()->getConnection()->transaction(function () use ($items, $action): void {
+            foreach ($items as $item) {
+                match ($action) {
+                    'delete' => $item->delete(),
+                    'restore' => $item->restore(),
+                    'force_delete' => $item->forceDelete(),
+                };
+            }
+        });
 
         return redirect()
             ->back()
@@ -1505,13 +1544,14 @@ class ItemController extends Controller
     /**
      * @param  array<string, mixed>  $data
      */
-    private function persistNewItem(Collection $collection, array $data, bool $creating): CollectionItem
+    private function persistNewItem(Collection $collection, array $data): CollectionItem
     {
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, $creating);
-        $item = $collection->items()->create([]);
-        $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
-
-        return $item;
+        return $this->createCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            creating: true,
+            shouldValidate: false,
+        ));
     }
 
     private function itemSaveAction(Request $request): string
@@ -1620,7 +1660,7 @@ class ItemController extends Controller
                 'userUpdated:id,first_name,last_name,email',
                 'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
             ]);
-        $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
+        $this->itemQueryService->applyFilters($query, $collection, $stringFilters, null, $request);
         $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
         return $query;
@@ -1897,7 +1937,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id,
                 $user->id,
@@ -1920,7 +1960,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_layout',
                 $user->id,
@@ -1935,7 +1975,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_kanban_field',
                 $user->id,
@@ -1971,7 +2011,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_calendar_field',
                 $user->id,
@@ -2007,7 +2047,7 @@ class ItemController extends Controller
         }
 
         $stored = $this->settingsRepository->get(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             'collection_list',
             'collection_'.$collection->id.'_aligns',
             $user->id,

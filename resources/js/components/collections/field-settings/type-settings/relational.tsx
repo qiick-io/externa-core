@@ -1,6 +1,15 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
 import {
     parseFilesFieldSettings,
     parseImageFieldSettings,
@@ -48,7 +57,7 @@ export function RelationalSettings({
         const imageSettings = parseImageFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="image_allow_multiple"
                     label="Allow multiple images"
@@ -56,13 +65,15 @@ export function RelationalSettings({
                     checked={allowMultipleImages}
                     onCheckedChange={onAllowMultipleImagesChange}
                 />
-                <div className="grid gap-2">
-                    <Label>Allowed MIME types (comma-separated)</Label>
+                <Field>
+                    <FieldLabel>
+                        Allowed MIME types (comma-separated)
+                    </FieldLabel>
                     <Input
                         name="settings[allowed_mime_types]"
                         defaultValue={imageSettings.allowedMimeTypes.join(', ')}
                     />
-                </div>
+                </Field>
                 <SettingCheckbox
                     id="image_crop_to_fit"
                     name="settings[crop_to_fit]"
@@ -78,7 +89,7 @@ export function RelationalSettings({
         const filesSettings = parseFilesFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="files_allow_multiple"
                     label="Allow multiple files"
@@ -86,13 +97,15 @@ export function RelationalSettings({
                     checked={allowMultipleFiles}
                     onCheckedChange={onAllowMultipleFilesChange}
                 />
-                <div className="grid gap-2">
-                    <Label>Allowed MIME types (comma-separated)</Label>
+                <Field>
+                    <FieldLabel>
+                        Allowed MIME types (comma-separated)
+                    </FieldLabel>
                     <Input
                         name="settings[allowed_mime_types]"
                         defaultValue={filesSettings.allowedMimeTypes.join(', ')}
                     />
-                </div>
+                </Field>
             </div>
         );
     }
@@ -102,24 +115,27 @@ export function RelationalSettings({
 
         return (
             <div className="space-y-4">
-                <div>
-                    <Label>Allowed collections</Label>
-                    <div className="mt-2 space-y-2">
+                <FieldSet className="gap-3">
+                    <FieldLegend variant="label" className="mb-0">
+                        Allowed collections
+                    </FieldLegend>
+                    <div className="space-y-2">
                         {relatedCollections.map((relatedCollection) => {
                             const checked = allowedCollectionIds.includes(
                                 relatedCollection.id,
                             );
+                            const checkboxId = `m2a_allowed_collection_${relatedCollection.id}`;
 
                             return (
-                                <label
+                                <Field
                                     key={relatedCollection.id}
-                                    className="flex items-center gap-2 text-sm"
+                                    orientation="horizontal"
                                 >
-                                    <input
-                                        type="checkbox"
+                                    <Checkbox
+                                        id={checkboxId}
                                         checked={checked}
-                                        onChange={(event) => {
-                                            if (event.target.checked) {
+                                        onCheckedChange={(isChecked) => {
+                                            if (isChecked === true) {
                                                 onAllowedCollectionIdsChange([
                                                     ...allowedCollectionIds,
                                                     relatedCollection.id,
@@ -136,14 +152,18 @@ export function RelationalSettings({
                                                 ),
                                             );
                                         }}
-                                        className="size-4 rounded border"
                                     />
-                                    {relatedCollection.name}
-                                </label>
+                                    <FieldLabel
+                                        htmlFor={checkboxId}
+                                        className="font-normal"
+                                    >
+                                        {relatedCollection.name}
+                                    </FieldLabel>
+                                </Field>
                             );
                         })}
                     </div>
-                </div>
+                </FieldSet>
                 <SettingCheckbox
                     id="m2a_allow_duplicates"
                     name="settings[allow_duplicates]"
@@ -165,17 +185,17 @@ export function RelationalSettings({
         return (
             <div className="space-y-4">
                 <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="grid gap-2.5">
-                        <Label htmlFor="related_collection_id">
+                    <Field>
+                        <FieldLabel htmlFor="related_collection_id">
                             Related collection
-                        </Label>
-                        <select
+                        </FieldLabel>
+                        <NativeSelect
                             id="related_collection_id"
                             value={relatedCollectionId}
                             onChange={(event) =>
                                 onRelatedCollectionIdChange(event.target.value)
                             }
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
                             <option value="">Select a collection…</option>
                             {relatedCollections.map((relatedCollection) => (
@@ -186,10 +206,12 @@ export function RelationalSettings({
                                     {relatedCollection.name}
                                 </option>
                             ))}
-                        </select>
-                    </div>
-                    <div className="grid gap-2.5">
-                        <Label htmlFor="display_field">Display field</Label>
+                        </NativeSelect>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="display_field">
+                            Display field
+                        </FieldLabel>
                         <Input
                             id="display_field"
                             value={displayField}
@@ -198,48 +220,54 @@ export function RelationalSettings({
                             }
                             placeholder="title"
                         />
-                    </div>
+                    </Field>
                 </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="display_template">Display template</Label>
+                <Field>
+                    <FieldLabel htmlFor="display_template">
+                        Display template
+                    </FieldLabel>
                     <Input
                         id="display_template"
                         name="settings[display_template]"
                         defaultValue={relationSettings.displayTemplate}
                         placeholder="{{title}} — #{{id}}"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <FieldDescription>
                         Optional. Use {'{{field_name}}'} placeholders; falls
                         back to display field when empty.
-                    </p>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="relation_filter">Filter (JSON)</Label>
-                    <textarea
+                    </FieldDescription>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="relation_filter">
+                        Filter (JSON)
+                    </FieldLabel>
+                    <Textarea
                         id="relation_filter"
                         name="settings[filter]"
-                        className="min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
+                        className="min-h-18 font-mono"
                         defaultValue={relationSettings.filterJson}
                         placeholder='{"status": "published"}'
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <FieldDescription>
                         Optional. Exact-match filter on related collection field
                         values (field name → expected value).
-                    </p>
-                </div>
+                    </FieldDescription>
+                </Field>
                 {fieldType === 'one_to_many' ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor="relation_layout">Layout</Label>
-                        <select
+                    <Field>
+                        <FieldLabel htmlFor="relation_layout">
+                            Layout
+                        </FieldLabel>
+                        <NativeSelect
                             id="relation_layout"
                             name="settings[layout]"
                             defaultValue={relationSettings.layout}
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
                             <option value="list">List</option>
                             <option value="table">Table</option>
-                        </select>
-                    </div>
+                        </NativeSelect>
+                    </Field>
                 ) : null}
                 <SettingCheckbox
                     id="relation_allow_duplicates"
@@ -249,23 +277,23 @@ export function RelationalSettings({
                     defaultChecked={relationSettings.allowDuplicates}
                 />
                 {fieldType === 'many_to_many' ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor="junction_fields">
+                    <Field>
+                        <FieldLabel htmlFor="junction_fields">
                             Junction fields (JSON)
-                        </Label>
-                        <textarea
+                        </FieldLabel>
+                        <Textarea
                             id="junction_fields"
                             name="settings[junction_fields]"
-                            className="min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
+                            className="min-h-22 font-mono"
                             defaultValue={relationSettings.junctionFieldsJson}
                             placeholder='[{"name":"sort","type":"number"}]'
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <FieldDescription>
                             Optional mini-schema for per-link metadata. Item
                             forms show these fields next to each related item.
                             Types: string, number, boolean.
-                        </p>
-                    </div>
+                        </FieldDescription>
+                    </Field>
                 ) : null}
             </div>
         );

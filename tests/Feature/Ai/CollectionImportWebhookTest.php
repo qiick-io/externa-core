@@ -3,11 +3,30 @@
 use App\Http\Controllers\Ai\CollectionImportWebhookController;
 use App\Models\Collection;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->withoutVite();
 });
+
+/**
+ * @return array{0: string, 1: array<string, string>}
+ */
+function signedCollectionImportCall(string $rawBody, string $secret, ?string $timestamp = null): array
+{
+    $timestamp ??= (string) now()->timestamp;
+
+    return [
+        $timestamp,
+        [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_AI_WEBHOOK_TIMESTAMP' => $timestamp,
+            'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, $secret, $timestamp),
+        ],
+    ];
+}
 
 test('collection import webhook accepts a valid HMAC signature', function () {
     config()->set('ai.webhook_token', 'signed-secret');
@@ -19,7 +38,7 @@ test('collection import webhook accepts a valid HMAC signature', function () {
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $validSignature = CollectionImportWebhookController::sign($rawBody, 'signed-secret');
+    [, $server] = signedCollectionImportCall($rawBody, 'signed-secret');
 
     $this->call(
         'POST',
@@ -27,11 +46,7 @@ test('collection import webhook accepts a valid HMAC signature', function () {
         [],
         [],
         [],
-        [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $validSignature,
-        ],
+        $server,
         $rawBody,
     )->assertSuccessful()
         ->assertJson([
@@ -53,7 +68,10 @@ test('collection import webhook returns 401 for an invalid signature', function 
         ],
     ];
 
-    $this->withHeaders(['X-AI-Webhook-Signature' => 'sha256=deadbeef'])
+    $this->withHeaders([
+        'X-AI-Webhook-Timestamp' => (string) now()->timestamp,
+        'X-AI-Webhook-Signature' => 'sha256=deadbeef',
+    ])
         ->postJson(route('ai.webhooks.collection-import'), $payload)
         ->assertUnauthorized();
 
@@ -72,7 +90,7 @@ test('collection import webhook returns 401 for a tampered body', function () {
         ],
     ];
     $rawBodyA = json_encode($payloadA, JSON_THROW_ON_ERROR);
-    $signatureForA = CollectionImportWebhookController::sign($rawBodyA, 'signed-secret');
+    [, $server] = signedCollectionImportCall($rawBodyA, 'signed-secret');
 
     $payloadB = [
         'collection_id' => $collectionB->id,
@@ -88,11 +106,7 @@ test('collection import webhook returns 401 for a tampered body', function () {
         [],
         [],
         [],
-        [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signatureForA,
-        ],
+        $server,
         $rawBodyB,
     )->assertUnauthorized();
 
@@ -114,6 +128,7 @@ test('collection import webhook returns 401 when the token is unset (fail closed
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
+    [, $server] = signedCollectionImportCall($rawBody, 'anything');
 
     $this->call(
         'POST',
@@ -121,11 +136,7 @@ test('collection import webhook returns 401 when the token is unset (fail closed
         [],
         [],
         [],
-        [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, 'anything'),
-        ],
+        $server,
         $rawBody,
     )->assertUnauthorized();
 
@@ -147,7 +158,7 @@ test('collection import webhook accepts the previous token during grace', functi
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $signature = CollectionImportWebhookController::sign($rawBody, 'old-secret');
+    [, $server] = signedCollectionImportCall($rawBody, 'old-secret');
 
     $this->call(
         'POST',
@@ -155,11 +166,7 @@ test('collection import webhook accepts the previous token during grace', functi
         [],
         [],
         [],
-        [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signature,
-        ],
+        $server,
         $rawBody,
     )->assertSuccessful();
 
@@ -183,7 +190,97 @@ test('collection import webhook rejects the previous token after grace expiry', 
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $signature = CollectionImportWebhookController::sign($rawBody, 'old-secret');
+    [, $server] = signedCollectionImportCall($rawBody, 'old-secret');
+
+    $this->call(
+        'POST',
+        route('ai.webhooks.collection-import'),
+        [],
+        [],
+        [],
+        $server,
+        $rawBody,
+    )->assertUnauthorized();
+
+    expect($collection->items()->count())->toBe(0);
+});
+
+test('collection import webhook rejects a stale timestamp', function () {
+    $this->travelTo(now());
+
+    config()->set('ai.webhook_token', 'signed-secret');
+    $collection = Collection::factory()->create();
+    $payload = [
+        'collection_id' => $collection->id,
+        'records' => [
+            ['sku' => 'A1', 'title' => 'Stale'],
+        ],
+    ];
+    $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
+    $staleTs = (string) (now()->timestamp - CollectionImportWebhookController::TIMESTAMP_TOLERANCE_SECONDS - 1);
+    [, $server] = signedCollectionImportCall($rawBody, 'signed-secret', $staleTs);
+
+    $this->call(
+        'POST',
+        route('ai.webhooks.collection-import'),
+        [],
+        [],
+        [],
+        $server,
+        $rawBody,
+    )->assertUnauthorized();
+
+    expect($collection->items()->count())->toBe(0);
+});
+
+test('collection import webhook rejects a replayed signature', function () {
+    config()->set('ai.webhook_token', 'signed-secret');
+    Cache::flush();
+
+    $collection = Collection::factory()->create();
+    $payload = [
+        'collection_id' => $collection->id,
+        'records' => [
+            ['sku' => 'A1', 'title' => 'Once'],
+        ],
+    ];
+    $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
+    [, $server] = signedCollectionImportCall($rawBody, 'signed-secret');
+
+    $this->call(
+        'POST',
+        route('ai.webhooks.collection-import'),
+        [],
+        [],
+        [],
+        $server,
+        $rawBody,
+    )->assertSuccessful();
+
+    $this->call(
+        'POST',
+        route('ai.webhooks.collection-import'),
+        [],
+        [],
+        [],
+        $server,
+        $rawBody,
+    )->assertUnauthorized();
+
+    expect($collection->items()->count())->toBe(1);
+});
+
+test('collection import webhook returns 401 when timestamp header is missing', function () {
+    config()->set('ai.webhook_token', 'signed-secret');
+    $collection = Collection::factory()->create();
+    $payload = [
+        'collection_id' => $collection->id,
+        'records' => [
+            ['sku' => 'A1', 'title' => 'No ts'],
+        ],
+    ];
+    $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
+    $timestamp = (string) now()->timestamp;
 
     $this->call(
         'POST',
@@ -194,7 +291,7 @@ test('collection import webhook rejects the previous token after grace expiry', 
         [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signature,
+            'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, 'signed-secret', $timestamp),
         ],
         $rawBody,
     )->assertUnauthorized();

@@ -5,10 +5,11 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppearanceSidebarSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSidebarSettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Item, ItemGroup, ItemMedia } from '@/components/ui/item';
+import { Switch } from '@/components/ui/switch';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -56,30 +57,32 @@ function ModuleRowContent({
 }) {
     return (
         <>
-            {dragHandle ?? (
-                <span
-                    className="flex size-4 items-center justify-center text-muted-foreground/40"
-                    aria-hidden
-                >
-                    <Lock className="size-3.5" />
-                </span>
-            )}
-            <Checkbox
+            <ItemMedia>
+                {dragHandle ?? (
+                    <span
+                        className="flex size-control-sm items-center justify-center text-muted-foreground/40"
+                        aria-hidden
+                    >
+                        <Lock className="size-3.5" />
+                    </span>
+                )}
+            </ItemMedia>
+            <Switch
                 id={`module-${module.id}`}
                 checked={module.enabled}
                 disabled={module.locked}
-                onCheckedChange={(checked) => onToggle(checked === true)}
+                onCheckedChange={(checked) => onToggle(checked)}
             />
-            <Label
+            <FieldLabel
                 htmlFor={`module-${module.id}`}
                 className={cn(
-                    'flex-1',
+                    'flex-1 font-normal',
                     module.locked && 'text-muted-foreground',
                 )}
             >
                 {label}
                 {module.locked ? ' *' : ''}
-            </Label>
+            </FieldLabel>
         </>
     );
 }
@@ -94,13 +97,18 @@ function PinnedModuleRow({
     onToggle: (enabled: boolean) => void;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
+        <Item
+            role="listitem"
+            variant="muted"
+            size="sm"
+            className="border-border"
+        >
             <ModuleRowContent
                 module={module}
                 label={label}
                 onToggle={onToggle}
             />
-        </div>
+        </Item>
     );
 }
 
@@ -113,26 +121,27 @@ function ModuleRow({
     label: string;
     onToggle: (enabled: boolean) => void;
 }) {
+    const { t } = useTranslation();
+
     return (
-        <div
-            data-id={module.id}
-            className="flex items-center gap-3 rounded-md border px-3 py-2"
-        >
+        <Item data-id={module.id} role="listitem" variant="outline" size="sm">
             <ModuleRowContent
                 module={module}
                 label={label}
                 onToggle={onToggle}
                 dragHandle={
-                    <button
+                    <Button
                         type="button"
-                        className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
-                        aria-label="Reorder"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="drag-handle cursor-grab touch-none text-muted-foreground"
+                        aria-label={t('a11y.reorder')}
                     >
-                        <GripVertical className="size-4" />
-                    </button>
+                        <GripVertical />
+                    </Button>
                 }
             />
-        </div>
+        </Item>
     );
 }
 
@@ -270,8 +279,9 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                 <Form
                     {...AppearanceSidebarSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
+                    className="space-y-12"
                     onSuccess={() => setIsDirty(false)}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -291,23 +301,16 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                         'settings.project.sidebarDescription',
                                     )}
                                 />
-                                <div className="space-y-2">
-                                    {pinnedModules.map((module) => (
-                                        <PinnedModuleRow
-                                            key={module.id}
-                                            module={module}
-                                            label={moduleLabel(module.id)}
-                                            onToggle={(enabled) =>
-                                                toggleModule(module.id, enabled)
-                                            }
-                                        />
-                                    ))}
-                                    <div
-                                        ref={sortableModulesRef}
-                                        className="space-y-2"
-                                    >
-                                        {sortableModules.map((module) => (
-                                            <ModuleRow
+                                <Field
+                                    data-invalid={
+                                        errors.sidebar_modules
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <ItemGroup className="gap-2">
+                                        {pinnedModules.map((module) => (
+                                            <PinnedModuleRow
                                                 key={module.id}
                                                 module={module}
                                                 label={moduleLabel(module.id)}
@@ -319,9 +322,32 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                                 }
                                             />
                                         ))}
-                                    </div>
-                                </div>
-                                <InputError message={errors.sidebar_modules} />
+                                        <div
+                                            ref={sortableModulesRef}
+                                            role="presentation"
+                                            className="flex flex-col gap-2"
+                                        >
+                                            {sortableModules.map((module) => (
+                                                <ModuleRow
+                                                    key={module.id}
+                                                    module={module}
+                                                    label={moduleLabel(
+                                                        module.id,
+                                                    )}
+                                                    onToggle={(enabled) =>
+                                                        toggleModule(
+                                                            module.id,
+                                                            enabled,
+                                                        )
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    </ItemGroup>
+                                    <FieldError id="sidebar-modules-error">
+                                        {errors.sidebar_modules}
+                                    </FieldError>
+                                </Field>
                             </div>
 
                             <SettingsFormActions

@@ -11,11 +11,7 @@ import type {
     FieldTreeOptionRow,
     SliderFieldSettings,
 } from './catalog';
-import {
-    isFieldRequired,
-    parseTranslatedText,
-    serializeTranslatedText,
-} from './display';
+import { parseTranslatedText, serializeTranslatedText } from './display';
 import type { TranslatedText } from './display';
 
 function settingsFlag(value: unknown): boolean {
@@ -191,28 +187,6 @@ export function flattenFieldTreeOptions(
     }
 
     return flattened;
-}
-
-/**
- * Parse string-input settings from a field settings blob.
- *
- * @param settings - Raw string field settings
- * @returns Input subtype, default value, and required flag for forms
- */
-export function parseStringInputSettings(
-    settings?: Record<string, unknown> | null,
-): {
-    inputType: string;
-    defaultValue: string;
-    required: boolean;
-} {
-    const stringSettings = parseStringFieldSettings(settings);
-
-    return {
-        inputType: stringSettings.inputType,
-        defaultValue: stringSettings.defaultValue,
-        required: isFieldRequired(settings),
-    };
 }
 
 /** Parsed settings for string/text input fields. */

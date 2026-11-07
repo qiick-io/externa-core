@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\Api\ApiKeyOwnerService;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -66,6 +68,24 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('is_active') && $user->is_active === false) {
+                app(ApiKeyOwnerService::class)->revokeForOwner($user, 'deactivated');
+            }
+        });
+
+        static::deleted(function (User $user): void {
+            app(ApiKeyOwnerService::class)->revokeForOwner($user, 'deleted');
+        });
+
+        // Before row removal: owner_id is nullOnDelete, so revoke must run first.
+        static::forceDeleting(function (User $user): void {
+            app(ApiKeyOwnerService::class)->revokeForOwner($user, 'deleted');
+        });
+    }
+
     /**
      * @return BelongsToMany<UserGroup, $this>
      */
@@ -74,6 +94,14 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsToMany(UserGroup::class, 'user_group_user')
             ->using(UserGroupUser::class)
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<ApiKey, $this>
+     */
+    public function ownedApiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class, 'owner_id');
     }
 
     /**

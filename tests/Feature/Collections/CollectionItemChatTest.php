@@ -14,7 +14,7 @@ use App\Models\CollectionItemChatReaction;
 use App\Models\File;
 use App\Models\User;
 use App\Notifications\ItemChatNotification;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
@@ -267,7 +267,7 @@ test('add-to-field writes the transferred file id onto an image field', function
         ->assertOk()
         ->assertJsonPath('field', 'hero');
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     $fileId = CollectionItemChatAttachment::query()->where('id', $upload['id'])->value('transferred_file_id');
 
     expect($fileId)->not->toBeNull()
@@ -306,7 +306,7 @@ test('add-to-field appends onto a files field', function () {
         $collection, $item, $second['id'],
     ]), ['field' => 'gallery'])->assertOk();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     $ids = CollectionItemChatAttachment::query()
         ->whereIn('id', [$first['id'], $second['id']])
         ->orderBy('created_at')

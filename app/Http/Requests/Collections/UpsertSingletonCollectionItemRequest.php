@@ -5,7 +5,7 @@ namespace App\Http\Requests\Collections;
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
+use App\Services\Collections\CollectionItemDataRuleBuilderService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -38,7 +38,7 @@ class UpsertSingletonCollectionItemRequest extends FormRequest
 
         $creating = $collection->items()->doesntExist();
 
-        return app(CollectionItemDataRuleBuilder::class)->rules(
+        return app(CollectionItemDataRuleBuilderService::class)->rules(
             $collection,
             $creating,
             null,
@@ -58,7 +58,7 @@ class UpsertSingletonCollectionItemRequest extends FormRequest
             if (! is_array($data)) {
                 return;
             }
-            app(CollectionItemDataRuleBuilder::class)->assertKnownKeysOnly($collection, $data);
+            app(CollectionItemDataRuleBuilderService::class)->assertKnownKeysOnly($collection, $data);
         });
     }
 }

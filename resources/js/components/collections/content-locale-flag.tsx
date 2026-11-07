@@ -8,7 +8,8 @@ const flagMap = Flags as Record<string, FlagComponent>;
 
 /**
  * SVG flag for a content locale (ISO region from catalog).
- * Language-only `en` maps to GB per catalog; no gradient backgrounds.
+ * Decorative by default; pass `title` for a text alternative when the flag
+ * carries meaning on its own (or when sibling text is insufficient).
  */
 export function ContentLocaleFlag({
     region,
@@ -21,18 +22,47 @@ export function ContentLocaleFlag({
 }) {
     const code = region.toUpperCase();
     const Flag = flagMap[code];
+    const accessibleName = title?.trim() || undefined;
 
     if (!Flag) {
+        if (accessibleName) {
+            return (
+                <span
+                    className={cn(
+                        'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-xs font-medium text-muted-foreground',
+                        className,
+                    )}
+                    title={accessibleName}
+                    role="img"
+                    aria-label={accessibleName}
+                >
+                    {code.slice(0, 2)}
+                </span>
+            );
+        }
+
         return (
             <span
                 className={cn(
-                    'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-[9px] font-medium text-muted-foreground',
+                    'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-xs font-medium text-muted-foreground',
                     className,
                 )}
-                title={title ?? code}
+                title={code}
                 aria-hidden
             >
                 {code.slice(0, 2)}
+            </span>
+        );
+    }
+
+    if (accessibleName) {
+        return (
+            <span title={accessibleName} className="inline-flex">
+                <Flag
+                    className={cn('size-4 shrink-0 rounded-[2px]', className)}
+                    role="img"
+                    aria-label={accessibleName}
+                />
             </span>
         );
     }

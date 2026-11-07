@@ -59,6 +59,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 Use this when shipping a production instance. App-level gates: [Security checklist](https://docs.externa.qiick.io/docs/security-checklist).
 
+- [ ] AI tool AuthZ / prompt-injection regression: `php artisan test --compact tests/Feature/Ai/Security` (threat map in [`tests/Feature/Ai/Security/README.md`](tests/Feature/Ai/Security/README.md), #204)
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, unique `APP_KEY` (never reuse across envs)
 - [ ] **HTTPS** for the public origin (`APP_URL`); required for passkeys / secure cookies
 - [ ] Strong `INITIAL_SUPER_ADMIN_*` before first seed; rotate after bootstrap if needed
@@ -68,6 +69,20 @@ Use this when shipping a production instance. App-level gates: [Security checkli
 - [ ] Queue + scheduler running (`activitylog:clean`, file/AI jobs) — see [Operations](https://docs.externa.qiick.io/docs/operations)
 - [ ] Review Public API CORS / API keys / IP allowlists — [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) / [Deployment](https://docs.externa.qiick.io/docs/deployment)
 - [ ] Optional: require MFA project-wide (`two_factor_required`) — [Passkeys](https://docs.externa.qiick.io/docs/passkeys)
+- [ ] Keep `AI_MCP_ENABLED` / `AI_MCP_WRITE_ENABLED` off unless needed; MCP keys need an **owner** and `mcp:read` (writes also need `mcp:write`)
+
+## MCP server (optional, #121)
+
+Streamable HTTP endpoint `/mcp` (`laravel/mcp` **1.x**, protocol **`2026-07-28`** only). Disabled by default.
+
+| Client | Expected outcome with laravel/mcp 1.x |
+| --- | --- |
+| MCP Inspector | Works with protocol `2026-07-28` + Bearer API key |
+| Cursor (`.cursor/mcp.json` remote HTTP) | Works when the client speaks `2026-07-28` |
+| Claude Desktop / Claude.ai connector | Requires client support for `2026-07-28` (`server/discover`); legacy `initialize` → `-32601` |
+| ChatGPT connector | Same protocol constraint; verify against current OpenAI MCP developer mode |
+
+Auth MVP: owned API key + `mcp:read` / `mcp:write`. **OAuth / Passport** is not wired yet (no `laravel/passport` in this app). Prefer read-only keys in production.
 
 ## What we do not provide by default
 

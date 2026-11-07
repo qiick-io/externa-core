@@ -3,8 +3,8 @@
 use App\Models\Collection;
 use App\Models\CollectionItemRevision;
 use App\Models\User;
-use App\Services\Collections\CollectionItemRevisionPruner;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\CollectionItemRevisionPrunerService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
@@ -53,7 +53,7 @@ test('count retention keeps only the newest N revisions', function () {
 
     expect(count($revisions))->toBe($n + 2);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(2);
 
@@ -87,7 +87,7 @@ test('days retention deletes old revisions and keeps recent ones', function () {
         now()->subDay()->toDateTimeString(),
     ]);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(2);
 
@@ -119,7 +119,7 @@ test('both limits apply age first then keep newest N', function () {
         now()->subDay()->toDateTimeString(),
     ]);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(3);
 
@@ -150,7 +150,7 @@ test('null retention limits delete nothing', function () {
         now()->subDay()->toDateTimeString(),
     ]);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(0);
     expect(CollectionItemRevision::query()->where('item_id', $item->id)->count())->toBe(3);
@@ -159,7 +159,7 @@ test('null retention limits delete nothing', function () {
 test('collection retention override wins over project defaults', function () {
     $user = User::factory()->create();
 
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'revision_retention_count' => 2,
         'revision_retention_days' => null,
     ]);
@@ -178,7 +178,7 @@ test('collection retention override wins over project defaults', function () {
         now()->subDay()->toDateTimeString(),
     ]);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(1);
     expect(CollectionItemRevision::query()->where('item_id', $item->id)->count())->toBe(4);
@@ -199,7 +199,7 @@ test('collection retention override wins over project defaults', function () {
 test('project default applies when collection retention is null', function () {
     $user = User::factory()->create();
 
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'revision_retention_count' => 2,
         'revision_retention_days' => null,
     ]);
@@ -217,7 +217,7 @@ test('project default applies when collection retention is null', function () {
         now()->subDay()->toDateTimeString(),
     ]);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(2);
     expect(
@@ -232,7 +232,7 @@ test('project default applies when collection retention is null', function () {
 test('both collection and project null means no prune', function () {
     $user = User::factory()->create();
 
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'revision_retention_count' => null,
         'revision_retention_days' => null,
     ]);
@@ -249,7 +249,7 @@ test('both collection and project null means no prune', function () {
         now()->subDay()->toDateTimeString(),
     ]);
 
-    $deleted = app(CollectionItemRevisionPruner::class)->pruneItem($item);
+    $deleted = app(CollectionItemRevisionPrunerService::class)->pruneItem($item);
 
     expect($deleted)->toBe(0);
     expect(CollectionItemRevision::query()->where('item_id', $item->id)->count())->toBe(3);

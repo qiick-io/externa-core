@@ -27,7 +27,7 @@ import {
     Tags,
     TextQuote,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -67,8 +67,16 @@ import {
     TextNumbersSettings,
 } from '@/components/collections/field-settings/type-settings/text-numbers';
 import { ValidationRuleBuilder } from '@/components/collections/field-settings/validation-rule-builder';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import {
     DrawerBody,
     DrawerDescription,
@@ -76,8 +84,19 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import {
     DEFAULT_BLOCKS_DEPTH,
@@ -121,7 +140,6 @@ import type { FieldConditions } from '@/lib/field-conditions';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import { FIELD_KEY_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
 import { STRING_LIMITS } from '@/lib/string-limits';
-import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
 import { resolveCollectionColor } from '@/types';
@@ -163,8 +181,6 @@ const FIELD_TYPE_ICONS: Record<
     group_tabs: LayoutTemplate,
 };
 
-const TYPES_PER_ROW = 4;
-
 function fieldTypeMatchesQuery(
     type: string,
     query: string,
@@ -201,82 +217,47 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
     }, [query, t]);
 
     return (
-        <div className="space-y-8">
-            <div className="relative">
-                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t('collections.searchFieldTypes')}
-                    maxLength={STRING_LIMITS.SEARCH}
-                    className="pl-9"
-                    autoFocus
-                />
-            </div>
-
-            {filteredGroups.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">
+        <Command shouldFilter={false} className="h-auto overflow-visible">
+            <CommandInput
+                value={query}
+                onValueChange={setQuery}
+                placeholder={t('collections.searchFieldTypes')}
+                aria-label={t('collections.searchFieldTypes')}
+                maxLength={STRING_LIMITS.SEARCH}
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                autoFocus
+            />
+            <CommandList className="max-h-none overflow-visible">
+                <CommandEmpty className="py-12 text-center text-sm text-muted-foreground">
                     {t('collections.noMatchingFieldTypes')}
-                </p>
-            ) : (
-                <div className="space-y-10">
-                    {filteredGroups.map((group) => {
-                        const rows: string[][] = [];
+                </CommandEmpty>
+                {filteredGroups.map((group) => (
+                    <CommandGroup
+                        key={group.key}
+                        heading={t(fieldTypeGroupLabelKey(group.key))}
+                        className="pt-6 [&_[cmdk-group-items]]:grid [&_[cmdk-group-items]]:grid-cols-2 [&_[cmdk-group-items]]:gap-3 sm:[&_[cmdk-group-items]]:grid-cols-4"
+                    >
+                        {group.types.map((type) => {
+                            const Icon = FIELD_TYPE_ICONS[type] ?? Type;
 
-                        for (
-                            let index = 0;
-                            index < group.types.length;
-                            index += TYPES_PER_ROW
-                        ) {
-                            rows.push(
-                                group.types.slice(index, index + TYPES_PER_ROW),
+                            return (
+                                <CommandItem
+                                    key={type}
+                                    value={type}
+                                    onSelect={() => onSelect(type)}
+                                    className="flex-col gap-3 rounded-lg border border-border px-3 py-6 text-center data-[selected=true]:border-primary/40"
+                                >
+                                    <Icon className="size-6" />
+                                    <span className="text-xs leading-tight font-medium">
+                                        {fieldTypeLabel(type, t)}
+                                    </span>
+                                </CommandItem>
                             );
-                        }
-
-                        return (
-                            <div key={group.key}>
-                                <p className="mb-5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                    {t(fieldTypeGroupLabelKey(group.key))}
-                                </p>
-                                <div className="flex flex-col gap-4">
-                                    {rows.map((rowTypes, rowIndex) => (
-                                        <div
-                                            key={rowIndex}
-                                            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-                                        >
-                                            {rowTypes.map((type) => {
-                                                const Icon =
-                                                    FIELD_TYPE_ICONS[type] ??
-                                                    Type;
-
-                                                return (
-                                                    <button
-                                                        key={type}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            onSelect(type)
-                                                        }
-                                                        className="flex flex-col items-center gap-2.5 rounded-lg border border-border px-3 py-5 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
-                                                    >
-                                                        <Icon className="size-6 text-muted-foreground" />
-                                                        <span className="text-xs leading-tight font-medium">
-                                                            {fieldTypeLabel(
-                                                                type,
-                                                                t,
-                                                            )}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
+                        })}
+                    </CommandGroup>
+                ))}
+            </CommandList>
+        </Command>
     );
 }
 
@@ -316,11 +297,13 @@ function OptionsEditor({
     options: FieldOptionRow[];
     onChange: (next: FieldOptionRow[]) => void;
 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-4">
             <div>
                 <Label>Choices</Label>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                     Add the values users can pick from. Label is shown in the
                     interface; value is stored in the database.
                 </p>
@@ -360,7 +343,7 @@ function OptionsEditor({
                             onClick={() =>
                                 onChange(options.filter((_, i) => i !== index))
                             }
-                            aria-label="Remove choice"
+                            aria-label={t('a11y.removeChoice')}
                         >
                             ×
                         </Button>
@@ -370,7 +353,6 @@ function OptionsEditor({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => onChange([...options, { value: '', label: '' }])}
             >
                 Add choice
@@ -388,6 +370,7 @@ function TreeOptionsEditor({
     onChange: (next: FieldTreeOptionRow[]) => void;
     depth?: number;
 }) {
+    const { t } = useTranslation();
     const updateNode = (
         index: number,
         updater: (node: FieldTreeOptionRow) => FieldTreeOptionRow,
@@ -404,7 +387,7 @@ function TreeOptionsEditor({
             {depth === 0 && (
                 <div>
                     <Label>Tree choices</Label>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Define nested options. Checking a parent selects all
                         descendants; mixed children show an indeterminate
                         parent.
@@ -443,7 +426,7 @@ function TreeOptionsEditor({
                             onClick={() =>
                                 onChange(options.filter((_, i) => i !== index))
                             }
-                            aria-label="Remove choice"
+                            aria-label={t('a11y.removeChoice')}
                         >
                             ×
                         </Button>
@@ -463,7 +446,6 @@ function TreeOptionsEditor({
                     <Button
                         type="button"
                         variant="outline"
-                        size="sm"
                         onClick={() =>
                             updateNode(index, (node) => ({
                                 ...node,
@@ -483,7 +465,6 @@ function TreeOptionsEditor({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     onClick={() =>
                         onChange([
                             ...options,
@@ -583,9 +564,9 @@ function NestedRelationSettings({
                 Nested relations are stored as JSON links inside the block (not
                 junction tables).
             </p>
-            <div className="grid gap-2">
-                <Label>Related collection</Label>
-                <select
+            <Field>
+                <FieldLabel>Related collection</FieldLabel>
+                <NativeSelect
                     value={relatedCollectionId}
                     onChange={(event) =>
                         onChange({
@@ -595,7 +576,7 @@ function NestedRelationSettings({
                                 : null,
                         })
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                    className="w-full"
                 >
                     <option value="">Select a collection…</option>
                     {relatedCollections.map((relatedCollection) => (
@@ -606,10 +587,10 @@ function NestedRelationSettings({
                             {relatedCollection.name}
                         </option>
                     ))}
-                </select>
-            </div>
-            <div className="grid gap-2">
-                <Label>Display field</Label>
+                </NativeSelect>
+            </Field>
+            <Field>
+                <FieldLabel>Display field</FieldLabel>
                 <Input
                     value={displayField}
                     onChange={(event) =>
@@ -620,11 +601,11 @@ function NestedRelationSettings({
                     }
                     placeholder="title"
                 />
-            </div>
+            </Field>
             {showJunctionFields ? (
-                <div className="grid gap-2">
-                    <Label>Junction meta fields (JSON)</Label>
-                    <textarea
+                <Field>
+                    <FieldLabel>Junction meta fields (JSON)</FieldLabel>
+                    <Textarea
                         value={junctionJson}
                         onChange={(event) => {
                             const raw = event.target.value;
@@ -644,11 +625,10 @@ function NestedRelationSettings({
                                 });
                             }
                         }}
-                        rows={3}
-                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-xs"
+                        className="min-h-18 font-mono text-xs md:text-xs"
                         placeholder='[{"name":"caption","type":"string"}]'
                     />
-                </div>
+                </Field>
             ) : null}
         </div>
     );
@@ -663,6 +643,7 @@ function NestedM2aSettings({
     relatedCollections: RelatedCollectionOption[];
     onChange: (next: Record<string, unknown>) => void;
 }) {
+    const idPrefix = useId();
     const allowedIds = parseAllowedCollectionIds(settings);
     const allowDuplicates =
         settings.allow_duplicates === true ||
@@ -671,60 +652,72 @@ function NestedM2aSettings({
 
     return (
         <div className="space-y-3 rounded-md bg-muted/30 p-3">
-            <div>
-                <Label>Allowed collections</Label>
-                <div className="mt-2 space-y-2">
+            <FieldSet className="gap-3">
+                <FieldLegend variant="label" className="mb-0">
+                    Allowed collections
+                </FieldLegend>
+                <div className="space-y-2">
                     {relatedCollections.map((relatedCollection) => {
                         const checked = allowedIds.includes(
                             relatedCollection.id,
                         );
+                        const checkboxId = `${idPrefix}_allowed_collection_${relatedCollection.id}`;
 
                         return (
-                            <label
+                            <Field
                                 key={relatedCollection.id}
-                                className="flex items-center gap-2 text-sm"
+                                orientation="horizontal"
                             >
-                                <input
-                                    type="checkbox"
+                                <Checkbox
+                                    id={checkboxId}
                                     checked={checked}
-                                    onChange={(event) => {
-                                        const nextIds = event.target.checked
-                                            ? [
-                                                  ...allowedIds,
-                                                  relatedCollection.id,
-                                              ]
-                                            : allowedIds.filter(
-                                                  (id) =>
-                                                      id !==
+                                    onCheckedChange={(isChecked) => {
+                                        const nextIds =
+                                            isChecked === true
+                                                ? [
+                                                      ...allowedIds,
                                                       relatedCollection.id,
-                                              );
+                                                  ]
+                                                : allowedIds.filter(
+                                                      (id) =>
+                                                          id !==
+                                                          relatedCollection.id,
+                                                  );
                                         onChange({
                                             ...settings,
                                             allowed_collection_ids: nextIds,
                                         });
                                     }}
-                                    className="size-4 rounded border"
                                 />
-                                {relatedCollection.name}
-                            </label>
+                                <FieldLabel
+                                    htmlFor={checkboxId}
+                                    className="font-normal"
+                                >
+                                    {relatedCollection.name}
+                                </FieldLabel>
+                            </Field>
                         );
                     })}
                 </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-                <input
-                    type="checkbox"
+            </FieldSet>
+            <Field orientation="horizontal">
+                <Checkbox
+                    id={`${idPrefix}_allow_duplicates`}
                     checked={allowDuplicates}
-                    onChange={(event) =>
+                    onCheckedChange={(isChecked) =>
                         onChange({
                             ...settings,
-                            allow_duplicates: event.target.checked ? '1' : '0',
+                            allow_duplicates: isChecked === true ? '1' : '0',
                         })
                     }
-                    className="size-4 rounded border"
                 />
-                Allow duplicate links
-            </label>
+                <FieldLabel
+                    htmlFor={`${idPrefix}_allow_duplicates`}
+                    className="font-normal"
+                >
+                    Allow duplicate links
+                </FieldLabel>
+            </Field>
         </div>
     );
 }
@@ -806,7 +799,7 @@ function BlocksSettingsEditor({
                 <Label>
                     {depth === 1 ? 'Block types' : 'Inner block types'}
                 </Label>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                     {depth === 1
                         ? `Define the inline block schema for this field. Keys must be lowercase snake_case (e.g. rich_text). Nesting depth max ${cappedMax} (ceiling ${MAX_BLOCKS_DEPTH}).`
                         : `Inner blocks (depth ${depth}/${cappedMax}). Further blocks nesting is disabled at this depth.`}
@@ -814,8 +807,10 @@ function BlocksSettingsEditor({
             </div>
 
             {depth === 1 && onMaxDepthChange ? (
-                <div className="grid max-w-xs gap-2">
-                    <Label htmlFor="max_blocks_depth">Max nesting depth</Label>
+                <Field className="max-w-xs">
+                    <FieldLabel htmlFor="max_blocks_depth">
+                        Max nesting depth
+                    </FieldLabel>
                     <Input
                         id="max_blocks_depth"
                         type="number"
@@ -840,11 +835,11 @@ function BlocksSettingsEditor({
                             );
                         }}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <FieldDescription>
                         Default {DEFAULT_BLOCKS_DEPTH}. Absolute ceiling{' '}
                         {MAX_BLOCKS_DEPTH}.
-                    </p>
-                </div>
+                    </FieldDescription>
+                </Field>
             ) : null}
 
             {blockTypes.map((blockType, blockIndex) => {
@@ -886,8 +881,8 @@ function BlocksSettingsEditor({
 
                         <div className={collapsed ? 'hidden' : 'space-y-4'}>
                             <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label>Key</Label>
+                                <Field>
+                                    <FieldLabel>Key</FieldLabel>
                                     <Input
                                         value={blockType.key}
                                         placeholder="rich_text"
@@ -897,9 +892,9 @@ function BlocksSettingsEditor({
                                             })
                                         }
                                     />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label>Label</Label>
+                                </Field>
+                                <Field>
+                                    <FieldLabel>Label</FieldLabel>
                                     <Input
                                         value={blockType.label}
                                         placeholder="Rich text"
@@ -909,7 +904,7 @@ function BlocksSettingsEditor({
                                             })
                                         }
                                     />
-                                </div>
+                                </Field>
                             </div>
 
                             <div className="space-y-3">
@@ -939,7 +934,7 @@ function BlocksSettingsEditor({
                                                     })
                                                 }
                                             />
-                                            <select
+                                            <NativeSelect
                                                 value={field.type}
                                                 onChange={(event) => {
                                                     const type =
@@ -974,7 +969,7 @@ function BlocksSettingsEditor({
                                                         ),
                                                     });
                                                 }}
-                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                                                className="w-full"
                                             >
                                                 {allowedTypes.map((type) => (
                                                     <option
@@ -987,17 +982,18 @@ function BlocksSettingsEditor({
                                                         )}
                                                     </option>
                                                 ))}
-                                            </select>
+                                            </NativeSelect>
                                             <label className="flex items-center gap-2 text-sm">
-                                                <input
-                                                    type="checkbox"
+                                                <Checkbox
                                                     checked={field.translatable}
                                                     disabled={
                                                         !fieldTypeSupportsTranslatable(
                                                             field.type,
                                                         )
                                                     }
-                                                    onChange={(event) =>
+                                                    onCheckedChange={(
+                                                        isChecked,
+                                                    ) =>
                                                         updateBlock(
                                                             blockIndex,
                                                             {
@@ -1011,23 +1007,20 @@ function BlocksSettingsEditor({
                                                                             ? {
                                                                                   ...entry,
                                                                                   translatable:
-                                                                                      event
-                                                                                          .target
-                                                                                          .checked,
+                                                                                      isChecked ===
+                                                                                      true,
                                                                               }
                                                                             : entry,
                                                                 ),
                                                             },
                                                         )
                                                     }
-                                                    className="size-4 rounded border"
                                                 />
                                                 I18n
                                             </label>
                                             <Button
                                                 type="button"
                                                 variant="ghost"
-                                                size="sm"
                                                 onClick={() =>
                                                     updateBlock(blockIndex, {
                                                         fields: blockType.fields.filter(
@@ -1200,7 +1193,6 @@ function BlocksSettingsEditor({
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     onClick={() =>
                                         updateBlock(blockIndex, {
@@ -1222,7 +1214,6 @@ function BlocksSettingsEditor({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     disabled={blockIndex === 0}
                                     onClick={() => move(blockIndex, -1)}
@@ -1231,7 +1222,6 @@ function BlocksSettingsEditor({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     disabled={
                                         blockIndex === blockTypes.length - 1
@@ -1242,7 +1232,6 @@ function BlocksSettingsEditor({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="ghost"
                                     onClick={() =>
                                         onChange(
@@ -1264,7 +1253,6 @@ function BlocksSettingsEditor({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() =>
                     onChange([...blockTypes, nextBlockTypeDefaults(blockTypes)])
                 }
@@ -1551,10 +1539,10 @@ function FieldConfigPanel({
                 description={t('collections.generalDescription')}
             >
                 <div className="space-y-6">
-                    <div className="grid gap-2.5">
-                        <Label htmlFor={`field_name_${mode}`}>
+                    <Field data-invalid={keyError ? true : undefined}>
+                        <FieldLabel htmlFor={`field_name_${mode}`}>
                             Key <span className="text-destructive">*</span>
-                        </Label>
+                        </FieldLabel>
                         <Input
                             id={`field_name_${mode}`}
                             name="name"
@@ -1575,9 +1563,16 @@ function FieldConfigPanel({
                             pattern="[a-z0-9]+(?:[-_][a-z0-9]+)*"
                             className="w-full"
                             aria-invalid={Boolean(keyError)}
+                            aria-describedby={
+                                keyError
+                                    ? `field-name-${mode}-error`
+                                    : undefined
+                            }
                         />
-                        <InputError message={keyError} />
-                    </div>
+                        <FieldError id={`field-name-${mode}-error`}>
+                            {keyError}
+                        </FieldError>
+                    </Field>
 
                     <TranslatedInput
                         idPrefix={`display_name_${mode}`}
@@ -1668,11 +1663,17 @@ function FieldConfigPanel({
                 />
             </SettingsPanel>
 
-            <InputError message={errors.type} />
-            <InputError message={errors.settings} />
-            <InputError message={errors.translatable} />
+            <FieldError id={`field-type-${mode}-error`}>
+                {errors.type}
+            </FieldError>
+            <FieldError id={`field-settings-${mode}-error`}>
+                {errors.settings}
+            </FieldError>
+            <FieldError id={`field-translatable-${mode}-error`}>
+                {errors.translatable}
+            </FieldError>
             {nestedSettingsErrors.map((message) => (
-                <InputError key={message} message={message} />
+                <FieldError key={message}>{message}</FieldError>
             ))}
         </div>
     );
@@ -1689,54 +1690,41 @@ function TranslatableField({
     const isLocked = mode === 'edit' && Boolean(field?.has_stored_values);
     const isChecked = field?.translatable ?? false;
 
-    if (isLocked) {
-        return (
-            <div className="flex items-start gap-4">
-                <input
-                    type="hidden"
-                    name="translatable"
-                    value={isChecked ? '1' : '0'}
-                />
-                <input
-                    id={`translatable_${mode}`}
-                    type="checkbox"
-                    checked={isChecked}
-                    disabled
-                    aria-disabled="true"
-                    className="mt-1 size-4 shrink-0 rounded border opacity-60"
-                />
-                <div className="grid gap-2">
-                    <Label htmlFor={`translatable_${mode}`}>
-                        {t('collections.translatable')}
-                    </Label>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                        {t('collections.translatableLockedHint')}
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    const checkboxId = `translatable_${mode}`;
 
     return (
-        <div className="flex items-start gap-4">
-            <input type="hidden" name="translatable" value="0" />
+        <Field
+            orientation="horizontal"
+            data-disabled={isLocked || undefined}
+            className="gap-4"
+        >
+            {/* Unchecked boxes submit nothing: the hidden input keeps "0" (and the locked value). */}
             <input
-                id={`translatable_${mode}`}
-                type="checkbox"
+                type="hidden"
                 name="translatable"
-                value="1"
-                defaultChecked={isChecked}
-                className="mt-1 size-4 shrink-0 rounded border"
+                value={isLocked && isChecked ? '1' : '0'}
             />
-            <div className="grid gap-2">
-                <Label htmlFor={`translatable_${mode}`}>
+            {isLocked ? (
+                <Checkbox id={checkboxId} checked={isChecked} disabled />
+            ) : (
+                <Checkbox
+                    id={checkboxId}
+                    name="translatable"
+                    value="1"
+                    defaultChecked={isChecked}
+                />
+            )}
+            <FieldContent>
+                <FieldLabel htmlFor={checkboxId}>
                     {t('collections.translatable')}
-                </Label>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                    {t('collections.translatableDescription')}
-                </p>
-            </div>
-        </div>
+                </FieldLabel>
+                <FieldDescription>
+                    {isLocked
+                        ? t('collections.translatableLockedHintConvert')
+                        : t('collections.translatableDescription')}
+                </FieldDescription>
+            </FieldContent>
+        </Field>
     );
 }
 
@@ -2048,18 +2036,6 @@ export function CollectionFieldFormDrawer({
                 }}
                 onInput={() => setInputDirty(true)}
                 onChange={() => setInputDirty(true)}
-                onError={(formErrors) => {
-                    const first = Object.values(formErrors).find(
-                        (message) =>
-                            typeof message === 'string' && message !== '',
-                    );
-
-                    toast.error(
-                        typeof first === 'string'
-                            ? first
-                            : 'Could not save field. Check the form for errors.',
-                    );
-                }}
             >
                 {({ processing, errors }) => (
                     <>
