@@ -1314,6 +1314,19 @@
             "convertFailed": "Konvertierung fehlgeschlagen.",
             "success": "Feld konvertiert.",
             "queued": "Feldkonvertierung in der Warteschlange."
+        },
+        "columnPicker": {
+            "fields": "Felder",
+            "related": "Verknüpfte Felder",
+            "openRelated": "Felder von {{label}} öffnen",
+            "noNestedFields": "Keine verschachtelten Felder verfügbar.",
+            "noMatches": "Keine Felder entsprechen deiner Suche.",
+            "id": "ID",
+            "createdAt": "Erstellt am",
+            "updatedAt": "Aktualisiert am",
+            "createdBy": "Erstellt von",
+            "updatedBy": "Aktualisiert von",
+            "actions": "Aktionen"
         }
     },
     "ai": {

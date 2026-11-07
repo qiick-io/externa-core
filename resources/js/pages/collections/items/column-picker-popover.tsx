@@ -1,8 +1,16 @@
-import { Check, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+} from '@/components/ui/command';
 import {
     Popover,
     PopoverContent,
@@ -10,7 +18,6 @@ import {
 } from '@/components/ui/popover';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { STRING_LIMITS } from '@/lib/string-limits';
-import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
 export type RelatedFieldEntry = {
@@ -26,12 +33,13 @@ type ColumnPickerPopoverProps = {
     onChange: (columns: string[]) => void;
 };
 
-const SYSTEM_FIELDS: RelatedFieldEntry[] = [
-    { name: 'id', display_name: 'ID', type: 'system' },
-    { name: 'created_at', display_name: 'Created at', type: 'system' },
-    { name: 'updated_at', display_name: 'Updated at', type: 'system' },
-    { name: 'user_created', display_name: 'Created by', type: 'system' },
-    { name: 'user_updated', display_name: 'Updated by', type: 'system' },
+/** System columns with their i18n key under `collections.columnPicker`. */
+const SYSTEM_FIELDS: Array<{ name: string; labelKey: string }> = [
+    { name: 'id', labelKey: 'id' },
+    { name: 'created_at', labelKey: 'createdAt' },
+    { name: 'updated_at', labelKey: 'updatedAt' },
+    { name: 'user_created', labelKey: 'createdBy' },
+    { name: 'user_updated', labelKey: 'updatedBy' },
 ];
 
 function isDrillable(type: string): boolean {
@@ -45,7 +53,10 @@ function isDrillable(type: string): boolean {
 }
 
 /**
- * Column picker: search, toggle, drill-down one level on relation/file.
+ * Column picker on Popover + Command: search, toggle a column (checked items
+ * show a check), drill down one level into a relation / file field from the
+ * "Related fields" group. cmdk filters by label and by field path.
+ * @returns {JSX.Element}
  */
 export function ColumnPickerPopover({
     fields,
@@ -63,56 +74,31 @@ export function ColumnPickerPopover({
     const visible = useMemo(() => new Set(listColumns), [listColumns]);
 
     const rootEntries = useMemo(() => {
-        const fieldEntries = fields.map((field) => ({
-            path: field.name,
-            label: getFieldDisplayName(field.settings, field.name),
-            type: field.type,
-            field,
-        }));
-
         const system = SYSTEM_FIELDS.map((entry) => ({
             path: entry.name,
-            label: entry.display_name,
-            type: entry.type,
+            label: t(`collections.columnPicker.${entry.labelKey}`),
             field: null as CollectionFieldRow | null,
         }));
 
+        const fieldEntries = fields.map((field) => ({
+            path: field.name,
+            label: getFieldDisplayName(field.settings, field.name),
+            field: field as CollectionFieldRow | null,
+        }));
+
         return [...system, ...fieldEntries];
-    }, [fields]);
+    }, [fields, t]);
 
-    const filteredRoot = useMemo(() => {
-        const q = search.trim().toLowerCase();
+    const drillableEntries = rootEntries.filter(
+        (entry) =>
+            entry.field !== null &&
+            isDrillable(entry.field.type) &&
+            (relatedFieldsCatalog[entry.path]?.length ?? 0) > 0,
+    );
 
-        if (!q) {
-            return rootEntries;
-        }
-
-        return rootEntries.filter(
-            (entry) =>
-                entry.label.toLowerCase().includes(q) ||
-                entry.path.toLowerCase().includes(q),
-        );
-    }, [rootEntries, search]);
-
-    const drillChildren = useMemo(() => {
-        if (!drillField) {
-            return [];
-        }
-
-        const q = search.trim().toLowerCase();
-        const children = relatedFieldsCatalog[drillField.name] ?? [];
-
-        return children.filter((entry) => {
-            if (!q) {
-                return true;
-            }
-
-            return (
-                entry.display_name.toLowerCase().includes(q) ||
-                entry.name.toLowerCase().includes(q)
-            );
-        });
-    }, [drillField, relatedFieldsCatalog, search]);
+    const drillChildren = drillField
+        ? (relatedFieldsCatalog[drillField.name] ?? [])
+        : [];
 
     const togglePath = (path: string): void => {
         if (visible.has(path)) {
@@ -124,6 +110,11 @@ export function ColumnPickerPopover({
         onChange([...listColumns, path]);
     };
 
+    const openDrill = (field: CollectionFieldRow | null): void => {
+        setDrillField(field);
+        setSearch('');
+    };
+
     const closeAndReset = (nextOpen: boolean): void => {
         setOpen(nextOpen);
 
@@ -132,6 +123,21 @@ export function ColumnPickerPopover({
             setDrillField(null);
         }
     };
+
+    const columnItem = (path: string, label: string) => (
+        <CommandItem
+            key={path}
+            value={path}
+            keywords={[label]}
+            onSelect={() => togglePath(path)}
+        >
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <Check
+                className={visible.has(path) ? 'ml-auto' : 'ml-auto opacity-0'}
+                aria-hidden="true"
+            />
+        </CommandItem>
+    );
 
     return (
         <Popover open={open} onOpenChange={closeAndReset}>
@@ -148,121 +154,91 @@ export function ColumnPickerPopover({
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-72 p-0" align="end">
-                <div className="border-b p-2">
-                    {drillField ? (
-                        <button
-                            type="button"
-                            className="mb-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                                setDrillField(null);
-                                setSearch('');
-                            }}
-                        >
-                            <ChevronLeft className="size-3.5" />
-                            Back
-                        </button>
-                    ) : null}
-                    <div className="relative">
-                        <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search fields"
-                            maxLength={STRING_LIMITS.SEARCH}
-                            className="pl-8 text-sm"
-                        />
-                    </div>
-                    {drillField ? (
-                        <p className="mt-2 truncate px-1 text-xs font-medium text-muted-foreground">
-                            {getFieldDisplayName(
-                                drillField.settings,
-                                drillField.name,
-                            )}
-                        </p>
-                    ) : null}
-                </div>
-                <div className="max-h-64 overflow-y-auto py-1">
-                    {drillField
-                        ? drillChildren.map((entry) => {
-                              const path = `${drillField.name}.${entry.name}`;
-                              const active = visible.has(path);
-
-                              return (
-                                  <button
-                                      key={path}
-                                      type="button"
-                                      className={cn(
-                                          'flex w-full items-center gap-2 px-3 py-2 text-left text-sm',
-                                          active
-                                              ? 'text-muted-foreground'
-                                              : 'hover:bg-muted',
-                                      )}
-                                      onClick={() => togglePath(path)}
-                                  >
-                                      <span className="min-w-0 flex-1 truncate">
-                                          {entry.display_name}
-                                      </span>
-                                      {active ? (
-                                          <Check className="size-3.5 shrink-0 opacity-60" />
-                                      ) : null}
-                                  </button>
-                              );
-                          })
-                        : filteredRoot.map((entry) => {
-                              const active = visible.has(entry.path);
-                              const drillChildrenCount =
-                                  entry.field !== null &&
-                                  isDrillable(entry.type)
-                                      ? (relatedFieldsCatalog[entry.path]
-                                            ?.length ?? 0)
-                                      : 0;
-                              const canDrill = drillChildrenCount > 0;
-
-                              return (
-                                  <div
-                                      key={entry.path}
-                                      className={cn(
-                                          'flex items-center',
-                                          active && 'text-muted-foreground',
-                                      )}
-                                  >
-                                      <button
-                                          type="button"
-                                          className={cn(
-                                              'flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm',
-                                              !active && 'hover:bg-muted',
-                                          )}
-                                          onClick={() => togglePath(entry.path)}
-                                      >
-                                          <span className="min-w-0 flex-1 truncate">
-                                              {entry.label}
-                                          </span>
-                                          {active ? (
-                                              <Check className="size-3.5 shrink-0 opacity-60" />
-                                          ) : null}
-                                      </button>
-                                      {canDrill && entry.field ? (
-                                          <button
-                                              type="button"
-                                              className="mr-1 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                              aria-label={`Open ${entry.label} fields`}
-                                              onClick={() => {
-                                                  setDrillField(entry.field);
-                                                  setSearch('');
-                                              }}
-                                          >
-                                              <ChevronRight className="size-3.5" />
-                                          </button>
-                                      ) : null}
-                                  </div>
-                              );
-                          })}
-                    {drillField && drillChildren.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">
-                            No nested fields available.
-                        </p>
-                    ) : null}
-                </div>
+                <Command>
+                    <CommandInput
+                        value={search}
+                        onValueChange={setSearch}
+                        placeholder={t('collections.searchFields')}
+                        maxLength={STRING_LIMITS.SEARCH}
+                    />
+                    <CommandList>
+                        <CommandEmpty>
+                            {drillField
+                                ? t('collections.columnPicker.noNestedFields')
+                                : t('collections.columnPicker.noMatches')}
+                        </CommandEmpty>
+                        {drillField ? (
+                            <>
+                                <CommandGroup>
+                                    <CommandItem
+                                        value="__back"
+                                        forceMount
+                                        onSelect={() => openDrill(null)}
+                                    >
+                                        <ChevronLeft aria-hidden="true" />
+                                        {t('common.back')}
+                                    </CommandItem>
+                                </CommandGroup>
+                                <CommandSeparator />
+                                <CommandGroup
+                                    heading={getFieldDisplayName(
+                                        drillField.settings,
+                                        drillField.name,
+                                    )}
+                                >
+                                    {drillChildren.map((entry) =>
+                                        columnItem(
+                                            `${drillField.name}.${entry.name}`,
+                                            entry.display_name,
+                                        ),
+                                    )}
+                                </CommandGroup>
+                            </>
+                        ) : (
+                            <>
+                                <CommandGroup
+                                    heading={t(
+                                        'collections.columnPicker.fields',
+                                    )}
+                                >
+                                    {rootEntries.map((entry) =>
+                                        columnItem(entry.path, entry.label),
+                                    )}
+                                </CommandGroup>
+                                {drillableEntries.length > 0 ? (
+                                    <CommandGroup
+                                        heading={t(
+                                            'collections.columnPicker.related',
+                                        )}
+                                    >
+                                        {drillableEntries.map((entry) => (
+                                            <CommandItem
+                                                key={`related-${entry.path}`}
+                                                value={`related:${entry.path}`}
+                                                keywords={[entry.label]}
+                                                aria-label={t(
+                                                    'collections.columnPicker.openRelated',
+                                                    { label: entry.label },
+                                                )}
+                                                onSelect={() =>
+                                                    openDrill(entry.field)
+                                                }
+                                            >
+                                                <span className="min-w-0 flex-1 truncate">
+                                                    {entry.label}
+                                                </span>
+                                                <ChevronRight
+                                                    className="ml-auto"
+                                                    aria-hidden="true"
+                                                />
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                ) : null}
+                            </>
+                        )}
+                    </CommandList>
+                </Command>
             </PopoverContent>
         </Popover>
     );
