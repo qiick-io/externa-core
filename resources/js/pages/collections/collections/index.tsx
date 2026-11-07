@@ -723,7 +723,7 @@ export default function CollectionsIndex({
                                                             <TooltipTrigger
                                                                 asChild
                                                             >
-                                                                <span className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-0.5 text-xs">
+                                                                <Badge variant="muted">
                                                                     <Box
                                                                         className="size-3.5 shrink-0"
                                                                         aria-hidden
@@ -731,7 +731,7 @@ export default function CollectionsIndex({
                                                                     {t(
                                                                         'collections.meta.singletonShort',
                                                                     )}
-                                                                </span>
+                                                                </Badge>
                                                             </TooltipTrigger>
                                                             <TooltipContent>
                                                                 {t(
