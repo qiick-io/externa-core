@@ -521,6 +521,98 @@ describe('useAiChat', () => {
     });
 });
 
+describe('useAiChat answer parts', () => {
+    beforeEach(() => {
+        mocks.getSpeechRecognitionConstructor.mockReturnValue(null);
+    });
+
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('builds reasoning, tool and text parts in stream order', async () => {
+        scriptStream((handlers) => {
+            handlers.onStreamStart?.({
+                provider: 'openai',
+                model: 'gpt-5-mini',
+            });
+            handlers.onReasoningDelta?.('r1', 'Plan it');
+            handlers.onReasoningEnd?.('r1');
+            handlers.onTool?.('ManageFiles', {
+                id: 'call_1',
+                arguments: { action: 'move' },
+            });
+            handlers.onToolResult?.('ManageFiles', 'Folder not found', {
+                id: 'call_1',
+                successful: false,
+                error: 'Folder not found',
+                denied: false,
+            });
+            handlers.onCitation?.({
+                url: 'https://example.test',
+                title: 'Example',
+            });
+            handlers.onToken?.('Could not move it.');
+            handlers.onStreamEnd?.({ input_tokens: 9, output_tokens: 4 });
+            handlers.onDone?.('Could not move it.');
+        });
+        const { result } = renderAiChat();
+
+        await typeAndSend(result, 'Move the file');
+
+        const answer = result.current.messages[1];
+
+        expect(answer?.parts?.map((part) => part.type)).toEqual([
+            'reasoning',
+            'tool',
+            'text',
+        ]);
+        expect(answer?.parts?.[1]).toMatchObject({
+            state: 'output-error',
+            errorText: 'Folder not found',
+            input: { action: 'move' },
+        });
+        expect(answer?.sources).toEqual([
+            { url: 'https://example.test', title: 'Example' },
+        ]);
+        expect(answer?.model).toBe('gpt-5-mini');
+        expect(answer?.usage).toEqual({ input_tokens: 9, output_tokens: 4 });
+    });
+
+    it('rebuilds the parts of a stored turn on load', () => {
+        const { result } = renderAiChat();
+
+        act(() =>
+            result.current.loadConversation(
+                [
+                    {
+                        id: '21',
+                        role: 'assistant',
+                        content: 'Done.',
+                        steps: [
+                            {
+                                reasoning: 'Plan it',
+                                content: 'Done.',
+                                tools: [],
+                                provider_tools: [],
+                            },
+                        ],
+                        citations: [
+                            { url: 'https://example.test', title: null },
+                        ],
+                    },
+                ],
+                'conversation-1',
+            ),
+        );
+
+        expect(
+            result.current.messages[0]?.parts?.map((part) => part.type),
+        ).toEqual(['reasoning', 'text']);
+        expect(result.current.messages[0]?.sources).toHaveLength(1);
+    });
+});
+
 describe('settleLoadedAiMessages', () => {
     it('fills tool-only turns and drops blank assistant messages', () => {
         expect(

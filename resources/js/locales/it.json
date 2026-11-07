@@ -1635,7 +1635,9 @@
             },
             "parameters": "Parametri",
             "result": "Risultato",
-            "error": "Errore"
+            "error": "Errore",
+            "steps_one": "{{count}} passo con strumenti",
+            "steps_other": "{{count}} passi con strumenti"
         },
         "approval": {
             "request": "L’assistente vuole eseguire {{tools}}.",
@@ -1700,7 +1702,24 @@
         "selectConversation": "Seleziona {{title}}",
         "bulkDeleteTitle": "Eliminare le chat selezionate?",
         "bulkDeleteDescription_one": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
-        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare."
+        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "reasoning": {
+            "thinking": "Sto ragionando…",
+            "thoughtFor_one": "Ha ragionato per {{count}} secondo",
+            "thoughtFor_other": "Ha ragionato per {{count}} secondi",
+            "thoughtFewSeconds": "Ha ragionato per qualche secondo"
+        },
+        "sources": {
+            "used_one": "{{count}} fonte usata",
+            "used_other": "{{count}} fonti usate"
+        },
+        "usage": {
+            "trigger": "Contesto usato: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Ragionamento",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",

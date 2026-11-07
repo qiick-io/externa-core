@@ -24,6 +24,23 @@ import type {
 } from '@/lib/ai-chat';
 import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { contextIdsFromPending } from '@/lib/ai-context';
+import {
+    addProviderTool,
+    addSource,
+    addToolCall,
+    appendReasoning,
+    appendText,
+    applyToolResult,
+    closeReasoning,
+    markApprovalRequested,
+    partsFromSteps,
+} from '@/lib/ai-message-parts';
+import type {
+    AiMessagePart,
+    AiSource,
+    AiStoredStep,
+    AiUsage,
+} from '@/lib/ai-message-parts';
 import { speechRecognitionLang } from '@/lib/format';
 import i18n from '@/lib/i18n';
 import { toast } from '@/lib/toast';
@@ -44,6 +61,14 @@ export type AiChatMessage = {
         result?: unknown;
     }>;
     pending_approvals?: AiPendingApproval[];
+    /** The answer in the order the model produced it (reasoning, text, tools). */
+    parts?: AiMessagePart[];
+    sources?: AiSource[];
+    usage?: AiUsage | null;
+    model?: string | null;
+    /** Stored steps from the server; turned into `parts` on load. */
+    steps?: AiStoredStep[];
+    citations?: AiSource[];
 };
 
 /** The user turn being streamed, kept so Stop can restore the composer. */
@@ -120,8 +145,16 @@ export function settleLoadedAiMessages(
 ): AiChatMessage[] {
     return messages.flatMap((message) => {
         const fileCards = fileCardsFromToolResults(message.tool_results);
+        const withParts =
+            message.role === 'assistant' && message.steps !== undefined
+                ? {
+                      ...message,
+                      parts: partsFromSteps(message.steps),
+                      sources: message.citations ?? [],
+                  }
+                : message;
         const withCards =
-            fileCards.length > 0 ? { ...message, fileCards } : message;
+            fileCards.length > 0 ? { ...withParts, fileCards } : withParts;
 
         if (
             withCards.role !== 'assistant' ||
@@ -380,7 +413,13 @@ export function useAiChat(options: UseAiChatOptions = {}) {
                           attachments: attachmentsForMessage,
                       },
                   ]),
-            { id: assistantMessageId, role: 'assistant', content: '' },
+            {
+                id: assistantMessageId,
+                role: 'assistant',
+                content: '',
+                parts: [],
+                sources: [],
+            },
         ]);
         isStreamingRef.current = true;
         setIsStreaming(true);
@@ -412,18 +451,117 @@ export function useAiChat(options: UseAiChatOptions = {}) {
                             ...entry,
                             content: entry.content + token,
                             isError: false,
+                            parts: appendText(
+                                entry.parts ?? [],
+                                token,
+                                Date.now(),
+                            ),
                         }));
                     },
-                    onTool: (toolName) => {
+                    onReasoningDelta: (reasoningId, delta) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            parts: appendReasoning(
+                                entry.parts ?? [],
+                                reasoningId,
+                                delta,
+                                Date.now(),
+                            ),
+                        }));
+                    },
+                    onReasoningEnd: () => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            parts: closeReasoning(
+                                entry.parts ?? [],
+                                Date.now(),
+                            ),
+                        }));
+                    },
+                    onCitation: (citation) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            sources: addSource(entry.sources ?? [], citation),
+                        }));
+                    },
+                    onProviderTool: (tool) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            parts: addProviderTool(entry.parts ?? [], tool),
+                        }));
+                    },
+                    onStreamStart: ({ model }) => {
+                        if (abortController.signal.aborted || !model) {
+                            return;
+                        }
+
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            model,
+                        }));
+                    },
+                    onStreamEnd: (usage) => {
+                        if (abortController.signal.aborted || !usage) {
+                            return;
+                        }
+
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            usage,
+                        }));
+                    },
+                    onTool: (toolName, call) => {
                         if (abortController.signal.aborted) {
                             return;
                         }
 
                         toolsUsed.push(toolName);
                         setRunningToolName(toolName);
+                        updateMessage(assistantMessageId, (entry) => ({
+                            ...entry,
+                            parts: addToolCall(
+                                entry.parts ?? [],
+                                {
+                                    id: call?.id ?? toolName,
+                                    name: toolName,
+                                    input: call?.arguments ?? {},
+                                },
+                                Date.now(),
+                            ),
+                        }));
                     },
-                    onToolResult: (toolName, result) => {
+                    onToolResult: (toolName, result, detail) => {
                         callbacksRef.current.onToolResult?.(toolName, result);
+
+                        if (detail && !abortController.signal.aborted) {
+                            updateMessage(assistantMessageId, (entry) => ({
+                                ...entry,
+                                parts: applyToolResult(entry.parts ?? [], {
+                                    id: detail.id,
+                                    name: toolName,
+                                    output: result,
+                                    successful: detail.successful,
+                                    error: detail.error,
+                                    denied: detail.denied,
+                                }),
+                            }));
+                        }
 
                         const cards = fileCardsFromToolResult(toolName, result);
 
@@ -462,6 +600,10 @@ export function useAiChat(options: UseAiChatOptions = {}) {
                         updateMessage(assistantMessageId, (entry) => ({
                             ...entry,
                             pending_approvals: requested,
+                            parts: markApprovalRequested(
+                                entry.parts ?? [],
+                                approvals,
+                            ),
                         }));
                     },
                     onConversationId: (id) => {

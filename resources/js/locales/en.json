@@ -1635,7 +1635,9 @@
             },
             "parameters": "Parameters",
             "result": "Result",
-            "error": "Error"
+            "error": "Error",
+            "steps_one": "{{count}} tool step",
+            "steps_other": "{{count}} tool steps"
         },
         "approval": {
             "request": "The assistant wants to run {{tools}}.",
@@ -1700,7 +1702,24 @@
         "selectConversation": "Select {{title}}",
         "bulkDeleteTitle": "Delete selected chats?",
         "bulkDeleteDescription_one": "You are about to delete {{count}} chat. This action cannot be undone.",
-        "bulkDeleteDescription_other": "You are about to delete {{count}} chats. This action cannot be undone."
+        "bulkDeleteDescription_other": "You are about to delete {{count}} chats. This action cannot be undone.",
+        "reasoning": {
+            "thinking": "Thinking…",
+            "thoughtFor_one": "Thought for {{count}} second",
+            "thoughtFor_other": "Thought for {{count}} seconds",
+            "thoughtFewSeconds": "Thought for a few seconds"
+        },
+        "sources": {
+            "used_one": "Used {{count}} source",
+            "used_other": "Used {{count}} sources"
+        },
+        "usage": {
+            "trigger": "Context used: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Reasoning",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
