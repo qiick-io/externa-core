@@ -1,5 +1,13 @@
 import { Link } from '@inertiajs/react';
 import { FileIcon, FolderOpen } from 'lucide-react';
+import {
+    Attachment,
+    AttachmentContent,
+    AttachmentGroup,
+    AttachmentMedia,
+    AttachmentTitle,
+    AttachmentTrigger,
+} from '@/components/ui/attachment';
 import { filePublicUrl, isImageFile } from '@/lib/files-api';
 import filesRoutes from '@/routes/files';
 import type { AdminFileRow } from '@/types/files';
@@ -65,11 +73,12 @@ export function AiFileCards({ files }: Props) {
     }
 
     return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        <AttachmentGroup data-test="ai-file-cards">
             {files.map((file) => {
                 const row = toAdminFileRow(file);
                 const isFolder = file.type === 'folder';
                 const publicUrl = filePublicUrl(row);
+                const isImage = !isFolder && !!publicUrl && isImageFile(row);
                 const folderId = isFolder ? file.id : (file.parent_id ?? null);
                 const href =
                     folderId != null
@@ -77,29 +86,26 @@ export function AiFileCards({ files }: Props) {
                         : filesRoutes.index.url();
 
                 return (
-                    <Link
-                        key={file.id}
-                        href={href}
-                        className="group flex flex-col items-center gap-2 rounded-xl border border-sidebar-border/70 bg-card p-3 transition-colors hover:bg-muted/40"
-                    >
-                        {isFolder ? (
-                            <FolderOpen className="size-10 text-amber-500" />
-                        ) : publicUrl && isImageFile(row) ? (
-                            <img
-                                src={publicUrl}
-                                alt={file.name}
-                                className="size-10 rounded object-cover"
-                            />
-                        ) : (
-                            <FileIcon className="size-10 text-muted-foreground" />
-                        )}
-                        <span className="w-full truncate text-center text-xs font-medium">
-                            {file.name}
-                        </span>
-                    </Link>
+                    <Attachment key={file.id} size="sm" orientation="vertical">
+                        <AttachmentMedia variant={isImage ? 'image' : 'icon'}>
+                            {isFolder ? (
+                                <FolderOpen className="text-amber-500" />
+                            ) : isImage ? (
+                                <img src={publicUrl!} alt="" />
+                            ) : (
+                                <FileIcon className="text-muted-foreground" />
+                            )}
+                        </AttachmentMedia>
+                        <AttachmentContent>
+                            <AttachmentTitle>{file.name}</AttachmentTitle>
+                        </AttachmentContent>
+                        <AttachmentTrigger asChild>
+                            <Link href={href} aria-label={file.name} />
+                        </AttachmentTrigger>
+                    </Attachment>
                 );
             })}
-        </div>
+        </AttachmentGroup>
     );
 }
 

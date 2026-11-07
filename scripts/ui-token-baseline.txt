@@ -8,7 +8,6 @@ resources/js/components/admin/files/file-card.tsx:palette:text-amber-400:1
 resources/js/components/admin/files/file-preview.tsx:palette:text-amber-500:1
 resources/js/components/admin/files/folder-picker-dialog.tsx:palette:text-amber-500:1
 resources/js/components/ai/ai-file-cards.tsx:palette:text-amber-500:1
-resources/js/components/chat/chat-outgoing-attach-preview.tsx:palette:bg-emerald-500/80:1
 resources/js/components/collections/dynamic-item-fields.tsx:palette:text-amber-500:1
 resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-400:1
 resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-700:1

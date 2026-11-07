@@ -11,6 +11,15 @@ import {
     ChatMentionMenu,
     handleMentionMenuKeyDown,
 } from '@/components/chat/chat-mention-menu';
+import {
+    Attachment,
+    AttachmentAction,
+    AttachmentActions,
+    AttachmentContent,
+    AttachmentDescription,
+    AttachmentMedia,
+    AttachmentTitle,
+} from '@/components/ui/attachment';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -256,45 +265,12 @@ export function ChatSendAttachmentsDialog({
                     ) : (
                         <ul className="flex flex-col gap-1">
                             {items.map((item) => (
-                                <li
-                                    key={item.key}
-                                    className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/60"
-                                >
-                                    <FileThumb item={item} />
-                                    <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-medium">
-                                            {item.file.name}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {item.error ? (
-                                                <span className="text-destructive">
-                                                    {item.error}
-                                                </span>
-                                            ) : item.uploaded ? (
-                                                formatBytes(item.file.size)
-                                            ) : (
-                                                t(
-                                                    'collections.itemChat.uploading',
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                    {item.uploaded === null &&
-                                    item.error === null ? (
-                                        <Spinner className="size-4 shrink-0" />
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="shrink-0 text-muted-foreground"
-                                            disabled={sending}
-                                            onClick={() => onRemove(item.key)}
-                                            aria-label={t('common.delete')}
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </Button>
-                                    )}
+                                <li key={item.key} className="min-w-0">
+                                    <SendAttachmentFile
+                                        item={item}
+                                        disabled={sending}
+                                        onRemove={() => onRemove(item.key)}
+                                    />
                                 </li>
                             ))}
                         </ul>
@@ -408,28 +384,61 @@ export function ChatSendAttachmentsDialog({
     );
 }
 
-function FileThumb({ item }: { item: SendAttachItem }) {
-    if (item.previewUrl && item.file.type.startsWith('image/')) {
-        return (
-            <img
-                src={item.previewUrl}
-                alt=""
-                className="size-11 shrink-0 rounded-md object-cover"
-            />
-        );
-    }
-
-    const ext = fileExtension(item.file.name);
+/** One non-media file in the send dialog, on shadcn `Attachment`. */
+function SendAttachmentFile({
+    item,
+    disabled,
+    onRemove,
+}: {
+    item: SendAttachItem;
+    disabled: boolean;
+    onRemove: () => void;
+}) {
+    const { t } = useTranslation();
+    const uploading = item.uploaded === null && item.error === null;
+    const isImage = item.previewUrl && item.file.type.startsWith('image/');
 
     return (
-        <div className="flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-primary/15 text-primary">
-            <FileText className="size-4" aria-hidden />
-            {ext ? (
-                <span className="text-xs leading-none font-bold uppercase">
-                    {ext.slice(0, 4)}
-                </span>
-            ) : null}
-        </div>
+        <Attachment
+            state={item.error ? 'error' : uploading ? 'uploading' : 'done'}
+            className="w-full"
+            data-test="chat-send-attachment"
+        >
+            <AttachmentMedia variant={isImage ? 'image' : 'icon'}>
+                {uploading ? (
+                    <Spinner />
+                ) : isImage ? (
+                    <img src={item.previewUrl!} alt="" />
+                ) : (
+                    <FileText className="text-muted-foreground" />
+                )}
+            </AttachmentMedia>
+            <AttachmentContent>
+                <AttachmentTitle>{item.file.name}</AttachmentTitle>
+                <AttachmentDescription>
+                    {item.error ??
+                        (uploading
+                            ? t('collections.itemChat.uploading')
+                            : [
+                                  fileExtension(item.file.name).toUpperCase(),
+                                  formatBytes(item.file.size),
+                              ]
+                                  .filter(Boolean)
+                                  .join(' · '))}
+                </AttachmentDescription>
+            </AttachmentContent>
+            {uploading ? null : (
+                <AttachmentActions>
+                    <AttachmentAction
+                        disabled={disabled}
+                        onClick={onRemove}
+                        aria-label={t('common.delete')}
+                    >
+                        <Trash2 />
+                    </AttachmentAction>
+                </AttachmentActions>
+            )}
+        </Attachment>
     );
 }
 
