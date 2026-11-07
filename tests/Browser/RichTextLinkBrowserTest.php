@@ -41,3 +41,28 @@ it('sets a link on the selected text from the link popover', function (): void {
     expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['body'])
         ->toContain('href="https://example.com/docs"');
 });
+
+/**
+ * WYSIWYG format buttons are Toggles: pressed mirrors the selection's marks.
+ */
+it('presses the bold toggle when the selection turns bold', function (): void {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $user = User::factory()->create();
+    $user->assignRole(RoleEnum::SuperAdmin->value);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['name' => 'Notes', 'slug' => 'notes', 'versioning' => false]);
+    CollectionField::factory()->for($collection)->create(['name' => 'body', 'type' => FieldTypeEnum::Wysiwyg]);
+
+    $page = visit(route('collections.items.new', $collection, false));
+    $page->click('.ProseMirror')
+        ->type('.ProseMirror', 'Loud words')
+        ->script("document.execCommand('selectAll')");
+    $page->assertAttribute('button[aria-label="Bold"]', 'aria-pressed', 'false')
+        ->click('button[aria-label="Bold"]')
+        ->assertPresent('.ProseMirror strong')
+        ->assertAttribute('button[aria-label="Bold"]', 'aria-pressed', 'true')
+        ->assertNoJavaScriptErrors();
+});

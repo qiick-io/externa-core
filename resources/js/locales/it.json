@@ -35,7 +35,15 @@
         "perPageOption": "{{count}} / pagina",
         "noResults": "Nessun risultato.",
         "copy": "Copia",
-        "copied": "Copiato"
+        "copied": "Copiato",
+        "loading": "Caricamento…",
+        "loadMore": "Carica altri",
+        "preview": "Anteprima",
+        "clear": "Cancella",
+        "filter": "Filtra",
+        "from": "Da",
+        "to": "A",
+        "system": "Sistema"
     },
     "picker": {
         "search": "Cerca…",
@@ -890,7 +898,14 @@
             "copied": "Valore grezzo copiato",
             "copyFailed": "Impossibile copiare negli appunti",
             "pasted": "Valore grezzo incollato",
-            "pasteFailed": "Impossibile leggere gli appunti"
+            "pasteFailed": "Impossibile leggere gli appunti",
+            "edit": "Modifica campo",
+            "duplicate": "Duplica campo",
+            "showInForm": "Mostra campo nel dettaglio",
+            "hideInForm": "Nascondi campo nel dettaglio",
+            "delete": "Elimina campo",
+            "deleteFailed": "Impossibile eliminare il campo.",
+            "width": "Larghezza"
         },
         "itemSave": {
             "create": "Crea",
@@ -1315,7 +1330,28 @@
             "convertFailed": "Conversione non riuscita.",
             "success": "Campo convertito.",
             "queued": "Conversione del campo in coda."
-        }
+        },
+        "columnPicker": {
+            "fields": "Campi",
+            "related": "Campi collegati",
+            "openRelated": "Apri i campi di {{label}}",
+            "noNestedFields": "Nessun campo annidato disponibile.",
+            "noMatches": "Nessun campo corrisponde alla ricerca.",
+            "id": "ID",
+            "createdAt": "Creato il",
+            "updatedAt": "Aggiornato il",
+            "createdBy": "Creato da",
+            "updatedBy": "Aggiornato da",
+            "actions": "Azioni"
+        },
+        "layoutWidth": {
+            "half": "Metà larghezza",
+            "full": "Larghezza massima",
+            "fill": "Riempi larghezza"
+        },
+        "openCollection": "Apri {{name}}",
+        "reorderColumn": "Riordina {{label}}",
+        "noFieldsMatch": "Nessun campo corrisponde alla ricerca."
     },
     "ai": {
         "drawer": {
@@ -1600,7 +1636,9 @@
             },
             "parameters": "Parametri",
             "result": "Risultato",
-            "error": "Errore"
+            "error": "Errore",
+            "steps_one": "{{count}} passo con strumenti",
+            "steps_other": "{{count}} passi con strumenti"
         },
         "approval": {
             "request": "L’assistente vuole eseguire {{tools}}.",
@@ -1665,7 +1703,24 @@
         "selectConversation": "Seleziona {{title}}",
         "bulkDeleteTitle": "Eliminare le chat selezionate?",
         "bulkDeleteDescription_one": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
-        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare."
+        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "reasoning": {
+            "thinking": "Sto ragionando…",
+            "thoughtFor_one": "Ha ragionato per {{count}} secondo",
+            "thoughtFor_other": "Ha ragionato per {{count}} secondi",
+            "thoughtFewSeconds": "Ha ragionato per qualche secondo"
+        },
+        "sources": {
+            "used_one": "{{count}} fonte usata",
+            "used_other": "{{count}} fonti usate"
+        },
+        "usage": {
+            "trigger": "Contesto usato: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Ragionamento",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -2239,7 +2294,20 @@
         "linkUrl": "URL del link",
         "applyLink": "Applica",
         "removeLink": "Rimuovi link",
-        "headingLevel": "Titolo {{level}}"
+        "headingLevel": "Titolo {{level}}",
+        "removeTag": "Rimuovi tag {{name}}",
+        "imageFromComputer": "Carica dal computer",
+        "imageFromLibrary": "Scegli dalla libreria",
+        "imageFromUrl": "Importa da URL",
+        "imageOnly": "Scegli un file immagine.",
+        "imageUploadFailed": "Caricamento immagine non riuscito.",
+        "uploadingImage": "Caricamento immagine…",
+        "insertTable": "Inserisci tabella",
+        "insertTableDescription": "Scegli righe e colonne della tabella markdown.",
+        "tableRows": "Righe",
+        "tableColumns": "Colonne",
+        "createTable": "Crea",
+        "nothingToPreview": "Niente da visualizzare."
     },
     "permissions": {
         "columns": {
@@ -2273,5 +2341,22 @@
             "exception": "Eccezione",
             "actions": "Azioni"
         }
+    },
+    "revisions": {
+        "title": "Revisioni",
+        "drawerDescription": "Seleziona una revisione da confrontare con l’elemento attuale. Applica la unisce al modulo: salva per mantenerla.",
+        "pageTitle": "Cronologia — Elemento #{{id}}",
+        "pageDescription": "Seleziona due revisioni da confrontare. Ripristina scrive lo snapshot come nuovo aggiornamento.",
+        "backToItem": "Torna all’elemento",
+        "emptyFiltered": "Nessuna revisione in questo intervallo. Cancella il filtro o allarga le date.",
+        "empty": "Ancora nessuna revisione. Salvataggi, bozze, pubblicazioni e ripristini compaiono qui.",
+        "hard": "Diretto",
+        "hardRestore": "Ripristino diretto",
+        "hardRestoreHint": "Ripristino diretto (scrive subito)",
+        "restore": "Ripristina",
+        "compare": "Confronta",
+        "compareHint": "Seleziona due revisioni per vedere le differenze.",
+        "field": "Campo",
+        "selectRevision": "Seleziona revisione #{{id}}"
     }
 }

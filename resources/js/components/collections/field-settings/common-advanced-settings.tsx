@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,7 @@ import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import {
     supportsDefaultValue,
     FIELD_LAYOUT_WIDTH_OPTIONS,
+    fieldLayoutWidthLabel,
 } from '@/lib/collection-field-types';
 import type { CommonFieldSettings } from '@/lib/collection-field-types';
 
@@ -27,6 +29,7 @@ export function CommonAdvancedSettings({
     settings,
     onChange,
 }: CommonAdvancedSettingsProps) {
+    const { t } = useTranslation();
     const showDefault = supportsDefaultValue(fieldType);
     const isGroup = isLayoutGroupType(fieldType);
 
@@ -52,9 +55,9 @@ export function CommonAdvancedSettings({
                         }
                         className="w-full"
                     >
-                        {FIELD_LAYOUT_WIDTH_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
+                        {FIELD_LAYOUT_WIDTH_OPTIONS.map((width) => (
+                            <option key={width} value={width}>
+                                {fieldLayoutWidthLabel(width, t)}
                             </option>
                         ))}
                     </NativeSelect>

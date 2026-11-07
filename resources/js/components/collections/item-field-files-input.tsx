@@ -3,7 +3,6 @@ import {
     Download,
     FolderOpen,
     Link2,
-    Loader2,
     Pencil,
     Upload,
     X,
@@ -18,6 +17,7 @@ import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { FileDetailDrawer } from '@/components/admin/files/file-detail-drawer';
 import { FilePreview } from '@/components/admin/files/file-preview';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -33,6 +33,7 @@ import {
     ItemMedia,
     ItemTitle,
 } from '@/components/ui/item';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
     TooltipContent,
@@ -172,9 +173,6 @@ function FileFieldEmptyDropzone({
         [acceptImagesOnly, busy, filesMaxUploadBytes, multiple, onUploaded, t],
     );
 
-    const actionButtonClass =
-        'inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground disabled:pointer-events-none disabled:opacity-50';
-
     return (
         <>
             <div
@@ -216,14 +214,16 @@ function FileFieldEmptyDropzone({
                 />
 
                 {uploading ? (
-                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                    <Spinner className="size-6 text-muted-foreground" />
                 ) : (
                     <div className="flex items-center gap-3">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
                                     type="button"
-                                    className={actionButtonClass}
+                                    variant="secondary"
+                                    size="icon-lg"
+                                    className="rounded-full"
                                     disabled={busy}
                                     aria-label={t(
                                         'collections.fileField.uploadFromComputer',
@@ -231,7 +231,7 @@ function FileFieldEmptyDropzone({
                                     onClick={() => inputRef.current?.click()}
                                 >
                                     <Upload className="size-4" />
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('collections.fileField.uploadFromComputer')}
@@ -240,9 +240,11 @@ function FileFieldEmptyDropzone({
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
                                     type="button"
-                                    className={actionButtonClass}
+                                    variant="secondary"
+                                    size="icon-lg"
+                                    className="rounded-full"
                                     disabled={busy}
                                     aria-label={t(
                                         'collections.fileField.chooseFromLibrary',
@@ -250,7 +252,7 @@ function FileFieldEmptyDropzone({
                                     onClick={onPickLibrary}
                                 >
                                     <FolderOpen className="size-4" />
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('collections.fileField.chooseFromLibrary')}
@@ -259,9 +261,11 @@ function FileFieldEmptyDropzone({
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button
+                                <Button
                                     type="button"
-                                    className={actionButtonClass}
+                                    variant="secondary"
+                                    size="icon-lg"
+                                    className="rounded-full"
                                     disabled={busy}
                                     aria-label={t(
                                         'collections.fileField.importFromUrl',
@@ -269,7 +273,7 @@ function FileFieldEmptyDropzone({
                                     onClick={() => setUrlOpen(true)}
                                 >
                                     <Link2 className="size-4" />
-                                </button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('collections.fileField.importFromUrl')}
@@ -319,11 +323,9 @@ function SingleImageFilledPreview({
 
     return (
         <>
-            <div
-                className={cn(
-                    'group relative overflow-hidden bg-muted',
-                    FILE_FIELD_SLOT_CLASS,
-                )}
+            <AspectRatio
+                ratio={16 / 9}
+                className="group overflow-hidden rounded-md bg-muted"
             >
                 {imageSources ? (
                     <img
@@ -423,7 +425,7 @@ function SingleImageFilledPreview({
                         ) : null}
                     </div>
                 </div>
-            </div>
+            </AspectRatio>
 
             <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
                 <DialogContent className="max-h-[90vh] max-w-[90vw] border-0 bg-black p-2 sm:max-w-[90vw]">

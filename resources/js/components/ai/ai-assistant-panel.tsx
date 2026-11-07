@@ -8,7 +8,6 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
-import { AiToolRunningMarker } from '@/components/ai/ai-run-status';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import {
     Drawer,
@@ -193,9 +192,6 @@ export function AiAssistantPanel() {
                                         approved,
                                     )
                                 }
-                            />
-                            <AiToolRunningMarker
-                                toolName={chat.runningToolName}
                             />
                         </ChatMessageScroller>
 

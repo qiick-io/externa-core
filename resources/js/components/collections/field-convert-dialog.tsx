@@ -13,6 +13,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import {
+    NativeSelect,
+    NativeSelectOption,
+} from '@/components/ui/native-select';
 import { Switch } from '@/components/ui/switch';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import { toast } from '@/lib/toast';
@@ -223,14 +227,14 @@ export function FieldConvertDialog({
                         <Label htmlFor="field-convert-type">
                             {t('collections.convert.targetType')}
                         </Label>
-                        <select
+                        <NativeSelect
                             id="field-convert-type"
                             value={toType}
                             onChange={(event) => {
                                 setToType(event.target.value);
                                 setPreview(null);
                             }}
-                            className="flex h-control w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
                             {[
                                 field.type,
@@ -238,11 +242,11 @@ export function FieldConvertDialog({
                                     (type) => type !== field.type,
                                 ),
                             ].map((type) => (
-                                <option key={type} value={type}>
+                                <NativeSelectOption key={type} value={type}>
                                     {fieldTypeLabel(type, t)}
-                                </option>
+                                </NativeSelectOption>
                             ))}
-                        </select>
+                        </NativeSelect>
                     </div>
 
                     <div className="flex items-center justify-between gap-4">

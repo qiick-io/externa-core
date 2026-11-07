@@ -116,6 +116,8 @@ export function pickAiChatAttachmentFiles(
 export type AiStatus = {
     online: boolean;
     model?: string | null;
+    /** Context window (tokens) of the assistant's provider, for the usage display. */
+    context_window?: number | null;
 };
 
 /** Destructive tool call the paused assistant turn is waiting on (laravel/ai `tool_approval_request`). */

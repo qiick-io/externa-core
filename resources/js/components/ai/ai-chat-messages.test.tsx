@@ -17,6 +17,12 @@ vi.mock('@/components/ai-elements/message-response', () => ({
     ),
 }));
 
+vi.mock('@/hooks/use-ai-availability', () => ({
+    useAiAvailability: () => ({
+        status: { online: true, context_window: 1000 },
+    }),
+}));
+
 vi.mock('@/components/ai-elements/code-block', () => ({
     CodeBlock: ({ code }: { code: string }) => <pre>{code}</pre>,
 }));
@@ -188,5 +194,113 @@ describe('AiChatMessages', () => {
             'Delete item 6',
         );
         expect(handlers.onResendEdited).toHaveBeenCalledWith(prompt.id);
+    });
+
+    it('shows the reasoning collapsed, with how long the model thought', () => {
+        renderMessages([
+            prompt,
+            {
+                id: 'a1',
+                role: 'assistant',
+                content: 'Answer.',
+                parts: [
+                    {
+                        type: 'reasoning',
+                        id: 'r1',
+                        text: 'Hidden chain of thought',
+                        isStreaming: false,
+                        durationSeconds: 3,
+                    },
+                    { type: 'text', text: 'Answer.' },
+                ],
+            },
+        ]);
+
+        const trigger = screen.getByRole('button', {
+            name: /ai.reasoning.thoughtFor/,
+        });
+
+        expect(trigger).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByText('Hidden chain of thought')).toBeNull();
+
+        fireEvent.click(trigger);
+
+        expect(screen.getByText('Hidden chain of thought')).toBeInTheDocument();
+    });
+
+    it('renders one tool call with its state and several as a chain of thought', () => {
+        renderMessages([
+            prompt,
+            {
+                id: 'a1',
+                role: 'assistant',
+                content: 'Done.',
+                parts: [
+                    {
+                        type: 'tool',
+                        id: 't1',
+                        name: 'ManageFiles',
+                        input: { action: 'move' },
+                        state: 'output-error',
+                        output: null,
+                        errorText: 'Folder not found',
+                    },
+                    { type: 'text', text: 'First.' },
+                    {
+                        type: 'tool',
+                        id: 't2',
+                        name: 'ListItems',
+                        input: {},
+                        state: 'output-available',
+                        output: { items: 2 },
+                        errorText: null,
+                    },
+                    {
+                        type: 'tool',
+                        id: 't3',
+                        name: 'DeleteItem',
+                        input: {},
+                        state: 'output-denied',
+                        output: null,
+                        errorText: null,
+                    },
+                    { type: 'text', text: 'Done.' },
+                ],
+            },
+        ]);
+
+        expect(screen.getByText('ManageFiles')).toBeInTheDocument();
+        expect(
+            screen.getByText('ai.tool.state.output-error'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: /ai.tool.steps/ }),
+        ).toBeInTheDocument();
+    });
+
+    it('lists the cited sources and the context used', () => {
+        renderMessages([
+            prompt,
+            {
+                id: 'a1',
+                role: 'assistant',
+                content: 'Answer.',
+                parts: [{ type: 'text', text: 'Answer.' }],
+                sources: [{ url: 'https://example.test/doc', title: 'Doc' }],
+                usage: { input_tokens: 200, output_tokens: 50 },
+            },
+        ]);
+
+        fireEvent.click(
+            screen.getByRole('button', { name: /ai.sources.used/ }),
+        );
+
+        expect(screen.getByRole('link', { name: 'Doc' })).toHaveAttribute(
+            'href',
+            'https://example.test/doc',
+        );
+        expect(
+            screen.getByRole('button', { name: /ai.usage.trigger/ }),
+        ).toHaveTextContent('25%');
     });
 });

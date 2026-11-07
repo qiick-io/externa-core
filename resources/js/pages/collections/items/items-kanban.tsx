@@ -1,10 +1,11 @@
 import { Link, router } from '@inertiajs/react';
-import { GripVertical, Loader2 } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
@@ -699,7 +700,7 @@ export function ItemsKanban({
                                 >
                                     {column.loading ? (
                                         <>
-                                            <Loader2 className="size-3.5 animate-spin" />
+                                            <Spinner className="size-3.5" />
                                             {t(
                                                 'collections.itemsList.kanbanLoading',
                                             )}
