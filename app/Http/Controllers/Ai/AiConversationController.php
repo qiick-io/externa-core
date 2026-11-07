@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\Ai;
 
-use App\Ai\Support\AiPendingApprovals;
-use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Ai\AiConversationMessagePresenterService;
 use App\Services\Ai\AiConversationMutationService;
 use App\Support\Validation\SearchQueryRules;
 use App\Support\Validation\StringLimits;
@@ -23,6 +22,7 @@ class AiConversationController extends Controller
 {
     public function __construct(
         private readonly AiConversationMutationService $mutations,
+        private readonly AiConversationMessagePresenterService $messagePresenter,
     ) {}
 
     /**
@@ -61,39 +61,15 @@ class AiConversationController extends Controller
             ->where('conversation_id', $owned->id)
             ->orderBy('created_at')
             ->orderBy('id')
-            ->get(['id', 'role', 'content', 'steps', 'status', 'created_at']);
+            ->get(['id', 'role', 'content', 'attachments', 'steps', 'usage', 'meta', 'status', 'created_at']);
 
         $lastMessageId = $messages->last()?->id;
 
         return response()->json([
             'conversation' => $owned->only(['id', 'title', 'pinned_at', 'created_at', 'updated_at']),
-            'messages' => $messages->map(function (ConversationMessage $message) use ($lastMessageId): array {
-                $content = $this->normalizeMessageContent($message->content);
-                $toolCalls = $message->tool_calls;
-                $toolResults = $message->tool_results;
-                $pendingApprovals = AiPendingApprovals::fromMessage($message);
-                $approvalOpen = $message->id === $lastMessageId;
-
-                if ($message->role === 'assistant' && trim($content) === '') {
-                    if ($pendingApprovals !== []) {
-                        $content = $approvalOpen
-                            ? AiToolTurnSummary::awaitingApproval($pendingApprovals)
-                            : AiToolTurnSummary::approvalAbandoned($pendingApprovals);
-                    } elseif ($toolCalls !== [] || $toolResults !== []) {
-                        $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
-                    }
-                }
-
-                return [
-                    'id' => $message->id,
-                    'role' => $message->role,
-                    'content' => $content,
-                    'tool_calls' => $toolCalls,
-                    'tool_results' => $toolResults,
-                    'pending_approvals' => $approvalOpen ? $pendingApprovals : [],
-                    'created_at' => $message->created_at,
-                ];
-            }),
+            'messages' => $messages->map(
+                fn (ConversationMessage $message): array => $this->messagePresenter->present($message, $message->id === $lastMessageId),
+            ),
         ]);
     }
 
@@ -227,49 +203,5 @@ class AiConversationController extends Controller
         abort_if($conversation === null, Response::HTTP_NOT_FOUND);
 
         return $conversation;
-    }
-
-    /**
-     * Flatten stored message content into display text.
-     */
-    private function normalizeMessageContent(mixed $content): string
-    {
-        if ($content === null) {
-            return '';
-        }
-
-        if (is_string($content)) {
-            $decoded = json_decode($content, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $this->normalizeMessageContent($decoded);
-            }
-
-            return $content;
-        }
-
-        if (! is_array($content)) {
-            return (string) $content;
-        }
-
-        $textParts = [];
-
-        foreach ($content as $part) {
-            if (is_string($part)) {
-                $textParts[] = $part;
-
-                continue;
-            }
-
-            if (is_array($part) && isset($part['text']) && is_string($part['text'])) {
-                $textParts[] = $part['text'];
-            }
-        }
-
-        if ($textParts !== []) {
-            return implode('', $textParts);
-        }
-
-        return json_encode($content, JSON_UNESCAPED_UNICODE) ?: '';
     }
 }
