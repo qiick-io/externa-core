@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { Toggle } from '@/components/ui/toggle';
 import {
     Tooltip,
     TooltipContent,
@@ -495,6 +496,11 @@ export function MapCoordinateInput({
     );
 }
 
+/**
+ * Map overlay control with its label in a Tooltip: a `Toggle` when it has a
+ * `pressed` state (the active drawing tool), otherwise an outline icon Button.
+ * @returns {JSX.Element}
+ */
 function ToolbarButton({
     label,
     onClick,
@@ -511,18 +517,30 @@ function ToolbarButton({
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Button
-                    type="button"
-                    size="icon"
-                    variant={pressed ? 'default' : 'outline'}
-                    className="shrink-0"
-                    aria-label={label}
-                    aria-pressed={pressed}
-                    disabled={disabled}
-                    onClick={onClick}
-                >
-                    {children}
-                </Button>
+                {pressed === undefined ? (
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="shrink-0"
+                        aria-label={label}
+                        disabled={disabled}
+                        onClick={onClick}
+                    >
+                        {children}
+                    </Button>
+                ) : (
+                    <Toggle
+                        variant="outline"
+                        className="shrink-0 bg-background"
+                        aria-label={label}
+                        pressed={pressed}
+                        disabled={disabled}
+                        onPressedChange={onClick}
+                    >
+                        {children}
+                    </Toggle>
+                )}
             </TooltipTrigger>
             <TooltipContent side="right">{label}</TooltipContent>
         </Tooltip>

@@ -260,7 +260,8 @@ it('keeps mixed file cards square and truncates long titles', function () {
                     return false;
                 }
 
-                const aspectSquare = cards.every((card) => card.classList.contains('aspect-square'));
+                // Cards sit in a 1:1 AspectRatio box (its wrapper is the grid cell).
+                const aspectSquare = cards.every((card) => card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper'));
 
                 const sizes = cards.map((card) => {
                     const rect = card.getBoundingClientRect();
@@ -645,5 +646,35 @@ it('keeps the loaded pages after a move and keeps loading on scroll', function (
     // The folder plus the 143 files left in the root.
     $page->assertScript("{$countCards} === 144")
         ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('draws the selected card ring inside the card so the grid edge cannot cut it', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $edge = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'edge.txt',
+        'path' => '/edge.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/edge.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->click("[data-testid=\"file-card-{$edge->id}\"]")
+        ->assertAttribute("[data-testid=\"file-card-{$edge->id}\"]", 'aria-pressed', 'true')
+        ->assertScript(<<<JS
+(() => {
+  const card = document.querySelector('[data-testid="file-card-{$edge->id}"]');
+  const ring = getComputedStyle(card, '::after').boxShadow;
+  return getComputedStyle(card).boxShadow === 'none' && ring.includes('inset') && !ring.startsWith('none');
+})()
+JS)
         ->assertNoJavaScriptErrors();
 });

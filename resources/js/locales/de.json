@@ -35,7 +35,15 @@
         "perPageOption": "{{count}} / Seite",
         "noResults": "Keine Ergebnisse.",
         "copy": "Kopieren",
-        "copied": "Kopiert"
+        "copied": "Kopiert",
+        "loading": "Wird geladen…",
+        "loadMore": "Mehr laden",
+        "preview": "Vorschau",
+        "clear": "Leeren",
+        "filter": "Filtern",
+        "from": "Von",
+        "to": "Bis",
+        "system": "System"
     },
     "picker": {
         "search": "Suchen…",
@@ -890,7 +898,14 @@
             "copied": "Rohwert kopiert",
             "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
             "pasted": "Rohwert eingefügt",
-            "pasteFailed": "Zwischenablage konnte nicht gelesen werden"
+            "pasteFailed": "Zwischenablage konnte nicht gelesen werden",
+            "edit": "Feld bearbeiten",
+            "duplicate": "Feld duplizieren",
+            "showInForm": "Feld im Detail anzeigen",
+            "hideInForm": "Feld im Detail ausblenden",
+            "delete": "Feld löschen",
+            "deleteFailed": "Feld konnte nicht gelöscht werden.",
+            "width": "Breite"
         },
         "itemSave": {
             "create": "Erstellen",
@@ -1314,7 +1329,28 @@
             "convertFailed": "Konvertierung fehlgeschlagen.",
             "success": "Feld konvertiert.",
             "queued": "Feldkonvertierung in der Warteschlange."
-        }
+        },
+        "columnPicker": {
+            "fields": "Felder",
+            "related": "Verknüpfte Felder",
+            "openRelated": "Felder von {{label}} öffnen",
+            "noNestedFields": "Keine verschachtelten Felder verfügbar.",
+            "noMatches": "Keine Felder entsprechen deiner Suche.",
+            "id": "ID",
+            "createdAt": "Erstellt am",
+            "updatedAt": "Aktualisiert am",
+            "createdBy": "Erstellt von",
+            "updatedBy": "Aktualisiert von",
+            "actions": "Aktionen"
+        },
+        "layoutWidth": {
+            "half": "Halbe Breite",
+            "full": "Volle Breite",
+            "fill": "Breite füllen"
+        },
+        "openCollection": "{{name}} öffnen",
+        "reorderColumn": "{{label}} verschieben",
+        "noFieldsMatch": "Keine Felder entsprechen deiner Suche."
     },
     "ai": {
         "drawer": {
@@ -1599,7 +1635,9 @@
             },
             "parameters": "Parameter",
             "result": "Ergebnis",
-            "error": "Fehler"
+            "error": "Fehler",
+            "steps_one": "{{count}} Werkzeugschritt",
+            "steps_other": "{{count}} Werkzeugschritte"
         },
         "approval": {
             "request": "Der Assistent möchte {{tools}} ausführen.",
@@ -1664,7 +1702,24 @@
         "selectConversation": "{{title}} auswählen",
         "bulkDeleteTitle": "Ausgewählte Chats löschen?",
         "bulkDeleteDescription_one": "Sie löschen {{count}} Chat. Dies kann nicht rückgängig gemacht werden.",
-        "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden."
+        "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden.",
+        "reasoning": {
+            "thinking": "Denkt nach…",
+            "thoughtFor_one": "{{count}} Sekunde nachgedacht",
+            "thoughtFor_other": "{{count}} Sekunden nachgedacht",
+            "thoughtFewSeconds": "Ein paar Sekunden nachgedacht"
+        },
+        "sources": {
+            "used_one": "{{count}} Quelle verwendet",
+            "used_other": "{{count}} Quellen verwendet"
+        },
+        "usage": {
+            "trigger": "Kontext genutzt: {{percent}}",
+            "input": "Eingabe",
+            "output": "Ausgabe",
+            "reasoning": "Denken",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -2238,7 +2293,20 @@
         "linkUrl": "Link-URL",
         "applyLink": "Übernehmen",
         "removeLink": "Link entfernen",
-        "headingLevel": "Überschrift {{level}}"
+        "headingLevel": "Überschrift {{level}}",
+        "removeTag": "Tag {{name}} entfernen",
+        "imageFromComputer": "Vom Computer hochladen",
+        "imageFromLibrary": "Aus der Bibliothek wählen",
+        "imageFromUrl": "Von URL importieren",
+        "imageOnly": "Bitte wähle eine Bilddatei.",
+        "imageUploadFailed": "Bild-Upload fehlgeschlagen.",
+        "uploadingImage": "Bild wird hochgeladen…",
+        "insertTable": "Tabelle einfügen",
+        "insertTableDescription": "Wähle Zeilen und Spalten für die Markdown-Tabelle.",
+        "tableRows": "Zeilen",
+        "tableColumns": "Spalten",
+        "createTable": "Erstellen",
+        "nothingToPreview": "Nichts zur Vorschau."
     },
     "permissions": {
         "columns": {
@@ -2272,5 +2340,22 @@
             "exception": "Ausnahme",
             "actions": "Aktionen"
         }
+    },
+    "revisions": {
+        "title": "Revisionen",
+        "drawerDescription": "Wähle eine Revision zum Vergleich mit dem aktuellen Eintrag. Übernehmen fügt sie ins Formular ein – Speichern behält sie.",
+        "pageTitle": "Verlauf — Eintrag #{{id}}",
+        "pageDescription": "Wähle zwei Revisionen zum Vergleichen. Wiederherstellen schreibt den Stand als neue Änderung.",
+        "backToItem": "Zurück zum Eintrag",
+        "emptyFiltered": "Keine Revisionen in diesem Zeitraum. Filter leeren oder Zeitraum erweitern.",
+        "empty": "Noch keine Revisionen. Speichern, Entwürfe, Veröffentlichen und Wiederherstellen erscheinen hier.",
+        "hard": "Direkt",
+        "hardRestore": "Direkt wiederherstellen",
+        "hardRestoreHint": "Direkt wiederherstellen (schreibt sofort)",
+        "restore": "Wiederherstellen",
+        "compare": "Vergleichen",
+        "compareHint": "Wähle zwei Revisionen, um die Unterschiede zu sehen.",
+        "field": "Feld",
+        "selectRevision": "Revision #{{id}} auswählen"
     }
 }
