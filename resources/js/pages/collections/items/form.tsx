@@ -92,7 +92,6 @@ import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollection } from '@/hooks/use-collection';
-import { formatUserDisplayName } from '@/hooks/use-initials';
 import { useItemPresence } from '@/hooks/use-item-presence';
 import {
     useRegisterUnsavedChanges,
@@ -102,6 +101,7 @@ import AppLayout from '@/layouts/app-layout';
 import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
+import { formatUserDisplayName } from '@/lib/format';
 import { toDatetimeLocalValue } from '@/lib/format';
 import {
     applyItemDraftToForm,

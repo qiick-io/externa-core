@@ -5,6 +5,7 @@ import {
     formatDateTime,
     formatFileSize,
     formatNumber,
+    formatUserDisplayName,
     initialsFromName,
     speechRecognitionLang,
     toDatetimeLocalValue,
@@ -66,6 +67,18 @@ describe('initialsFromName', () => {
         expect(initialsFromName('Ada Lovelace')).toBe('AL');
         expect(initialsFromName('Ada')).toBe('AD');
         expect(initialsFromName('  ')).toBe('?');
+    });
+
+    it('takes the first and the last word', () => {
+        expect(initialsFromName('Maria Grazia Rossi')).toBe('MR');
+    });
+});
+
+describe('formatUserDisplayName', () => {
+    it('joins trimmed name parts', () => {
+        expect(formatUserDisplayName('Ada', 'Lovelace')).toBe('Ada Lovelace');
+        expect(formatUserDisplayName('Ada', null)).toBe('Ada');
+        expect(formatUserDisplayName('', null)).toBe('');
     });
 });
 
