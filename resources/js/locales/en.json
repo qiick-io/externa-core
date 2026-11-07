@@ -35,7 +35,15 @@
         "perPageOption": "{{count}} / page",
         "noResults": "No results.",
         "copy": "Copy",
-        "copied": "Copied"
+        "copied": "Copied",
+        "loading": "Loading…",
+        "loadMore": "Load more",
+        "preview": "Preview",
+        "clear": "Clear",
+        "filter": "Filter",
+        "from": "From",
+        "to": "To",
+        "system": "System"
     },
     "picker": {
         "search": "Search…",
@@ -890,7 +898,14 @@
             "copied": "Raw value copied",
             "copyFailed": "Could not copy to clipboard",
             "pasted": "Raw value pasted",
-            "pasteFailed": "Could not read clipboard"
+            "pasteFailed": "Could not read clipboard",
+            "edit": "Edit field",
+            "duplicate": "Duplicate field",
+            "showInForm": "Show field in detail",
+            "hideInForm": "Hide field in detail",
+            "delete": "Delete field",
+            "deleteFailed": "Could not delete field.",
+            "width": "Width"
         },
         "itemSave": {
             "create": "Create",
@@ -1327,6 +1342,11 @@
             "createdBy": "Created by",
             "updatedBy": "Updated by",
             "actions": "Actions"
+        },
+        "layoutWidth": {
+            "half": "Half width",
+            "full": "Full width",
+            "fill": "Fill width"
         }
     },
     "ai": {
@@ -2298,5 +2318,22 @@
             "exception": "Exception",
             "actions": "Actions"
         }
+    },
+    "revisions": {
+        "title": "Revisions",
+        "drawerDescription": "Select a revision to compare with the current item. Apply merges into the form — Save to keep.",
+        "pageTitle": "History — Item #{{id}}",
+        "pageDescription": "Select two revisions to compare. Restore writes a snapshot as a new update.",
+        "backToItem": "Back to item",
+        "emptyFiltered": "No revisions for this date range. Clear the filter or widen dates.",
+        "empty": "No revisions yet. Saves, draft edits, publish, and restores appear here.",
+        "hard": "Hard",
+        "hardRestore": "Hard restore",
+        "hardRestoreHint": "Hard restore (writes immediately)",
+        "restore": "Restore",
+        "compare": "Compare",
+        "compareHint": "Select two revisions to see field diffs.",
+        "field": "Field",
+        "selectRevision": "Select revision #{{id}}"
     }
 }

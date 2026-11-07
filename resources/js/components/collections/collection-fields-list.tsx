@@ -1,6 +1,5 @@
 import { router } from '@inertiajs/react';
 import {
-    Check,
     Columns2,
     Copy,
     Eye,
@@ -14,6 +13,7 @@ import {
     Trash2,
     Type,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,11 +28,15 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
     Item,
+    ItemActions,
     ItemContent,
     ItemDescription,
     ItemMedia,
@@ -56,6 +60,7 @@ import {
 } from '@/lib/collection-field-groups';
 import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import {
+    FIELD_LAYOUT_WIDTH_OPTIONS,
     fieldLayoutWidthLabel,
     fieldStartsNewLayoutRow,
     fieldTypeLabel,
@@ -518,6 +523,12 @@ function resolveDropRelated(
     return best;
 }
 
+/** Menu icon per field layout width. */
+const LAYOUT_WIDTH_ICONS: Record<FieldLayoutWidth, LucideIcon> = {
+    half: Columns2,
+    full: Maximize2,
+    fill: StretchHorizontal,
+};
 function CollectionFieldRowActions({
     field,
     collectionId,
@@ -583,7 +594,7 @@ function CollectionFieldRowActions({
                 onFinish: () => setDeleting(false),
                 onSuccess: () => setDeleteOpen(false),
                 onError: () => {
-                    toast.error('Could not delete field.');
+                    toast.error(t('collections.fieldMenu.deleteFailed'));
                     setDeleteOpen(false);
                 },
             },
@@ -614,7 +625,7 @@ function CollectionFieldRowActions({
                         }}
                     >
                         <Pencil className="size-4" />
-                        Modifica Campo
+                        {t('collections.fieldMenu.edit')}
                     </DropdownMenuItem>
                     {field.has_stored_values && !isGroup ? (
                         <DropdownMenuItem
@@ -634,7 +645,7 @@ function CollectionFieldRowActions({
                         }}
                     >
                         <Copy className="size-4" />
-                        Duplica Campo
+                        {t('collections.fieldMenu.duplicate')}
                     </DropdownMenuItem>
                     {isPanel ? (
                         <DropdownMenuItem
@@ -665,48 +676,38 @@ function CollectionFieldRowActions({
                             <EyeOff className="size-4" />
                         )}
                         {hiddenInForm
-                            ? 'Mostra campo nel dettaglio'
-                            : 'Nascondi campo nel dettaglio'}
+                            ? t('collections.fieldMenu.showInForm')
+                            : t('collections.fieldMenu.hideInForm')}
                     </DropdownMenuItem>
                     {!isGroup && (
                         <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    updateLayoutWidth('half');
-                                }}
+                            <DropdownMenuLabel>
+                                {t('collections.fieldMenu.width')}
+                            </DropdownMenuLabel>
+                            <DropdownMenuRadioGroup
+                                value={layoutWidth}
+                                onValueChange={(next) =>
+                                    updateLayoutWidth(next as FieldLayoutWidth)
+                                }
                             >
-                                <Columns2 className="size-4" />
-                                Metà larghezza
-                                {layoutWidth === 'half' && (
-                                    <Check className="ml-auto size-4" />
-                                )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    updateLayoutWidth('full');
-                                }}
-                            >
-                                <Maximize2 className="size-4" />
-                                Larghezza massima
-                                {layoutWidth === 'full' && (
-                                    <Check className="ml-auto size-4" />
-                                )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    updateLayoutWidth('fill');
-                                }}
-                            >
-                                <StretchHorizontal className="size-4" />
-                                Riempi larghezza
-                                {layoutWidth === 'fill' && (
-                                    <Check className="ml-auto size-4" />
-                                )}
-                            </DropdownMenuItem>
+                                {FIELD_LAYOUT_WIDTH_OPTIONS.map((width) => {
+                                    const WidthIcon = LAYOUT_WIDTH_ICONS[width];
+
+                                    return (
+                                        <DropdownMenuRadioItem
+                                            key={width}
+                                            value={width}
+                                            onClick={(event) =>
+                                                event.stopPropagation()
+                                            }
+                                        >
+                                            <WidthIcon className="size-4" />
+                                            {fieldLayoutWidthLabel(width, t)}
+                                        </DropdownMenuRadioItem>
+                                    );
+                                })}
+                            </DropdownMenuRadioGroup>
                         </>
                     )}
                     <DropdownMenuSeparator />
@@ -718,7 +719,7 @@ function CollectionFieldRowActions({
                         }}
                     >
                         <Trash2 className="size-4" />
-                        Elimina campo
+                        {t('collections.fieldMenu.delete')}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -758,23 +759,24 @@ function CollectionFieldRow({
     const layoutWidth = getFieldLayoutWidth(field.settings);
     const isGroup = isLayoutGroupType(field.type);
 
-    // Pattern: primary row action is a native <button> that opens edit;
-    // overflow actions stay a sibling control (not nested inside the row button).
+    // Pattern: the field title is a stretched native <button> (its ::after
+    // covers the row) that opens edit; the drag handle and the overflow menu
+    // sit above it (`relative z-10`) as sibling controls, never nested.
     return (
         <Item
             variant={isGroup ? 'default' : 'outline'}
             size="sm"
             className={cn(
-                'flex-nowrap gap-3 rounded-xl px-3',
+                'relative flex-nowrap gap-3 rounded-xl px-3 has-[[data-row-edit]:hover]:bg-muted/50',
                 fillHeight && 'h-full',
                 !isGroup &&
                     'border-sidebar-border/70 bg-card dark:border-sidebar-border',
                 hiddenInForm && 'opacity-80',
             )}
         >
-            <div
+            <ItemMedia
                 className={cn(
-                    'drag-handle flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground',
+                    'drag-handle relative z-10 size-9 translate-y-0 self-center rounded-md text-muted-foreground',
                     reorderEnabled
                         ? 'cursor-grab active:cursor-grabbing'
                         : 'pointer-events-none opacity-40',
@@ -785,53 +787,54 @@ function CollectionFieldRow({
                 }
             >
                 <GripVertical className="size-4" aria-hidden="true" />
-            </div>
+            </ItemMedia>
 
-            <button
-                type="button"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onEdit(field);
-                }}
-                className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-1 py-1 text-left hover:bg-muted/50"
+            <ItemMedia
+                variant="icon"
+                className="size-10 translate-y-0 self-center rounded-lg bg-muted/30"
             >
-                <ItemMedia
-                    variant="icon"
-                    className="size-10 translate-y-0 self-center rounded-lg bg-muted/30"
-                >
-                    <Icon
-                        className="size-5 text-muted-foreground"
-                        aria-hidden="true"
-                    />
-                </ItemMedia>
-                <ItemContent className="min-w-0">
-                    <ItemTitle className="w-full truncate">
+                <Icon
+                    className="size-5 text-muted-foreground"
+                    aria-hidden="true"
+                />
+            </ItemMedia>
+            <ItemContent className="min-w-0">
+                <ItemTitle className="w-full">
+                    <button
+                        type="button"
+                        data-row-edit
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit(field);
+                        }}
+                        className="min-w-0 cursor-pointer truncate text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                    >
                         {getFieldDisplayName(field.settings, field.name)}
-                    </ItemTitle>
-                    <ItemDescription className="truncate">
-                        {fieldTypeLabel(field.type, t)}
-                        {field.translatable
-                            ? t('collections.translatableSuffix')
-                            : ''}
-                        {isFieldRequired(field.settings)
-                            ? t('collections.requiredSuffix')
-                            : ''}
-                        {hiddenInForm
-                            ? t('collections.hiddenInFormSuffix')
-                            : ''}
-                        {layoutWidth !== 'full'
-                            ? ` · ${fieldLayoutWidthLabel(layoutWidth)}`
-                            : ''}
-                    </ItemDescription>
-                </ItemContent>
-            </button>
+                    </button>
+                </ItemTitle>
+                <ItemDescription className="truncate">
+                    {fieldTypeLabel(field.type, t)}
+                    {field.translatable
+                        ? t('collections.translatableSuffix')
+                        : ''}
+                    {isFieldRequired(field.settings)
+                        ? t('collections.requiredSuffix')
+                        : ''}
+                    {hiddenInForm ? t('collections.hiddenInFormSuffix') : ''}
+                    {layoutWidth !== 'full'
+                        ? ` · ${fieldLayoutWidthLabel(layoutWidth, t)}`
+                        : ''}
+                </ItemDescription>
+            </ItemContent>
 
-            <CollectionFieldRowActions
-                field={field}
-                collectionId={collectionId}
-                onEdit={onEdit}
-                allFields={allFields}
-            />
+            <ItemActions className="relative z-10">
+                <CollectionFieldRowActions
+                    field={field}
+                    collectionId={collectionId}
+                    onEdit={onEdit}
+                    allFields={allFields}
+                />
+            </ItemActions>
         </Item>
     );
 }

@@ -35,7 +35,15 @@
         "perPageOption": "{{count}} / pagina",
         "noResults": "Nessun risultato.",
         "copy": "Copia",
-        "copied": "Copiato"
+        "copied": "Copiato",
+        "loading": "Caricamento…",
+        "loadMore": "Carica altri",
+        "preview": "Anteprima",
+        "clear": "Cancella",
+        "filter": "Filtra",
+        "from": "Da",
+        "to": "A",
+        "system": "Sistema"
     },
     "picker": {
         "search": "Cerca…",
@@ -890,7 +898,14 @@
             "copied": "Valore grezzo copiato",
             "copyFailed": "Impossibile copiare negli appunti",
             "pasted": "Valore grezzo incollato",
-            "pasteFailed": "Impossibile leggere gli appunti"
+            "pasteFailed": "Impossibile leggere gli appunti",
+            "edit": "Modifica campo",
+            "duplicate": "Duplica campo",
+            "showInForm": "Mostra campo nel dettaglio",
+            "hideInForm": "Nascondi campo nel dettaglio",
+            "delete": "Elimina campo",
+            "deleteFailed": "Impossibile eliminare il campo.",
+            "width": "Larghezza"
         },
         "itemSave": {
             "create": "Crea",
@@ -1327,6 +1342,11 @@
             "createdBy": "Creato da",
             "updatedBy": "Aggiornato da",
             "actions": "Azioni"
+        },
+        "layoutWidth": {
+            "half": "Metà larghezza",
+            "full": "Larghezza massima",
+            "fill": "Riempi larghezza"
         }
     },
     "ai": {
@@ -2298,5 +2318,22 @@
             "exception": "Eccezione",
             "actions": "Azioni"
         }
+    },
+    "revisions": {
+        "title": "Revisioni",
+        "drawerDescription": "Seleziona una revisione da confrontare con l’elemento attuale. Applica la unisce al modulo: salva per mantenerla.",
+        "pageTitle": "Cronologia — Elemento #{{id}}",
+        "pageDescription": "Seleziona due revisioni da confrontare. Ripristina scrive lo snapshot come nuovo aggiornamento.",
+        "backToItem": "Torna all’elemento",
+        "emptyFiltered": "Nessuna revisione in questo intervallo. Cancella il filtro o allarga le date.",
+        "empty": "Ancora nessuna revisione. Salvataggi, bozze, pubblicazioni e ripristini compaiono qui.",
+        "hard": "Diretto",
+        "hardRestore": "Ripristino diretto",
+        "hardRestoreHint": "Ripristino diretto (scrive subito)",
+        "restore": "Ripristina",
+        "compare": "Confronta",
+        "compareHint": "Seleziona due revisioni per vedere le differenze.",
+        "field": "Campo",
+        "selectRevision": "Seleziona revisione #{{id}}"
     }
 }

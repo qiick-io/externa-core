@@ -1,8 +1,9 @@
 import { usePage } from '@inertiajs/react';
-import { Check, FolderOpen, ImageIcon } from 'lucide-react';
+import { FolderOpen } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileDropzone } from '@/components/admin/file-dropzone';
+import { FileCard } from '@/components/admin/files/file-card';
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -32,14 +33,12 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import {
     CHUNK_SIZE_BYTES,
-    filePublicUrl,
     isImageFile,
     listFilesPage,
     uploadFileChunked,
     uploadFileDirect,
 } from '@/lib/files-api';
 import { STRING_LIMITS } from '@/lib/string-limits';
-import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileBreadcrumb } from '@/types/files';
 
 type FilePickerDrawerProps = {
@@ -352,63 +351,27 @@ export function FilePickerDrawer({
                                 </EmptyHeader>
                             </Empty>
                         )}
-                        {visibleFiles.map((file) => {
-                            const publicUrl = filePublicUrl(file);
-                            const isFolder = file.type === 'folder';
-                            const isSelected =
-                                multiple &&
-                                selected.some((row) => row.id === file.id);
+                        {visibleFiles.map((file) => (
+                            <FileCard
+                                key={file.id}
+                                file={file}
+                                selected={
+                                    multiple &&
+                                    selected.some((row) => row.id === file.id)
+                                }
+                                multiSelectMode={multiple}
+                                onSelect={() => {
+                                    if (file.type === 'folder') {
+                                        openFolder(file);
 
-                            return (
-                                <button
-                                    key={file.id}
-                                    type="button"
-                                    aria-pressed={
-                                        multiple && !isFolder
-                                            ? isSelected
-                                            : undefined
+                                        return;
                                     }
-                                    className={cn(
-                                        'relative flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:bg-muted/60',
-                                        isSelected
-                                            ? 'border-primary bg-primary/10 ring-2 ring-primary/40'
-                                            : 'border-sidebar-border/70',
-                                    )}
-                                    onClick={() => {
-                                        if (isFolder) {
-                                            openFolder(file);
 
-                                            return;
-                                        }
-
-                                        pickFile(file);
-                                    }}
-                                >
-                                    {isSelected ? (
-                                        <span className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                            <Check
-                                                className="size-3"
-                                                aria-hidden
-                                            />
-                                        </span>
-                                    ) : null}
-                                    {isFolder ? (
-                                        <FolderOpen className="size-10 text-amber-500" />
-                                    ) : publicUrl && isImageFile(file) ? (
-                                        <img
-                                            src={publicUrl}
-                                            alt={file.name}
-                                            className="size-10 rounded object-cover"
-                                        />
-                                    ) : (
-                                        <ImageIcon className="size-10 text-muted-foreground" />
-                                    )}
-                                    <span className="w-full truncate text-center text-xs font-medium">
-                                        {file.name}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                                    pickFile(file);
+                                }}
+                                onOpenFolder={() => openFolder(file)}
+                            />
+                        ))}
                     </div>
 
                     {hasMore && (
