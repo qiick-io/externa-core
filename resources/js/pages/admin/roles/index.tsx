@@ -9,6 +9,7 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { PageLayout } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -158,7 +159,10 @@ export default function AdminRolesIndex({
                 const role = row.original;
 
                 return (
-                    <div className="inline-flex items-center justify-end gap-1">
+                    <ButtonGroup
+                        aria-label={t('roles.columns.actions')}
+                        className="ml-auto"
+                    >
                         {can(PermissionEnum.CanEditRoles) && (
                             <HeaderIconButton
                                 variant="outline"
@@ -187,15 +191,16 @@ export default function AdminRolesIndex({
                             role.name !== 'super-admin' && (
                                 <HeaderIconButton
                                     type="button"
-                                    variant="destructive-ghost"
+                                    variant="outline"
                                     size="icon-sm"
+                                    className="text-destructive hover:text-destructive"
                                     label={t('roles.actions.delete')}
                                     onClick={() => setPendingRoleId(role.id)}
                                 >
                                     <Trash2 className="size-3.5" />
                                 </HeaderIconButton>
                             )}
-                    </div>
+                    </ButtonGroup>
                 );
             },
         },
