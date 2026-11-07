@@ -129,11 +129,28 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Assistant
+    |--------------------------------------------------------------------------
+    |
+    | The provider the in-app assistant (AppAssistant) runs on. Each provider
+    | below may set `reasoning.effort` (low, medium or high) and the
+    | `context_window` (tokens) the Assistant shows next to its usage.
+    |
+    */
+
+    'assistant' => [
+        'provider' => env('AI_ASSISTANT_PROVIDER', 'local'),
+    ],
+
     'providers' => [
         'anthropic' => [
             'driver' => 'anthropic',
             'key' => env('ANTHROPIC_API_KEY'),
             'url' => env('ANTHROPIC_URL', 'https://api.anthropic.com/v1'),
+            'reasoning' => ['effort' => env('ANTHROPIC_REASONING_EFFORT', 'medium')],
+            'context_window' => (int) env('ANTHROPIC_CONTEXT_WINDOW', 200000),
         ],
 
         'azure' => [
@@ -175,6 +192,8 @@ return [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),
             'url' => env('GEMINI_URL', 'https://generativelanguage.googleapis.com/v1beta/'),
+            'reasoning' => ['effort' => env('GEMINI_REASONING_EFFORT', 'medium')],
+            'context_window' => (int) env('GEMINI_CONTEXT_WINDOW', 1048576),
         ],
 
         'groq' => [
@@ -202,6 +221,8 @@ return [
             'driver' => 'openai',
             'key' => env('OPENAI_API_KEY'),
             'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+            'reasoning' => ['effort' => env('OPENAI_REASONING_EFFORT', 'medium')],
+            'context_window' => (int) env('OPENAI_CONTEXT_WINDOW', 400000),
         ],
 
         // LM Studio / vLLM / other OpenAI-compatible gateways.
@@ -210,6 +231,9 @@ return [
             'driver' => 'openai',
             'key' => env('LOCAL_AI_API_KEY', ''),
             'url' => env('LOCAL_AI_URL', 'http://127.0.0.1:1234/v1'),
+            // Unset: the local model keeps its own reasoning behaviour.
+            'reasoning' => ['effort' => env('LOCAL_AI_REASONING_EFFORT')],
+            'context_window' => (int) env('LOCAL_AI_CONTEXT_WINDOW', 131072),
             'models' => [
                 'text' => [
                     'default' => env('LOCAL_AI_MODEL', 'local-model'),
