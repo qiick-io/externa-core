@@ -92,7 +92,6 @@ import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollection } from '@/hooks/use-collection';
-import { formatUserDisplayName } from '@/hooks/use-initials';
 import { useItemPresence } from '@/hooks/use-item-presence';
 import {
     useRegisterUnsavedChanges,
@@ -102,6 +101,7 @@ import AppLayout from '@/layouts/app-layout';
 import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
+import { formatUserDisplayName } from '@/lib/format';
 import { toDatetimeLocalValue } from '@/lib/format';
 import {
     applyItemDraftToForm,
@@ -901,9 +901,9 @@ export default function ItemsForm({
                         >
                             <MessageCircle className="size-4" />
                             {chatCount > 0 ? (
-                                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                                <Badge className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full px-1 tabular-nums">
                                     {chatCount > 9 ? '9+' : chatCount}
-                                </span>
+                                </Badge>
                             ) : null}
                         </HeaderIconButton>
                     )}

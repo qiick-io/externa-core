@@ -1,17 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import {
-    Avatar,
-    AvatarFallback,
-    AvatarGroup,
-    AvatarGroupCount,
-} from '@/components/ui/avatar';
 import { BubbleReactions } from '@/components/ui/bubble';
-import { avatarToneClass } from '@/lib/avatar-tone';
-import { initialsFromName } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { ChatReaction } from '@/lib/item-chat-api';
-import { cn } from '@/lib/utils';
-
-const MAX_FACES = 3;
 
 type ChatMessageReactionsProps = {
     reactions: ChatReaction[];
@@ -20,9 +15,9 @@ type ChatMessageReactionsProps = {
 };
 
 /**
- * Reactions under a chat bubble, on shadcn `BubbleReactions`: one toggle per
- * emoji with the faces of who reacted (`AvatarGroup`, `AvatarGroupCount` past
- * three). Render it inside the `Bubble`.
+ * Reactions under a chat bubble, on shadcn `BubbleReactions`: one `Button` xs
+ * per emoji with its count, pressed when the viewer reacted, and a `Tooltip`
+ * naming who reacted. Render it inside the `Bubble`.
  */
 export function ChatMessageReactions({
     reactions,
@@ -38,46 +33,35 @@ export function ChatMessageReactions({
     return (
         <BubbleReactions align={align} data-test="chat-message-reactions">
             {reactions.map((reaction) => {
-                const users = reaction.users ?? [];
-                const names = users.map((user) => user.name).join(', ');
+                const names = (reaction.users ?? [])
+                    .map((user) => user.name)
+                    .join(', ');
 
                 return (
-                    <button
-                        key={reaction.emoji}
-                        type="button"
-                        title={names}
-                        aria-pressed={reaction.reacted}
-                        aria-label={t('collections.itemChat.reactionToggle', {
-                            emoji: reaction.emoji,
-                            names,
-                        })}
-                        className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs leading-none hover:bg-accent aria-pressed:bg-primary/15"
-                        onClick={() => onToggle(reaction.emoji)}
-                    >
-                        <span aria-hidden>{reaction.emoji}</span>
-                        <AvatarGroup className="-space-x-1" aria-hidden>
-                            {users.slice(0, MAX_FACES).map((user) => (
-                                <Avatar
-                                    key={user.id}
-                                    className="size-4 ring-1!"
-                                >
-                                    <AvatarFallback
-                                        className={cn(
-                                            avatarToneClass(user.id),
-                                            'text-xs',
-                                        )}
-                                    >
-                                        {initialsFromName(user.name)}
-                                    </AvatarFallback>
-                                </Avatar>
-                            ))}
-                            {users.length > MAX_FACES ? (
-                                <AvatarGroupCount className="size-4 text-xs ring-1">
-                                    +{users.length - MAX_FACES}
-                                </AvatarGroupCount>
-                            ) : null}
-                        </AvatarGroup>
-                    </button>
+                    <Tooltip key={reaction.emoji}>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant={
+                                    reaction.reacted ? 'secondary' : 'ghost'
+                                }
+                                size="xs"
+                                aria-pressed={reaction.reacted}
+                                aria-label={t(
+                                    'collections.itemChat.reactionToggle',
+                                    { emoji: reaction.emoji, names },
+                                )}
+                                className="rounded-full tabular-nums aria-pressed:bg-primary/15"
+                                onClick={() => onToggle(reaction.emoji)}
+                            >
+                                <span aria-hidden>{reaction.emoji}</span>
+                                <span aria-hidden>{reaction.count}</span>
+                            </Button>
+                        </TooltipTrigger>
+                        {names !== '' ? (
+                            <TooltipContent>{names}</TooltipContent>
+                        ) : null}
+                    </Tooltip>
                 );
             })}
         </BubbleReactions>

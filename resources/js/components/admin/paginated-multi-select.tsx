@@ -20,16 +20,13 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    formatUserDisplayName,
-    getInitialsFromParts,
-} from '@/hooks/use-initials';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import {
     fieldControlHeight,
     fieldFocusRing,
     fieldOpenBorder,
 } from '@/lib/field-control-chrome';
+import { formatUserDisplayName, initialsFromName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { AdminSelectOption, Paginated } from '@/types/admin';
 
@@ -334,11 +331,9 @@ export function PaginatedMultiSelect({
                                                                 'text-xs font-medium',
                                                             )}
                                                         >
-                                                            {getInitialsFromParts(
-                                                                option.first_name ??
-                                                                    name,
-                                                                option.last_name,
-                                                            ) || '?'}
+                                                            {initialsFromName(
+                                                                name,
+                                                            )}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <span className="min-w-0 flex-1">

@@ -3,6 +3,7 @@ import { PackagePlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { PackChoiceGroup } from '@/components/collections/pack-choice-group';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/dialog';
 import { Item, ItemGroup } from '@/components/ui/item';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
-import { cn } from '@/lib/utils';
 
 export type FieldPackSummary = {
     key: string;
@@ -104,28 +104,17 @@ export function ApplyFieldPackDialog({
                     </p>
                 ) : (
                     <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-2">
-                            {fieldPacks.map((pack) => (
-                                <button
-                                    key={pack.key}
-                                    type="button"
-                                    onClick={() => setSelectedKey(pack.key)}
-                                    className={cn(
-                                        'rounded-lg border px-3 py-3 text-left transition-colors',
-                                        selected?.key === pack.key
-                                            ? 'border-primary bg-primary/5'
-                                            : 'border-sidebar-border/70 hover:bg-muted/40 dark:border-sidebar-border',
-                                    )}
-                                >
-                                    <p className="font-medium">
-                                        {packLabel(pack)}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {packDescription(pack)}
-                                    </p>
-                                </button>
-                            ))}
-                        </div>
+                        <PackChoiceGroup
+                            idPrefix="field-pack"
+                            ariaLabel={t('collections.packs.addFieldPack')}
+                            packs={fieldPacks.map((pack) => ({
+                                key: pack.key,
+                                label: packLabel(pack),
+                                description: packDescription(pack),
+                            }))}
+                            value={selected?.key ?? null}
+                            onValueChange={setSelectedKey}
+                        />
 
                         {selected !== null && (
                             <div>

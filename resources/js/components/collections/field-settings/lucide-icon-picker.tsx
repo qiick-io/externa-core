@@ -6,7 +6,12 @@ import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     Popover,
     PopoverContent,
@@ -203,31 +208,33 @@ export function LucideIconPicker({
                     align="start"
                 >
                     <div className="border-b p-3">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
+                        <InputGroup>
+                            <InputGroupAddon>
+                                <Search aria-hidden="true" />
+                            </InputGroupAddon>
+                            <InputGroupInput
                                 placeholder={t('collections.meta.searchIcons')}
                                 value={query}
                                 onChange={(event) =>
                                     setQuery(event.target.value)
                                 }
-                                className="pr-8 pl-8"
                                 // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                             />
                             {query ? (
-                                <button
-                                    type="button"
-                                    className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-                                    onClick={() => setQuery('')}
-                                    aria-label={t(
-                                        'collections.meta.clearIconSearch',
-                                    )}
-                                >
-                                    <X className="size-4" />
-                                </button>
+                                <InputGroupAddon align="inline-end">
+                                    <InputGroupButton
+                                        size="icon-xs"
+                                        onClick={() => setQuery('')}
+                                        aria-label={t(
+                                            'collections.meta.clearIconSearch',
+                                        )}
+                                    >
+                                        <X />
+                                    </InputGroupButton>
+                                </InputGroupAddon>
                             ) : null}
-                        </div>
+                        </InputGroup>
                     </div>
                     <div className="max-h-72 overflow-y-auto p-3">
                         {filteredCategories.length === 0 ? (

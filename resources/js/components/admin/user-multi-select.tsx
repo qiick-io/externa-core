@@ -1,4 +1,4 @@
-import { formatUserDisplayName } from '@/hooks/use-initials';
+import { formatUserDisplayName } from '@/lib/format';
 import users from '@/routes/users';
 import type { AdminSelectOption, AdminUserRow } from '@/types/admin';
 import { PaginatedMultiSelect } from './paginated-multi-select';

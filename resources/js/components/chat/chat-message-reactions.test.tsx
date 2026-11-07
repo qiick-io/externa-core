@@ -9,6 +9,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 import { ChatMessageReactions } from '@/components/chat/chat-message-reactions';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const users = ['Alice', 'Bruno', 'Carla', 'Dario'].map((name, index) => ({
     id: index + 1,
@@ -20,22 +21,24 @@ describe('ChatMessageReactions', () => {
         cleanup();
     });
 
-    it('renders one toggle per emoji with the reactors and toggles it', () => {
+    it('renders one button per emoji with its count and toggles it', () => {
         const onToggle = vi.fn();
 
         render(
-            <ChatMessageReactions
-                align="end"
-                onToggle={onToggle}
-                reactions={[
-                    {
-                        emoji: '👍',
-                        count: 4,
-                        reacted: true,
-                        users: users as never,
-                    },
-                ]}
-            />,
+            <TooltipProvider>
+                <ChatMessageReactions
+                    align="end"
+                    onToggle={onToggle}
+                    reactions={[
+                        {
+                            emoji: '👍',
+                            count: 4,
+                            reacted: true,
+                            users: users as never,
+                        },
+                    ]}
+                />
+            </TooltipProvider>,
         );
 
         const toggle = screen.getByRole('button', {
@@ -43,7 +46,7 @@ describe('ChatMessageReactions', () => {
         });
 
         expect(toggle).toHaveAttribute('aria-pressed', 'true');
-        expect(screen.getByText('+1')).toBeInTheDocument();
+        expect(toggle).toHaveTextContent('👍4');
 
         fireEvent.click(toggle);
 

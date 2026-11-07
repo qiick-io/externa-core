@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    CircleAlert,
     Ellipsis,
     FileText,
     MoreVertical,
@@ -12,6 +13,7 @@ import type { DragEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
+import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
 import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
@@ -29,11 +31,14 @@ import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import type { ChatMessageScrollerHandle } from '@/components/chat/chat-message-scroller';
 import { ChatOutgoingAttachPreview } from '@/components/chat/chat-outgoing-attach-preview';
 import type { PendingChatMessage } from '@/components/chat/chat-outgoing-attach-preview';
+import { ChatPinnedBar } from '@/components/chat/chat-pinned-bar';
+import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
 import { ChatUserHoverCard } from '@/components/chat/chat-user-hover-card';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
@@ -1971,43 +1976,26 @@ export function ItemChatDrawer({
                             </Button>
                         ) : null}
                         {error ? (
-                            <p className="text-sm text-destructive">{error}</p>
+                            <Alert variant="destructive">
+                                <CircleAlert />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
                         ) : null}
-                        {pinned.length > 0 ? (
-                            <div className="flex flex-col gap-1 rounded-md border bg-muted/40 p-2">
-                                {pinned.map((row) => {
-                                    return (
-                                        <button
-                                            key={row.id}
-                                            type="button"
-                                            className="flex items-center gap-2 text-left text-xs"
-                                            onClick={() =>
-                                                scrollToMessage(row.id)
-                                            }
-                                        >
-                                            <Pin className="size-3 shrink-0 text-muted-foreground" />
-                                            <span className="min-w-0 truncate">
-                                                <span className="font-medium text-foreground">
-                                                    {row.user?.name ?? ''}
-                                                </span>
-                                                {row.body !== '' ? (
-                                                    <>
-                                                        {': '}
-                                                        {renderMessageBody(
-                                                            row.body,
-                                                            row.mentioned_users ??
-                                                                [],
-                                                            row.mentioned_collections ??
-                                                                [],
-                                                        )}
-                                                    </>
-                                                ) : null}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ) : null}
+                        <ChatPinnedBar
+                            rows={pinned.map((row) => ({
+                                id: row.id,
+                                author: row.user?.name ?? '',
+                                body:
+                                    row.body !== ''
+                                        ? renderMessageBody(
+                                              row.body,
+                                              row.mentioned_users ?? [],
+                                              row.mentioned_collections ?? [],
+                                          )
+                                        : '',
+                            }))}
+                            onSelect={scrollToMessage}
+                        />
                         {messageGroups.map((group) => (
                             <MessageGroup
                                 key={group.key}
@@ -2236,35 +2224,26 @@ export function ItemChatDrawer({
                                                                                                         'pt-2',
                                                                                                 )}
                                                                                             >
-                                                                                                {comment.reply_to ? (
-                                                                                                    <button
-                                                                                                        type="button"
-                                                                                                        className="w-full rounded-md border-l-2 border-border bg-foreground/5 px-2 py-1 text-left"
-                                                                                                        onClick={() =>
-                                                                                                            scrollToMessage(
-                                                                                                                comment
-                                                                                                                    .reply_to!
-                                                                                                                    .id,
-                                                                                                            )
-                                                                                                        }
-                                                                                                    >
-                                                                                                        <div className="text-xs font-medium text-foreground">
-                                                                                                            {
-                                                                                                                comment
-                                                                                                                    .reply_to
-                                                                                                                    .user
-                                                                                                                    ?.name
-                                                                                                            }
-                                                                                                        </div>
-                                                                                                        <div className="truncate text-xs text-muted-foreground">
-                                                                                                            {
-                                                                                                                comment
-                                                                                                                    .reply_to
-                                                                                                                    .body
-                                                                                                            }
-                                                                                                        </div>
-                                                                                                    </button>
-                                                                                                ) : null}
+                                                                                                <ChatReplyQuote
+                                                                                                    author={
+                                                                                                        comment
+                                                                                                            .reply_to
+                                                                                                            .user
+                                                                                                            ?.name
+                                                                                                    }
+                                                                                                    body={
+                                                                                                        comment
+                                                                                                            .reply_to
+                                                                                                            .body
+                                                                                                    }
+                                                                                                    onSelect={() =>
+                                                                                                        scrollToMessage(
+                                                                                                            comment
+                                                                                                                .reply_to!
+                                                                                                                .id,
+                                                                                                        )
+                                                                                                    }
+                                                                                                />
                                                                                             </div>
                                                                                         ) : null}
                                                                                         {hasMedia ? (
@@ -2491,27 +2470,23 @@ export function ItemChatDrawer({
                     className={variant === 'pane' ? 'p-3' : undefined}
                 >
                     {replyTo ? (
-                        <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-2">
-                            <div className="min-w-0 flex-1 border-l-2 border-border pl-2 text-xs">
-                                <div className="font-medium text-foreground">
-                                    {replyTo.user?.name}
-                                </div>
-                                <div className="truncate text-muted-foreground">
-                                    {storedBodyToDraft(
-                                        replyTo.body,
-                                        replyTo.mentioned_users,
-                                    )}
-                                </div>
-                            </div>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="h-6 px-1"
-                                onClick={() => setReplyTo(null)}
-                            >
-                                {t('common.cancel')}
-                            </Button>
-                        </div>
+                        <ChatReplyQuote
+                            author={replyTo.user?.name}
+                            body={storedBodyToDraft(
+                                replyTo.body,
+                                replyTo.mentioned_users,
+                            )}
+                            action={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => setReplyTo(null)}
+                                >
+                                    {t('common.cancel')}
+                                </Button>
+                            }
+                        />
                     ) : null}
                     <ChatMentionMenu
                         {...mentionMenu}
@@ -2578,23 +2553,13 @@ export function ItemChatDrawer({
                                             className="w-64 p-2"
                                             align="start"
                                         >
-                                            <div className="grid grid-cols-8 gap-1">
-                                                {EMOJI_GRID.map((emoji) => (
-                                                    <button
-                                                        key={emoji}
-                                                        type="button"
-                                                        className="rounded p-1 text-lg hover:bg-muted"
-                                                        onClick={() => {
-                                                            insertAtCaret(
-                                                                emoji,
-                                                            );
-                                                            setEmojiOpen(false);
-                                                        }}
-                                                    >
-                                                        {emoji}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <ChatEmojiGrid
+                                                emojis={EMOJI_GRID}
+                                                onSelect={(emoji) => {
+                                                    insertAtCaret(emoji);
+                                                    setEmojiOpen(false);
+                                                }}
+                                            />
                                         </PopoverContent>
                                     </Popover>
                                     <Button

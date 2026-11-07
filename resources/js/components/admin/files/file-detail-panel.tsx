@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { FilePreview } from '@/components/admin/files/file-preview';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -112,25 +113,29 @@ function DetailMediaPreview({ file }: { file: AdminFileRow }) {
 
     if (publicUrl && isImageFile(file)) {
         return (
-            <img
-                src={publicUrl}
-                alt={file.title || file.name}
-                className="max-h-64 w-full rounded object-contain"
-            />
+            <AspectRatio ratio={16 / 9} className="rounded bg-muted">
+                <img
+                    src={publicUrl}
+                    alt={file.title || file.name}
+                    className="size-full rounded object-contain"
+                />
+            </AspectRatio>
         );
     }
 
     if (publicUrl && isPlayableVideo(file)) {
         return (
-            <video
-                controls
-                preload="metadata"
-                src={publicUrl}
-                className="max-h-64 w-full rounded bg-black"
-            >
-                {/* User-uploaded media has no captions track available. */}
-                <track kind="captions" />
-            </video>
+            <AspectRatio ratio={16 / 9} className="rounded bg-black">
+                <video
+                    controls
+                    preload="metadata"
+                    src={publicUrl}
+                    className="size-full rounded"
+                >
+                    {/* User-uploaded media has no captions track available. */}
+                    <track kind="captions" />
+                </video>
+            </AspectRatio>
         );
     }
 
