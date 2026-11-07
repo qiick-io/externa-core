@@ -5,6 +5,7 @@ import { DataTable } from '@/components/admin/data-table';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editProfile } from '@/routes/profile';
@@ -119,11 +120,14 @@ export default function JobsIndex({
             header: t('jobs.columns.actions'),
             meta: {
                 headerClassName: 'text-right',
-                cellClassName: 'space-x-2 text-right whitespace-nowrap',
+                cellClassName: 'text-right whitespace-nowrap',
             },
             cell: ({ row }) =>
                 can_manage ? (
-                    <>
+                    <ButtonGroup
+                        aria-label={t('jobs.columns.actions')}
+                        className="ml-auto"
+                    >
                         <Button
                             type="button"
                             size="sm"
@@ -139,7 +143,7 @@ export default function JobsIndex({
                         <Button
                             type="button"
                             size="sm"
-                            variant="destructive"
+                            variant="destructive-outline"
                             onClick={() =>
                                 router.delete(
                                     `/settings/jobs/${row.original.uuid}`,
@@ -148,7 +152,7 @@ export default function JobsIndex({
                         >
                             {t('common.delete')}
                         </Button>
-                    </>
+                    </ButtonGroup>
                 ) : null,
         },
     ];
