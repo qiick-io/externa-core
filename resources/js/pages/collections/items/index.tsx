@@ -232,6 +232,8 @@ function SortableHeader({
     onAlign,
     onHide,
 }: SortableHeaderProps) {
+    const { t } = useTranslation();
+
     return (
         <TableHead
             data-id={id}
@@ -242,7 +244,7 @@ function SortableHeader({
                 <button
                     type="button"
                     className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
-                    aria-label={`Reorder ${label}`}
+                    aria-label={t('collections.reorderColumn', { label })}
                 >
                     <GripVertical className="size-3.5" />
                 </button>

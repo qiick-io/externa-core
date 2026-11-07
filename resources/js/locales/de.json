@@ -1347,7 +1347,10 @@
             "half": "Halbe Breite",
             "full": "Volle Breite",
             "fill": "Breite füllen"
-        }
+        },
+        "openCollection": "{{name}} öffnen",
+        "reorderColumn": "{{label}} verschieben",
+        "noFieldsMatch": "Keine Felder entsprechen deiner Suche."
     },
     "ai": {
         "drawer": {

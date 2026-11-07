@@ -17,6 +17,7 @@ import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { FileDetailDrawer } from '@/components/admin/files/file-detail-drawer';
 import { FilePreview } from '@/components/admin/files/file-preview';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -322,11 +323,9 @@ function SingleImageFilledPreview({
 
     return (
         <>
-            <div
-                className={cn(
-                    'group relative overflow-hidden bg-muted',
-                    FILE_FIELD_SLOT_CLASS,
-                )}
+            <AspectRatio
+                ratio={16 / 9}
+                className="group overflow-hidden rounded-md bg-muted"
             >
                 {imageSources ? (
                     <img
@@ -426,7 +425,7 @@ function SingleImageFilledPreview({
                         ) : null}
                     </div>
                 </div>
-            </div>
+            </AspectRatio>
 
             <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
                 <DialogContent className="max-h-[90vh] max-w-[90vw] border-0 bg-black p-2 sm:max-w-[90vw]">

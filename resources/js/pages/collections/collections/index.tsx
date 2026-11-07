@@ -621,7 +621,12 @@ export default function CollectionsIndex({
                                                 aria-label={
                                                     isTrashed
                                                         ? undefined
-                                                        : `Open ${c.name}`
+                                                        : t(
+                                                              'collections.openCollection',
+                                                              {
+                                                                  name: c.name,
+                                                              },
+                                                          )
                                                 }
                                                 onClick={() => {
                                                     if (!isTrashed) {
