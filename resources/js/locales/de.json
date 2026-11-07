@@ -1599,7 +1599,9 @@
             },
             "parameters": "Parameter",
             "result": "Ergebnis",
-            "error": "Fehler"
+            "error": "Fehler",
+            "steps_one": "{{count}} Werkzeugschritt",
+            "steps_other": "{{count}} Werkzeugschritte"
         },
         "approval": {
             "request": "Der Assistent möchte {{tools}} ausführen.",
@@ -1664,7 +1666,24 @@
         "selectConversation": "{{title}} auswählen",
         "bulkDeleteTitle": "Ausgewählte Chats löschen?",
         "bulkDeleteDescription_one": "Sie löschen {{count}} Chat. Dies kann nicht rückgängig gemacht werden.",
-        "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden."
+        "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden.",
+        "reasoning": {
+            "thinking": "Denkt nach…",
+            "thoughtFor_one": "{{count}} Sekunde nachgedacht",
+            "thoughtFor_other": "{{count}} Sekunden nachgedacht",
+            "thoughtFewSeconds": "Ein paar Sekunden nachgedacht"
+        },
+        "sources": {
+            "used_one": "{{count}} Quelle verwendet",
+            "used_other": "{{count}} Quellen verwendet"
+        },
+        "usage": {
+            "trigger": "Kontext genutzt: {{percent}}",
+            "input": "Eingabe",
+            "output": "Ausgabe",
+            "reasoning": "Denken",
+            "cache": "Cache"
+        }
     },
     "dashboard": {
         "title": "Dashboard",

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
+use App\Ai\Agents\AppAssistant;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
@@ -22,13 +23,23 @@ class AiStatusController extends Controller
         $cached = Cache::get('ai.status');
 
         if (is_array($cached) && ($cached['online'] ?? false) === true) {
-            return response()->json($cached);
+            return response()->json([...$cached, 'context_window' => $this->contextWindow()]);
         }
 
         $status = $this->probeLocalProvider();
         Cache::put('ai.status', $status, ($status['online'] ?? false) ? 15 : 3);
 
-        return response()->json($status);
+        return response()->json([...$status, 'context_window' => $this->contextWindow()]);
+    }
+
+    /**
+     * Context window (tokens) of the provider the assistant runs on, for the usage display.
+     */
+    private function contextWindow(): ?int
+    {
+        $window = config('ai.providers.'.(new AppAssistant)->provider().'.context_window');
+
+        return is_numeric($window) && (int) $window > 0 ? (int) $window : null;
     }
 
     /**
