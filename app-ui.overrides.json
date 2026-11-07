@@ -15,5 +15,6 @@
     "resources/js/components/user-info.tsx": "externa-core takes its User type; the registry takes a generic { id, name, email, avatar? } user.",
     "resources/js/components/admin/files/file-grid.tsx": "externa-core's grid takes its file rows, permissions and drag-and-drop callbacks; the registry FileGrid is generic over the item.",
     "resources/js/components/admin/files/file-card.tsx": "externa-core's card takes an AdminFileRow; the registry FileCard takes name, preview, cover, tags, badges and actions.",
-    "resources/js/lib/list-per-page.ts": "externa-core keeps the rows-per-page helpers in lib/pagination.ts, where the registry's list-per-page.ts was extracted from."
+    "resources/js/lib/list-per-page.ts": "externa-core keeps the rows-per-page helpers in lib/pagination.ts, where the registry's list-per-page.ts was extracted from.",
+    "resources/js/components/admin/paginated-multi-select.tsx": "externa-core is the source of this item. It takes AdminSelectOption / Paginated from @/types/admin, the field chrome from lib/field-control-chrome.ts and the name helpers from lib/format.ts, and defaults the placeholder to 'Select…'; the registry declares PickerOption in the file, inlines the field classes, uses getInitials from user-avatar and translates the placeholder (picker.placeholder)."
 }
