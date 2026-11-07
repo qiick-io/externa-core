@@ -1007,6 +1007,7 @@
             "sendError": "Could not send message.",
             "reply": "Reply",
             "copyText": "Copy text",
+            "copyFailed": "Could not copy the message",
             "pin": "Pin",
             "unpin": "Unpin",
             "pinned": "Pinned messages",

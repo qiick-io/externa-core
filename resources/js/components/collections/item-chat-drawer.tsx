@@ -80,6 +80,7 @@ import { useCan } from '@/hooks/use-can';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import { formatDateTime, initialsFromName } from '@/lib/format';
 import {
@@ -117,6 +118,7 @@ import {
 } from '@/lib/item-chat-mentions';
 import { applyReactionToggle } from '@/lib/item-chat-reactions';
 import { pendingMatchesEchoMessage } from '@/lib/pending-chat-match';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat/store';
 import { mergeLatestPage } from '@/stores/chat/types';
@@ -1604,7 +1606,11 @@ export function ItemChatDrawer({
 
     const copyMessageText = (message: ItemChatMessage): void => {
         const text = storedBodyToDraft(message.body, message.mentioned_users);
-        void navigator.clipboard.writeText(text);
+        void copyTextToClipboard(text).then((copied) => {
+            if (!copied) {
+                toast.error(t('collections.itemChat.copyFailed'));
+            }
+        });
     };
 
     const onReact = (message: ItemChatMessage, emoji: string): void => {
