@@ -9,6 +9,7 @@ import {
     FilePreview,
     hasCoverMedia,
 } from '@/components/admin/files/file-preview';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -175,18 +176,23 @@ export function FileCard({
         ) : null;
 
     const card = (
-        <div
+        <AspectRatio
+            ratio={1}
             draggable={canDrag && !isFolder && !isTrashed}
             data-file-id={file.id}
             data-testid={`file-card-${file.id}`}
             className={cn(
-                'group relative aspect-square w-full min-w-0 overflow-hidden rounded-xl border transition-colors',
+                'group w-full min-w-0 overflow-hidden rounded-xl border transition-colors',
                 useCoverLayout
                     ? 'bg-muted/30'
                     : 'flex flex-col items-center bg-card p-3 hover:bg-muted/40',
                 'border-sidebar-border/70',
-                selected && 'bg-muted/50 ring-2 ring-primary',
-                isDropTarget && 'ring-2 ring-primary',
+                // The selection ring is drawn by an inset overlay above the
+                // cover media: an outer ring-2 is cut by the grid's scroll
+                // container on the outer columns and rows.
+                (selected || isDropTarget) &&
+                    'after:pointer-events-none after:absolute after:inset-0 after:z-30 after:rounded-xl after:ring-2 after:ring-primary after:ring-inset',
+                selected && 'bg-muted/50',
                 isTrashed && 'opacity-80',
             )}
             onMouseEnter={() => setHovered(true)}
@@ -327,7 +333,7 @@ export function FileCard({
                     {tagsRow}
                 </div>
             )}
-        </div>
+        </AspectRatio>
     );
 
     if (actions.length === 0) {
