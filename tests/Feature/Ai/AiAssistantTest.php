@@ -95,6 +95,19 @@ test('ai status reports online when models endpoint succeeds', function () {
         ->assertJsonPath('model', config('ai.providers.local.models.text.default'));
 });
 
+test('ai status reports the context window of the assistant provider', function () {
+    Http::fake([
+        'http://127.0.0.1:1234/v1/models' => Http::response(['data' => [['id' => 'local-model']]], 200),
+    ]);
+    config(['ai.assistant.provider' => 'local', 'ai.providers.local.context_window' => 32768]);
+
+    $this->actingAs(grantAiPermissions(User::factory()->create(), [PermissionEnum::CanUseAi->value]));
+
+    $this->getJson(route('ai.status'))
+        ->assertOk()
+        ->assertJsonPath('context_window', 32768);
+});
+
 test('users only see their own conversations', function () {
     $owner = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
