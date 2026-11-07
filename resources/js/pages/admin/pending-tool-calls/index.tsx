@@ -5,6 +5,7 @@ import { DataTable } from '@/components/admin/data-table';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editProfile } from '@/routes/profile';
@@ -85,14 +86,17 @@ export default function PendingToolCallsIndex({
             header: t('pendingToolCalls.colActions'),
             meta: {
                 headerClassName: 'text-right',
-                cellClassName: 'space-x-2 text-right whitespace-nowrap',
+                cellClassName: 'text-right whitespace-nowrap',
             },
             cell: ({ row }) => (
-                <>
+                <ButtonGroup
+                    aria-label={t('pendingToolCalls.colActions')}
+                    className="ml-auto"
+                >
                     <Button
                         type="button"
                         size="sm"
-                        variant="destructive"
+                        variant="destructive-outline"
                         onClick={() =>
                             router.post(
                                 `/settings/pending-tool-calls/${row.original.id}/approve`,
@@ -113,7 +117,7 @@ export default function PendingToolCallsIndex({
                     >
                         {t('pendingToolCalls.reject')}
                     </Button>
-                </>
+                </ButtonGroup>
             ),
         },
     ];
