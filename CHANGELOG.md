@@ -116,8 +116,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Success messages appear as a short message at the top centre; errors, warnings and info as top-right notifications; form validation errors show under their fields (#519).
 - Avatars: per-user colours on the shadcn avatar, presence as a badge at the bottom right everywhere (green online, grey offline, red only when the realtime connection is lost), groups show three members and +N (#545, #560).
 - Dashboard views are routed tabs with stat cards and chart containers (#517, #542).
-- File cards show the name and tags below the preview instead of over the image, and the details panel sets an image's focal point by clicking its preview (arrow keys nudge it); the unused Translate X / Translate Y / Scale fields are gone from the panel (#583, #584).
+- File and folder cards are square: the preview fills the card edge to edge on the image's focal point, with one row below for the name, a tags hover card and a ⋮ menu with the same actions as right-click; the grid shows two columns on phones and cards of at least 15rem elsewhere. The details panel sets an image's focal point by clicking its preview (arrow keys nudge it); the unused Translate X / Translate Y / Scale fields are gone from the panel (#583, #584, #592, #596).
 - Every admin table uses one 41px row height with small avatars and row actions, and sortable column headers match the plain ones (#585, #586).
+- Every remaining hard-coded admin string is translated (en/it/de), and colours come only from theme tokens: folders and favourites use their own amber tokens, and the light-mode success, warning and info colours are one step darker so status badges meet WCAG AA (#593, #595).
+- Contributor rules come from the qiick standards pack (agent files, architecture tests, strict Eloquent models outside production, knip, and ratchets for Larastan, untranslated strings and raw colours), checked in CI together with the app-ui registry drift check (#588, #594).
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
@@ -149,6 +151,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - The selected file's outline is no longer cut by the files grid (#574).
 - Chat photos fill their bubble and the caption wraps inside it; reactions under the last message are no longer cut off (#582).
 - The user and group pickers have an accessible name (#586).
+- The dashboard's storage-per-disk card no longer fails with a server error (#589).
+- On a phone the chat shows either the conversation list or the open thread, not both squeezed side by side (#590).
+- Accessibility sweep fixes: sidebar label contrast, 24px checkbox targets, matching accessible names on collection rows and date-range pickers, focusable scroll regions; list filters wrap on phones and input groups are transparent in dark mode (#591).
 
 ## [1.3.0] - 2026-10-24
 
