@@ -1721,7 +1721,8 @@
             "output": "Output",
             "reasoning": "Ragionamento",
             "cache": "Cache"
-        }
+        },
+        "backToList": "Torna alle conversazioni"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1876,7 +1877,8 @@
         "deleteChat": "Elimina chat",
         "deleteChatError": "Impossibile eliminare la chat.",
         "messagesRegion": "Messaggi",
-        "scrollToLatest": "Vai all’ultimo messaggio"
+        "scrollToLatest": "Vai all’ultimo messaggio",
+        "backToList": "Torna alle chat"
     },
     "errors": {
         "notFound": {
