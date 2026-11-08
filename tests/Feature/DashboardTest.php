@@ -10,6 +10,7 @@ use App\Models\FileUpload;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 
@@ -247,4 +248,34 @@ test('users without permission cannot open a dashboard view', function () {
     $this->actingAs(User::factory()->create());
 
     $this->get(route('dashboard.view', ['view' => 'health']))->assertForbidden();
+});
+
+test('the deferred file stats by disk load under strict models', function () {
+    // File eager loads currentVersion by default; an aggregate select without
+    // current_version_id threw MissingAttributeException here (strict models).
+    expect(Model::preventsAccessingMissingAttributes())->toBeTrue();
+
+    $user = grantDashboardPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowDashboard->value,
+    ]);
+    $this->actingAs($user);
+
+    foreach ([100, 50] as $index => $size) {
+        File::query()->create([
+            'type' => FileTypeEnum::File,
+            'name' => "stat-{$index}.bin",
+            'path' => "/stat-{$index}.bin",
+            'disk' => 'assets',
+            'size' => $size,
+        ]);
+    }
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->missing('fileStatsByDisk')
+            ->loadDeferredProps('storage', fn (AssertableInertia $reload) => $reload
+                ->where('fileStatsByDisk', [
+                    ['disk' => 'assets', 'files_count' => 2, 'files_size_sum' => 150],
+                ])));
 });
