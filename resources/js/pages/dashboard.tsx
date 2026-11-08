@@ -1442,7 +1442,13 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                                     {row.length.toLocaleString()}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
-                                                    {row.wait.toLocaleString()}s
+                                                    {t(
+                                                        'dashboard.healthWorkloadWaitSeconds',
+                                                        {
+                                                            seconds:
+                                                                row.wait.toLocaleString(),
+                                                        },
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
                                                     {row.processes.toLocaleString()}

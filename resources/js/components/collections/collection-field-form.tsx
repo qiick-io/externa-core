@@ -302,17 +302,18 @@ function OptionsEditor({
     return (
         <div className="space-y-4">
             <div>
-                <Label>Choices</Label>
+                <Label>{t('collections.fieldSettings.form.choices')}</Label>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Add the values users can pick from. Label is shown in the
-                    interface; value is stored in the database.
+                    {t('collections.fieldSettings.form.choicesHint')}
                 </p>
             </div>
             <div className="space-y-3">
                 {options.map((option, index) => (
                     <div key={index} className="flex gap-3">
                         <Input
-                            placeholder="Value"
+                            placeholder={t(
+                                'collections.fieldSettings.rules.value',
+                            )}
                             value={option.value}
                             onChange={(event) => {
                                 const next = [...options];
@@ -324,7 +325,9 @@ function OptionsEditor({
                             }}
                         />
                         <Input
-                            placeholder="Label"
+                            placeholder={t(
+                                'collections.fieldSettings.form.optionLabel',
+                            )}
                             value={option.label}
                             onChange={(event) => {
                                 const next = [...options];
@@ -355,7 +358,7 @@ function OptionsEditor({
                 variant="outline"
                 onClick={() => onChange([...options, { value: '', label: '' }])}
             >
-                Add choice
+                {t('collections.fieldSettings.form.addChoice')}
             </Button>
         </div>
     );
@@ -386,11 +389,11 @@ function TreeOptionsEditor({
         <div className="space-y-4" style={{ paddingLeft: depth > 0 ? 16 : 0 }}>
             {depth === 0 && (
                 <div>
-                    <Label>Tree choices</Label>
+                    <Label>
+                        {t('collections.fieldSettings.form.treeChoices')}
+                    </Label>
                     <p className="mt-2 text-sm text-muted-foreground">
-                        Define nested options. Checking a parent selects all
-                        descendants; mixed children show an indeterminate
-                        parent.
+                        {t('collections.fieldSettings.form.treeChoicesHint')}
                     </p>
                 </div>
             )}
@@ -399,7 +402,9 @@ function TreeOptionsEditor({
                 <div key={index} className="space-y-3 rounded-lg border p-3">
                     <div className="flex gap-3">
                         <Input
-                            placeholder="Value"
+                            placeholder={t(
+                                'collections.fieldSettings.rules.value',
+                            )}
                             value={option.value}
                             onChange={(event) =>
                                 updateNode(index, (node) => ({
@@ -409,7 +414,9 @@ function TreeOptionsEditor({
                             }
                         />
                         <Input
-                            placeholder="Label"
+                            placeholder={t(
+                                'collections.fieldSettings.form.optionLabel',
+                            )}
                             value={option.label}
                             onChange={(event) =>
                                 updateNode(index, (node) => ({
@@ -456,7 +463,7 @@ function TreeOptionsEditor({
                             }))
                         }
                     >
-                        Add child
+                        {t('collections.fieldSettings.form.addChild')}
                     </Button>
                 </div>
             ))}
@@ -472,7 +479,7 @@ function TreeOptionsEditor({
                         ])
                     }
                 >
-                    Add root choice
+                    {t('collections.fieldSettings.form.addRootChoice')}
                 </Button>
             )}
         </div>
@@ -550,6 +557,7 @@ function NestedRelationSettings({
     showJunctionFields?: boolean;
     onChange: (next: Record<string, unknown>) => void;
 }) {
+    const { t } = useTranslation();
     const relatedCollectionId = String(settings.related_collection_id ?? '');
     const displayField = String(settings.display_field ?? 'title');
     const junctionJson = Array.isArray(settings.junction_fields)
@@ -561,11 +569,14 @@ function NestedRelationSettings({
     return (
         <div className="space-y-3 rounded-md bg-muted/30 p-3">
             <p className="text-xs text-muted-foreground">
-                Nested relations are stored as JSON links inside the block (not
-                junction tables).
+                {t('collections.fieldSettings.form.nestedRelationHint')}
             </p>
             <Field>
-                <FieldLabel>Related collection</FieldLabel>
+                <FieldLabel>
+                    {t(
+                        'collections.fieldSettings.relational.relatedCollection',
+                    )}
+                </FieldLabel>
                 <NativeSelect
                     value={relatedCollectionId}
                     onChange={(event) =>
@@ -578,7 +589,11 @@ function NestedRelationSettings({
                     }
                     className="w-full"
                 >
-                    <option value="">Select a collection…</option>
+                    <option value="">
+                        {t(
+                            'collections.fieldSettings.relational.selectCollection',
+                        )}
+                    </option>
                     {relatedCollections.map((relatedCollection) => (
                         <option
                             key={relatedCollection.id}
@@ -590,7 +605,9 @@ function NestedRelationSettings({
                 </NativeSelect>
             </Field>
             <Field>
-                <FieldLabel>Display field</FieldLabel>
+                <FieldLabel>
+                    {t('collections.fieldSettings.relational.displayField')}
+                </FieldLabel>
                 <Input
                     value={displayField}
                     onChange={(event) =>
@@ -604,7 +621,9 @@ function NestedRelationSettings({
             </Field>
             {showJunctionFields ? (
                 <Field>
-                    <FieldLabel>Junction meta fields (JSON)</FieldLabel>
+                    <FieldLabel>
+                        {t('collections.fieldSettings.form.junctionMetaFields')}
+                    </FieldLabel>
                     <Textarea
                         value={junctionJson}
                         onChange={(event) => {
@@ -643,6 +662,7 @@ function NestedM2aSettings({
     relatedCollections: RelatedCollectionOption[];
     onChange: (next: Record<string, unknown>) => void;
 }) {
+    const { t } = useTranslation();
     const idPrefix = useId();
     const allowedIds = parseAllowedCollectionIds(settings);
     const allowDuplicates =
@@ -654,7 +674,9 @@ function NestedM2aSettings({
         <div className="space-y-3 rounded-md bg-muted/30 p-3">
             <FieldSet className="gap-3">
                 <FieldLegend variant="label" className="mb-0">
-                    Allowed collections
+                    {t(
+                        'collections.fieldSettings.relational.allowedCollections',
+                    )}
                 </FieldLegend>
                 <div className="space-y-2">
                     {relatedCollections.map((relatedCollection) => {
@@ -715,7 +737,9 @@ function NestedM2aSettings({
                     htmlFor={`${idPrefix}_allow_duplicates`}
                     className="font-normal"
                 >
-                    Allow duplicate links
+                    {t(
+                        'collections.fieldSettings.relational.allowDuplicateLinks',
+                    )}
                 </FieldLabel>
             </Field>
         </div>
@@ -797,19 +821,30 @@ function BlocksSettingsEditor({
         <div className="space-y-4">
             <div>
                 <Label>
-                    {depth === 1 ? 'Block types' : 'Inner block types'}
+                    {depth === 1
+                        ? t('collections.fieldSettings.blocks.blockTypes')
+                        : t('collections.fieldSettings.blocks.innerBlockTypes')}
                 </Label>
                 <p className="mt-2 text-sm text-muted-foreground">
                     {depth === 1
-                        ? `Define the inline block schema for this field. Keys must be lowercase snake_case (e.g. rich_text). Nesting depth max ${cappedMax} (ceiling ${MAX_BLOCKS_DEPTH}).`
-                        : `Inner blocks (depth ${depth}/${cappedMax}). Further blocks nesting is disabled at this depth.`}
+                        ? t('collections.fieldSettings.blocks.blockTypesHint', {
+                              max: cappedMax,
+                              ceiling: MAX_BLOCKS_DEPTH,
+                          })
+                        : t(
+                              'collections.fieldSettings.blocks.innerBlockTypesHint',
+                              {
+                                  depth,
+                                  max: cappedMax,
+                              },
+                          )}
                 </p>
             </div>
 
             {depth === 1 && onMaxDepthChange ? (
                 <Field className="max-w-xs">
                     <FieldLabel htmlFor="max_blocks_depth">
-                        Max nesting depth
+                        {t('collections.fieldSettings.blocks.maxDepth')}
                     </FieldLabel>
                     <Input
                         id="max_blocks_depth"
@@ -836,8 +871,10 @@ function BlocksSettingsEditor({
                         }}
                     />
                     <FieldDescription>
-                        Default {DEFAULT_BLOCKS_DEPTH}. Absolute ceiling{' '}
-                        {MAX_BLOCKS_DEPTH}.
+                        {t('collections.fieldSettings.blocks.maxDepthHint', {
+                            default: DEFAULT_BLOCKS_DEPTH,
+                            ceiling: MAX_BLOCKS_DEPTH,
+                        })}
                     </FieldDescription>
                 </Field>
             ) : null}
@@ -858,8 +895,12 @@ function BlocksSettingsEditor({
                                 aria-expanded={!collapsed}
                                 aria-label={
                                     collapsed
-                                        ? 'Expand block type'
-                                        : 'Collapse block type'
+                                        ? t(
+                                              'collections.fieldSettings.blocks.expandBlockType',
+                                          )
+                                        : t(
+                                              'collections.fieldSettings.blocks.collapseBlockType',
+                                          )
                                 }
                                 onClick={() => toggleBlockCollapsed(blockIndex)}
                             >
@@ -872,17 +913,29 @@ function BlocksSettingsEditor({
                             <span className="text-sm font-medium">
                                 {blockType.label ||
                                     blockType.key ||
-                                    `Block ${blockIndex + 1}`}
+                                    t(
+                                        'collections.fieldSettings.blocks.blockN',
+                                        { n: blockIndex + 1 },
+                                    )}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                                {blockType.fields.length} fields
+                                {t(
+                                    'collections.fieldSettings.blocks.fieldCount',
+                                    {
+                                        count: blockType.fields.length,
+                                    },
+                                )}
                             </span>
                         </div>
 
                         <div className={collapsed ? 'hidden' : 'space-y-4'}>
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <Field>
-                                    <FieldLabel>Key</FieldLabel>
+                                    <FieldLabel>
+                                        {t(
+                                            'collections.fieldSettings.form.key',
+                                        )}
+                                    </FieldLabel>
                                     <Input
                                         value={blockType.key}
                                         placeholder="rich_text"
@@ -894,10 +947,16 @@ function BlocksSettingsEditor({
                                     />
                                 </Field>
                                 <Field>
-                                    <FieldLabel>Label</FieldLabel>
+                                    <FieldLabel>
+                                        {t(
+                                            'collections.fieldSettings.form.optionLabel',
+                                        )}
+                                    </FieldLabel>
                                     <Input
                                         value={blockType.label}
-                                        placeholder="Rich text"
+                                        placeholder={t(
+                                            'collections.fieldSettings.blocks.labelPlaceholder',
+                                        )}
                                         onChange={(event) =>
                                             updateBlock(blockIndex, {
                                                 label: event.target.value,
@@ -1016,7 +1075,9 @@ function BlocksSettingsEditor({
                                                         )
                                                     }
                                                 />
-                                                I18n
+                                                {t(
+                                                    'collections.fieldSettings.blocks.i18n',
+                                                )}
                                             </label>
                                             <Button
                                                 type="button"
@@ -1031,7 +1092,9 @@ function BlocksSettingsEditor({
                                                     })
                                                 }
                                             >
-                                                Remove
+                                                {t(
+                                                    'collections.fieldSettings.blocks.remove',
+                                                )}
                                             </Button>
                                         </div>
 
@@ -1132,8 +1195,9 @@ function BlocksSettingsEditor({
 
                                         <div className="border-t pt-3">
                                             <Label className="mb-2 block text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                Conditions (vs siblings in this
-                                                block)
+                                                {t(
+                                                    'collections.fieldSettings.blocks.conditions',
+                                                )}
                                             </Label>
                                             <FieldConditionsSettings
                                                 settings={field.settings}
@@ -1210,7 +1274,9 @@ function BlocksSettingsEditor({
                                         })
                                     }
                                 >
-                                    Add nested field
+                                    {t(
+                                        'collections.fieldSettings.blocks.addNestedField',
+                                    )}
                                 </Button>
                                 <Button
                                     type="button"
@@ -1218,7 +1284,9 @@ function BlocksSettingsEditor({
                                     disabled={blockIndex === 0}
                                     onClick={() => move(blockIndex, -1)}
                                 >
-                                    Up
+                                    {t(
+                                        'collections.fieldSettings.blocks.moveUp',
+                                    )}
                                 </Button>
                                 <Button
                                     type="button"
@@ -1228,7 +1296,9 @@ function BlocksSettingsEditor({
                                     }
                                     onClick={() => move(blockIndex, 1)}
                                 >
-                                    Down
+                                    {t(
+                                        'collections.fieldSettings.blocks.moveDown',
+                                    )}
                                 </Button>
                                 <Button
                                     type="button"
@@ -1242,7 +1312,9 @@ function BlocksSettingsEditor({
                                         )
                                     }
                                 >
-                                    Delete block type
+                                    {t(
+                                        'collections.fieldSettings.blocks.deleteBlockType',
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -1257,7 +1329,7 @@ function BlocksSettingsEditor({
                     onChange([...blockTypes, nextBlockTypeDefaults(blockTypes)])
                 }
             >
-                Add block type
+                {t('collections.fieldSettings.blocks.addBlockType')}
             </Button>
         </div>
     );
@@ -1541,7 +1613,8 @@ function FieldConfigPanel({
                 <div className="space-y-6">
                     <Field data-invalid={keyError ? true : undefined}>
                         <FieldLabel htmlFor={`field_name_${mode}`}>
-                            Key <span className="text-destructive">*</span>
+                            {t('collections.fieldSettings.form.key')}{' '}
+                            <span className="text-destructive">{'*'}</span>
                         </FieldLabel>
                         <Input
                             id={`field_name_${mode}`}
@@ -1576,8 +1649,10 @@ function FieldConfigPanel({
 
                     <TranslatedInput
                         idPrefix={`display_name_${mode}`}
-                        label="Name"
-                        description="Translated label shown in the admin UI and item form."
+                        label={t('common.name')}
+                        description={t(
+                            'collections.fieldSettings.form.nameHint',
+                        )}
                         value={commonSettings.displayName}
                         onChange={(displayName) =>
                             onCommonSettingsChange((current) => ({
@@ -1595,8 +1670,10 @@ function FieldConfigPanel({
 
                     <TranslatedInput
                         idPrefix={`note_${mode}`}
-                        label="Note"
-                        description="Optional helper text shown under the field control in the item form."
+                        label={t('collections.fieldSettings.form.note')}
+                        description={t(
+                            'collections.fieldSettings.form.noteHint',
+                        )}
                         value={commonSettings.note}
                         onChange={(note) =>
                             onCommonSettingsChange((current) => ({
@@ -2111,7 +2188,7 @@ export function CollectionFieldFormDrawer({
                                 variant="outline"
                                 onClick={onCancel}
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </Button>
                             <Button type="submit" disabled={processing}>
                                 {mode === 'create'

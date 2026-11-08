@@ -430,7 +430,8 @@ export function AiContextAttachDialog({
                                                     {item.label}
                                                 </span>
                                                 <span className="block truncate text-xs text-muted-foreground">
-                                                    {item.collection_name} · #
+                                                    {item.collection_name}
+                                                    {' · #'}
                                                     {item.id}
                                                 </span>
                                             </span>

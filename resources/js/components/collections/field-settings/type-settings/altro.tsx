@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -27,22 +28,26 @@ export function AltroSettings({
     sliderShowValue,
     onSliderShowValueChange,
 }: AltroSettingsProps) {
+    const { t } = useTranslation();
+
     if (fieldType === 'hash') {
         const hashSettings = parseHashFieldSettings(settings);
 
         return (
             <div className="space-y-4">
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                    Stores an auto-generated fingerprint ID (`sha256` of a UUID)
-                    when empty on save. This is <strong>not</strong> a password
-                    hash — values are identifiers, not secrets derived from user
-                    input.
+                    <Trans
+                        i18nKey="collections.fieldSettings.altro.hashIntro"
+                        components={{ strong: <strong /> }}
+                    />
                 </p>
                 <SettingCheckbox
                     id="hash_masked"
                     name="settings[masked]"
-                    label="Mask value in editor"
-                    description="Show only a short prefix of the fingerprint after save."
+                    label={t('collections.fieldSettings.altro.hashMasked')}
+                    description={t(
+                        'collections.fieldSettings.altro.hashMaskedHint',
+                    )}
                     defaultChecked={hashSettings.masked}
                 />
             </div>
@@ -54,7 +59,9 @@ export function AltroSettings({
             <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field>
-                        <FieldLabel htmlFor="slider_min">Minimum</FieldLabel>
+                        <FieldLabel htmlFor="slider_min">
+                            {t('collections.fieldSettings.altro.minimum')}
+                        </FieldLabel>
                         <Input
                             id="slider_min"
                             type="number"
@@ -69,7 +76,9 @@ export function AltroSettings({
                         />
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="slider_max">Maximum</FieldLabel>
+                        <FieldLabel htmlFor="slider_max">
+                            {t('collections.fieldSettings.altro.maximum')}
+                        </FieldLabel>
                         <Input
                             id="slider_max"
                             type="number"
@@ -84,7 +93,9 @@ export function AltroSettings({
                         />
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="slider_step">Step</FieldLabel>
+                        <FieldLabel htmlFor="slider_step">
+                            {t('collections.fieldSettings.altro.step')}
+                        </FieldLabel>
                         <Input
                             id="slider_step"
                             type="number"
@@ -101,7 +112,7 @@ export function AltroSettings({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="slider_default">
-                            Default value
+                            {t('collections.fieldSettings.common.defaultValue')}
                         </FieldLabel>
                         <Input
                             id="slider_default"
@@ -119,8 +130,10 @@ export function AltroSettings({
                 </div>
                 <SettingCheckbox
                     id="slider_show_value"
-                    label="Show current value"
-                    description="Display the numeric value next to the slider control."
+                    label={t('collections.fieldSettings.altro.showValue')}
+                    description={t(
+                        'collections.fieldSettings.altro.showValueHint',
+                    )}
                     checked={sliderShowValue}
                     onCheckedChange={onSliderShowValueChange}
                 />

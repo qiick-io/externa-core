@@ -14,7 +14,7 @@ function Crashing() {
         throw new Error('render failed');
     }
 
-    return <p>Recovered</p>;
+    return <p>{'Recovered'}</p>;
 }
 
 afterEach(() => {

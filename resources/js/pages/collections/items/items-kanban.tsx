@@ -1,4 +1,5 @@
 import { Link, router } from '@inertiajs/react';
+import type { TFunction } from 'i18next';
 import { GripVertical } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -69,17 +70,17 @@ function formatUpdatedAt(value: string | null | undefined): string | null {
     });
 }
 
-function approvalLabel(status: string): string {
+function approvalLabel(status: string, t: TFunction): string {
     if (status === 'in_review') {
-        return 'In review';
+        return t('collections.itemToolbar.inReview');
     }
 
     if (status === 'approved') {
-        return 'Approved';
+        return t('collections.itemToolbar.approved');
     }
 
     if (status === 'rejected') {
-        return 'Rejected';
+        return t('collections.itemToolbar.rejected');
     }
 
     return status;
@@ -643,7 +644,9 @@ export function ItemsKanban({
                                                             className="shrink-0 text-xs"
                                                             data-test={`kanban-draft-badge-${item.id}`}
                                                         >
-                                                            Draft
+                                                            {t(
+                                                                'collections.itemToolbar.draft',
+                                                            )}
                                                         </Badge>
                                                     ) : null}
                                                 </div>
@@ -653,7 +656,12 @@ export function ItemsKanban({
                                                     </span>
                                                     {updated ? (
                                                         <span>
-                                                            Updated {updated}
+                                                            {t(
+                                                                'collections.items.kanban.updated',
+                                                                {
+                                                                    date: updated,
+                                                                },
+                                                            )}
                                                         </span>
                                                     ) : null}
                                                 </div>
@@ -671,6 +679,7 @@ export function ItemsKanban({
                                                     >
                                                         {approvalLabel(
                                                             approvalStatus,
+                                                            t,
                                                         )}
                                                     </Badge>
                                                 ) : null}

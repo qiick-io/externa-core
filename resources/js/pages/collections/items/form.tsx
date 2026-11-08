@@ -1451,7 +1451,7 @@ export default function ItemsForm({
                         className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
                         data-test="item-draft-banner"
                     >
-                        <span>Restored unsaved browser draft.</span>
+                        <span>{t('collections.items.form.draftRestored')}</span>
                         <Button
                             type="button"
                             variant="outline"
@@ -1463,7 +1463,7 @@ export default function ItemsForm({
                                 setFormKey((key) => key + 1);
                             }}
                         >
-                            Discard browser draft
+                            {t('collections.items.form.discardDraft')}
                         </Button>
                     </div>
                 )}
@@ -1871,7 +1871,9 @@ export default function ItemsForm({
                                             <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Created by
+                                                        {t(
+                                                            'collections.columnPicker.createdBy',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.user_created
@@ -1880,7 +1882,9 @@ export default function ItemsForm({
                                                 </div>
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Updated by
+                                                        {t(
+                                                            'collections.columnPicker.updatedBy',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.user_updated
@@ -1889,7 +1893,9 @@ export default function ItemsForm({
                                                 </div>
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Created at
+                                                        {t(
+                                                            'collections.columnPicker.createdAt',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.created_at
@@ -1901,7 +1907,9 @@ export default function ItemsForm({
                                                 </div>
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Updated at
+                                                        {t(
+                                                            'collections.columnPicker.updatedAt',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.updated_at
@@ -1930,16 +1938,24 @@ export default function ItemsForm({
                                                 <TableHeader>
                                                     <TableRow>
                                                         <TableHead>
-                                                            Date
+                                                            {t(
+                                                                'activityLog.columns.date',
+                                                            )}
                                                         </TableHead>
                                                         <TableHead>
-                                                            User
+                                                            {t(
+                                                                'activityLog.columns.user',
+                                                            )}
                                                         </TableHead>
                                                         <TableHead>
-                                                            Action
+                                                            {t(
+                                                                'activityLog.columns.action',
+                                                            )}
                                                         </TableHead>
                                                         <TableHead>
-                                                            Description
+                                                            {t(
+                                                                'activityLog.columns.description',
+                                                            )}
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
@@ -1952,8 +1968,9 @@ export default function ItemsForm({
                                                                 colSpan={4}
                                                                 className="text-muted-foreground"
                                                             >
-                                                                No activity
-                                                                recorded yet.
+                                                                {t(
+                                                                    'collections.items.form.noActivity',
+                                                                )}
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : (
@@ -1991,7 +2008,9 @@ export default function ItemsForm({
                                                                         </div>
                                                                     ) : (
                                                                         <span className="text-sm text-muted-foreground">
-                                                                            System
+                                                                            {t(
+                                                                                'activityLog.system',
+                                                                            )}
                                                                         </span>
                                                                     )}
                                                                 </TableCell>
@@ -2108,8 +2127,7 @@ export default function ItemsForm({
                     description={
                         <div className="grid gap-2 pt-1 text-left">
                             <p className="text-sm text-muted-foreground">
-                                Explain what the editor should fix before
-                                resubmitting.
+                                {t('collections.items.form.rejectHint')}
                             </p>
                             <Textarea
                                 className="min-h-24"
@@ -2118,17 +2136,21 @@ export default function ItemsForm({
                                     setRejectNote(event.target.value)
                                 }
                                 data-test="rejection-note"
-                                placeholder="Rejection note"
+                                placeholder={t(
+                                    'collections.items.form.rejectionNote',
+                                )}
                             />
                             {item.rejection_note &&
                             approvalStatus === 'rejected' ? (
                                 <p className="text-xs text-muted-foreground">
-                                    Previous note: {item.rejection_note}
+                                    {t('collections.items.form.previousNote', {
+                                        note: item.rejection_note,
+                                    })}
                                 </p>
                             ) : null}
                         </div>
                     }
-                    confirmLabel="Reject"
+                    confirmLabel={t('collections.itemToolbar.reject')}
                     confirming={rejecting}
                     onConfirm={() => {
                         if (rejectNote.trim() === '') {

@@ -1,7 +1,7 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { Rows3, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
@@ -72,7 +72,7 @@ export default function CollectionsShow({
                     <Button variant="outline" asChild>
                         <Link href={FieldController.index.url(collection.id)}>
                             <Rows3 className="size-4" />
-                            Edit fields
+                            {t('collections.itemToolbar.editFields')}
                         </Link>
                     </Button>
                     <CollectionEditButton
@@ -85,7 +85,7 @@ export default function CollectionsShow({
                         onClick={() => setDeleteOpen(true)}
                     >
                         <Trash2 className="size-4" />
-                        Delete collection
+                        {t('collections.collectionPages.deleteCollection')}
                     </Button>
                     <UnsavedChangesToolbar
                         isDirty={isDirty}
@@ -94,7 +94,7 @@ export default function CollectionsShow({
                     {hasFields && (
                         <Button type="submit" form={COLLECTION_CONTENT_FORM_ID}>
                             <Save className="size-4" />
-                            Save
+                            {t('common.save')}
                         </Button>
                     )}
                 </>
@@ -104,18 +104,21 @@ export default function CollectionsShow({
 
             <PageLayout
                 description={
-                    <>
-                        <span className="font-mono">{collection.slug}</span> ·
-                        Singleton collection. Values for this entry. Define
-                        field types and order under{' '}
-                        <Link
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={FieldController.index.url(collection.id)}
-                        >
-                            Edit fields
-                        </Link>
-                        .
-                    </>
+                    <Trans
+                        i18nKey="collections.collectionPages.singletonDescription"
+                        values={{ slug: collection.slug }}
+                        components={{
+                            mono: <span className="font-mono" />,
+                            link: (
+                                <Link
+                                    className="text-primary underline-offset-4 hover:underline"
+                                    href={FieldController.index.url(
+                                        collection.id,
+                                    )}
+                                />
+                            ),
+                        }}
+                    />
                 }
                 scrollContent
             >

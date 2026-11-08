@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Input } from '@/components/ui/input';
@@ -108,6 +109,7 @@ export function ManyToManyFieldInput({
     defaultValue: DefaultValue;
     readonly?: boolean;
 }) {
+    const { t } = useTranslation();
     const relationSettings = parseRelationFieldSettings(field.settings);
     const junctionFields = relationSettings.junctionFields;
     const optionsQuery = relationOptionsQuery(field);
@@ -220,14 +222,16 @@ export function ManyToManyFieldInput({
                 onChange={onChangeIds}
                 placeholder={
                     relationSettings.displayField
-                        ? `Select by ${relationSettings.displayField}…`
-                        : 'Select related item…'
+                        ? t('collections.items.relation.selectBy', {
+                              field: relationSettings.displayField,
+                          })
+                        : t('collections.items.relation.selectRelated')
                 }
             />
             {junctionFields.length > 0 && links.length > 0 ? (
                 <div className="space-y-2 rounded-lg border p-3">
                     <p className="text-xs font-medium text-muted-foreground">
-                        Junction metadata
+                        {t('collections.items.relation.junctionMetadata')}
                     </p>
                     {links.map((link) => {
                         const label =
@@ -296,6 +300,7 @@ export function RelationFieldInput({
     multiple?: boolean;
     readonly?: boolean;
 }) {
+    const { t } = useTranslation();
     const relationSettings = parseRelationFieldSettings(field.settings);
     const optionsQuery = relationOptionsQuery(field);
     const fetchUrl = `/collections/${collectionId}/items/options?${optionsQuery}`;
@@ -375,8 +380,10 @@ export function RelationFieldInput({
                 onChange={(next) => setSelectedIds(next)}
                 placeholder={
                     relationSettings.displayField
-                        ? `Select by ${relationSettings.displayField}…`
-                        : 'Select related item…'
+                        ? t('collections.items.relation.selectBy', {
+                              field: relationSettings.displayField,
+                          })
+                        : t('collections.items.relation.selectRelated')
                 }
             />
         </div>
