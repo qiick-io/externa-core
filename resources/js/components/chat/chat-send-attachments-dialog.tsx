@@ -39,7 +39,7 @@ export type SendAttachItem = {
     error: string | null;
 };
 
-export type AttachCaptionMentionHit = ChatMentionHit;
+type AttachCaptionMentionHit = ChatMentionHit;
 
 function isMediaFile(file: File): boolean {
     return file.type.startsWith('image/') || file.type.startsWith('video/');

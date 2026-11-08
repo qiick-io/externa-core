@@ -1,4 +1,4 @@
-import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { jsonRequestHeaders } from '@/lib/csrf';
 import { assertOk } from '@/lib/http';
 import { useChatStore } from '@/stores/chat/store';
 
@@ -251,5 +251,3 @@ export async function fetchChatItemPicker(
         'Could not search items.',
     );
 }
-
-export { formRequestHeaders };

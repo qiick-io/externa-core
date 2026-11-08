@@ -292,7 +292,7 @@ export function AppSidebar() {
                     <NavUser />
                     {appVersion ? (
                         <p className="truncate px-2 text-center text-xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
-                            v{appVersion}
+                            {t('nav.appVersion', { version: appVersion })}
                         </p>
                     ) : null}
                 </SidebarFooter>

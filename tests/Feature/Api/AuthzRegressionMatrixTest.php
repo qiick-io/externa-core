@@ -708,7 +708,6 @@ it('resolves EffectivePermissionResolverService matrix without widening access',
         $role->syncPermissions([PermissionEnum::CanShowCollections->value]);
         $group = UserGroup::query()->create([
             'name' => 'AuthZ Group '.uniqid(),
-            'slug' => 'authz-group-'.uniqid(),
         ]);
         $group->roles()->attach($role);
         $user->groups()->attach($group);

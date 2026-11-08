@@ -212,6 +212,8 @@ class DashboardController
                 'dashboard:largest-files',
                 $now->copy()->addSeconds(60),
                 fn (): array => File::query()
+                    // Partial select: the default currentVersion eager load needs current_version_id.
+                    ->without('currentVersion')
                     ->where('type', FileTypeEnum::File)
                     ->whereNotNull('size')
                     ->orderByDesc('size')
@@ -232,6 +234,8 @@ class DashboardController
                     'dashboard:file-stats-by-disk',
                     $now->copy()->addSeconds(60),
                     fn (): array => File::query()
+                        // Aggregate rows, not files: skip the default currentVersion eager load.
+                        ->without('currentVersion')
                         ->where('type', FileTypeEnum::File)
                         // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                         ->selectRaw('disk, COUNT(*) as files_count, COALESCE(SUM(size), 0) as files_size_sum')
@@ -254,7 +258,9 @@ class DashboardController
                     $days = 14;
                     $startDate = $now->copy()->startOfDay()->subDays($days - 1);
 
+                    // Aggregate rows, not files: skip the default currentVersion eager load.
                     $bytesAddedByDate = File::query()
+                        ->without('currentVersion')
                         ->where('type', FileTypeEnum::File)
                         ->where('created_at', '>=', $startDate)
                         // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL

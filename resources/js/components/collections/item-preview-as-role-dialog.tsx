@@ -1,6 +1,6 @@
 import { Eye } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -144,24 +144,34 @@ export function ItemPreviewAsRoleDialog({
                     data-test="preview-as-role-dialog"
                 >
                     <DialogHeader>
-                        <DialogTitle>Preview as role</DialogTitle>
+                        <DialogTitle>
+                            {t('collections.items.previewAsRole.title')}
+                        </DialogTitle>
                         <DialogDescription>
-                            Read-only view of field data after collection ACL
-                            and file access rules (including{' '}
-                            <code className="text-xs">access: denied</code>).
-                            Not a visual editor.
+                            <Trans
+                                i18nKey="collections.items.previewAsRole.description"
+                                components={{
+                                    code: <code className="text-xs" />,
+                                }}
+                            />
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-3">
                         <div className="space-y-2">
-                            <Label htmlFor="preview-role">Role</Label>
+                            <Label htmlFor="preview-role">
+                                {t('collections.items.previewAsRole.role')}
+                            </Label>
                             <Select value={roleKey} onValueChange={setRoleKey}>
                                 <SelectTrigger
                                     id="preview-role"
                                     className="w-full"
                                 >
-                                    <SelectValue placeholder="Choose role" />
+                                    <SelectValue
+                                        placeholder={t(
+                                            'collections.items.previewAsRole.chooseRole',
+                                        )}
+                                    />
                                 </SelectTrigger>
                                 <SelectContent
                                     align="start"
@@ -191,7 +201,9 @@ export function ItemPreviewAsRoleDialog({
                                 {!result.readable && (
                                     <p className="text-sm text-destructive">
                                         {result.message ??
-                                            'Not readable for this role.'}
+                                            t(
+                                                'collections.items.previewAsRole.notReadable',
+                                            )}
                                     </p>
                                 )}
                                 {result.readable && result.data && (
@@ -210,7 +222,7 @@ export function ItemPreviewAsRoleDialog({
                             data-test="preview-as-role-close"
                             onClick={() => setOpen(false)}
                         >
-                            Close
+                            {t('common.close')}
                         </Button>
                         <Button
                             type="button"

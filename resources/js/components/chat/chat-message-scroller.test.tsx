@@ -17,7 +17,7 @@ describe('ChatMessageScroller', () => {
 
     it('keeps the empty state out of the message log', () => {
         render(
-            <ChatMessageScroller empty={<p>No messages yet.</p>}>
+            <ChatMessageScroller empty={<p>{'No messages yet.'}</p>}>
                 {null}
             </ChatMessageScroller>,
         );
@@ -36,7 +36,9 @@ describe('ChatMessageScroller', () => {
 
         render(
             <ChatMessageScroller scrollerRef={scrollerRef} label="Conversation">
-                <MessageScrollerItem messageId="7">Hello</MessageScrollerItem>
+                <MessageScrollerItem messageId="7">
+                    {'Hello'}
+                </MessageScrollerItem>
             </ChatMessageScroller>,
         );
 
@@ -61,7 +63,7 @@ describe('ChatMessageScroller', () => {
         ).toBeNull();
 
         rerender(
-            <ChatMessageScroller overlay={<p>Bruno is typing…</p>}>
+            <ChatMessageScroller overlay={<p>{'Bruno is typing…'}</p>}>
                 {null}
             </ChatMessageScroller>,
         );

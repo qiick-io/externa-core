@@ -429,7 +429,7 @@ export default function AdminApiKeysIndex({
                                 }
                             >
                                 <FieldLabel htmlFor="api_key_name">
-                                    Name
+                                    {t('settings.apiKeys.columns.name')}
                                 </FieldLabel>
                                 <Input
                                     id="api_key_name"
@@ -456,7 +456,9 @@ export default function AdminApiKeysIndex({
                                     form.errors.role_id ? true : undefined
                                 }
                             >
-                                <FieldLabel>Role</FieldLabel>
+                                <FieldLabel>
+                                    {t('settings.apiKeys.columns.role')}
+                                </FieldLabel>
                                 <Select
                                     value={form.data.role_id}
                                     onValueChange={(v) =>
@@ -475,7 +477,11 @@ export default function AdminApiKeysIndex({
                                                 : undefined
                                         }
                                     >
-                                        <SelectValue placeholder="Select role" />
+                                        <SelectValue
+                                            placeholder={t(
+                                                'settings.apiKeys.selectRole',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {roles.map((role) => (
@@ -691,7 +697,7 @@ export default function AdminApiKeysIndex({
                                 }
                             >
                                 <FieldLabel htmlFor="ip_allowlist">
-                                    IP allowlist (optional, comma-separated)
+                                    {t('settings.apiKeys.ipAllowlist')}
                                 </FieldLabel>
                                 <Input
                                     id="ip_allowlist"
@@ -721,7 +727,7 @@ export default function AdminApiKeysIndex({
                                 }
                             >
                                 <FieldLabel htmlFor="rate_limit">
-                                    Rate limit / minute (optional)
+                                    {t('settings.apiKeys.rateLimit')}
                                 </FieldLabel>
                                 <Input
                                     id="rate_limit"
@@ -756,7 +762,7 @@ export default function AdminApiKeysIndex({
                                 }
                             >
                                 <FieldLabel htmlFor="expires_at">
-                                    Expires at
+                                    {t('settings.apiKeys.expiresAt')}
                                 </FieldLabel>
                                 <Input
                                     id="expires_at"

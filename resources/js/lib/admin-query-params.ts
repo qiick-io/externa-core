@@ -25,7 +25,7 @@ export function getQueryParam(pageUrl: string, key: string): string | null {
  * here races open multi-select `fetch()` calls (browser connection limit) and
  * leaves pickers stuck on Loading….
  */
-export function replaceQueryParams(
+function replaceQueryParams(
     pageUrl: string,
     updates: Record<string, string | null>,
 ): void {

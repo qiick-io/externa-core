@@ -25,12 +25,12 @@ export type AdminSelectOption = {
     email?: string;
 };
 
-export type AdminRoleRef = {
+type AdminRoleRef = {
     id: number;
     name: string;
 };
 
-export type AdminGroupRef = {
+type AdminGroupRef = {
     id: number;
     name: string;
     slug?: string;
@@ -84,13 +84,13 @@ export type AdminPermissionRow = {
     updated_at: string;
 };
 
-export type AdminActivityLogCauser = {
+type AdminActivityLogCauser = {
     id: number;
     name: string;
     email: string;
 };
 
-export type AdminActivityLogSubject = {
+type AdminActivityLogSubject = {
     type: string;
     id: number;
     label: string;

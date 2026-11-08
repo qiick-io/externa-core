@@ -15,7 +15,7 @@ import type {
 } from '@/lib/item-chat-api';
 import { cn } from '@/lib/utils';
 
-export type PendingChatFile = {
+type PendingChatFile = {
     key: string;
     file: File;
     previewUrl: string | null;
@@ -34,16 +34,6 @@ export type PendingChatMessage = {
     replyTo: ChatReplyTo | null;
     files: PendingChatFile[];
     error: string | null;
-};
-
-/** @deprecated Prefer PendingChatMessage — kept for gradual migration */
-export type OutgoingAttachPreview = {
-    body: string;
-    mentionedUsers: ChatUser[];
-    mentionedCollections: ChatCollection[];
-    replyTo: ChatReplyTo | null;
-    media: Array<{ url: string; mime: string; name: string }>;
-    files: Array<{ name: string; mime: string; size: number }>;
 };
 
 type Props = {

@@ -12,7 +12,7 @@ use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
  * The registry can then expose its read actions in chat while the write gate is closed.
  * Implemented through {@see RequiresDestructiveApprovalTrait}.
  */
-interface ClassifiesToolActionsInterface
+interface ClassifiesToolActionsContract
 {
     /**
      * Copy of the tool that runs read actions and refuses every write or destructive action.

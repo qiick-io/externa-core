@@ -54,7 +54,7 @@ it('focuses a filter field with a ring border and an unclipped halo, no offset r
   const visibleShadows = style.boxShadow.split(/,(?![^(]*\))/).filter((shadow) => !shadow.includes('rgba(0, 0, 0, 0)'));
   const halo = visibleShadows.find((shadow) => shadow.trim().endsWith('0px 0px 0px 3px'));
 
-  const row = input.closest('[data-slot="page-header"] .overflow-x-auto').getBoundingClientRect();
+  const row = input.closest('[data-slot="page-header-filters"]').getBoundingClientRect();
   const box = field.getBoundingClientRect();
   const fitsRow = box.left - 3 >= row.left && box.top - 3 >= row.top && box.bottom + 3 <= row.bottom;
 

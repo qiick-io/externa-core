@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
@@ -19,7 +20,6 @@ import {
 import type {
     ApiAutocompleteFieldSettings,
     StringFieldSettings,
-    TranslatedText,
 } from '@/lib/collection-field-types';
 
 type TextNumbersSettingsProps = {
@@ -49,12 +49,18 @@ export function TextNumbersSettings({
     apiAutocompleteSettings,
     onApiAutocompleteSettingsChange,
 }: TextNumbersSettingsProps) {
+    const { t } = useTranslation();
+
     if (fieldType === 'string') {
         return (
             <div className="space-y-6">
                 <div className="grid gap-6 sm:grid-cols-2">
                     <Field>
-                        <FieldLabel htmlFor="input_type">Input type</FieldLabel>
+                        <FieldLabel htmlFor="input_type">
+                            {t(
+                                'collections.fieldSettings.textNumbers.inputType',
+                            )}
+                        </FieldLabel>
                         <NativeSelect
                             id="input_type"
                             value={stringSettings.inputType}
@@ -75,7 +81,9 @@ export function TextNumbersSettings({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="string_max_length">
-                            Max length
+                            {t(
+                                'collections.fieldSettings.textNumbers.maxLength',
+                            )}
                         </FieldLabel>
                         <Input
                             id="string_max_length"
@@ -96,7 +104,9 @@ export function TextNumbersSettings({
                 </div>
                 <TranslatedInput
                     idPrefix="string_placeholder"
-                    label="Placeholder"
+                    label={t(
+                        'collections.fieldSettings.textNumbers.placeholder',
+                    )}
                     value={stringSettings.placeholder}
                     onChange={(placeholder) =>
                         onStringSettingsChange((current) => ({
@@ -108,7 +118,9 @@ export function TextNumbersSettings({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <LucideIconPicker
                         id="icon_left"
-                        label="Icon left"
+                        label={t(
+                            'collections.fieldSettings.textNumbers.iconLeft',
+                        )}
                         value={stringSettings.iconLeft}
                         onChange={(iconLeft) =>
                             onStringSettingsChange((current) => ({
@@ -119,7 +131,9 @@ export function TextNumbersSettings({
                     />
                     <LucideIconPicker
                         id="icon_right"
-                        label="Icon right"
+                        label={t(
+                            'collections.fieldSettings.textNumbers.iconRight',
+                        )}
                         value={stringSettings.iconRight}
                         onChange={(iconRight) =>
                             onStringSettingsChange((current) => ({
@@ -132,8 +146,10 @@ export function TextNumbersSettings({
                 <div className="space-y-6">
                     <SettingCheckbox
                         id="string_trim"
-                        label="Trim whitespace"
-                        description="Remove leading and trailing spaces when saving."
+                        label={t('collections.fieldSettings.textNumbers.trim')}
+                        description={t(
+                            'collections.fieldSettings.textNumbers.trimHint',
+                        )}
                         checked={stringSettings.trim}
                         onCheckedChange={(trim) =>
                             onStringSettingsChange((current) => ({
@@ -144,8 +160,12 @@ export function TextNumbersSettings({
                     />
                     <SettingCheckbox
                         id="string_slugify"
-                        label="Slugify"
-                        description="Convert the value to a URL-friendly slug on save."
+                        label={t(
+                            'collections.fieldSettings.textNumbers.slugify',
+                        )}
+                        description={t(
+                            'collections.fieldSettings.textNumbers.slugifyHint',
+                        )}
                         checked={stringSettings.slugify}
                         onCheckedChange={(slugify) =>
                             onStringSettingsChange((current) => ({
@@ -156,8 +176,12 @@ export function TextNumbersSettings({
                     />
                     <SettingCheckbox
                         id="string_masked"
-                        label="Masked (password)"
-                        description="Hide input characters like a password field."
+                        label={t(
+                            'collections.fieldSettings.textNumbers.masked',
+                        )}
+                        description={t(
+                            'collections.fieldSettings.textNumbers.maskedHint',
+                        )}
                         checked={stringSettings.masked}
                         onCheckedChange={(masked) =>
                             onStringSettingsChange((current) => ({
@@ -190,7 +214,9 @@ export function TextNumbersSettings({
         return (
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
-                    <FieldLabel>Min</FieldLabel>
+                    <FieldLabel>
+                        {t('collections.fieldSettings.textNumbers.min')}
+                    </FieldLabel>
                     <Input
                         type="number"
                         step="any"
@@ -199,7 +225,9 @@ export function TextNumbersSettings({
                     />
                 </Field>
                 <Field>
-                    <FieldLabel>Max</FieldLabel>
+                    <FieldLabel>
+                        {t('collections.fieldSettings.textNumbers.max')}
+                    </FieldLabel>
                     <Input
                         type="number"
                         step="any"
@@ -208,7 +236,9 @@ export function TextNumbersSettings({
                     />
                 </Field>
                 <Field>
-                    <FieldLabel>Step</FieldLabel>
+                    <FieldLabel>
+                        {t('collections.fieldSettings.altro.step')}
+                    </FieldLabel>
                     <Input
                         type="number"
                         step="any"
@@ -228,7 +258,9 @@ export function TextNumbersSettings({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field>
                         <FieldLabel htmlFor="code_language">
-                            Language
+                            {t(
+                                'collections.fieldSettings.textNumbers.language',
+                            )}
                         </FieldLabel>
                         <Input
                             id="code_language"
@@ -238,7 +270,9 @@ export function TextNumbersSettings({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="code_template">
-                            Template
+                            {t(
+                                'collections.fieldSettings.textNumbers.template',
+                            )}
                         </FieldLabel>
                         <Input
                             id="code_template"
@@ -250,15 +284,23 @@ export function TextNumbersSettings({
                 <SettingCheckbox
                     id="code_line_numbers"
                     name="settings[line_numbers]"
-                    label="Show line numbers"
-                    description="Display a line number gutter in the item form editor."
+                    label={t(
+                        'collections.fieldSettings.textNumbers.lineNumbers',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.textNumbers.lineNumbersHint',
+                    )}
                     defaultChecked={codeSettings.lineNumbers}
                 />
                 <SettingCheckbox
                     id="code_line_wrapping"
                     name="settings[line_wrapping]"
-                    label="Line wrapping"
-                    description="Wrap long lines instead of horizontal scrolling."
+                    label={t(
+                        'collections.fieldSettings.textNumbers.lineWrapping',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.textNumbers.lineWrappingHint',
+                    )}
                     defaultChecked={codeSettings.lineWrapping}
                 />
             </div>
@@ -272,7 +314,7 @@ export function TextNumbersSettings({
             <div className="space-y-4">
                 <Field>
                     <FieldLabel htmlFor="tag_presets">
-                        Presets (comma-separated)
+                        {t('collections.fieldSettings.textNumbers.tagPresets')}
                     </FieldLabel>
                     <Input
                         id="tag_presets"
@@ -281,7 +323,11 @@ export function TextNumbersSettings({
                     />
                 </Field>
                 <Field>
-                    <FieldLabel htmlFor="tag_separator">Separator</FieldLabel>
+                    <FieldLabel htmlFor="tag_separator">
+                        {t(
+                            'collections.fieldSettings.textNumbers.tagSeparator',
+                        )}
+                    </FieldLabel>
                     <Input
                         id="tag_separator"
                         name="settings[separator]"
@@ -291,22 +337,32 @@ export function TextNumbersSettings({
                 <SettingCheckbox
                     id="tag_allow_other"
                     name="settings[allow_other]"
-                    label="Allow custom tags"
-                    description="Let editors add tags not listed in presets."
+                    label={t(
+                        'collections.fieldSettings.textNumbers.allowCustomTags',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.textNumbers.allowCustomTagsHint',
+                    )}
                     defaultChecked={tagSettings.allowOther}
                 />
                 <SettingCheckbox
                     id="tag_lowercase"
                     name="settings[lowercase]"
-                    label="Lowercase on save"
-                    description="Normalize tag values to lowercase when saving."
+                    label={t('collections.fieldSettings.textNumbers.lowercase')}
+                    description={t(
+                        'collections.fieldSettings.textNumbers.lowercaseHint',
+                    )}
                     defaultChecked={tagSettings.lowercase}
                 />
                 <SettingCheckbox
                     id="tag_alphabetize"
                     name="settings[alphabetize]"
-                    label="Alphabetize on save"
-                    description="Sort tags alphabetically when saving."
+                    label={t(
+                        'collections.fieldSettings.textNumbers.alphabetize',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.textNumbers.alphabetizeHint',
+                    )}
                     defaultChecked={tagSettings.alphabetize}
                 />
             </div>
@@ -340,20 +396,23 @@ function TextareaLikeSettingsPanel({
     fieldType: string;
     settings?: Record<string, unknown> | null;
 }) {
+    const { t } = useTranslation();
     const textareaSettings = parseTextareaFieldSettings(settings);
 
     return (
         <div className="space-y-6">
             <TranslatedInput
                 idPrefix={`${fieldType}_placeholder`}
-                label="Placeholder"
+                label={t('collections.fieldSettings.textNumbers.placeholder')}
                 value={textareaSettings.placeholder}
                 onChange={() => undefined}
                 namePrefix="settings[placeholder]"
             />
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
-                    <FieldLabel htmlFor={`${fieldType}_rows`}>Rows</FieldLabel>
+                    <FieldLabel htmlFor={`${fieldType}_rows`}>
+                        {t('collections.fieldSettings.textNumbers.rows')}
+                    </FieldLabel>
                     <Input
                         id={`${fieldType}_rows`}
                         type="number"
@@ -364,7 +423,7 @@ function TextareaLikeSettingsPanel({
                 </Field>
                 <Field>
                     <FieldLabel htmlFor={`${fieldType}_max_length`}>
-                        Max length
+                        {t('collections.fieldSettings.textNumbers.maxLength')}
                     </FieldLabel>
                     <Input
                         id={`${fieldType}_max_length`}
@@ -384,18 +443,18 @@ function AutocompletePlaceholderPanel({
 }: {
     settings?: Record<string, unknown> | null;
 }) {
+    const { t } = useTranslation();
     const placeholder = parseStringFieldSettings(settings).placeholder;
     const selectSettings = parseSelectFieldSettings(settings);
 
     return (
         <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-                Static combobox: editors pick from predefined options or type a
-                custom value when allowed.
+                {t('collections.fieldSettings.textNumbers.staticComboboxHint')}
             </p>
             <TranslatedInput
                 idPrefix="autocomplete_placeholder"
-                label="Placeholder"
+                label={t('collections.fieldSettings.textNumbers.placeholder')}
                 value={placeholder}
                 onChange={() => undefined}
                 namePrefix="settings[placeholder]"
@@ -403,8 +462,10 @@ function AutocompletePlaceholderPanel({
             <SettingCheckbox
                 id="autocomplete_allow_other"
                 name="settings[allow_other]"
-                label="Allow values outside options"
-                description="Accept custom values not listed in the choices."
+                label={t('collections.fieldSettings.selection.allowOther')}
+                description={t(
+                    'collections.fieldSettings.selection.allowOtherHint',
+                )}
                 defaultChecked={selectSettings.allowOther}
             />
         </div>
@@ -422,11 +483,14 @@ function ApiAutocompleteSettingsPanel({
         ) => ApiAutocompleteFieldSettings,
     ) => void;
 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-6">
             <Field>
                 <FieldLabel htmlFor="api_autocomplete_url">
-                    URL template <span className="text-destructive">*</span>
+                    {t('collections.fieldSettings.textNumbers.urlTemplate')}{' '}
+                    <span className="text-destructive">{'*'}</span>
                 </FieldLabel>
                 <Input
                     id="api_autocomplete_url"
@@ -442,15 +506,16 @@ function ApiAutocompleteSettingsPanel({
                     placeholder="/demo/cities?q={{value}}"
                 />
                 <FieldDescription>
-                    Use {'{{value}}'} as the search term placeholder.
-                    Same-origin URLs avoid CORS (e.g. /demo/cities?q=
-                    {'{{value}}'}).
+                    {t(
+                        'collections.fieldSettings.textNumbers.urlTemplateHint',
+                        { token: '{{value}}' },
+                    )}
                 </FieldDescription>
             </Field>
             <div className="grid gap-4 sm:grid-cols-3">
                 <Field>
                     <FieldLabel htmlFor="api_results_path">
-                        Results path
+                        {t('collections.fieldSettings.textNumbers.resultsPath')}
                     </FieldLabel>
                     <Input
                         id="api_results_path"
@@ -465,7 +530,9 @@ function ApiAutocompleteSettingsPanel({
                     />
                 </Field>
                 <Field>
-                    <FieldLabel htmlFor="api_text_path">Text path</FieldLabel>
+                    <FieldLabel htmlFor="api_text_path">
+                        {t('collections.fieldSettings.textNumbers.textPath')}
+                    </FieldLabel>
                     <Input
                         id="api_text_path"
                         value={settings.textPath}
@@ -479,7 +546,9 @@ function ApiAutocompleteSettingsPanel({
                     />
                 </Field>
                 <Field>
-                    <FieldLabel htmlFor="api_value_path">Value path</FieldLabel>
+                    <FieldLabel htmlFor="api_value_path">
+                        {t('collections.fieldSettings.textNumbers.valuePath')}
+                    </FieldLabel>
                     <Input
                         id="api_value_path"
                         value={settings.valuePath}
@@ -495,7 +564,9 @@ function ApiAutocompleteSettingsPanel({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
-                    <FieldLabel htmlFor="api_trigger">Trigger</FieldLabel>
+                    <FieldLabel htmlFor="api_trigger">
+                        {t('collections.fieldSettings.textNumbers.trigger')}
+                    </FieldLabel>
                     <NativeSelect
                         id="api_trigger"
                         value={settings.trigger}
@@ -510,12 +581,22 @@ function ApiAutocompleteSettingsPanel({
                         }
                         className="w-full"
                     >
-                        <option value="debounce">Debounce</option>
-                        <option value="throttle">Throttle</option>
+                        <option value="debounce">
+                            {t(
+                                'collections.fieldSettings.textNumbers.debounce',
+                            )}
+                        </option>
+                        <option value="throttle">
+                            {t(
+                                'collections.fieldSettings.textNumbers.throttle',
+                            )}
+                        </option>
                     </NativeSelect>
                 </Field>
                 <Field>
-                    <FieldLabel htmlFor="api_rate">Rate (ms)</FieldLabel>
+                    <FieldLabel htmlFor="api_rate">
+                        {t('collections.fieldSettings.textNumbers.rate')}
+                    </FieldLabel>
                     <Input
                         id="api_rate"
                         type="number"
@@ -532,7 +613,7 @@ function ApiAutocompleteSettingsPanel({
             </div>
             <TranslatedInput
                 idPrefix="api_autocomplete_placeholder"
-                label="Placeholder"
+                label={t('collections.fieldSettings.textNumbers.placeholder')}
                 value={settings.placeholder}
                 onChange={(placeholder) =>
                     onChange((current) => ({ ...current, placeholder }))
@@ -541,7 +622,7 @@ function ApiAutocompleteSettingsPanel({
             <div className="grid gap-4 sm:grid-cols-2">
                 <LucideIconPicker
                     id="api_icon_left"
-                    label="Icon left"
+                    label={t('collections.fieldSettings.textNumbers.iconLeft')}
                     value={settings.iconLeft}
                     onChange={(iconLeft) =>
                         onChange((current) => ({ ...current, iconLeft }))
@@ -549,7 +630,7 @@ function ApiAutocompleteSettingsPanel({
                 />
                 <LucideIconPicker
                     id="api_icon_right"
-                    label="Icon right"
+                    label={t('collections.fieldSettings.textNumbers.iconRight')}
                     value={settings.iconRight}
                     onChange={(iconRight) =>
                         onChange((current) => ({ ...current, iconRight }))
@@ -579,9 +660,3 @@ export function serializeTextNumbersTypeSettings(
 
     return {};
 }
-
-export type TextareaLikeSettings = {
-    placeholder: TranslatedText;
-    rows: number;
-    maxLength: number | null;
-};

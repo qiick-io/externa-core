@@ -48,7 +48,7 @@ test('authorized users can list users with filters and relationships', function 
         'email' => 'zelda@example.com',
     ]);
 
-    $group = UserGroup::query()->create(['name' => 'Ops', 'slug' => 'ops']);
+    $group = UserGroup::query()->create(['name' => 'Ops']);
     $role = Role::query()->firstOrCreate([
         'name' => 'ops-role',
         'guard_name' => config('auth.defaults.guard', 'web'),
@@ -108,7 +108,7 @@ test('authorized users can create update and sync roles and groups', function ()
         'name' => 'editor',
         'guard_name' => config('auth.defaults.guard', 'web'),
     ]);
-    $group = UserGroup::query()->create(['name' => 'Editors', 'slug' => 'editors']);
+    $group = UserGroup::query()->create(['name' => 'Editors']);
 
     $this->post(route('users.store'), [
         'first_name' => 'New',

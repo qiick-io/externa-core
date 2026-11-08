@@ -77,7 +77,7 @@ it('picks library files from FileCard tiles in the picker drawer', function (): 
     visit(route('collections.items.new', $this->collection, false))
         ->click('button[aria-label="Choose from library"]')
         ->click("[data-testid=\"file-card-{$brief->id}\"]")
-        ->assertAttribute("[data-testid=\"file-card-{$brief->id}\"]", 'aria-pressed', 'true')
+        ->assertAttribute("[data-testid=\"file-card-{$brief->id}\"]", 'data-selected', 'true')
         ->click('Choose 1')
         ->assertSee('Campaign brief')
         ->assertNoJavaScriptErrors();

@@ -94,9 +94,7 @@ export function upsertThreadInList(
 }
 
 /** Keep first occurrence of each message id (stable order). */
-export function dedupeMessagesById(
-    messages: ItemChatMessage[],
-): ItemChatMessage[] {
+function dedupeMessagesById(messages: ItemChatMessage[]): ItemChatMessage[] {
     const seen = new Set<number>();
     const out: ItemChatMessage[] = [];
 

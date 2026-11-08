@@ -6,7 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Admin\RoleController;
@@ -26,7 +26,7 @@ use Stringable;
 /**
  * AI tool for listing and mutating roles and their permissions.
  */
-class ManageRoles implements Approvable, ClassifiesToolActionsInterface, Tool
+class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;

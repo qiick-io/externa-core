@@ -22,8 +22,8 @@ use App\Ai\Tools\QueryActivityLogs;
 use App\Ai\Tools\QueryCollectionItems;
 use App\Ai\Tools\RollbackLastAiTurn;
 use App\Ai\Tools\SearchSimilarCollectionItems;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
-use App\Contracts\Ai\ToolDefinitionInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
+use App\Contracts\Ai\ToolDefinitionContract;
 use App\Enums\AiToolKindEnum;
 use App\Enums\PermissionEnum;
 use App\Models\User;
@@ -39,7 +39,7 @@ use RuntimeException;
  */
 class AiToolRegistryService
 {
-    /** @var array<string, ToolDefinitionInterface> */
+    /** @var array<string, ToolDefinitionContract> */
     private array $definitions = [];
 
     private bool $defaultsRegistered = false;
@@ -52,7 +52,7 @@ class AiToolRegistryService
     /**
      * Register (or replace) a tool definition by name.
      */
-    public function register(ToolDefinitionInterface $definition): void
+    public function register(ToolDefinitionContract $definition): void
     {
         $this->definitions[$definition->name()] = $definition;
     }
@@ -74,7 +74,7 @@ class AiToolRegistryService
     }
 
     /**
-     * @return list<ToolDefinitionInterface>
+     * @return list<ToolDefinitionContract>
      */
     public function all(): array
     {
@@ -83,7 +83,7 @@ class AiToolRegistryService
         return array_values($this->definitions);
     }
 
-    public function get(string $name): ?ToolDefinitionInterface
+    public function get(string $name): ?ToolDefinitionContract
     {
         $this->registerDefaults();
 
@@ -94,7 +94,7 @@ class AiToolRegistryService
      * Tools the actor may see (config + abilities + write gate).
      *
      * @param  array{include_write?: bool, arguments?: array<string, mixed>}  $options
-     * @return list<ToolDefinitionInterface>
+     * @return list<ToolDefinitionContract>
      */
     public function visibleFor(?Authenticatable $actor, array $options = []): array
     {
@@ -128,7 +128,7 @@ class AiToolRegistryService
      * laravel/ai Tool instances for AppAssistant.
      *
      * Mutating tools are full only when the write gate allows them. A tool that mixes
-     * read and write actions ({@see ClassifiesToolActionsInterface}) stays listed while
+     * read and write actions ({@see ClassifiesToolActionsContract}) stays listed while
      * the gate is closed, as a copy that runs reads and refuses writes, so chat keeps
      * list/get by default as in 1.3.0.
      *
@@ -148,7 +148,7 @@ class AiToolRegistryService
             $isFullyEnabled = $this->passesConfigGates($definition, true);
             $tool = $definition instanceof LaravelAiToolDefinition ? $definition->laravelTool() : null;
             $isReadOnlyCandidate = ! $isFullyEnabled
-                && $tool instanceof ClassifiesToolActionsInterface
+                && $tool instanceof ClassifiesToolActionsContract
                 && $this->passesNameLists($definition->name());
 
             if (! $isFullyEnabled && ! $isReadOnlyCandidate) {
@@ -179,7 +179,7 @@ class AiToolRegistryService
      * @param  bool|null  $writeEnabled  When true, still requires per-tool allowlist via {@see AiToolWriteGateService}.
      *                                   When null, uses the env kill switch + allowlist. When false, denies mutating tools.
      */
-    public function passesConfigGates(ToolDefinitionInterface $definition, ?bool $writeEnabled = null): bool
+    public function passesConfigGates(ToolDefinitionContract $definition, ?bool $writeEnabled = null): bool
     {
         if (! (bool) config('ai.tools.enabled', true)) {
             return false;
@@ -226,7 +226,7 @@ class AiToolRegistryService
      * @param  array<string, mixed>  $arguments
      */
     public function actorPassesAbilities(
-        ToolDefinitionInterface $definition,
+        ToolDefinitionContract $definition,
         ?Authenticatable $actor,
         array $arguments = [],
     ): bool {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Adapters;
 
-use App\Contracts\Ai\ToolDefinitionInterface;
+use App\Contracts\Ai\ToolDefinitionContract;
 use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -38,12 +38,12 @@ final class RegistryMcpToolAdapter
         if (! (bool) config('ai.mcp.write_enabled', false)) {
             $definitions = array_values(array_filter(
                 $definitions,
-                static fn (ToolDefinitionInterface $definition): bool => ! $definition->kind()->isMutating(),
+                static fn (ToolDefinitionContract $definition): bool => ! $definition->kind()->isMutating(),
             ));
         }
 
         return array_map(
-            fn (ToolDefinitionInterface $definition): array => $this->toMcpTool($definition),
+            fn (ToolDefinitionContract $definition): array => $this->toMcpTool($definition),
             $definitions,
         );
     }
@@ -124,7 +124,7 @@ final class RegistryMcpToolAdapter
      *     annotations: array{readOnlyHint: bool, destructiveHint: bool}
      * }
      */
-    private function toMcpTool(ToolDefinitionInterface $definition): array
+    private function toMcpTool(ToolDefinitionContract $definition): array
     {
         $kind = $definition->kind();
 

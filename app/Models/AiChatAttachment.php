@@ -47,6 +47,8 @@ class AiChatAttachment extends Model
      * @var list<string>
      */
     protected $fillable = [
+        // The upload service generates the UUID first: it also names the stored file.
+        'id',
         'user_id',
         'original_name',
         'mime_type',

@@ -25,14 +25,9 @@ it('shows textual user active status and passes axe in light and dark', function
     $this->actingAs($user);
 
     foreach (['light', 'dark'] as $mode) {
-        $page = visit('/users');
-
-        if ($mode === 'dark') {
-            $page->assertScript(
-                '() => { document.documentElement.classList.add("dark"); return document.documentElement.classList.contains("dark"); }',
-                true,
-            );
-        }
+        // Dark from the first paint: toggling `.dark` after hydration lets axe read
+        // colours mid-transition (see visitA11y in A11ySmokeBrowserTest).
+        $page = $mode === 'dark' ? visit('/users')->inDarkMode() : visit('/users')->inLightMode();
 
         $page->assertSee('Active')
             ->assertNoAccessibilityIssues(1)

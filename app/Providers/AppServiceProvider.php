@@ -18,6 +18,7 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -220,6 +221,10 @@ class AppServiceProvider extends ServiceProvider
         DB::prohibitDestructiveCommands(
             app()->isProduction(),
         );
+
+        // Lazy loading, silently discarded and missing attributes throw outside
+        // production, so tests catch them (qiick standards, Automated checks).
+        Model::shouldBeStrict(! app()->isProduction());
 
         Password::defaults(fn (): Password => app(ProjectSettingsService::class)->passwordRule());
     }

@@ -436,7 +436,7 @@ export default function Dashboard({
                                             aria-label={t(
                                                 'dashboard.latestActivity',
                                             )}
-                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
+                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1 [&_[data-slot=table-container]]:overflow-visible"
                                             tabIndex={0}
                                         >
                                             <Table>
@@ -1442,7 +1442,13 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                                     {row.length.toLocaleString()}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
-                                                    {row.wait.toLocaleString()}s
+                                                    {t(
+                                                        'dashboard.healthWorkloadWaitSeconds',
+                                                        {
+                                                            seconds:
+                                                                row.wait.toLocaleString(),
+                                                        },
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
                                                     {row.processes.toLocaleString()}

@@ -9,7 +9,7 @@ export type AiOpenDetail = {
 };
 
 /** Soft cap for ids listed in bulk prompts (full count still shown). */
-export const AI_PROMPT_ID_CAP = 50;
+const AI_PROMPT_ID_CAP = 50;
 
 /**
  * Open or close the AI assistant panel on the current page, keeping its thread.

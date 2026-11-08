@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -31,12 +32,14 @@ export function SelectionSettings({
     booleanLabels,
     onBooleanLabelsChange,
 }: SelectionSettingsProps) {
+    const { t } = useTranslation();
+
     if (fieldType === 'boolean') {
         return (
             <div className="space-y-6">
                 <TranslatedInput
                     idPrefix="label_on"
-                    label="Label when on"
+                    label={t('collections.fieldSettings.selection.labelOn')}
                     value={booleanLabels.labelOn}
                     onChange={(labelOn) =>
                         onBooleanLabelsChange({ ...booleanLabels, labelOn })
@@ -44,7 +47,7 @@ export function SelectionSettings({
                 />
                 <TranslatedInput
                     idPrefix="label_off"
-                    label="Label when off"
+                    label={t('collections.fieldSettings.selection.labelOff')}
                     value={booleanLabels.labelOff}
                     onChange={(labelOff) =>
                         onBooleanLabelsChange({ ...booleanLabels, labelOff })
@@ -60,7 +63,9 @@ export function SelectionSettings({
         return (
             <div className="space-y-6">
                 <Field>
-                    <FieldLabel htmlFor="date_mode">Mode</FieldLabel>
+                    <FieldLabel htmlFor="date_mode">
+                        {t('collections.fieldSettings.selection.dateMode')}
+                    </FieldLabel>
                     <NativeSelect
                         id="date_mode"
                         name="settings[date_mode]"
@@ -71,16 +76,28 @@ export function SelectionSettings({
                         }
                         className="w-full"
                     >
-                        <option value="date">Date only</option>
-                        <option value="time">Time only</option>
-                        <option value="datetime">Date and time</option>
+                        <option value="date">
+                            {t('collections.fieldSettings.selection.dateOnly')}
+                        </option>
+                        <option value="time">
+                            {t('collections.fieldSettings.selection.timeOnly')}
+                        </option>
+                        <option value="datetime">
+                            {t(
+                                'collections.fieldSettings.selection.dateAndTime',
+                            )}
+                        </option>
                     </NativeSelect>
                 </Field>
                 <SettingCheckbox
                     id="date_include_seconds"
                     name="settings[include_seconds]"
-                    label="Include seconds"
-                    description="Allow time values with seconds precision (time / datetime modes)."
+                    label={t(
+                        'collections.fieldSettings.selection.includeSeconds',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.selection.includeSecondsHint',
+                    )}
                     defaultChecked={
                         settings?.include_seconds === true ||
                         settings?.include_seconds === '1'
@@ -97,7 +114,7 @@ export function SelectionSettings({
             <div className="space-y-4">
                 <Field>
                     <FieldLabel htmlFor="geometry_mode">
-                        Geometry mode
+                        {t('collections.fieldSettings.selection.geometryMode')}
                     </FieldLabel>
                     <NativeSelect
                         id="geometry_mode"
@@ -105,13 +122,23 @@ export function SelectionSettings({
                         defaultValue={mapSettings.geometryMode}
                         className="w-full"
                     >
-                        <option value="point">Point</option>
-                        <option value="multipoint">MultiPoint</option>
+                        <option value="point">
+                            {t('collections.fieldSettings.selection.point')}
+                        </option>
+                        <option value="multipoint">
+                            {t(
+                                'collections.fieldSettings.selection.multiPoint',
+                            )}
+                        </option>
                     </NativeSelect>
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-3">
                     <Field>
-                        <FieldLabel>Default latitude</FieldLabel>
+                        <FieldLabel>
+                            {t(
+                                'collections.fieldSettings.selection.defaultLatitude',
+                            )}
+                        </FieldLabel>
                         <Input
                             type="number"
                             step="any"
@@ -120,7 +147,11 @@ export function SelectionSettings({
                         />
                     </Field>
                     <Field>
-                        <FieldLabel>Default longitude</FieldLabel>
+                        <FieldLabel>
+                            {t(
+                                'collections.fieldSettings.selection.defaultLongitude',
+                            )}
+                        </FieldLabel>
                         <Input
                             type="number"
                             step="any"
@@ -129,7 +160,11 @@ export function SelectionSettings({
                         />
                     </Field>
                     <Field>
-                        <FieldLabel>Default zoom</FieldLabel>
+                        <FieldLabel>
+                            {t(
+                                'collections.fieldSettings.selection.defaultZoom',
+                            )}
+                        </FieldLabel>
                         <Input
                             type="number"
                             name="settings[default_zoom]"
@@ -149,12 +184,18 @@ export function SelectionSettings({
                 <SettingCheckbox
                     id="color_opacity"
                     name="settings[opacity]"
-                    label="Enable opacity"
-                    description="Allow adjusting the alpha channel in the color picker."
+                    label={t(
+                        'collections.fieldSettings.selection.enableOpacity',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.selection.enableOpacityHint',
+                    )}
                     defaultChecked={colorSettings.opacity}
                 />
                 <Field>
-                    <FieldLabel>Preset colors (comma-separated hex)</FieldLabel>
+                    <FieldLabel>
+                        {t('collections.fieldSettings.selection.presetColors')}
+                    </FieldLabel>
                     <Input
                         name="settings[preset_colors]"
                         defaultValue={colorSettings.presetColors.join(', ')}
@@ -179,16 +220,22 @@ export function SelectionSettings({
                     <SettingCheckbox
                         id="select_allow_none"
                         name="settings[allow_none]"
-                        label="Allow empty selection"
-                        description="Let editors clear the selection without choosing an option."
+                        label={t(
+                            'collections.fieldSettings.selection.allowNone',
+                        )}
+                        description={t(
+                            'collections.fieldSettings.selection.allowNoneHint',
+                        )}
                         defaultChecked={selectSettings.allowNone}
                     />
                 ) : null}
                 <SettingCheckbox
                     id="select_allow_other"
                     name="settings[allow_other]"
-                    label="Allow values outside options"
-                    description="Accept custom values not listed in the choices."
+                    label={t('collections.fieldSettings.selection.allowOther')}
+                    description={t(
+                        'collections.fieldSettings.selection.allowOtherHint',
+                    )}
                     defaultChecked={selectSettings.allowOther}
                 />
             </div>
@@ -199,7 +246,7 @@ export function SelectionSettings({
         return (
             <Field>
                 <FieldLabel htmlFor="value_combining">
-                    Value combining
+                    {t('collections.fieldSettings.selection.valueCombining')}
                 </FieldLabel>
                 <NativeSelect
                     id="value_combining"
@@ -207,8 +254,14 @@ export function SelectionSettings({
                     defaultValue={String(settings?.value_combining ?? 'all')}
                     className="w-full"
                 >
-                    <option value="all">All selected nodes</option>
-                    <option value="leaf">Leaf nodes only</option>
+                    <option value="all">
+                        {t(
+                            'collections.fieldSettings.selection.allSelectedNodes',
+                        )}
+                    </option>
+                    <option value="leaf">
+                        {t('collections.fieldSettings.selection.leafNodesOnly')}
+                    </option>
                 </NativeSelect>
             </Field>
         );

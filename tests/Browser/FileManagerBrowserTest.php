@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps mixed file cards the same size with a square preview and truncates long titles', function () {
+it('keeps every file and folder card square and the same size, at 1440 and 1920 wide', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -236,8 +236,7 @@ it('keeps mixed file cards the same size with a square preview and truncates lon
         'extension' => 'pdf',
     ]);
 
-    // ponytail: plain text (not image) so layout check never hits thumbnail 404.
-    File::query()->create([
+    $tagged = File::query()->create([
         'type' => FileTypeEnum::File,
         'name' => 'notes.txt',
         'path' => '/notes.txt',
@@ -246,62 +245,56 @@ it('keeps mixed file cards the same size with a square preview and truncates lon
         'mime_type' => 'text/plain',
         'extension' => 'txt',
     ]);
+    $tagged->attachTags(['summer']);
 
     $this->actingAs($user);
 
-    $page = visit('/files');
+    foreach ([1440, 1920] as $width) {
+        $page = visit('/files');
+        $page->resize($width, 1000);
 
-    $page->assertSee('Layout Folder')
-        ->assertSee('notes.txt')
-        ->assertScript(<<<JS
-            () => {
-                const cards = [...document.querySelectorAll('[data-file-id]')];
-                if (cards.length < 3) {
-                    return false;
-                }
-
-                // Each card opens with a 1:1 AspectRatio preview, then the name / tags footer.
-                const aspectSquare = cards.every((card) => {
-                    const preview = card.querySelector('[data-radix-aspect-ratio-wrapper]');
-                    if (!preview) {
+        $page->assertSee('Layout Folder')
+            ->assertScript(<<<JS
+                () => {
+                    const cards = [...document.querySelectorAll('[data-file-id]')];
+                    if (cards.length < 3) {
                         return false;
                     }
-                    const rect = preview.getBoundingClientRect();
 
-                    return Math.abs(rect.width - rect.height) <= 2;
-                });
+                    const rects = cards.map((card) => card.getBoundingClientRect());
+                    const sameSize = rects.every((rect) =>
+                        Math.abs(rect.width - rects[0].width) <= 1 && Math.abs(rect.height - rects[0].height) <= 1,
+                    );
+                    // The whole card (preview + name row) is square.
+                    const squareCards = rects.every((rect) => Math.abs(rect.width - rect.height) <= 1);
+                    // Cards never get narrower than the 15rem grid minimum.
+                    const wideEnough = rects[0].width >= 239;
 
-                const sizes = cards.map((card) => {
-                    const rect = card.getBoundingClientRect();
+                    const previewsFillTop = cards.every((card) => {
+                        const cardRect = card.getBoundingClientRect();
+                        const preview = card.querySelector('[data-test^="file-card-preview-"]').getBoundingClientRect();
+                        const header = card.querySelector('[data-test^="file-card-header-"]').getBoundingClientRect();
 
-                    return {
-                        width: Math.round(rect.width),
-                        height: Math.round(rect.height),
-                    };
-                });
+                        // No type glyph next to the name: the only icons in the row are its buttons'.
+                        const strayIcons = [...card.querySelectorAll('[data-test^="file-card-header-"] svg')]
+                            .filter((icon) => !icon.closest('button'));
 
-                const first = sizes[0];
-                const within = (a, b, tol = 2) => Math.abs(a - b) <= tol;
-                const uniform = sizes.every(
-                    (size) => within(size.width, first.width) && within(size.height, first.height),
-                );
-                const square = first.width > 0 && first.height > first.width;
+                        // The preview spans the card edge to edge above the 40px name row.
+                        return cardRect.width - preview.width <= 2 && preview.top - cardRect.top <= 1.5
+                            && header.top >= preview.bottom - 0.5 && Math.abs(header.height - 40) <= 1.5
+                            && strayIcons.length === 0;
+                    });
 
-                const pdfTitle = document.querySelector(
-                    '[data-testid="file-card-title-{$longPdf->id}"]',
-                );
-                const truncated = Boolean(
-                    pdfTitle
-                    && pdfTitle.classList.contains('truncate')
-                    && pdfTitle.classList.contains('min-w-0')
-                    && pdfTitle.classList.contains('w-full'),
-                );
+                    // The long name gets most of the row: wider than half the card.
+                    const pdfTitle = document.querySelector('[data-testid="file-card-title-{$longPdf->id}"]');
+                    const nameRoom = pdfTitle.getBoundingClientRect().width > rects[0].width / 2
+                        && pdfTitle.scrollWidth > pdfTitle.clientWidth;
 
-                return aspectSquare && uniform && square && truncated
-                    && document.querySelector('[data-testid="file-card-{$folder->id}"]') !== null;
-            }
-        JS)
-        ->assertNoJavaScriptErrors();
+                    return sameSize && squareCards && wideEnough && previewsFillTop && nameRoom;
+                }
+            JS)
+            ->assertNoJavaScriptErrors();
+    }
 });
 
 it('clears selection when using the toolbar clear control', function () {
@@ -566,7 +559,8 @@ it('fills a tall window with pages automatically and stops at the end of the lis
     $this->actingAs($user);
 
     $page = visit('/files');
-    $page->resize(1440, 3200);
+    // Tall enough for more than one 48-card page of 15rem cards.
+    $page->resize(1440, 5600);
 
     $page->wait(2)
         ->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 60")
@@ -680,7 +674,7 @@ it('draws the selected card ring inside the card so the grid edge cannot cut it'
 
     visit('/files')
         ->click("[data-testid=\"file-card-{$edge->id}\"]")
-        ->assertAttribute("[data-testid=\"file-card-{$edge->id}\"]", 'aria-pressed', 'true')
+        ->assertAttribute("[data-testid=\"file-card-{$edge->id}\"]", 'data-selected', 'true')
         ->assertScript(<<<JS
 (() => {
   const card = document.querySelector('[data-testid="file-card-{$edge->id}"]');
@@ -691,7 +685,7 @@ JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('shows the name and tags below the image, not over it', function () {
+it('puts the preview edge to edge with the name and menus below it, never over it', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -712,17 +706,107 @@ it('shows the name and tags below the image, not over it', function () {
     $this->actingAs($user);
 
     visit('/files')
-        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", 'summer')
-        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", '+2')
+        ->assertPresent("[data-test=\"file-card-header-{$photo->id}\"]")
         ->assertScript(<<<JS
 (() => {
-  const card = document.querySelector('[data-testid="file-card-{$photo->id}"]');
-  const image = card.querySelector('[data-radix-aspect-ratio-wrapper]').getBoundingClientRect();
+  const card = document.querySelector('[data-testid="file-card-{$photo->id}"]').getBoundingClientRect();
+  const preview = document.querySelector('[data-test="file-card-preview-{$photo->id}"]').getBoundingClientRect();
+  const header = document.querySelector('[data-test="file-card-header-{$photo->id}"]').getBoundingClientRect();
   const title = document.querySelector('[data-testid="file-card-title-{$photo->id}"]').getBoundingClientRect();
   const tags = document.querySelector('[data-test="file-tags-{$photo->id}"]').getBoundingClientRect();
-  return title.top >= image.bottom - 0.5 && tags.top >= title.bottom - 0.5 && tags.bottom <= card.getBoundingClientRect().bottom + 0.5;
+  // Only the 1px card border between the preview and the card edges.
+  const edgeToEdge = preview.left - card.left <= 1.5 && card.right - preview.right <= 1.5
+    && preview.top - card.top <= 1.5 && preview.height > card.height / 2;
+  const below = [header, title, tags].every((rect) => rect.top >= preview.bottom - 0.5 && rect.bottom <= card.bottom + 0.5);
+  return edgeToEdge && below;
 })()
 JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('shows the file tags on hover without selecting the card', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $tagged = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'tagged.txt',
+        'path' => '/tagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/tagged.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+    $tagged->attachTags(['summer', 'travel', 'family']);
+
+    $untagged = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'untagged.txt',
+        'path' => '/untagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/untagged.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->assertMissing("[data-test=\"file-tags-{$untagged->id}\"]")
+        ->hover("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertPresent("[data-test=\"file-tags-card-{$tagged->id}\"]")
+        ->assertScript(<<<'JS'
+(() => {
+  const names = [...document.querySelectorAll('[data-test="file-tags-item"]')].map((item) => item.textContent.trim());
+  return names.length === 3 && ['summer', 'travel', 'family'].every((name) => names.includes(name));
+})()
+JS)
+        ->click("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertAttribute("[data-testid=\"file-card-{$tagged->id}\"]", 'data-selected', 'false')
+        ->assertNoJavaScriptErrors();
+});
+
+it('opens the same actions from the ⋮ button as from a right-click', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanDeleteFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+        PermissionEnum::CanFavoriteFiles->value,
+        PermissionEnum::CanCopyFiles->value,
+        PermissionEnum::CanTagFiles->value,
+    ]);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'menu.txt',
+        'path' => '/menu.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/menu.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+
+    $this->actingAs($user);
+
+    $listActions = <<<'JS'
+[...document.querySelectorAll('[role="menu"] [data-testid^="files-context-action-"]')].map((item) => item.dataset.testid + ':' + item.textContent.trim()).join('|')
+JS;
+
+    $page = visit('/files')->rightClick("[data-testid=\"file-card-{$file->id}\"]")
+        ->assertPresent('[data-testid="files-context-action-rename"]');
+    $fromRightClick = $page->script($listActions);
+
+    $page = visit('/files')->click("[data-test=\"file-card-more-{$file->id}\"]")
+        ->assertPresent('[data-testid="files-context-action-rename"]');
+    $fromButton = $page->script($listActions);
+
+    expect($fromRightClick)->toContain('files-context-action-delete')
+        ->and($fromButton)->toBe($fromRightClick);
+
+    $page->click('[data-testid="files-context-action-rename"]')
+        ->assertSee('Rename')
         ->assertNoJavaScriptErrors();
 });
 
@@ -828,4 +912,91 @@ it('nudges the focal point with the keyboard and resets it to the centre', funct
         ->click('Reset to centre')
         ->assertSeeIn('[data-test="focal-point-readout"]', 'X 50% · Y 50%')
         ->assertNoJavaScriptErrors();
+});
+
+it('has no critical or serious axe issues on the file cards in light and dark, desktop and mobile', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanDeleteFiles->value,
+        PermissionEnum::CanFavoriteFiles->value,
+        PermissionEnum::CanTagFiles->value,
+    ]);
+
+    File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Axe Folder',
+        'path' => '/Axe Folder',
+        'disk' => 'assets',
+    ]);
+    $tagged = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'axe-tagged.txt',
+        'path' => '/axe-tagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/axe-tagged.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+    $tagged->attachTags(['summer']);
+
+    $this->actingAs($user);
+
+    foreach (['light', 'dark'] as $mode) {
+        foreach (['desktop', 'mobile'] as $device) {
+            $page = $mode === 'dark' ? visit('/files')->inDarkMode() : visit('/files')->inLightMode();
+
+            if ($device === 'mobile') {
+                $page = $page->on()->mobile();
+            }
+
+            $page->assertPresent("[data-test=\"file-card-more-{$tagged->id}\"]")
+                ->assertNoAccessibilityIssues(1)
+                ->assertNoJavaScriptErrors();
+        }
+    }
+});
+
+it('paints the folder icon and the favourite star with the theme tokens in light and dark', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Token Folder',
+        'path' => '/Token Folder',
+        'disk' => 'assets',
+    ]);
+    $favourite = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'token-favourite.txt',
+        'path' => '/token-favourite.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/token-favourite.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+    $favourite->favoritedBy()->attach($user->id);
+
+    $this->actingAs($user);
+
+    // amber-600 / amber-500 in light, amber-400 in dark (resources/css/app.css).
+    $expected = [
+        'light' => ['rgb(180, 83, 9)', 'rgb(217, 119, 6)'],
+        'dark' => ['rgb(240, 154, 26)', 'rgb(240, 154, 26)'],
+    ];
+
+    foreach ($expected as $mode => [$folderColour, $starColour]) {
+        $page = $mode === 'dark' ? visit('/files')->inDarkMode() : visit('/files')->inLightMode();
+
+        $page->assertScript(<<<JS
+(() => {
+  const folderIcon = document.querySelector('[data-testid="file-card-{$folder->id}"] svg.lucide-folder-open');
+  const star = document.querySelector('[data-testid="file-card-{$favourite->id}"] svg.lucide-star');
+  return getComputedStyle(folderIcon).color === '{$folderColour}' && getComputedStyle(star).color === '{$starColour}';
+})()
+JS)
+            ->assertNoJavaScriptErrors();
+    }
 });

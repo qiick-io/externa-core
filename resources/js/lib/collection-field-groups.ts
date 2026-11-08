@@ -1,12 +1,12 @@
 /** Layout group field types. */
-export const LAYOUT_GROUP_TYPES = [
+const LAYOUT_GROUP_TYPES = [
     'group_accordion',
     'group_detail',
     'group_raw',
     'group_tabs',
 ] as const;
 
-export type LayoutGroupType = (typeof LAYOUT_GROUP_TYPES)[number];
+type LayoutGroupType = (typeof LAYOUT_GROUP_TYPES)[number];
 
 /**
  * @param type - Field type key
@@ -59,12 +59,6 @@ export type FieldTreeNode<T> = {
     children: FieldTreeNode<T>[];
 };
 
-/** Flattened tree row for the fields list. */
-export type FlatFieldTreeItem<T> = {
-    field: T;
-    depth: number;
-};
-
 /**
  * Build tree from fields by settings.group + sort_order.
  *
@@ -107,23 +101,6 @@ export function buildFieldTree<
     }
 
     return roots;
-}
-
-/**
- * Depth-first flatten of a field tree (for indented list UI).
- */
-export function flattenFieldTree<T>(
-    tree: FieldTreeNode<T>[],
-    depth = 0,
-): FlatFieldTreeItem<T>[] {
-    const out: FlatFieldTreeItem<T>[] = [];
-
-    for (const node of tree) {
-        out.push({ field: node.field, depth });
-        out.push(...flattenFieldTree(node.children, depth + 1));
-    }
-
-    return out;
 }
 
 /**
@@ -190,172 +167,4 @@ export function wouldCreateGroupCycle(
     }
 
     return false;
-}
-
-/**
- * Find a tree node by field id.
- */
-export function findFieldTreeNodeById<T extends { id: number }>(
-    nodes: FieldTreeNode<T>[],
-    fieldId: number,
-): FieldTreeNode<T> | null {
-    for (const node of nodes) {
-        if (node.field.id === fieldId) {
-            return node;
-        }
-
-        const nested = findFieldTreeNodeById(node.children, fieldId);
-
-        if (nested) {
-            return nested;
-        }
-    }
-
-    return null;
-}
-
-/**
- * Depth-first field ids for a node and its descendants.
- */
-export function collectFieldTreeIds<T extends { id: number }>(
-    node: FieldTreeNode<T>,
-): number[] {
-    const ids = [node.field.id];
-
-    for (const child of node.children) {
-        ids.push(...collectFieldTreeIds(child));
-    }
-
-    return ids;
-}
-
-function fieldIsUnderGroupName<
-    T extends {
-        id: number;
-        name: string;
-        settings?: Record<string, unknown> | null;
-    },
->(
-    field: T,
-    groupName: string,
-    groups: Map<number, string | null>,
-    byName: Map<string, T>,
-): boolean {
-    let cursor: string | null =
-        groups.get(field.id) ?? getFieldGroupName(field);
-
-    for (let depth = 0; depth < 32 && cursor !== null; depth += 1) {
-        if (cursor === groupName) {
-            return true;
-        }
-
-        const parent = byName.get(cursor);
-        cursor = parent
-            ? (groups.get(parent.id) ?? getFieldGroupName(parent))
-            : null;
-    }
-
-    return false;
-}
-
-/**
- * Same-parent sibling reorder: relocate the active DFS block without rebuilding
- * the group map or running nest/cycle checks (live drag path).
- *
- * @param beforeSiblingId - Insert before this sibling; null appends under parent.
- * @returns Same `fields` reference when the slot is unchanged.
- */
-export function moveSameParentSiblingBlock<
-    T extends {
-        id: number;
-        name: string;
-        type?: string;
-        settings?: Record<string, unknown> | null;
-    },
->(
-    fields: T[],
-    groups: Map<number, string | null>,
-    activeId: number,
-    beforeSiblingId: number | null,
-): T[] {
-    const activeField = fields.find((field) => field.id === activeId);
-
-    if (!activeField) {
-        return fields;
-    }
-
-    const parentName = groups.get(activeId) ?? getFieldGroupName(activeField);
-    const byName = new Map(fields.map((field) => [field.name, field]));
-    const subtreeIds = new Set<number>([activeId]);
-
-    // Collect DFS descendants by parent chain (not type) so same-parent moves
-    // keep nested blocks contiguous even when type is missing in tests/helpers.
-    for (const field of fields) {
-        if (
-            field.id !== activeId &&
-            fieldIsUnderGroupName(field, activeField.name, groups, byName)
-        ) {
-            subtreeIds.add(field.id);
-        }
-    }
-
-    const block: T[] = [];
-    const rest: T[] = [];
-
-    for (const field of fields) {
-        if (subtreeIds.has(field.id)) {
-            block.push(field);
-        } else {
-            rest.push(field);
-        }
-    }
-
-    let insertAt = rest.length;
-
-    if (beforeSiblingId !== null) {
-        const siblingIndex = rest.findIndex(
-            (field) => field.id === beforeSiblingId,
-        );
-
-        if (siblingIndex !== -1) {
-            insertAt = siblingIndex;
-        }
-    } else if (parentName !== null) {
-        const parentIndex = rest.findIndex(
-            (field) => field.name === parentName,
-        );
-
-        if (parentIndex !== -1) {
-            let lastIndex = parentIndex;
-
-            for (let index = parentIndex + 1; index < rest.length; index += 1) {
-                if (
-                    fieldIsUnderGroupName(
-                        rest[index],
-                        parentName,
-                        groups,
-                        byName,
-                    )
-                ) {
-                    lastIndex = index;
-                } else {
-                    break;
-                }
-            }
-
-            insertAt = lastIndex + 1;
-        }
-    }
-
-    const next = [
-        ...rest.slice(0, insertAt),
-        ...block,
-        ...rest.slice(insertAt),
-    ];
-
-    const unchanged =
-        next.length === fields.length &&
-        next.every((field, index) => field.id === fields[index]?.id);
-
-    return unchanged ? fields : next;
 }

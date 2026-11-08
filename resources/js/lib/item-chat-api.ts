@@ -492,7 +492,7 @@ async function uploadChatChunkWithRetry(
     );
 }
 
-export function assertWithinChatUploadCap(
+function assertWithinChatUploadCap(
     fileSize: number,
     maxBytes: number | null | undefined,
 ): void {

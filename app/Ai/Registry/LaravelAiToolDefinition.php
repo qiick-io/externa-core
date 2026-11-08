@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Registry;
 
-use App\Contracts\Ai\ToolDefinitionInterface;
+use App\Contracts\Ai\ToolDefinitionContract;
 use App\Enums\AiToolKindEnum;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
@@ -14,9 +14,9 @@ use Laravel\Ai\Tools\ToolNameResolver;
 use Stringable;
 
 /**
- * Adapts an existing laravel/ai Tool into the shared ToolDefinitionInterface.
+ * Adapts an existing laravel/ai Tool into the shared ToolDefinitionContract.
  */
-final class LaravelAiToolDefinition implements ToolDefinitionInterface
+final class LaravelAiToolDefinition implements ToolDefinitionContract
 {
     /**
      * @param  callable(Authenticatable|null, array<string, mixed>): bool  $requiredAbilities

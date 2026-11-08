@@ -84,7 +84,7 @@ export function ColumnHeaderMenu({
                     )}
                 >
                     <ArrowUpAZ className="size-4" />
-                    Sort ascending
+                    {t('common.sortAscending')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onSelect={() => onSort('desc')}
@@ -93,7 +93,7 @@ export function ColumnHeaderMenu({
                     )}
                 >
                     <ArrowDownAZ className="size-4" />
-                    Sort descending
+                    {t('common.sortDescending')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -101,21 +101,21 @@ export function ColumnHeaderMenu({
                     className={cn(align === 'left' && 'bg-accent')}
                 >
                     <AlignLeft className="size-4" />
-                    Align left
+                    {t('collections.items.columnMenu.alignLeft')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onSelect={() => onAlign('center')}
                     className={cn(align === 'center' && 'bg-accent')}
                 >
                     <AlignCenter className="size-4" />
-                    Align center
+                    {t('collections.items.columnMenu.alignCenter')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onSelect={() => onAlign('right')}
                     className={cn(align === 'right' && 'bg-accent')}
                 >
                     <AlignRight className="size-4" />
-                    Align right
+                    {t('collections.items.columnMenu.alignRight')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -127,7 +127,7 @@ export function ColumnHeaderMenu({
                     }}
                 >
                     <EyeOff className="size-4" />
-                    Hide field
+                    {t('collections.items.columnMenu.hideField')}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

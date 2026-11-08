@@ -72,7 +72,7 @@ export function isFilterableFieldType(type: string): boolean {
 
 let ruleIdSeq = 0;
 
-export function newFilterRuleId(): string {
+function newFilterRuleId(): string {
     ruleIdSeq += 1;
 
     return `fr-${Date.now()}-${ruleIdSeq}`;

@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useScrollRegion } from '@/hooks/use-scroll-region';
 import { LIST_PER_PAGE_OPTIONS, listUrlWithPerPage } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 
@@ -105,6 +106,8 @@ export function TablePanel({
     className?: string;
     footer?: ReactNode;
 }) {
+    const scrollRegionRef = useScrollRegion<HTMLDivElement>();
+
     return (
         <div
             className={cn(
@@ -113,8 +116,9 @@ export function TablePanel({
             )}
         >
             <div
+                ref={scrollRegionRef}
                 data-slot="table-panel-scroll"
-                className="min-h-0 flex-1 overflow-auto [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-background [&_thead_th]:shadow-[inset_0_-1px_0_var(--color-border)] [&_thead_tr]:border-b-0"
+                className="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-background [&_thead_th]:shadow-[inset_0_-1px_0_var(--color-border)] [&_thead_tr]:border-b-0"
             >
                 {children}
             </div>

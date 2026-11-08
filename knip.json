@@ -1,0 +1,22 @@
+{
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+    "entry": ["resources/js/pages/**/*.tsx"],
+    "project": ["resources/js/**/*.{ts,tsx}"],
+    "ignore": [
+        "resources/js/components/ui/**",
+        "resources/js/components/ai-elements/**",
+        "resources/js/enums/permission-enum.ts",
+        "resources/js/components/admin/data-table-faceted-filter.tsx",
+        "resources/js/components/layout/page-header.tsx",
+        "resources/js/components/stat-card.tsx",
+        "resources/js/lib/ai-message-parts.ts",
+        "resources/js/lib/live-announcer.ts",
+        "resources/js/lib/toast.ts"
+    ],
+    "ignoreDependencies": [
+        "concurrently",
+        "@commitlint/types",
+        "@inertiajs/core",
+        "@codemirror/language"
+    ]
+}

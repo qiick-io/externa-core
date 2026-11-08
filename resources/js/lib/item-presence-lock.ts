@@ -4,7 +4,7 @@ export type ItemLockState = {
     until: number;
 };
 
-export const ITEM_LOCK_TTL_MS = 30_000;
+const ITEM_LOCK_TTL_MS = 30_000;
 
 export function isLockActive(
     lock: ItemLockState | null,

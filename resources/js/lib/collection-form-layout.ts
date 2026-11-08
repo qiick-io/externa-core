@@ -2,7 +2,7 @@
 
 export type FormLayoutLabel = Record<string, string>;
 
-export type FormLayoutTab = {
+type FormLayoutTab = {
     id: string;
     label: FormLayoutLabel;
 };

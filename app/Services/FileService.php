@@ -1027,7 +1027,8 @@ class FileService
             return '/'.$file->name;
         }
 
-        $parent = $file->parent;
+        // One query for the parent row (strict models forbid a lazy load here).
+        $parent = $file->relationLoaded('parent') ? $file->parent : $file->parent()->first();
         if (! $parent) {
             return '/'.$file->name;
         }

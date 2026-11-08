@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-export type AccessibilityPreferences = {
+type AccessibilityPreferences = {
     readonly highContrastEnabled: boolean;
     readonly reduceMotionEnabled: boolean;
 };

@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useId, useRef } from 'react';
 import type {
     UnsavedChangesDialogCopy,
-    UnsavedChangesEntry,
     UnsavedChangesScope,
 } from '@/lib/unsaved-changes/registry';
 import { notifyUnsavedChangesRegistry } from '@/lib/unsaved-changes/registry';
@@ -92,9 +91,3 @@ export function useRegisterUnsavedChanges({
         });
     }, [enabled, register, scope, dialogCopy]);
 }
-
-export type {
-    UnsavedChangesEntry,
-    UnsavedChangesScope,
-    UnsavedChangesDialogCopy,
-};

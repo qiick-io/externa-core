@@ -3,7 +3,6 @@ import {
     applyLockWhisper,
     buildLockClaim,
     isLockActive,
-    ITEM_LOCK_TTL_MS,
     lockHeldByOther,
 } from '@/lib/item-presence-lock';
 import type { ItemLockState } from '@/lib/item-presence-lock';
@@ -249,5 +248,3 @@ export function isRemoteUpdatedAtStale(
 
     return remoteMs > baseMs;
 }
-
-export { ITEM_LOCK_TTL_MS };

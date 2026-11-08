@@ -6,7 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Authorization\SuperAdminGuardService;
@@ -21,7 +21,7 @@ use Stringable;
 /**
  * AI tool for listing and mutating application users (CRUD, restore, force-delete).
  */
-class ManageUsers implements Approvable, ClassifiesToolActionsInterface, Tool
+class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;

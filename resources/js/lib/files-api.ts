@@ -20,7 +20,7 @@ export const CHUNK_RETRY_BASE_DELAY_MS = 1000;
  *
  * @throws Error when file exceeds the configured cap
  */
-export function assertWithinFilesUploadCap(
+function assertWithinFilesUploadCap(
     fileSize: number,
     maxBytes: number | null | undefined,
 ): void {

@@ -13,7 +13,7 @@ export type FieldConditionOperator =
     | 'in'
     | 'not_in';
 
-export const FIELD_CONDITION_OPERATORS: FieldConditionOperator[] = [
+const FIELD_CONDITION_OPERATORS: FieldConditionOperator[] = [
     'equals',
     'not_equals',
     'empty',
@@ -27,7 +27,7 @@ export const FIELD_CONDITION_OPERATORS: FieldConditionOperator[] = [
     'not_in',
 ];
 
-export type FieldConditionRule = {
+type FieldConditionRule = {
     field: string;
     operator: FieldConditionOperator;
     value?: unknown;
