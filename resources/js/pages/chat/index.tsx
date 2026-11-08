@@ -192,6 +192,18 @@ export default function ChatHubPage({
         );
     };
 
+    const closeThread = (): void => {
+        router.get(
+            `/chat?tab=${tab}`,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['selectedChat', 'fields', 'tab', 'q'],
+            },
+        );
+    };
+
     const switchTab = (next: 'collection' | 'private'): void => {
         setTab(next);
         setHubTab(next);
@@ -233,7 +245,7 @@ export default function ChatHubPage({
                 filters={
                     <FilterSearch
                         dataTest="chat-filter-q"
-                        className="w-64 flex-none sm:max-w-none lg:w-80"
+                        className="sm:max-w-none md:w-64 md:flex-none lg:w-80"
                         value={q}
                         placeholder={t('chatHub.search')}
                         maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
@@ -263,7 +275,10 @@ export default function ChatHubPage({
                                 data-test="chat-tab-collection"
                             >
                                 <Database className="size-4" />
-                                <span>{t('chatHub.collection')}</span>
+                                {/* Icon only below `sm`, so the row fits next to the search on a phone. */}
+                                <span className="sr-only sm:not-sr-only">
+                                    {t('chatHub.collection')}
+                                </span>
                                 {unread.unread_collection > 0 ? (
                                     <Badge
                                         data-test="chat-tab-collection-unread"
@@ -280,7 +295,9 @@ export default function ChatHubPage({
                                 data-test="chat-tab-private"
                             >
                                 <UsersRound className="size-4" />
-                                <span>{t('chatHub.users')}</span>
+                                <span className="sr-only sm:not-sr-only">
+                                    {t('chatHub.users')}
+                                </span>
                                 {unread.unread_private > 0 ? (
                                     <Badge
                                         data-test="chat-tab-private-unread"
@@ -323,9 +340,14 @@ export default function ChatHubPage({
                     data-test="chat-hub"
                     className="flex min-h-0 flex-1 overflow-hidden"
                 >
+                    {/* Below `md` the list and the open thread take turns, full width. */}
                     <aside
                         aria-label={t('a11y.chatThreadList')}
-                        className="flex w-64 shrink-0 flex-col border-r lg:w-80"
+                        data-test="chat-list-column"
+                        className={cn(
+                            'w-full shrink-0 flex-col md:flex md:w-64 md:border-r lg:w-80',
+                            selectedChat === null ? 'flex' : 'hidden',
+                        )}
                     >
                         <div
                             data-test="chat-list"
@@ -376,7 +398,13 @@ export default function ChatHubPage({
                             )}
                         </div>
                     </aside>
-                    <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+                    <section
+                        data-test="chat-thread-column"
+                        className={cn(
+                            'relative min-h-0 min-w-0 flex-1 flex-col md:flex',
+                            selectedChat === null ? 'hidden' : 'flex',
+                        )}
+                    >
                         <ItemChatDrawer
                             key="chat-hub-pane"
                             open={selectedChat !== null}
@@ -394,6 +422,7 @@ export default function ChatHubPage({
                             onChatCountChange={noopChatCountChange}
                             thread={selectedChat}
                             canCreateDirect={canCreateDirect}
+                            onBack={closeThread}
                         />
                         {selectedChat === null ? (
                             <div className="absolute inset-0 flex flex-col bg-background">

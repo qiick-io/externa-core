@@ -234,6 +234,8 @@ class DashboardController
                     'dashboard:file-stats-by-disk',
                     $now->copy()->addSeconds(60),
                     fn (): array => File::query()
+                        // Aggregate rows, not files: skip the default currentVersion eager load.
+                        ->without('currentVersion')
                         ->where('type', FileTypeEnum::File)
                         // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                         ->selectRaw('disk, COUNT(*) as files_count, COALESCE(SUM(size), 0) as files_size_sum')

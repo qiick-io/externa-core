@@ -1720,7 +1720,8 @@
             "output": "Output",
             "reasoning": "Reasoning",
             "cache": "Cache"
-        }
+        },
+        "backToList": "Back to conversations"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1875,7 +1876,8 @@
         "deleteChat": "Delete chat",
         "deleteChatError": "Could not delete chat.",
         "messagesRegion": "Messages",
-        "scrollToLatest": "Scroll to the latest message"
+        "scrollToLatest": "Scroll to the latest message",
+        "backToList": "Back to chats"
     },
     "errors": {
         "notFound": {
