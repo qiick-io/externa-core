@@ -139,6 +139,15 @@ export function FilePreview({
               className,
           )
         : cn(boxClass, 'rounded object-cover');
+    // Covers crop around the focal point set in the detail panel (0–1 scale).
+    const mediaStyle =
+        isCover &&
+        typeof file.focal_point_x === 'number' &&
+        typeof file.focal_point_y === 'number'
+            ? {
+                  objectPosition: `${file.focal_point_x * 100}% ${file.focal_point_y * 100}%`,
+              }
+            : undefined;
 
     useEffect(() => {
         const videoElement = videoRef.current;
@@ -183,6 +192,7 @@ export function FilePreview({
                     src={imageSrc}
                     alt={file.title || file.name}
                     className={mediaClass}
+                    style={mediaStyle}
                     onError={() => setFailedImageSrc(imageSrc)}
                 />
             );
@@ -199,6 +209,7 @@ export function FilePreview({
                 playsInline
                 preload="metadata"
                 className={mediaClass}
+                style={mediaStyle}
             />
         );
     }
@@ -233,17 +244,4 @@ export function FilePreview({
             })}
         </div>
     );
-}
-
-/** Whether the grid card can show a full-bleed image/video cover. */
-export function hasCoverMedia(file: AdminFileRow): boolean {
-    if (file.type === 'folder') {
-        return false;
-    }
-
-    if (isImageFile(file)) {
-        return Boolean(file.thumbnail_url ?? filePublicUrl(file));
-    }
-
-    return Boolean(filePublicUrl(file)) && isPlayableVideo(file);
 }
