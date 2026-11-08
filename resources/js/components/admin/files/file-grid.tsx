@@ -261,7 +261,7 @@ export function FileGrid({
                 onPointerDown={handleBackgroundPointerDown}
             >
                 <div
-                    className="grid flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]"
+                    className="grid flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]"
                     onDragOver={(event) => {
                         if (isTrashed || !isInternalFileDrag(event)) {
                             return;

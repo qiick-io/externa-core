@@ -265,14 +265,19 @@ it('gives files and folders one card size with a square preview, at 1440 and 192
                     const sameSize = rects.every((rect) =>
                         Math.abs(rect.width - rects[0].width) <= 1 && Math.abs(rect.height - rects[0].height) <= 1,
                     );
-                    // Cards never get narrower than the 13rem grid minimum.
-                    const wideEnough = rects[0].width >= 207;
+                    // Cards never get narrower than the 15rem grid minimum.
+                    const wideEnough = rects[0].width >= 239;
 
                     const squarePreviews = cards.every((card) => {
                         const preview = card.querySelector('[data-test^="file-card-preview-"]').getBoundingClientRect();
                         const header = card.querySelector('[data-test^="file-card-header-"]').getBoundingClientRect();
 
-                        return Math.abs(preview.width - preview.height) <= 1 && header.top >= preview.bottom - 0.5;
+                        // No type glyph next to the name: the only icons in the row are its buttons'.
+                        const strayIcons = [...card.querySelectorAll('[data-test^="file-card-header-"] svg')]
+                            .filter((icon) => !icon.closest('button'));
+
+                        return Math.abs(preview.width - preview.height) <= 1 && header.top >= preview.bottom - 0.5
+                            && strayIcons.length === 0;
                     });
 
                     // The long name gets most of the row: wider than half the card.
@@ -549,7 +554,8 @@ it('fills a tall window with pages automatically and stops at the end of the lis
     $this->actingAs($user);
 
     $page = visit('/files');
-    $page->resize(1440, 3200);
+    // Tall enough for more than one 48-card page of 15rem cards.
+    $page->resize(1440, 5600);
 
     $page->wait(2)
         ->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 60")
@@ -713,7 +719,7 @@ JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('lists the file tags in the tag menu', function () {
+it('shows the file tags on hover without selecting the card', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -743,13 +749,16 @@ it('lists the file tags in the tag menu', function () {
 
     visit('/files')
         ->assertMissing("[data-test=\"file-tags-{$untagged->id}\"]")
-        ->click("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->hover("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertPresent("[data-test=\"file-tags-card-{$tagged->id}\"]")
         ->assertScript(<<<'JS'
 (() => {
   const names = [...document.querySelectorAll('[data-test="file-tags-item"]')].map((item) => item.textContent.trim());
   return names.length === 3 && ['summer', 'travel', 'family'].every((name) => names.includes(name));
 })()
 JS)
+        ->click("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertAttribute("[data-testid=\"file-card-{$tagged->id}\"]", 'data-selected', 'false')
         ->assertNoJavaScriptErrors();
 });
 
