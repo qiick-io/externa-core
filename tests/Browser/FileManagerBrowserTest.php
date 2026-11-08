@@ -83,9 +83,9 @@ it('supports drive-like selection, details panel, and folder open', function () 
         ->click('[data-testid="files-action-details"]')
         ->assertSee('Replace file')
         ->assertSee('Download name')
-        ->assertSee('Focal point')
-        ->assertSee('Translate X')
-        ->assertSee('Scale');
+        ->assertMissing('[data-test="focal-point-picker"]')
+        ->assertDontSee('Translate X')
+        ->assertDontSee('Transforms');
 
     $page->click("[data-testid=\"file-card-title-{$folder->id}\"]")
         ->assertPathIs('/files/'.$folder->id)
@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps mixed file cards square and truncates long titles', function () {
+it('keeps mixed file cards the same size with a square preview and truncates long titles', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -260,8 +260,16 @@ it('keeps mixed file cards square and truncates long titles', function () {
                     return false;
                 }
 
-                // Cards sit in a 1:1 AspectRatio box (its wrapper is the grid cell).
-                const aspectSquare = cards.every((card) => card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper'));
+                // Each card opens with a 1:1 AspectRatio preview, then the name / tags footer.
+                const aspectSquare = cards.every((card) => {
+                    const preview = card.querySelector('[data-radix-aspect-ratio-wrapper]');
+                    if (!preview) {
+                        return false;
+                    }
+                    const rect = preview.getBoundingClientRect();
+
+                    return Math.abs(rect.width - rect.height) <= 2;
+                });
 
                 const sizes = cards.map((card) => {
                     const rect = card.getBoundingClientRect();
@@ -277,7 +285,7 @@ it('keeps mixed file cards square and truncates long titles', function () {
                 const uniform = sizes.every(
                     (size) => within(size.width, first.width) && within(size.height, first.height),
                 );
-                const square = within(first.width, first.height) && first.width > 0;
+                const square = first.width > 0 && first.height > first.width;
 
                 const pdfTitle = document.querySelector(
                     '[data-testid="file-card-title-{$longPdf->id}"]',
@@ -614,7 +622,21 @@ it('keeps the loaded pages after a move and keeps loading on scroll', function (
     $this->actingAs($user);
 
     $countCards = "document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length";
+    $scrollGridToEnd = <<<'JS'
+        (() => {
+            let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+            while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                panel = panel.parentElement;
+            }
+            if (panel) {
+                panel.scrollTop = panel.scrollHeight;
+            }
+        })()
+        JS;
     $page = visit('/files')->on()->macbookAir()->wait(1);
+    // Load a second page first (the window alone may hold only one page of cards).
+    $page->script($scrollGridToEnd);
+    $page->wait(1);
     $loaded = $page->script($countCards);
 
     expect($loaded)->toBeGreaterThan(48);
@@ -629,17 +651,7 @@ it('keeps the loaded pages after a move and keeps loading on scroll', function (
 
     // Scroll the grid panel to the bottom, as the wheel would.
     foreach (range(1, 4) as $_) {
-        $page->script(<<<'JS'
-            (() => {
-                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
-                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
-                    panel = panel.parentElement;
-                }
-                if (panel) {
-                    panel.scrollTop = panel.scrollHeight;
-                }
-            })()
-            JS);
+        $page->script($scrollGridToEnd);
         $page->wait(1);
     }
 
@@ -676,5 +688,144 @@ it('draws the selected card ring inside the card so the grid edge cannot cut it'
   return getComputedStyle(card).boxShadow === 'none' && ring.includes('inset') && !ring.startsWith('none');
 })()
 JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('shows the name and tags below the image, not over it', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $photo = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'beach-sunset-with-a-very-long-name.png',
+        'path' => '/beach.png',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/beach.png',
+        'mime_type' => 'image/png',
+        'extension' => 'png',
+        'width' => 1600,
+        'height' => 900,
+    ]);
+    $photo->attachTags(['summer', 'travel', 'family']);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", 'summer')
+        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", '+2')
+        ->assertScript(<<<JS
+(() => {
+  const card = document.querySelector('[data-testid="file-card-{$photo->id}"]');
+  const image = card.querySelector('[data-radix-aspect-ratio-wrapper]').getBoundingClientRect();
+  const title = document.querySelector('[data-testid="file-card-title-{$photo->id}"]').getBoundingClientRect();
+  const tags = document.querySelector('[data-test="file-tags-{$photo->id}"]').getBoundingClientRect();
+  return title.top >= image.bottom - 0.5 && tags.top >= title.bottom - 0.5 && tags.bottom <= card.getBoundingClientRect().bottom + 0.5;
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('sets the image focal point by clicking the preview and saves it', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanUpdateFileMetadata->value,
+    ]);
+
+    $photo = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'photo.png',
+        'path' => '/photo.png',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/photo.png',
+        'mime_type' => 'image/png',
+        'extension' => 'png',
+        'width' => 1600,
+        'height' => 900,
+    ]);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Albums',
+        'path' => '/Albums',
+        'disk' => 'assets',
+    ]);
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$photo->id}\"]")
+        ->click('[data-testid="files-action-details"]')
+        ->assertPresent('[data-test="focal-point-picker"]')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'not set')
+        ->assertDontSee('Translate X')
+        ->assertDontSee('Scale');
+
+    // Click a quarter in from the left and three quarters down the image.
+    $page->script(<<<'JS'
+(() => {
+  const picker = document.querySelector('[data-test="focal-point-picker"]');
+  const rect = picker.getBoundingClientRect();
+  picker.dispatchEvent(new MouseEvent('click', {
+    bubbles: true,
+    detail: 1,
+    clientX: rect.left + rect.width * 0.25,
+    clientY: rect.top + rect.height * 0.75,
+  }));
+})()
+JS);
+
+    $page->assertPresent('[data-test="focal-point-marker"]')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 25% · Y 75%')
+        ->click('Save')
+        ->wait(1)
+        ->assertNoJavaScriptErrors();
+
+    $photo->refresh();
+
+    expect((float) $photo->focal_point_x)->toEqualWithDelta(0.25, 0.01)
+        ->and((float) $photo->focal_point_y)->toEqualWithDelta(0.75, 0.01);
+
+    $page->click("[data-testid=\"file-card-{$folder->id}\"]")
+        ->click('[data-testid="files-action-details"]')
+        ->assertMissing('[data-test="focal-point-picker"]')
+        ->assertDontSee('Focal point')
+        ->assertDontSee('Translate X')
+        ->assertNoJavaScriptErrors();
+});
+
+it('nudges the focal point with the keyboard and resets it to the centre', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanUpdateFileMetadata->value,
+    ]);
+
+    $photo = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'portrait.jpg',
+        'path' => '/portrait.jpg',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/portrait.jpg',
+        'mime_type' => 'image/jpeg',
+        'extension' => 'jpg',
+        'width' => 600,
+        'height' => 900,
+        'focal_point_x' => 0.2,
+        'focal_point_y' => 0.2,
+    ]);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->click("[data-testid=\"file-card-{$photo->id}\"]")
+        ->click('[data-testid="files-action-details"]')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 20% · Y 20%')
+        ->keys('[data-test="focal-point-picker"]', ['Shift+ArrowRight', 'ArrowDown'])
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 30% · Y 21%')
+        ->click('Reset to centre')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 50% · Y 50%')
         ->assertNoJavaScriptErrors();
 });

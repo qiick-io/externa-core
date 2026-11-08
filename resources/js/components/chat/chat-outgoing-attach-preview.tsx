@@ -98,16 +98,12 @@ export function ChatOutgoingAttachPreview({
             data-client-id={pending.clientId}
             data-status={pending.status}
         >
-            <Bubble
-                variant="muted"
-                align="end"
-                className={hasMedia ? 'min-w-[16rem]' : undefined}
-            >
+            <Bubble variant="muted" align="end">
                 {/* p-0: BubbleContent default py-2 + child padding was doubling height */}
                 <BubbleContent
                     className={cn(
                         'relative flex w-full flex-col gap-0 p-0 text-foreground',
-                        hasMedia ? 'min-w-[16rem]' : 'min-w-0',
+                        hasMedia ? 'w-80 max-w-full' : 'min-w-0',
                         failed && 'border-destructive ring-1 ring-destructive',
                     )}
                 >

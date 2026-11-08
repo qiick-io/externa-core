@@ -588,7 +588,7 @@ export default function CollectionsIndex({
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
+                                <TableBody className="[&_td]:h-10">
                                     {collections.map((c) => {
                                         const openUrl = c.is_singleton
                                             ? collectionRoutes.show.url(c.id)
@@ -668,7 +668,7 @@ export default function CollectionsIndex({
                                                 <TableCell className="max-w-[20rem] font-medium">
                                                     <div className="flex min-w-0 items-center gap-2">
                                                         <span
-                                                            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
+                                                            className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
                                                             style={
                                                                 accent
                                                                     ? {

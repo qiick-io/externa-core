@@ -220,9 +220,13 @@ export function DataTable<TData>({
                                             return (
                                                 <TableCell
                                                     key={cell.id}
-                                                    className={
-                                                        meta?.cellClassName
-                                                    }
+                                                    // h-10 is a minimum for table cells: text-only rows
+                                                    // reach the shared 41px row (40 + border), like rows
+                                                    // with a 24px avatar or icon-sm control.
+                                                    className={cn(
+                                                        'h-10',
+                                                        meta?.cellClassName,
+                                                    )}
                                                     onClick={
                                                         meta?.isRowClickIgnored
                                                             ? (event) =>

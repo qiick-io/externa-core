@@ -214,6 +214,7 @@ export function ManyToManyFieldInput({
                 fetchUrl={fetchUrl}
                 value={selectedIds}
                 disabled={readonly}
+                aria-label={field.name}
                 multiple
                 initialOptions={initialOptions}
                 onChange={onChangeIds}
@@ -368,6 +369,7 @@ export function RelationFieldInput({
                 fetchUrl={fetchUrl}
                 value={selectedIds}
                 disabled={readonly}
+                aria-label={field.name}
                 multiple={multiple}
                 initialOptions={initialOptions}
                 onChange={(next) => setSelectedIds(next)}
