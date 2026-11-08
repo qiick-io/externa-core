@@ -1140,6 +1140,7 @@ export function DynamicItemFields({
     selectDiffFields?: ReadonlySet<string> | null;
     onToggleDiffField?: (fieldName: string) => void;
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
     const requestLeave = useRequestLeave();
@@ -1392,13 +1393,19 @@ export function DynamicItemFields({
                                 {flags.required ? <RequiredMarker /> : null}
                             </span>
                             {field.translatable && (
-                                <Badge variant="secondary">Translatable</Badge>
+                                <Badge variant="secondary">
+                                    {t('collections.translatable')}
+                                </Badge>
                             )}
                             {readonly && (
                                 <Badge variant="secondary">
                                     {aclReadonly && !flags.readonly
-                                        ? 'No write access'
-                                        : 'Readonly'}
+                                        ? t(
+                                              'collections.items.fields.noWriteAccess',
+                                          )
+                                        : t(
+                                              'collections.items.fields.readonly',
+                                          )}
                                 </Badge>
                             )}
                         </div>
@@ -1421,7 +1428,7 @@ export function DynamicItemFields({
                                 }
                                 data-test={`diff-select-${field.name}`}
                             />
-                            Include in Apply
+                            {t('collections.items.fields.includeInApply')}
                         </label>
                     ) : null}
                     {inner}

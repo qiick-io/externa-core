@@ -771,10 +771,14 @@ export default function ItemsIndex({
                             </Tooltip>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                    <a href={exportUrl('csv')}>Export CSV</a>
+                                    <a href={exportUrl('csv')}>
+                                        {t('activityLog.exportCsv')}
+                                    </a>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                    <a href={exportUrl('json')}>Export JSON</a>
+                                    <a href={exportUrl('json')}>
+                                        {t('activityLog.exportJson')}
+                                    </a>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -783,7 +787,7 @@ export default function ItemsIndex({
                         <HeaderIconButton
                             asChild
                             variant="outline"
-                            label="Edit fields"
+                            label={t('collections.itemToolbar.editFields')}
                         >
                             <Link
                                 href={FieldController.index.url(collection.id)}
@@ -796,7 +800,7 @@ export default function ItemsIndex({
                         <Button asChild>
                             <Link href={itemNewUrl()}>
                                 <Plus className="size-4" />
-                                New item
+                                {t('collections.items.list.newItem')}
                             </Link>
                         </Button>
                     ) : null}
@@ -846,7 +850,7 @@ export default function ItemsIndex({
                                                     )
                                                 }
                                             >
-                                                Delete
+                                                {t('common.delete')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -858,7 +862,7 @@ export default function ItemsIndex({
                                                 variant="outline"
                                                 onClick={() => bulk('restore')}
                                             >
-                                                Restore
+                                                {t('common.restore')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -874,7 +878,7 @@ export default function ItemsIndex({
                                                     )
                                                 }
                                             >
-                                                Delete permanently
+                                                {t('common.deletePermanently')}
                                             </Button>
                                         )}
                                 </>
@@ -1373,7 +1377,9 @@ export default function ItemsIndex({
                                                             className="mr-1 text-xs"
                                                             data-test={`item-draft-badge-${row.id}`}
                                                         >
-                                                            Draft
+                                                            {t(
+                                                                'collections.itemToolbar.draft',
+                                                            )}
                                                         </Badge>
                                                     ) : null}
                                                     {approvalsRequired &&
@@ -1392,11 +1398,17 @@ export default function ItemsIndex({
                                                         >
                                                             {row.approval_status ===
                                                             'in_review'
-                                                                ? 'In review'
+                                                                ? t(
+                                                                      'collections.itemToolbar.inReview',
+                                                                  )
                                                                 : row.approval_status ===
                                                                     'approved'
-                                                                  ? 'Approved'
-                                                                  : 'Rejected'}
+                                                                  ? t(
+                                                                        'collections.itemToolbar.approved',
+                                                                    )
+                                                                  : t(
+                                                                        'collections.itemToolbar.rejected',
+                                                                    )}
                                                         </Badge>
                                                     ) : null}
                                                     {versioningEnabled &&
@@ -1431,7 +1443,9 @@ export default function ItemsIndex({
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="icon-sm"
-                                                                    label="Restore"
+                                                                    label={t(
+                                                                        'common.restore',
+                                                                    )}
                                                                     onClick={() =>
                                                                         router.post(
                                                                             ItemController.restore.url(
@@ -1458,7 +1472,9 @@ export default function ItemsIndex({
                                                                             type="button"
                                                                             variant="ghost"
                                                                             size="icon-sm"
-                                                                            label="More actions"
+                                                                            label={t(
+                                                                                'a11y.moreActions',
+                                                                            )}
                                                                             data-test={`item-row-menu-${row.id}`}
                                                                         >
                                                                             <MoreHorizontal className="size-3.5" />
@@ -1473,8 +1489,9 @@ export default function ItemsIndex({
                                                                                 )
                                                                             }
                                                                         >
-                                                                            Delete
-                                                                            permanently
+                                                                            {t(
+                                                                                'common.deletePermanently',
+                                                                            )}
                                                                         </DropdownMenuItem>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>
@@ -1485,7 +1502,9 @@ export default function ItemsIndex({
                                                             <HeaderIconButton
                                                                 variant="outline"
                                                                 size="icon-sm"
-                                                                label="Edit"
+                                                                label={t(
+                                                                    'collections.collectionPages.edit',
+                                                                )}
                                                                 asChild
                                                                 data-test={`item-row-edit-${row.id}`}
                                                             >
@@ -1513,7 +1532,9 @@ export default function ItemsIndex({
                                                                             type="button"
                                                                             variant="ghost"
                                                                             size="icon-sm"
-                                                                            label="More actions"
+                                                                            label={t(
+                                                                                'a11y.moreActions',
+                                                                            )}
                                                                             data-test={`item-row-menu-${row.id}`}
                                                                         >
                                                                             <MoreHorizontal className="size-3.5" />
@@ -1529,7 +1550,9 @@ export default function ItemsIndex({
                                                                                 )
                                                                             }
                                                                         >
-                                                                            Delete
+                                                                            {t(
+                                                                                'common.delete',
+                                                                            )}
                                                                         </DropdownMenuItem>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>

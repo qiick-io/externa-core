@@ -15,7 +15,9 @@ describe('PageEmptyState', () => {
                 title="No collections yet"
                 description="Create one to get started."
                 action={
-                    <button type="button">Create your first collection</button>
+                    <button type="button">
+                        {'Create your first collection'}
+                    </button>
                 }
                 docsHref="https://docs.externa.qiick.io"
                 docsLabel="Learn more"

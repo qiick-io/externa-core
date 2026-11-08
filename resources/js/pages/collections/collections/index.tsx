@@ -343,7 +343,7 @@ export default function CollectionsIndex({
                                                         )
                                                     }
                                                 >
-                                                    Delete
+                                                    {t('common.delete')}
                                                 </Button>
                                             )}
                                         {isTrashed &&
@@ -357,7 +357,7 @@ export default function CollectionsIndex({
                                                         bulk('restore')
                                                     }
                                                 >
-                                                    Restore
+                                                    {t('common.restore')}
                                                 </Button>
                                             )}
                                         {isTrashed &&
@@ -373,7 +373,9 @@ export default function CollectionsIndex({
                                                         )
                                                     }
                                                 >
-                                                    Delete permanently
+                                                    {t(
+                                                        'common.deletePermanently',
+                                                    )}
                                                 </Button>
                                             )}
                                     </>
@@ -404,7 +406,11 @@ export default function CollectionsIndex({
                                         )}
                                         className="w-[7.5rem]"
                                     >
-                                        <SelectValue placeholder="Sort" />
+                                        <SelectValue
+                                            placeholder={t(
+                                                'collections.collectionPages.sort',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent align="end">
                                         {sortFields.map((field) => (
@@ -805,7 +811,9 @@ export default function CollectionsIndex({
                                                                         type="button"
                                                                         variant="outline"
                                                                         size="icon-sm"
-                                                                        label="Restore"
+                                                                        label={t(
+                                                                            'common.restore',
+                                                                        )}
                                                                         onClick={() =>
                                                                             router.post(
                                                                                 collectionRoutes.restore.url(
@@ -828,7 +836,9 @@ export default function CollectionsIndex({
                                                                                 type="button"
                                                                                 variant="ghost"
                                                                                 size="icon-sm"
-                                                                                label="More actions"
+                                                                                label={t(
+                                                                                    'a11y.moreActions',
+                                                                                )}
                                                                                 data-test={`collection-row-menu-${c.id}`}
                                                                             >
                                                                                 <MoreHorizontal className="size-3.5" />
@@ -847,8 +857,9 @@ export default function CollectionsIndex({
                                                                                     )
                                                                                 }
                                                                             >
-                                                                                Delete
-                                                                                permanently
+                                                                                {t(
+                                                                                    'common.deletePermanently',
+                                                                                )}
                                                                             </DropdownMenuItem>
                                                                         </DropdownMenuContent>
                                                                     </DropdownMenu>
@@ -860,7 +871,9 @@ export default function CollectionsIndex({
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="icon-sm"
-                                                                    label="Edit"
+                                                                    label={t(
+                                                                        'collections.collectionPages.edit',
+                                                                    )}
                                                                     data-test={`collection-row-edit-${c.id}`}
                                                                     onClick={() =>
                                                                         openEdit(
@@ -878,7 +891,9 @@ export default function CollectionsIndex({
                                                                             type="button"
                                                                             variant="ghost"
                                                                             size="icon-sm"
-                                                                            label="More actions"
+                                                                            label={t(
+                                                                                'a11y.moreActions',
+                                                                            )}
                                                                             data-test={`collection-row-menu-${c.id}`}
                                                                         >
                                                                             <MoreHorizontal className="size-3.5" />
@@ -894,8 +909,9 @@ export default function CollectionsIndex({
                                                                                 )}
                                                                             >
                                                                                 <Rows3 className="size-3.5" />
-                                                                                Edit
-                                                                                fields
+                                                                                {t(
+                                                                                    'collections.itemToolbar.editFields',
+                                                                                )}
                                                                             </Link>
                                                                         </DropdownMenuItem>
                                                                         {can(
@@ -916,7 +932,9 @@ export default function CollectionsIndex({
                                                                                         )
                                                                                     }
                                                                                 >
-                                                                                    Delete
+                                                                                    {t(
+                                                                                        'common.delete',
+                                                                                    )}
                                                                                 </DropdownMenuItem>
                                                                             </>
                                                                         )}

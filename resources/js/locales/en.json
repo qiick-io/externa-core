@@ -144,6 +144,44 @@
             "name": "New role name",
             "submit": "Duplicate",
             "duplicating": "Duplicating…"
+        },
+        "form": {
+            "editTitle": "Edit role",
+            "systemRoleHint": "System role — name is locked; not assignable to users.",
+            "create": "Create",
+            "adminPermissions": "Admin permissions",
+            "createPrivateChats": "Create private chats",
+            "filesAccess": "Files access",
+            "filesAccessDescription": "Public CMS API file permissions. <strong>Read</strong> covers public files; <strong>Read private</strong> is required for files/folders marked private (and their inherited children). Missing grant = deny.",
+            "resource": "Resource",
+            "files": "Files",
+            "collectionAccess": "Collection access",
+            "collectionAccessDescription": "Public CMS API permissions (create / read / update / delete). Missing grant = deny.",
+            "searchCollections": "Search collections…",
+            "collection": "Collection",
+            "fieldsAndItemFilter": "Fields & item filter",
+            "itemFilter": "Item filter (AND)",
+            "removeRule": "Remove",
+            "addFilterRule": "Add filter rule",
+            "fileToggleAllowed": "{{action}} for files: allowed",
+            "fileToggleDenied": "{{action}} for files: denied",
+            "collectionToggleAllowed": "{{action}} for {{collection}}: allowed",
+            "collectionToggleDenied": "{{action}} for {{collection}}: denied",
+            "toggleTitleAllowed": "{{action}}: Allowed",
+            "toggleTitleDenied": "{{action}}: Denied",
+            "actions": {
+                "create": "Create",
+                "read": "Read",
+                "readPrivate": "Read private",
+                "update": "Update",
+                "delete": "Delete"
+            },
+            "operators": {
+                "equals": "equals",
+                "notEquals": "not_equals",
+                "empty": "empty",
+                "notEmpty": "not_empty"
+            }
         }
     },
     "nav": {
@@ -162,7 +200,8 @@
         "chat": "Chat",
         "settings": "Settings",
         "repository": "Repository",
-        "documentation": "Documentation"
+        "documentation": "Documentation",
+        "appVersion": "v{{version}}"
     },
     "notifications": {
         "title": "Notifications",
@@ -388,7 +427,11 @@
                 "revoked": "Revoked"
             },
             "revoke": "Revoke key",
-            "secretValue": "New API key"
+            "secretValue": "New API key",
+            "selectRole": "Select role",
+            "ipAllowlist": "IP allowlist (optional, comma-separated)",
+            "rateLimit": "Rate limit / minute (optional)",
+            "expiresAt": "Expires at"
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -1351,7 +1394,320 @@
             "fill": "Fill width"
         },
         "reorderColumn": "Reorder {{label}}",
-        "noFieldsMatch": "No fields match your search."
+        "noFieldsMatch": "No fields match your search.",
+        "fieldSettings": {
+            "common": {
+                "fieldWidth": "Field width",
+                "fieldWidthHint": "How much horizontal space this field takes in the form.",
+                "startNewRow": "Start new row",
+                "startNewRowHint": "Force this field to begin on a new row in the form layout.",
+                "required": "Required",
+                "requiredHint": "Content cannot be saved until this field has a value.",
+                "readonly": "Readonly",
+                "readonlyHint": "Editors can see the value but cannot change it after the first save.",
+                "hiddenInForm": "Hidden in form",
+                "hiddenInFormHint": "Hide this field from the item editor while keeping it in the schema.",
+                "defaultValue": "Default value",
+                "defaultValueHint": "Applied when creating a new item if the field is left empty.",
+                "defaultValuePlaceholder": "Applied on create when empty"
+            },
+            "rules": {
+                "operator": "Operator",
+                "value": "Value",
+                "addRule": "Add rule"
+            },
+            "validation": {
+                "message": "Validation message",
+                "messageHint": "Optional custom error shown when a rule fails."
+            },
+            "conditions": {
+                "intro": "Optionally show, lock, or require this field based on other field values (AND or OR).",
+                "addConditions": "Add conditions",
+                "hint": "When rules match, apply the flags below. Flat AND / OR only — no nested groups.",
+                "match": "Match",
+                "matchAll": "All rules (AND)",
+                "matchAny": "Any rule (OR)",
+                "field": "Field",
+                "selectField": "Select field…",
+                "valuesCommaSeparated": "Values (comma-separated)",
+                "hideWhenMatched": "Hide when matched",
+                "hideWhenMatchedHint": "Hide this field in the item form when the rules match.",
+                "showWhenMatched": "Show when matched",
+                "showWhenMatchedHint": "Hide by default; show this field only when the rules match.",
+                "readonlyWhenMatched": "Readonly when matched",
+                "readonlyWhenMatchedHint": "Lock the field when the rules match.",
+                "requiredWhenMatched": "Required when matched",
+                "requiredWhenMatchedHint": "Require a value when the rules match (enforced server-side).",
+                "removeConditions": "Remove conditions",
+                "operators": {
+                    "equals": "Equals",
+                    "notEquals": "Not equals",
+                    "contains": "Contains",
+                    "empty": "Is empty",
+                    "notEmpty": "Is not empty",
+                    "gt": "Greater than",
+                    "gte": "Greater or equal",
+                    "lt": "Less than",
+                    "lte": "Less or equal",
+                    "in": "In list",
+                    "notIn": "Not in list"
+                }
+            },
+            "altro": {
+                "hashIntro": "Stores an auto-generated fingerprint ID (`sha256` of a UUID) when empty on save. This is <strong>not</strong> a password hash — values are identifiers, not secrets derived from user input.",
+                "hashMasked": "Mask value in editor",
+                "hashMaskedHint": "Show only a short prefix of the fingerprint after save.",
+                "minimum": "Minimum",
+                "maximum": "Maximum",
+                "step": "Step",
+                "showValue": "Show current value",
+                "showValueHint": "Display the numeric value next to the slider control."
+            },
+            "groups": {
+                "allClosed": "All closed",
+                "firstOpen": "First open",
+                "allOpen": "All open",
+                "maxOneOpen": "Max one section open",
+                "maxOneOpenHint": "Only one accordion section can be expanded at a time.",
+                "initialState": "Initial state",
+                "accordionHint": "Sections are typically Raw groups nested under this accordion (two empty ones are created automatically). Use Add section on the accordion, or nest any field — including leaves — directly (leaf children become accordion panels).",
+                "open": "Open",
+                "closed": "Closed",
+                "fillWidthHint": "Span the full form width (overwrite nested group width).",
+                "tabsHint": "Tab panels are typically Raw groups nested under this tabs group (two empty ones are created automatically). Use Add tab, or nest any field — including leaves — directly (leaf children become tabs).",
+                "rawHint": "Nesting only — no chrome on the item form. Nest fields into this group from the fields list (drag and drop)."
+            },
+            "relational": {
+                "allowMultipleImages": "Allow multiple images",
+                "allowMultipleImagesHint": "Let editors upload more than one image in this field.",
+                "allowedMimeTypes": "Allowed MIME types (comma-separated)",
+                "cropToFit": "Crop to fit",
+                "cropToFitHint": "Crop uploaded images to fit the configured aspect ratio.",
+                "allowMultipleFiles": "Allow multiple files",
+                "allowMultipleFilesHint": "Let editors attach more than one file in this field.",
+                "allowedCollections": "Allowed collections",
+                "allowDuplicateBlocks": "Allow duplicate blocks",
+                "allowDuplicateBlocksHint": "Allow adding the same collection block more than once.",
+                "relatedCollection": "Related collection",
+                "selectCollection": "Select a collection…",
+                "displayField": "Display field",
+                "displayTemplate": "Display template",
+                "displayTemplateHint": "Optional. Use {{placeholder}} placeholders; falls back to display field when empty.",
+                "filterJson": "Filter (JSON)",
+                "filterJsonHint": "Optional. Exact-match filter on related collection field values (field name → expected value).",
+                "layout": "Layout",
+                "layoutList": "List",
+                "layoutTable": "Table",
+                "allowDuplicateLinks": "Allow duplicate links",
+                "allowDuplicateLinksHint": "Allow linking the same related item more than once.",
+                "junctionFields": "Junction fields (JSON)",
+                "junctionFieldsHint": "Optional mini-schema for per-link metadata. Item forms show these fields next to each related item. Types: string, number, boolean."
+            },
+            "selection": {
+                "labelOn": "Label when on",
+                "labelOff": "Label when off",
+                "dateMode": "Mode",
+                "dateOnly": "Date only",
+                "timeOnly": "Time only",
+                "dateAndTime": "Date and time",
+                "includeSeconds": "Include seconds",
+                "includeSecondsHint": "Allow time values with seconds precision (time / datetime modes).",
+                "geometryMode": "Geometry mode",
+                "point": "Point",
+                "multiPoint": "MultiPoint",
+                "defaultLatitude": "Default latitude",
+                "defaultLongitude": "Default longitude",
+                "defaultZoom": "Default zoom",
+                "enableOpacity": "Enable opacity",
+                "enableOpacityHint": "Allow adjusting the alpha channel in the color picker.",
+                "presetColors": "Preset colors (comma-separated hex)",
+                "allowNone": "Allow empty selection",
+                "allowNoneHint": "Let editors clear the selection without choosing an option.",
+                "allowOther": "Allow values outside options",
+                "allowOtherHint": "Accept custom values not listed in the choices.",
+                "valueCombining": "Value combining",
+                "allSelectedNodes": "All selected nodes",
+                "leafNodesOnly": "Leaf nodes only"
+            },
+            "textNumbers": {
+                "inputType": "Input type",
+                "maxLength": "Max length",
+                "placeholder": "Placeholder",
+                "iconLeft": "Icon left",
+                "iconRight": "Icon right",
+                "trim": "Trim whitespace",
+                "trimHint": "Remove leading and trailing spaces when saving.",
+                "slugify": "Slugify",
+                "slugifyHint": "Convert the value to a URL-friendly slug on save.",
+                "masked": "Masked (password)",
+                "maskedHint": "Hide input characters like a password field.",
+                "min": "Min",
+                "max": "Max",
+                "language": "Language",
+                "template": "Template",
+                "lineNumbers": "Show line numbers",
+                "lineNumbersHint": "Display a line number gutter in the item form editor.",
+                "lineWrapping": "Line wrapping",
+                "lineWrappingHint": "Wrap long lines instead of horizontal scrolling.",
+                "tagPresets": "Presets (comma-separated)",
+                "tagSeparator": "Separator",
+                "allowCustomTags": "Allow custom tags",
+                "allowCustomTagsHint": "Let editors add tags not listed in presets.",
+                "lowercase": "Lowercase on save",
+                "lowercaseHint": "Normalize tag values to lowercase when saving.",
+                "alphabetize": "Alphabetize on save",
+                "alphabetizeHint": "Sort tags alphabetically when saving.",
+                "rows": "Rows",
+                "staticComboboxHint": "Static combobox: editors pick from predefined options or type a custom value when allowed.",
+                "urlTemplate": "URL template",
+                "urlTemplateHint": "Use {{token}} as the search term placeholder. Same-origin URLs avoid CORS (e.g. /demo/cities?q={{token}}).",
+                "resultsPath": "Results path",
+                "textPath": "Text path",
+                "valuePath": "Value path",
+                "trigger": "Trigger",
+                "debounce": "Debounce",
+                "throttle": "Throttle",
+                "rate": "Rate (ms)"
+            },
+            "form": {
+                "choices": "Choices",
+                "choicesHint": "Add the values users can pick from. Label is shown in the interface; value is stored in the database.",
+                "optionLabel": "Label",
+                "addChoice": "Add choice",
+                "treeChoices": "Tree choices",
+                "treeChoicesHint": "Define nested options. Checking a parent selects all descendants; mixed children show an indeterminate parent.",
+                "addChild": "Add child",
+                "addRootChoice": "Add root choice",
+                "nestedRelationHint": "Nested relations are stored as JSON links inside the block (not junction tables).",
+                "junctionMetaFields": "Junction meta fields (JSON)",
+                "key": "Key",
+                "nameHint": "Translated label shown in the admin UI and item form.",
+                "note": "Note",
+                "noteHint": "Optional helper text shown under the field control in the item form."
+            },
+            "blocks": {
+                "blockTypes": "Block types",
+                "innerBlockTypes": "Inner block types",
+                "blockTypesHint": "Define the inline block schema for this field. Keys must be lowercase snake_case (e.g. rich_text). Nesting depth max {{max}} (ceiling {{ceiling}}).",
+                "innerBlockTypesHint": "Inner blocks (depth {{depth}}/{{max}}). Further blocks nesting is disabled at this depth.",
+                "maxDepth": "Max nesting depth",
+                "maxDepthHint": "Default {{default}}. Absolute ceiling {{ceiling}}.",
+                "expandBlockType": "Expand block type",
+                "collapseBlockType": "Collapse block type",
+                "blockN": "Block {{n}}",
+                "fieldCount_one": "{{count}} field",
+                "fieldCount_other": "{{count}} fields",
+                "labelPlaceholder": "Rich text",
+                "i18n": "I18n",
+                "remove": "Remove",
+                "conditions": "Conditions (vs siblings in this block)",
+                "addNestedField": "Add nested field",
+                "moveUp": "Up",
+                "moveDown": "Down",
+                "deleteBlockType": "Delete block type",
+                "addBlockType": "Add block type"
+            }
+        },
+        "items": {
+            "fields": {
+                "noWriteAccess": "No write access",
+                "readonly": "Readonly",
+                "includeInApply": "Include in Apply"
+            },
+            "blocks": {
+                "nestingExceeded": "Blocks nesting exceeds the maximum depth ({{max}}).",
+                "empty": "No blocks yet.",
+                "expand": "Expand block",
+                "collapse": "Collapse block",
+                "duplicate": "Duplicate",
+                "add": "Add {{label}}",
+                "remove": "Remove",
+                "addBlock": "Add block",
+                "selectItem": "Select block item…"
+            },
+            "choice": {
+                "apiUrlMissing": "Configure an API URL in field settings to enable suggestions.",
+                "generatedOnSave": "Generated on save",
+                "hashHint": "Fingerprint ID (auto). Not a password hash.",
+                "other": "Other",
+                "otherEllipsis": "Other…",
+                "customValue": "Custom value",
+                "select": "Select…",
+                "selectOptions": "Select options…",
+                "additionalCustomValue": "Additional custom value"
+            },
+            "date": {
+                "pickDate": "Pick a date",
+                "pickDateTime": "Pick date & time"
+            },
+            "relation": {
+                "selectBy": "Select by {{field}}…",
+                "selectRelated": "Select related item…",
+                "junctionMetadata": "Junction metadata"
+            },
+            "previewAsRole": {
+                "title": "Preview as role",
+                "description": "Read-only view of field data after collection ACL and file access rules (including <code>access: denied</code>). Not a visual editor.",
+                "role": "Role",
+                "chooseRole": "Choose role",
+                "notReadable": "Not readable for this role."
+            },
+            "compare": {
+                "title": "Compare revision",
+                "editedBy": "Edited by {{name}} · {{date}}",
+                "showDiffOnly": "Show differences only",
+                "selectAll": "Select all differences",
+                "deselectAll": "Deselect all differences",
+                "differences_one": "{{count}} difference",
+                "differences_other": "{{count}} differences",
+                "previousRevision": "Previous revision",
+                "latest": "Latest",
+                "previous": "Previous",
+                "itemRevision": "Item Revision",
+                "comparingTo": "Comparing to",
+                "apply": "Apply"
+            },
+            "columnMenu": {
+                "alignLeft": "Align left",
+                "alignCenter": "Align center",
+                "alignRight": "Align right",
+                "hideField": "Hide field"
+            },
+            "form": {
+                "draftRestored": "Restored unsaved browser draft.",
+                "discardDraft": "Discard browser draft",
+                "noActivity": "No activity recorded yet.",
+                "rejectHint": "Explain what the editor should fix before resubmitting.",
+                "rejectionNote": "Rejection note",
+                "previousNote": "Previous note: {{note}}"
+            },
+            "list": {
+                "newItem": "New item"
+            },
+            "filters": {
+                "clearAll": "Clear all",
+                "fieldFilters": "Field filters",
+                "rulesHint": "Rules are AND-combined and written to the URL (<code>filter[field][_eq]=…</code>).",
+                "noFilterableFields": "No filterable fields on this collection.",
+                "value": "Value",
+                "addRule": "Add rule",
+                "apply": "Apply"
+            },
+            "cell": {
+                "point": "Point",
+                "points_one": "{{count}} point",
+                "points_other": "{{count}} points"
+            },
+            "kanban": {
+                "updated": "Updated {{date}}"
+            }
+        },
+        "collectionPages": {
+            "edit": "Edit",
+            "sort": "Sort",
+            "deleteCollection": "Delete collection",
+            "singletonDescription": "<mono>{{slug}}</mono> · Singleton collection. Values for this entry. Define field types and order under <link>Edit fields</link>."
+        }
     },
     "ai": {
         "drawer": {
@@ -1831,7 +2187,8 @@
         "statInProgressContext": "Chunked uploads not finished yet",
         "statStaleUploads": "Stale uploads",
         "statStaleContext": "Expired before they finished",
-        "statFailedJobsHeadline": "Failed jobs: {{count}}"
+        "statFailedJobsHeadline": "Failed jobs: {{count}}",
+        "healthWorkloadWaitSeconds": "{{seconds}}s"
     },
     "realtime": {
         "connected": "Realtime connected",
@@ -1960,7 +2317,8 @@
         },
         "exportCsv": "Export CSV",
         "exportJson": "Export JSON",
-        "exportHint": "Exports the current filters (max {{limit}} rows)."
+        "exportHint": "Exports the current filters (max {{limit}} rows).",
+        "ip": "IP"
     },
     "files": {
         "title": "Files",
@@ -2231,6 +2589,19 @@
         "status": {
             "active": "Active",
             "inactive": "Inactive"
+        },
+        "form": {
+            "editTitle": "Edit user",
+            "editDescription": "Update profile, direct roles, and group memberships. Groups inherit their attached roles’ permissions and collection/file ACL.",
+            "createDescription": "Create a user and assign direct roles and/or groups. Prefer groups when many users share the same role set.",
+            "requiredHint": "Fields marked with * are required.",
+            "emailHint": "Use a valid email address, for example",
+            "username": "Username",
+            "newPasswordOptional": "New password (optional)",
+            "selectAtLeastOneRole": "Select at least one role",
+            "selectRoles": "Select roles…",
+            "groupsHint": "Group roles are unioned with direct roles for admin permissions and collection/file access.",
+            "create": "Create"
         }
     },
     "groups": {
@@ -2256,7 +2627,15 @@
         },
         "empty": "No groups yet.",
         "membersCount_one": "{{count}} member",
-        "membersCount_other": "{{count}} members"
+        "membersCount_other": "{{count}} members",
+        "form": {
+            "editTitle": "Edit group",
+            "description": "Attach Spatie roles to this group so members inherit admin permissions and any collection/file ACL tied to those roles. Prefer groups for large memberships instead of assigning roles user-by-user.",
+            "descriptionLabel": "Description",
+            "rolesHint": "Members inherit these roles’ Spatie permissions and collection/file access matrices.",
+            "users": "Users",
+            "create": "Create"
+        }
     },
     "pendingToolCalls": {
         "head": "AI tool approvals",
@@ -2317,7 +2696,8 @@
             "guard": "Guard"
         },
         "empty": "No permissions in database. Run sync.",
-        "sync": "Sync from enum"
+        "sync": "Sync from enum",
+        "description": "Permissions are defined in <code>PermissionEnum</code> and synced to the database. Assign them to roles on the role edit page."
     },
     "passwordInput": {
         "strength": "Password strength",

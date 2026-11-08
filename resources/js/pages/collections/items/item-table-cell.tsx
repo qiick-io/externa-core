@@ -195,17 +195,25 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
 
                     return (
                         <span className="text-sm">
-                            {count === 1 ? '1 point' : `${count} points`}
+                            {i18n.t('collections.items.cell.points', { count })}
                         </span>
                     );
                 }
 
                 if (record.type === 'Point') {
-                    return <span className="text-sm">Point</span>;
+                    return (
+                        <span className="text-sm">
+                            {i18n.t('collections.items.cell.point')}
+                        </span>
+                    );
                 }
 
                 if ('lat' in record && 'lng' in record) {
-                    return <span className="text-sm">Point</span>;
+                    return (
+                        <span className="text-sm">
+                            {i18n.t('collections.items.cell.point')}
+                        </span>
+                    );
                 }
             }
 

@@ -38,10 +38,10 @@ export function CommonAdvancedSettings({
             {!isGroup && (
                 <Field>
                     <FieldLabel htmlFor="field_layout_width">
-                        Field width
+                        {t('collections.fieldSettings.common.fieldWidth')}
                     </FieldLabel>
                     <FieldDescription>
-                        How much horizontal space this field takes in the form.
+                        {t('collections.fieldSettings.common.fieldWidthHint')}
                     </FieldDescription>
                     <NativeSelect
                         id="field_layout_width"
@@ -66,8 +66,10 @@ export function CommonAdvancedSettings({
             {!isGroup && (
                 <SettingCheckbox
                     id="field_starts_new_row"
-                    label="Start new row"
-                    description="Force this field to begin on a new row in the form layout."
+                    label={t('collections.fieldSettings.common.startNewRow')}
+                    description={t(
+                        'collections.fieldSettings.common.startNewRowHint',
+                    )}
                     checked={settings.layoutStartsNewRow}
                     onCheckedChange={(checked) =>
                         onChange((current) => ({
@@ -79,8 +81,8 @@ export function CommonAdvancedSettings({
             )}
             <SettingCheckbox
                 id="field_required"
-                label="Required"
-                description="Content cannot be saved until this field has a value."
+                label={t('collections.fieldSettings.common.required')}
+                description={t('collections.fieldSettings.common.requiredHint')}
                 checked={settings.required}
                 onCheckedChange={(checked) =>
                     onChange((current) => ({ ...current, required: checked }))
@@ -88,8 +90,8 @@ export function CommonAdvancedSettings({
             />
             <SettingCheckbox
                 id="field_readonly"
-                label="Readonly"
-                description="Editors can see the value but cannot change it after the first save."
+                label={t('collections.fieldSettings.common.readonly')}
+                description={t('collections.fieldSettings.common.readonlyHint')}
                 checked={settings.readonly}
                 onCheckedChange={(checked) =>
                     onChange((current) => ({ ...current, readonly: checked }))
@@ -97,8 +99,10 @@ export function CommonAdvancedSettings({
             />
             <SettingCheckbox
                 id="field_hidden_in_form"
-                label="Hidden in form"
-                description="Hide this field from the item editor while keeping it in the schema."
+                label={t('collections.fieldSettings.common.hiddenInForm')}
+                description={t(
+                    'collections.fieldSettings.common.hiddenInFormHint',
+                )}
                 checked={settings.hiddenInForm}
                 onCheckedChange={(checked) =>
                     onChange((current) => ({
@@ -110,11 +114,10 @@ export function CommonAdvancedSettings({
             {showDefault ? (
                 <Field>
                     <FieldLabel htmlFor="common_default_value">
-                        Default value
+                        {t('collections.fieldSettings.common.defaultValue')}
                     </FieldLabel>
                     <FieldDescription>
-                        Applied when creating a new item if the field is left
-                        empty.
+                        {t('collections.fieldSettings.common.defaultValueHint')}
                     </FieldDescription>
                     <Input
                         id="common_default_value"
@@ -130,7 +133,9 @@ export function CommonAdvancedSettings({
                                 defaultValue: event.target.value,
                             }))
                         }
-                        placeholder="Applied on create when empty"
+                        placeholder={t(
+                            'collections.fieldSettings.common.defaultValuePlaceholder',
+                        )}
                     />
                 </Field>
             ) : null}

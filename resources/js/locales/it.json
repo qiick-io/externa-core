@@ -144,6 +144,44 @@
             "name": "Nome del nuovo ruolo",
             "submit": "Duplica",
             "duplicating": "Duplicazione…"
+        },
+        "form": {
+            "editTitle": "Modifica ruolo",
+            "systemRoleHint": "Ruolo di sistema — il nome è bloccato; non assegnabile agli utenti.",
+            "create": "Crea",
+            "adminPermissions": "Permessi di amministrazione",
+            "createPrivateChats": "Crea chat private",
+            "filesAccess": "Accesso ai file",
+            "filesAccessDescription": "Permessi sui file della CMS API pubblica. <strong>Lettura</strong> copre i file pubblici; <strong>Lettura privati</strong> è necessario per file/cartelle contrassegnati come privati (e i relativi figli ereditati). Permesso assente = negato.",
+            "resource": "Risorsa",
+            "files": "File",
+            "collectionAccess": "Accesso alle collection",
+            "collectionAccessDescription": "Permessi della CMS API pubblica (creazione / lettura / modifica / eliminazione). Permesso assente = negato.",
+            "searchCollections": "Cerca collection…",
+            "collection": "Collection",
+            "fieldsAndItemFilter": "Campi e filtro elementi",
+            "itemFilter": "Filtro elementi (AND)",
+            "removeRule": "Rimuovi",
+            "addFilterRule": "Aggiungi regola di filtro",
+            "fileToggleAllowed": "{{action}} per i file: consentito",
+            "fileToggleDenied": "{{action}} per i file: negato",
+            "collectionToggleAllowed": "{{action}} per {{collection}}: consentito",
+            "collectionToggleDenied": "{{action}} per {{collection}}: negato",
+            "toggleTitleAllowed": "{{action}}: Consentito",
+            "toggleTitleDenied": "{{action}}: Negato",
+            "actions": {
+                "create": "Crea",
+                "read": "Lettura",
+                "readPrivate": "Lettura privati",
+                "update": "Modifica",
+                "delete": "Elimina"
+            },
+            "operators": {
+                "equals": "uguale a",
+                "notEquals": "diverso da",
+                "empty": "vuoto",
+                "notEmpty": "non vuoto"
+            }
         }
     },
     "nav": {
@@ -162,7 +200,8 @@
         "chat": "Chat",
         "settings": "Impostazioni",
         "repository": "Repository",
-        "documentation": "Documentazione"
+        "documentation": "Documentazione",
+        "appVersion": "v{{version}}"
     },
     "notifications": {
         "title": "Notifiche",
@@ -388,7 +427,11 @@
                 "revoked": "Revocata"
             },
             "revoke": "Revoca chiave",
-            "secretValue": "Nuova chiave API"
+            "secretValue": "Nuova chiave API",
+            "selectRole": "Seleziona ruolo",
+            "ipAllowlist": "Allowlist IP (opzionale, separati da virgola)",
+            "rateLimit": "Limite di richieste / minuto (opzionale)",
+            "expiresAt": "Scade il"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -1351,7 +1394,320 @@
             "fill": "Riempi larghezza"
         },
         "reorderColumn": "Riordina {{label}}",
-        "noFieldsMatch": "Nessun campo corrisponde alla ricerca."
+        "noFieldsMatch": "Nessun campo corrisponde alla ricerca.",
+        "fieldSettings": {
+            "common": {
+                "fieldWidth": "Larghezza del campo",
+                "fieldWidthHint": "Quanto spazio orizzontale occupa questo campo nel modulo.",
+                "startNewRow": "Inizia una nuova riga",
+                "startNewRowHint": "Fa iniziare questo campo su una nuova riga nel layout del modulo.",
+                "required": "Obbligatorio",
+                "requiredHint": "Il contenuto non può essere salvato finché questo campo non ha un valore.",
+                "readonly": "Sola lettura",
+                "readonlyHint": "Gli editor vedono il valore ma non possono modificarlo dopo il primo salvataggio.",
+                "hiddenInForm": "Nascosto nel modulo",
+                "hiddenInFormHint": "Nasconde questo campo dall'editor degli elementi mantenendolo nello schema.",
+                "defaultValue": "Valore predefinito",
+                "defaultValueHint": "Applicato alla creazione di un nuovo elemento se il campo è vuoto.",
+                "defaultValuePlaceholder": "Applicato alla creazione se vuoto"
+            },
+            "rules": {
+                "operator": "Operatore",
+                "value": "Valore",
+                "addRule": "Aggiungi regola"
+            },
+            "validation": {
+                "message": "Messaggio di validazione",
+                "messageHint": "Messaggio di errore personalizzato facoltativo, mostrato quando una regola non è rispettata."
+            },
+            "conditions": {
+                "intro": "Facoltativamente mostra, blocca o rendi obbligatorio questo campo in base ai valori di altri campi (AND o OR).",
+                "addConditions": "Aggiungi condizioni",
+                "hint": "Quando le regole corrispondono, applica le opzioni qui sotto. Solo AND / OR semplici, senza gruppi annidati.",
+                "match": "Corrispondenza",
+                "matchAll": "Tutte le regole (AND)",
+                "matchAny": "Almeno una regola (OR)",
+                "field": "Campo",
+                "selectField": "Seleziona campo…",
+                "valuesCommaSeparated": "Valori (separati da virgola)",
+                "hideWhenMatched": "Nascondi se corrisponde",
+                "hideWhenMatchedHint": "Nasconde questo campo nel modulo dell'elemento quando le regole corrispondono.",
+                "showWhenMatched": "Mostra se corrisponde",
+                "showWhenMatchedHint": "Nascosto per impostazione predefinita; mostra questo campo solo quando le regole corrispondono.",
+                "readonlyWhenMatched": "Sola lettura se corrisponde",
+                "readonlyWhenMatchedHint": "Blocca il campo quando le regole corrispondono.",
+                "requiredWhenMatched": "Obbligatorio se corrisponde",
+                "requiredWhenMatchedHint": "Richiede un valore quando le regole corrispondono (verificato lato server).",
+                "removeConditions": "Rimuovi condizioni",
+                "operators": {
+                    "equals": "Uguale a",
+                    "notEquals": "Diverso da",
+                    "contains": "Contiene",
+                    "empty": "È vuoto",
+                    "notEmpty": "Non è vuoto",
+                    "gt": "Maggiore di",
+                    "gte": "Maggiore o uguale a",
+                    "lt": "Minore di",
+                    "lte": "Minore o uguale a",
+                    "in": "Nell'elenco",
+                    "notIn": "Non nell'elenco"
+                }
+            },
+            "altro": {
+                "hashIntro": "Salva un ID fingerprint generato automaticamente (`sha256` di un UUID) se il campo è vuoto al salvataggio. <strong>Non</strong> è un hash di password: i valori sono identificatori, non segreti derivati da input dell'utente.",
+                "hashMasked": "Maschera il valore nell'editor",
+                "hashMaskedHint": "Dopo il salvataggio mostra solo un breve prefisso del fingerprint.",
+                "minimum": "Minimo",
+                "maximum": "Massimo",
+                "step": "Incremento",
+                "showValue": "Mostra il valore corrente",
+                "showValueHint": "Mostra il valore numerico accanto al cursore."
+            },
+            "groups": {
+                "allClosed": "Tutte chiuse",
+                "firstOpen": "Prima aperta",
+                "allOpen": "Tutte aperte",
+                "maxOneOpen": "Al massimo una sezione aperta",
+                "maxOneOpenHint": "Si può espandere una sola sezione della fisarmonica alla volta.",
+                "initialState": "Stato iniziale",
+                "accordionHint": "Le sezioni sono di solito gruppi grezzi annidati in questa fisarmonica (due vuoti vengono creati automaticamente). Usa Aggiungi sezione sulla fisarmonica oppure annida direttamente qualsiasi campo, anche semplice (i campi semplici diventano pannelli della fisarmonica).",
+                "open": "Aperto",
+                "closed": "Chiuso",
+                "fillWidthHint": "Occupa l'intera larghezza del modulo (sostituisce la larghezza dei gruppi annidati).",
+                "tabsHint": "I pannelli delle schede sono di solito gruppi grezzi annidati in questo gruppo di schede (due vuoti vengono creati automaticamente). Usa Aggiungi scheda oppure annida direttamente qualsiasi campo, anche semplice (i campi semplici diventano schede).",
+                "rawHint": "Solo annidamento, senza elementi visivi nel modulo dell'elemento. Annida i campi in questo gruppo dall'elenco dei campi (trascina e rilascia)."
+            },
+            "relational": {
+                "allowMultipleImages": "Consenti più immagini",
+                "allowMultipleImagesHint": "Consente agli editor di caricare più di un'immagine in questo campo.",
+                "allowedMimeTypes": "Tipi MIME consentiti (separati da virgola)",
+                "cropToFit": "Ritaglia per adattare",
+                "cropToFitHint": "Ritaglia le immagini caricate secondo le proporzioni configurate.",
+                "allowMultipleFiles": "Consenti più file",
+                "allowMultipleFilesHint": "Consente agli editor di allegare più di un file in questo campo.",
+                "allowedCollections": "Collection consentite",
+                "allowDuplicateBlocks": "Consenti blocchi duplicati",
+                "allowDuplicateBlocksHint": "Consente di aggiungere lo stesso blocco di collection più di una volta.",
+                "relatedCollection": "Collection correlata",
+                "selectCollection": "Seleziona una collection…",
+                "displayField": "Campo visualizzato",
+                "displayTemplate": "Modello di visualizzazione",
+                "displayTemplateHint": "Facoltativo. Usa segnaposto {{placeholder}}; se vuoto viene usato il campo visualizzato.",
+                "filterJson": "Filtro (JSON)",
+                "filterJsonHint": "Facoltativo. Filtro a corrispondenza esatta sui valori dei campi della collection correlata (nome campo → valore atteso).",
+                "layout": "Layout",
+                "layoutList": "Elenco",
+                "layoutTable": "Tabella",
+                "allowDuplicateLinks": "Consenti collegamenti duplicati",
+                "allowDuplicateLinksHint": "Consente di collegare lo stesso elemento correlato più di una volta.",
+                "junctionFields": "Campi di giunzione (JSON)",
+                "junctionFieldsHint": "Mini-schema facoltativo per i metadati di ciascun collegamento. I moduli degli elementi mostrano questi campi accanto a ogni elemento correlato. Tipi: string, number, boolean."
+            },
+            "selection": {
+                "labelOn": "Etichetta se attivo",
+                "labelOff": "Etichetta se disattivo",
+                "dateMode": "Modalità",
+                "dateOnly": "Solo data",
+                "timeOnly": "Solo ora",
+                "dateAndTime": "Data e ora",
+                "includeSeconds": "Includi i secondi",
+                "includeSecondsHint": "Consente orari con precisione al secondo (modalità ora / data e ora).",
+                "geometryMode": "Modalità geometria",
+                "point": "Punto",
+                "multiPoint": "Più punti",
+                "defaultLatitude": "Latitudine predefinita",
+                "defaultLongitude": "Longitudine predefinita",
+                "defaultZoom": "Zoom predefinito",
+                "enableOpacity": "Abilita opacità",
+                "enableOpacityHint": "Consente di regolare il canale alfa nel selettore colore.",
+                "presetColors": "Colori predefiniti (hex separati da virgola)",
+                "allowNone": "Consenti selezione vuota",
+                "allowNoneHint": "Consente agli editor di svuotare la selezione senza scegliere un'opzione.",
+                "allowOther": "Consenti valori fuori dalle opzioni",
+                "allowOtherHint": "Accetta valori personalizzati non presenti tra le scelte.",
+                "valueCombining": "Combinazione dei valori",
+                "allSelectedNodes": "Tutti i nodi selezionati",
+                "leafNodesOnly": "Solo nodi foglia"
+            },
+            "textNumbers": {
+                "inputType": "Tipo di input",
+                "maxLength": "Lunghezza massima",
+                "placeholder": "Segnaposto",
+                "iconLeft": "Icona a sinistra",
+                "iconRight": "Icona a destra",
+                "trim": "Rimuovi spazi iniziali e finali",
+                "trimHint": "Rimuove gli spazi all'inizio e alla fine al salvataggio.",
+                "slugify": "Converti in slug",
+                "slugifyHint": "Converte il valore in uno slug adatto agli URL al salvataggio.",
+                "masked": "Mascherato (password)",
+                "maskedHint": "Nasconde i caratteri digitati come in un campo password.",
+                "min": "Min",
+                "max": "Max",
+                "language": "Linguaggio",
+                "template": "Modello",
+                "lineNumbers": "Mostra numeri di riga",
+                "lineNumbersHint": "Mostra la colonna dei numeri di riga nell'editor del modulo dell'elemento.",
+                "lineWrapping": "A capo automatico",
+                "lineWrappingHint": "Manda a capo le righe lunghe invece di scorrere in orizzontale.",
+                "tagPresets": "Valori predefiniti (separati da virgola)",
+                "tagSeparator": "Separatore",
+                "allowCustomTags": "Consenti tag personalizzati",
+                "allowCustomTagsHint": "Consente agli editor di aggiungere tag non presenti tra i valori predefiniti.",
+                "lowercase": "Minuscolo al salvataggio",
+                "lowercaseHint": "Converte i tag in minuscolo al salvataggio.",
+                "alphabetize": "Ordina alfabeticamente al salvataggio",
+                "alphabetizeHint": "Ordina i tag in ordine alfabetico al salvataggio.",
+                "rows": "Righe",
+                "staticComboboxHint": "Combobox statica: gli editor scelgono tra opzioni predefinite o, se consentito, digitano un valore personalizzato.",
+                "urlTemplate": "Modello URL",
+                "urlTemplateHint": "Usa {{token}} come segnaposto per il termine di ricerca. Gli URL della stessa origine evitano problemi CORS (es. /demo/cities?q={{token}}).",
+                "resultsPath": "Percorso dei risultati",
+                "textPath": "Percorso del testo",
+                "valuePath": "Percorso del valore",
+                "trigger": "Attivazione",
+                "debounce": "Debounce",
+                "throttle": "Throttle",
+                "rate": "Intervallo (ms)"
+            },
+            "form": {
+                "choices": "Scelte",
+                "choicesHint": "Aggiungi i valori tra cui gli utenti possono scegliere. L'etichetta è mostrata nell'interfaccia; il valore viene salvato nel database.",
+                "optionLabel": "Etichetta",
+                "addChoice": "Aggiungi scelta",
+                "treeChoices": "Scelte ad albero",
+                "treeChoicesHint": "Definisci opzioni annidate. Selezionando un genitore si selezionano tutti i discendenti; con figli misti il genitore appare indeterminato.",
+                "addChild": "Aggiungi figlio",
+                "addRootChoice": "Aggiungi scelta principale",
+                "nestedRelationHint": "Le relazioni annidate sono salvate come collegamenti JSON all'interno del blocco (non in tabelle di giunzione).",
+                "junctionMetaFields": "Metacampi di giunzione (JSON)",
+                "key": "Chiave",
+                "nameHint": "Etichetta tradotta mostrata nell'interfaccia di amministrazione e nel modulo dell'elemento.",
+                "note": "Nota",
+                "noteHint": "Testo di aiuto facoltativo mostrato sotto il campo nel modulo dell'elemento."
+            },
+            "blocks": {
+                "blockTypes": "Tipi di blocco",
+                "innerBlockTypes": "Tipi di blocco interni",
+                "blockTypesHint": "Definisci lo schema dei blocchi inline per questo campo. Le chiavi devono essere in snake_case minuscolo (es. rich_text). Profondità di annidamento massima {{max}} (limite {{ceiling}}).",
+                "innerBlockTypesHint": "Blocchi interni (profondità {{depth}}/{{max}}). A questa profondità non è possibile annidare altri blocchi.",
+                "maxDepth": "Profondità massima di annidamento",
+                "maxDepthHint": "Predefinita {{default}}. Limite assoluto {{ceiling}}.",
+                "expandBlockType": "Espandi tipo di blocco",
+                "collapseBlockType": "Comprimi tipo di blocco",
+                "blockN": "Blocco {{n}}",
+                "fieldCount_one": "{{count}} campo",
+                "fieldCount_other": "{{count}} campi",
+                "labelPlaceholder": "Testo formattato",
+                "i18n": "I18n",
+                "remove": "Rimuovi",
+                "conditions": "Condizioni (rispetto agli altri campi del blocco)",
+                "addNestedField": "Aggiungi campo annidato",
+                "moveUp": "Su",
+                "moveDown": "Giù",
+                "deleteBlockType": "Elimina tipo di blocco",
+                "addBlockType": "Aggiungi tipo di blocco"
+            }
+        },
+        "items": {
+            "fields": {
+                "noWriteAccess": "Nessun permesso di scrittura",
+                "readonly": "Sola lettura",
+                "includeInApply": "Includi in Applica"
+            },
+            "blocks": {
+                "nestingExceeded": "L’annidamento dei blocchi supera la profondità massima ({{max}}).",
+                "empty": "Ancora nessun blocco.",
+                "expand": "Espandi blocco",
+                "collapse": "Comprimi blocco",
+                "duplicate": "Duplica",
+                "add": "Aggiungi {{label}}",
+                "remove": "Rimuovi",
+                "addBlock": "Aggiungi blocco",
+                "selectItem": "Seleziona item del blocco…"
+            },
+            "choice": {
+                "apiUrlMissing": "Configura un URL API nelle impostazioni del campo per abilitare i suggerimenti.",
+                "generatedOnSave": "Generato al salvataggio",
+                "hashHint": "ID impronta (automatico). Non è un hash di password.",
+                "other": "Altro",
+                "otherEllipsis": "Altro…",
+                "customValue": "Valore personalizzato",
+                "select": "Seleziona…",
+                "selectOptions": "Seleziona opzioni…",
+                "additionalCustomValue": "Valore personalizzato aggiuntivo"
+            },
+            "date": {
+                "pickDate": "Scegli una data",
+                "pickDateTime": "Scegli data e ora"
+            },
+            "relation": {
+                "selectBy": "Seleziona per {{field}}…",
+                "selectRelated": "Seleziona item correlato…",
+                "junctionMetadata": "Metadati di collegamento"
+            },
+            "previewAsRole": {
+                "title": "Anteprima come ruolo",
+                "description": "Vista in sola lettura dei dati dei campi dopo le regole ACL della collection e di accesso ai file (incluso <code>access: denied</code>). Non è un editor visuale.",
+                "role": "Ruolo",
+                "chooseRole": "Scegli ruolo",
+                "notReadable": "Non leggibile per questo ruolo."
+            },
+            "compare": {
+                "title": "Confronta revisione",
+                "editedBy": "Modificato da {{name}} · {{date}}",
+                "showDiffOnly": "Mostra solo le differenze",
+                "selectAll": "Seleziona tutte le differenze",
+                "deselectAll": "Deseleziona tutte le differenze",
+                "differences_one": "{{count}} differenza",
+                "differences_other": "{{count}} differenze",
+                "previousRevision": "Revisione precedente",
+                "latest": "Più recente",
+                "previous": "Precedente",
+                "itemRevision": "Revisione item",
+                "comparingTo": "Confronto con",
+                "apply": "Applica"
+            },
+            "columnMenu": {
+                "alignLeft": "Allinea a sinistra",
+                "alignCenter": "Allinea al centro",
+                "alignRight": "Allinea a destra",
+                "hideField": "Nascondi campo"
+            },
+            "form": {
+                "draftRestored": "Bozza non salvata del browser ripristinata.",
+                "discardDraft": "Scarta bozza del browser",
+                "noActivity": "Nessuna attività registrata finora.",
+                "rejectHint": "Spiega cosa deve correggere l’editor prima di inviare di nuovo.",
+                "rejectionNote": "Nota di rifiuto",
+                "previousNote": "Nota precedente: {{note}}"
+            },
+            "list": {
+                "newItem": "Nuovo item"
+            },
+            "filters": {
+                "clearAll": "Cancella tutto",
+                "fieldFilters": "Filtri sui campi",
+                "rulesHint": "Le regole sono combinate in AND e scritte nell’URL (<code>filter[field][_eq]=…</code>).",
+                "noFilterableFields": "Nessun campo filtrabile in questa collection.",
+                "value": "Valore",
+                "addRule": "Aggiungi regola",
+                "apply": "Applica"
+            },
+            "cell": {
+                "point": "Punto",
+                "points_one": "{{count}} punto",
+                "points_other": "{{count}} punti"
+            },
+            "kanban": {
+                "updated": "Aggiornato {{date}}"
+            }
+        },
+        "collectionPages": {
+            "edit": "Modifica",
+            "sort": "Ordina",
+            "deleteCollection": "Elimina collection",
+            "singletonDescription": "<mono>{{slug}}</mono> · Collection singleton. Valori di questa voce. Definisci tipi e ordine dei campi in <link>Modifica campi</link>."
+        }
     },
     "ai": {
         "drawer": {
@@ -1831,7 +2187,8 @@
         "statInProgressContext": "Upload a blocchi non ancora completati",
         "statStaleUploads": "Upload stagnanti",
         "statStaleContext": "Scaduti prima di finire",
-        "statFailedJobsHeadline": "Job falliti: {{count}}"
+        "statFailedJobsHeadline": "Job falliti: {{count}}",
+        "healthWorkloadWaitSeconds": "{{seconds}}s"
     },
     "realtime": {
         "connected": "Realtime connesso",
@@ -1960,7 +2317,8 @@
         },
         "exportCsv": "Esporta CSV",
         "exportJson": "Esporta JSON",
-        "exportHint": "Esporta i filtri attuali (max {{limit}} righe)."
+        "exportHint": "Esporta i filtri attuali (max {{limit}} righe).",
+        "ip": "IP"
     },
     "files": {
         "title": "File",
@@ -2231,6 +2589,19 @@
         "status": {
             "active": "Attivo",
             "inactive": "Inattivo"
+        },
+        "form": {
+            "editTitle": "Modifica utente",
+            "editDescription": "Aggiorna profilo, ruoli diretti e appartenenza ai gruppi. I gruppi ereditano i permessi e le ACL di collezioni/file dei ruoli associati.",
+            "createDescription": "Crea un utente e assegna ruoli diretti e/o gruppi. Se molti utenti condividono gli stessi ruoli, preferisci i gruppi.",
+            "requiredHint": "I campi contrassegnati con * sono obbligatori.",
+            "emailHint": "Usa un indirizzo email valido, ad esempio",
+            "username": "Nome utente",
+            "newPasswordOptional": "Nuova password (facoltativa)",
+            "selectAtLeastOneRole": "Seleziona almeno un ruolo",
+            "selectRoles": "Seleziona ruoli…",
+            "groupsHint": "I ruoli dei gruppi si sommano ai ruoli diretti per i permessi di amministrazione e l’accesso a collezioni/file.",
+            "create": "Crea"
         }
     },
     "groups": {
@@ -2256,7 +2627,15 @@
         },
         "empty": "Ancora nessun gruppo.",
         "membersCount_one": "{{count}} membro",
-        "membersCount_other": "{{count}} membri"
+        "membersCount_other": "{{count}} membri",
+        "form": {
+            "editTitle": "Modifica gruppo",
+            "description": "Associa ruoli Spatie a questo gruppo affinché i membri ereditino i permessi di amministrazione e le ACL di collezioni/file legate a quei ruoli. Per gruppi numerosi preferisci i gruppi invece di assegnare i ruoli utente per utente.",
+            "descriptionLabel": "Descrizione",
+            "rolesHint": "I membri ereditano i permessi Spatie e le matrici di accesso a collezioni/file di questi ruoli.",
+            "users": "Utenti",
+            "create": "Crea"
+        }
     },
     "pendingToolCalls": {
         "head": "Approvazioni strumenti AI",
@@ -2317,7 +2696,8 @@
             "guard": "Guard"
         },
         "empty": "Nessun permesso nel database. Esegui la sincronizzazione.",
-        "sync": "Sincronizza dall'enum"
+        "sync": "Sincronizza dall'enum",
+        "description": "I permessi sono definiti in <code>PermissionEnum</code> e sincronizzati nel database. Assegnali ai ruoli dalla pagina di modifica del ruolo."
     },
     "passwordInput": {
         "strength": "Robustezza della password",

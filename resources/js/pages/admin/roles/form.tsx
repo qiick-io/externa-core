@@ -1,7 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Check, FolderOpen, Search, SearchX, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
@@ -93,24 +93,27 @@ const defaultFieldFlags = (): FieldFlags => ({
 });
 
 const FILE_ACTIONS = [
-    { key: 'create' as const, label: 'Create' },
-    { key: 'read' as const, label: 'Read' },
-    { key: 'read_private' as const, label: 'Read private' },
-    { key: 'update' as const, label: 'Update' },
-    { key: 'delete' as const, label: 'Delete' },
+    { key: 'create' as const, labelKey: 'roles.form.actions.create' },
+    { key: 'read' as const, labelKey: 'roles.form.actions.read' },
+    {
+        key: 'read_private' as const,
+        labelKey: 'roles.form.actions.readPrivate',
+    },
+    { key: 'update' as const, labelKey: 'roles.form.actions.update' },
+    { key: 'delete' as const, labelKey: 'roles.form.actions.delete' },
 ];
 
 const COLLECTION_ACTIONS = [
-    { key: 'create' as const, label: 'Create' },
-    { key: 'read' as const, label: 'Read' },
-    { key: 'update' as const, label: 'Update' },
-    { key: 'delete' as const, label: 'Delete' },
+    { key: 'create' as const, labelKey: 'roles.form.actions.create' },
+    { key: 'read' as const, labelKey: 'roles.form.actions.read' },
+    { key: 'update' as const, labelKey: 'roles.form.actions.update' },
+    { key: 'delete' as const, labelKey: 'roles.form.actions.delete' },
 ];
 
 const FIELD_ACTIONS = [
-    { key: 'read' as const, label: 'Read' },
-    { key: 'create' as const, label: 'Create' },
-    { key: 'update' as const, label: 'Update' },
+    { key: 'read' as const, labelKey: 'roles.form.actions.read' },
+    { key: 'create' as const, labelKey: 'roles.form.actions.create' },
+    { key: 'update' as const, labelKey: 'roles.form.actions.update' },
 ];
 
 /**
@@ -374,12 +377,13 @@ export default function AdminRoleForm({
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div>
                                 <h1 className="text-xl font-semibold tracking-tight">
-                                    {isEdit ? 'Edit role' : 'New role'}
+                                    {isEdit
+                                        ? t('roles.form.editTitle')
+                                        : t('roles.actions.newRole')}
                                 </h1>
                                 {isSystem && (
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        System role — name is locked; not
-                                        assignable to users.
+                                        {t('roles.form.systemRoleHint')}
                                     </p>
                                 )}
                             </div>
@@ -390,14 +394,16 @@ export default function AdminRoleForm({
                                 />
                                 <Button variant="outline" asChild>
                                     <Link href={rolesRoutes.index.url()}>
-                                        Cancel
+                                        {t('common.cancel')}
                                     </Link>
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={form.processing}
                                 >
-                                    {isEdit ? 'Save' : 'Create'}
+                                    {isEdit
+                                        ? t('common.save')
+                                        : t('roles.form.create')}
                                 </Button>
                             </div>
                         </div>
@@ -409,7 +415,7 @@ export default function AdminRoleForm({
                                 }
                             >
                                 <FieldLabel htmlFor="role_name">
-                                    Name
+                                    {t('roles.columns.name')}
                                 </FieldLabel>
                                 <Input
                                     id="role_name"
@@ -437,7 +443,7 @@ export default function AdminRoleForm({
                         {!isPublic && (
                             <div className="space-y-6">
                                 <h2 className="text-lg font-medium">
-                                    Admin permissions
+                                    {t('roles.form.adminPermissions')}
                                 </h2>
                                 {permissionGroups.map((group) => {
                                     const ids = groupPermissionIds(group);
@@ -552,9 +558,15 @@ export default function AdminRoleForm({
                                                         c === true,
                                                     )
                                                 }
-                                                aria-label="Create private chats"
+                                                aria-label={t(
+                                                    'roles.form.createPrivateChats',
+                                                )}
                                             />
-                                            <span>Create private chats</span>
+                                            <span>
+                                                {t(
+                                                    'roles.form.createPrivateChats',
+                                                )}
+                                            </span>
                                         </label>
                                         <p className="mt-1 text-xs text-muted-foreground">
                                             {createDirectChatsPermission.name}
@@ -567,14 +579,13 @@ export default function AdminRoleForm({
                         <section className="space-y-3">
                             <div>
                                 <h2 className="text-lg font-medium">
-                                    Files access
+                                    {t('roles.form.filesAccess')}
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    Public CMS API file permissions.{' '}
-                                    <strong>Read</strong> covers public files;{' '}
-                                    <strong>Read private</strong> is required
-                                    for files/folders marked private (and their
-                                    inherited children). Missing grant = deny.
+                                    <Trans
+                                        i18nKey="roles.form.filesAccessDescription"
+                                        components={{ strong: <strong /> }}
+                                    />
                                 </p>
                             </div>
 
@@ -582,13 +593,15 @@ export default function AdminRoleForm({
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Resource</TableHead>
+                                            <TableHead>
+                                                {t('roles.form.resource')}
+                                            </TableHead>
                                             {FILE_ACTIONS.map((action) => (
                                                 <TableHead
                                                     key={action.key}
                                                     className="text-center"
                                                 >
-                                                    {action.label}
+                                                    {t(action.labelKey)}
                                                 </TableHead>
                                             ))}
                                         </TableRow>
@@ -597,10 +610,10 @@ export default function AdminRoleForm({
                                         <TableRow>
                                             <TableCell>
                                                 <div className="font-medium">
-                                                    Files
+                                                    {t('roles.form.files')}
                                                 </div>
                                                 <div className="font-mono text-xs text-muted-foreground">
-                                                    /api/v1/files
+                                                    {'/api/v1/files'}
                                                 </div>
                                             </TableCell>
                                             {FILE_ACTIONS.map((action) => {
@@ -617,8 +630,26 @@ export default function AdminRoleForm({
                                                         <Toggle
                                                             variant="outline"
                                                             pressed={allowed}
-                                                            aria-label={`${action.label} for files: ${allowed ? 'allowed' : 'denied'}`}
-                                                            title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
+                                                            aria-label={t(
+                                                                allowed
+                                                                    ? 'roles.form.fileToggleAllowed'
+                                                                    : 'roles.form.fileToggleDenied',
+                                                                {
+                                                                    action: t(
+                                                                        action.labelKey,
+                                                                    ),
+                                                                },
+                                                            )}
+                                                            title={t(
+                                                                allowed
+                                                                    ? 'roles.form.toggleTitleAllowed'
+                                                                    : 'roles.form.toggleTitleDenied',
+                                                                {
+                                                                    action: t(
+                                                                        action.labelKey,
+                                                                    ),
+                                                                },
+                                                            )}
                                                             className={cn(
                                                                 'px-0',
                                                                 allowed
@@ -668,12 +699,12 @@ export default function AdminRoleForm({
                             <div className="flex flex-wrap items-end justify-between gap-4">
                                 <div>
                                     <h2 className="text-lg font-medium">
-                                        Collection access
+                                        {t('roles.form.collectionAccess')}
                                     </h2>
                                     <p className="text-sm text-muted-foreground">
-                                        Public CMS API permissions (create /
-                                        read / update / delete). Missing grant =
-                                        deny.
+                                        {t(
+                                            'roles.form.collectionAccessDescription',
+                                        )}
                                     </p>
                                 </div>
                                 {collections.length > 0 ? (
@@ -686,7 +717,9 @@ export default function AdminRoleForm({
                                                     e.target.value,
                                                 )
                                             }
-                                            placeholder="Search collections…"
+                                            placeholder={t(
+                                                'roles.form.searchCollections',
+                                            )}
                                             className="pl-9"
                                             aria-label={t('a11y.search')}
                                         />
@@ -747,7 +780,7 @@ export default function AdminRoleForm({
                                         <TableHeader>
                                             <TableRow className="border-b bg-muted/40">
                                                 <TableHead className="text-left">
-                                                    Collection
+                                                    {t('roles.form.collection')}
                                                 </TableHead>
                                                 {COLLECTION_ACTIONS.map(
                                                     (action) => (
@@ -755,7 +788,7 @@ export default function AdminRoleForm({
                                                             key={action.key}
                                                             className="text-center"
                                                         >
-                                                            {action.label}
+                                                            {t(action.labelKey)}
                                                         </TableHead>
                                                     ),
                                                 )}
@@ -830,8 +863,28 @@ export default function AdminRoleForm({
                                                                                     pressed={
                                                                                         allowed
                                                                                     }
-                                                                                    aria-label={`${action.label} for ${collection.name}: ${allowed ? 'allowed' : 'denied'}`}
-                                                                                    title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
+                                                                                    aria-label={t(
+                                                                                        allowed
+                                                                                            ? 'roles.form.collectionToggleAllowed'
+                                                                                            : 'roles.form.collectionToggleDenied',
+                                                                                        {
+                                                                                            action: t(
+                                                                                                action.labelKey,
+                                                                                            ),
+                                                                                            collection:
+                                                                                                collection.name,
+                                                                                        },
+                                                                                    )}
+                                                                                    title={t(
+                                                                                        allowed
+                                                                                            ? 'roles.form.toggleTitleAllowed'
+                                                                                            : 'roles.form.toggleTitleDenied',
+                                                                                        {
+                                                                                            action: t(
+                                                                                                action.labelKey,
+                                                                                            ),
+                                                                                        },
+                                                                                    )}
                                                                                     className={cn(
                                                                                         'px-0',
                                                                                         allowed
@@ -885,10 +938,9 @@ export default function AdminRoleForm({
                                                                         className="space-y-3"
                                                                     >
                                                                         <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                                            Fields
-                                                                            &
-                                                                            item
-                                                                            filter
+                                                                            {t(
+                                                                                'roles.form.fieldsAndItemFilter',
+                                                                            )}
                                                                         </div>
                                                                         <div className="grid gap-3 sm:grid-cols-2">
                                                                             {fieldOptions.map(
@@ -949,9 +1001,9 @@ export default function AdminRoleForm({
                                                                                                                 )
                                                                                                             }
                                                                                                         />
-                                                                                                        {
-                                                                                                            action.label
-                                                                                                        }
+                                                                                                        {t(
+                                                                                                            action.labelKey,
+                                                                                                        )}
                                                                                                     </label>
                                                                                                 ),
                                                                                             )}
@@ -962,9 +1014,9 @@ export default function AdminRoleForm({
                                                                         </div>
                                                                         <div className="space-y-2">
                                                                             <div className="text-xs font-medium text-muted-foreground">
-                                                                                Item
-                                                                                filter
-                                                                                (AND)
+                                                                                {t(
+                                                                                    'roles.form.itemFilter',
+                                                                                )}
                                                                             </div>
                                                                             {filterRules.map(
                                                                                 (
@@ -1052,16 +1104,24 @@ export default function AdminRoleForm({
                                                                                             }}
                                                                                         >
                                                                                             <option value="equals">
-                                                                                                equals
+                                                                                                {t(
+                                                                                                    'roles.form.operators.equals',
+                                                                                                )}
                                                                                             </option>
                                                                                             <option value="not_equals">
-                                                                                                not_equals
+                                                                                                {t(
+                                                                                                    'roles.form.operators.notEquals',
+                                                                                                )}
                                                                                             </option>
                                                                                             <option value="empty">
-                                                                                                empty
+                                                                                                {t(
+                                                                                                    'roles.form.operators.empty',
+                                                                                                )}
                                                                                             </option>
                                                                                             <option value="not_empty">
-                                                                                                not_empty
+                                                                                                {t(
+                                                                                                    'roles.form.operators.notEmpty',
+                                                                                                )}
                                                                                             </option>
                                                                                         </NativeSelect>
                                                                                         {rule.operator !==
@@ -1115,7 +1175,9 @@ export default function AdminRoleForm({
                                                                                                 )
                                                                                             }
                                                                                         >
-                                                                                            Remove
+                                                                                            {t(
+                                                                                                'roles.form.removeRule',
+                                                                                            )}
                                                                                         </Button>
                                                                                     </div>
                                                                                 ),
@@ -1141,9 +1203,9 @@ export default function AdminRoleForm({
                                                                                     )
                                                                                 }
                                                                             >
-                                                                                Add
-                                                                                filter
-                                                                                rule
+                                                                                {t(
+                                                                                    'roles.form.addFilterRule',
+                                                                                )}
                                                                             </Button>
                                                                         </div>
                                                                     </TableCell>

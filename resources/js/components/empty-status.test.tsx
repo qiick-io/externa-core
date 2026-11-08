@@ -13,7 +13,7 @@ describe('EmptyStatus', () => {
                 <tbody>
                     <tr>
                         <td>
-                            <EmptyStatus>No collections yet.</EmptyStatus>
+                            <EmptyStatus>{'No collections yet.'}</EmptyStatus>
                         </td>
                     </tr>
                 </tbody>
