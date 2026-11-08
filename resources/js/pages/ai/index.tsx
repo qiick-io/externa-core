@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
+    ArrowLeft,
     MessagesSquare,
     MoreHorizontal,
     Pin,
@@ -333,6 +334,16 @@ export default function AiIndexPage({
         );
     };
 
+    // Below `md` the list and the open conversation take turns, full width.
+    const conversationOpen =
+        selectedConversation !== null || chat.conversationId !== null;
+
+    const closeConversation = () => {
+        chat.abortStream();
+
+        router.get(aiIndex.url(), {}, { preserveState: false });
+    };
+
     const handleNewChat = async () => {
         try {
             const conversation = await createAiConversation();
@@ -661,7 +672,7 @@ export default function AiIndexPage({
                 filters={
                     <FilterSearch
                         dataTest="ai-filter-q"
-                        className="w-64 flex-none sm:max-w-none lg:w-80"
+                        className="sm:max-w-none md:w-64 md:flex-none lg:w-80"
                         value={conversationQuery}
                         placeholder={t('ai.searchConversations')}
                         maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
@@ -687,7 +698,11 @@ export default function AiIndexPage({
                 >
                     <aside
                         aria-label={t('ai.conversations')}
-                        className="flex w-64 shrink-0 flex-col border-r lg:w-80"
+                        data-test="ai-list-column"
+                        className={cn(
+                            'w-full shrink-0 flex-col md:flex md:w-64 md:border-r lg:w-80',
+                            conversationOpen ? 'hidden' : 'flex',
+                        )}
                     >
                         <div
                             data-test="ai-list"
@@ -878,7 +893,31 @@ export default function AiIndexPage({
                         </div>
                     </aside>
 
-                    <section className="flex min-w-0 flex-1 flex-col">
+                    <section
+                        data-test="ai-thread-column"
+                        className={cn(
+                            'min-w-0 flex-1 flex-col md:flex',
+                            conversationOpen ? 'flex' : 'hidden',
+                        )}
+                    >
+                        <div
+                            data-test="ai-thread-header"
+                            className="flex h-12 shrink-0 items-center gap-2 border-b px-2 md:hidden"
+                        >
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                data-test="ai-thread-back"
+                                aria-label={t('ai.backToList')}
+                                onClick={closeConversation}
+                            >
+                                <ArrowLeft />
+                            </Button>
+                            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                                {selectedConversation?.title ?? t('ai.newChat')}
+                            </span>
+                        </div>
                         <AiChatDropZone
                             disabled={
                                 chat.isStreaming || chat.isUploadingAttachment
