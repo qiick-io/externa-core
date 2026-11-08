@@ -171,7 +171,7 @@ export function FilePreview({
     if (file.type === 'folder') {
         return (
             <div className={boxClass}>
-                <FolderOpen className="size-full text-amber-500" />
+                <FolderOpen className="size-full text-folder" />
             </div>
         );
     }

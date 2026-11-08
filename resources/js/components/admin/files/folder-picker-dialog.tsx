@@ -338,7 +338,7 @@ export function FolderPickerDialog({
                                             data-testid={`folder-picker-item-${folder.id}`}
                                         >
                                             <ItemMedia>
-                                                <FolderOpen className="size-4 text-amber-500" />
+                                                <FolderOpen className="size-4 text-folder" />
                                             </ItemMedia>
                                             <ItemContent className="min-w-0">
                                                 <ItemTitle className="truncate">
