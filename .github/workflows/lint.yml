@@ -183,6 +183,4 @@ jobs:
     uses: qiick-io/app-ui/.github/workflows/drift-check.yml@develop
     with:
       standards: true
-      # ponytail: the registry part is already red on develop (data-table-column-header
-      # moved upstream); re-pull it, then drop this line.
-      registry: false
+      registry: true
