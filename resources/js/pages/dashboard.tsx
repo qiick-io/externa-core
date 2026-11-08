@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
+import { TableCellLine } from '@/components/admin/table-cell-line';
 import { PageLayout } from '@/components/layout/page-layout';
 import { StatCard } from '@/components/stat-card';
 import { Button } from '@/components/ui/button';
@@ -282,16 +283,18 @@ export default function Dashboard({
                                                     </TableHead>
                                                 </TableRow>
                                             </TableHeader>
-                                            <TableBody>
+                                            <TableBody className="[&_td]:h-10">
                                                 {collectionCounts.map((row) => (
                                                     <TableRow key={row.id}>
-                                                        <TableCell className="min-w-0">
-                                                            <div className="truncate font-medium">
-                                                                {row.name}
-                                                            </div>
-                                                            <div className="truncate font-mono text-xs text-muted-foreground">
-                                                                {row.slug}
-                                                            </div>
+                                                        <TableCell className="max-w-0 min-w-0">
+                                                            <TableCellLine
+                                                                primary={
+                                                                    row.name
+                                                                }
+                                                                secondary={
+                                                                    row.slug
+                                                                }
+                                                            />
                                                         </TableCell>
                                                         <TableCell className="text-right tabular-nums">
                                                             {row.items_count.toLocaleString()}
@@ -456,7 +459,7 @@ export default function Dashboard({
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
-                                                <TableBody>
+                                                <TableBody className="[&_td]:h-10">
                                                     {latestActivity.map(
                                                         (activity) => (
                                                             <TableRow
@@ -468,26 +471,27 @@ export default function Dashboard({
                                                                     {activity.event ??
                                                                         '—'}
                                                                 </TableCell>
-                                                                <TableCell className="min-w-0">
-                                                                    <div className="truncate font-medium">
-                                                                        {
-                                                                            activity.description
+                                                                <TableCell className="max-w-0 min-w-0">
+                                                                    <TableCellLine
+                                                                        primary={
+                                                                            activity.description ??
+                                                                            '—'
                                                                         }
-                                                                    </div>
-                                                                    <div className="truncate text-xs text-muted-foreground">
-                                                                        {activity
-                                                                            .causer
-                                                                            ?.label
-                                                                            ? t(
-                                                                                  'dashboard.byUser',
-                                                                                  {
-                                                                                      name: activity
-                                                                                          .causer
-                                                                                          .label,
-                                                                                  },
-                                                                              )
-                                                                            : '—'}
-                                                                    </div>
+                                                                        secondary={
+                                                                            activity
+                                                                                .causer
+                                                                                ?.label
+                                                                                ? t(
+                                                                                      'dashboard.byUser',
+                                                                                      {
+                                                                                          name: activity
+                                                                                              .causer
+                                                                                              .label,
+                                                                                      },
+                                                                                  )
+                                                                                : null
+                                                                        }
+                                                                    />
                                                                 </TableCell>
                                                                 <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                     {activity.created_at
@@ -588,7 +592,7 @@ export default function Dashboard({
                                                                 </TableHead>
                                                             </TableRow>
                                                         </TableHeader>
-                                                        <TableBody>
+                                                        <TableBody className="[&_td]:h-10">
                                                             {(
                                                                 largestFiles ??
                                                                 []
@@ -598,21 +602,13 @@ export default function Dashboard({
                                                                         file.id
                                                                     }
                                                                 >
-                                                                    <TableCell className="min-w-0">
-                                                                        <div className="truncate font-medium">
-                                                                            {
+                                                                    <TableCell className="max-w-0 min-w-0">
+                                                                        <TableCellLine
+                                                                            primary={
                                                                                 file.name
                                                                             }
-                                                                        </div>
-                                                                        <div className="truncate text-xs text-muted-foreground">
-                                                                            {
-                                                                                file.disk
-                                                                            }{' '}
-                                                                            ·{' '}
-                                                                            {
-                                                                                file.path
-                                                                            }
-                                                                        </div>
+                                                                            secondary={`${file.disk} · ${file.path}`}
+                                                                        />
                                                                     </TableCell>
                                                                     <TableCell className="text-right tabular-nums">
                                                                         {formatBytes(
@@ -708,7 +704,7 @@ export default function Dashboard({
                                                                 </TableHead>
                                                             </TableRow>
                                                         </TableHeader>
-                                                        <TableBody>
+                                                        <TableBody className="[&_td]:h-10">
                                                             {storageTrendRows.map(
                                                                 (row) => (
                                                                     <TableRow
@@ -791,7 +787,7 @@ export default function Dashboard({
                                                             </TableHead>
                                                         </TableRow>
                                                     </TableHeader>
-                                                    <TableBody>
+                                                    <TableBody className="[&_td]:h-10">
                                                         {suspiciousEvents.map(
                                                             (event) => (
                                                                 <TableRow
@@ -799,26 +795,27 @@ export default function Dashboard({
                                                                         event.id
                                                                     }
                                                                 >
-                                                                    <TableCell className="min-w-0">
-                                                                        <div className="truncate font-medium">
-                                                                            {
-                                                                                event.description
+                                                                    <TableCell className="max-w-0 min-w-0">
+                                                                        <TableCellLine
+                                                                            primary={
+                                                                                event.description ??
+                                                                                '—'
                                                                             }
-                                                                        </div>
-                                                                        <div className="truncate text-xs text-muted-foreground">
-                                                                            {event
-                                                                                .causer
-                                                                                ?.label
-                                                                                ? t(
-                                                                                      'dashboard.byUser',
-                                                                                      {
-                                                                                          name: event
-                                                                                              .causer
-                                                                                              .label,
-                                                                                      },
-                                                                                  )
-                                                                                : '—'}
-                                                                        </div>
+                                                                            secondary={
+                                                                                event
+                                                                                    .causer
+                                                                                    ?.label
+                                                                                    ? t(
+                                                                                          'dashboard.byUser',
+                                                                                          {
+                                                                                              name: event
+                                                                                                  .causer
+                                                                                                  .label,
+                                                                                          },
+                                                                                      )
+                                                                                    : null
+                                                                            }
+                                                                        />
                                                                     </TableCell>
                                                                     <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                         {event.created_at
@@ -887,7 +884,7 @@ export default function Dashboard({
                                                                 </TableHead>
                                                             </TableRow>
                                                         </TableHeader>
-                                                        <TableBody>
+                                                        <TableBody className="[&_td]:h-10">
                                                             {mostActiveUsers.map(
                                                                 (user) => (
                                                                     <TableRow
@@ -966,7 +963,7 @@ export default function Dashboard({
                                                                 </TableHead>
                                                             </TableRow>
                                                         </TableHeader>
-                                                        <TableBody>
+                                                        <TableBody className="[&_td]:h-10">
                                                             {stuckOrphanUploads.map(
                                                                 (upload) => (
                                                                     <TableRow
@@ -974,28 +971,13 @@ export default function Dashboard({
                                                                             upload.id
                                                                         }
                                                                     >
-                                                                        <TableCell className="min-w-0">
-                                                                            <div className="truncate font-medium">
-                                                                                {
+                                                                        <TableCell className="max-w-0 min-w-0">
+                                                                            <TableCellLine
+                                                                                primary={
                                                                                     upload.file_name
                                                                                 }
-                                                                            </div>
-                                                                            <div className="truncate text-xs text-muted-foreground">
-                                                                                {
-                                                                                    upload.disk
-                                                                                }{' '}
-                                                                                ·{' '}
-                                                                                {upload.parent_id
-                                                                                    ? t(
-                                                                                          'dashboard.parentId',
-                                                                                          {
-                                                                                              id: upload.parent_id,
-                                                                                          },
-                                                                                      )
-                                                                                    : t(
-                                                                                          'dashboard.noParent',
-                                                                                      )}
-                                                                            </div>
+                                                                                secondary={`${upload.disk} · ${upload.parent_id ? t('dashboard.parentId', { id: upload.parent_id }) : t('dashboard.noParent')}`}
+                                                                            />
                                                                         </TableCell>
                                                                         <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                             {upload.uploaded_chunks.toLocaleString()}
@@ -1074,7 +1056,7 @@ export default function Dashboard({
                                                             </TableHead>
                                                         </TableRow>
                                                     </TableHeader>
-                                                    <TableBody>
+                                                    <TableBody className="[&_td]:h-10">
                                                         {fileStatsByDiskRows.map(
                                                             (row) => (
                                                                 <TableRow
@@ -1450,7 +1432,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>
-                                    <TableBody>
+                                    <TableBody className="[&_td]:h-10">
                                         {horizon.workloads.map((row) => (
                                             <TableRow key={row.name}>
                                                 <TableCell className="font-medium">

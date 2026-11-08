@@ -272,11 +272,7 @@ export default function AdminGroupsIndex({
             ),
             cell: ({ row }) => (
                 <span className="inline-flex min-w-0 items-center gap-2">
-                    <Avatar
-                        className="size-7"
-                        data-test="group-avatar"
-                        aria-hidden
-                    >
+                    <Avatar size="sm" data-test="group-avatar" aria-hidden>
                         <AvatarFallback
                             className={cn(
                                 avatarToneClass(`group-${row.original.id}`),

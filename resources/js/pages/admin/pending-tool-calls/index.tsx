@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/components/admin/data-table';
+import { TableCellLine } from '@/components/admin/table-cell-line';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -44,14 +45,12 @@ export default function PendingToolCallsIndex({
         {
             id: 'tool',
             header: t('pendingToolCalls.colTool'),
-            meta: { cellClassName: 'font-medium' },
+            meta: { cellClassName: 'max-w-56' },
             cell: ({ row }) => (
-                <>
-                    {row.original.tool}
-                    <div className="text-xs text-muted-foreground">
-                        {row.original.surface}
-                    </div>
-                </>
+                <TableCellLine
+                    primary={row.original.tool}
+                    secondary={row.original.surface}
+                />
             ),
         },
         {

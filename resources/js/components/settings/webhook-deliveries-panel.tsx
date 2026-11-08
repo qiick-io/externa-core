@@ -113,7 +113,7 @@ export function WebhookDeliveryStatus({
                             </TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="[&_td]:h-10">
                         {deliveries.recent.map((entry) => (
                             <TableRow key={`${entry.event_id}-${entry.at}`}>
                                 <TableCell className="whitespace-nowrap text-muted-foreground">
