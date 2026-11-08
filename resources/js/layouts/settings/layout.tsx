@@ -14,6 +14,7 @@ import {
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { useScrollRegion } from '@/hooks/use-scroll-region';
 import { cn, toUrl } from '@/lib/utils';
 import apiKeys from '@/routes/api-keys';
 import { edit as editAppearance } from '@/routes/appearance';
@@ -49,6 +50,7 @@ export default function SettingsLayout({
 }: SettingsLayoutProps) {
     const { t } = useTranslation();
     const { isCurrentUrl } = useCurrentUrl();
+    const scrollRegionRef = useScrollRegion<HTMLDivElement>();
     const { can } = useCan();
     const { projectSettings } = usePage().props;
 
@@ -276,8 +278,9 @@ export default function SettingsLayout({
 
                 {/* Scroll pane: sticky Save bars pin to this box, not the viewport. */}
                 <div
+                    ref={scrollRegionRef}
                     className={cn(
-                        'min-h-0 flex-1 overflow-y-auto',
+                        'min-h-0 flex-1 overflow-y-auto outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         wide ? 'md:max-w-4xl' : 'md:max-w-2xl',
                     )}
                 >

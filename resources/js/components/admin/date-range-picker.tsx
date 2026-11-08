@@ -118,7 +118,8 @@ export function DateRangePicker({
                 <Button
                     type="button"
                     variant="outline"
-                    aria-label={ariaLabel}
+                    // The name starts with the visible text (WCAG 2.5.3 label in name).
+                    aria-label={`${label}, ${ariaLabel}`}
                     data-test={dataTest}
                     className={cn(
                         fieldControlHeight,

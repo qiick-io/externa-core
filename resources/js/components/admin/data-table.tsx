@@ -282,9 +282,17 @@ export function DataTable<TData>({
 }
 
 /**
+ * A 24px hit area around the 16px checkbox (WCAG 2.5.8 target size): the
+ * root grows to `size-6` and draws the visible box as an inset `before:`
+ * layer, so the checkbox looks the same. Pass as the Checkbox `className`.
+ */
+export const checkboxTargetClassName =
+    'relative isolate block size-6 border-0 bg-transparent shadow-none data-[state=checked]:bg-transparent data-[state=indeterminate]:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 before:absolute before:inset-1 before:-z-10 before:rounded-[4px] before:border before:border-input before:shadow-xs data-[state=checked]:before:border-primary data-[state=checked]:before:bg-primary data-[state=indeterminate]:before:border-primary data-[state=indeterminate]:before:bg-primary focus-visible:before:border-ring focus-visible:before:ring-2 focus-visible:before:ring-ring focus-visible:before:ring-offset-2 focus-visible:before:ring-offset-background';
+
+/**
  * The selection column of the shadcn data-table pattern: a select-all
- * checkbox in the header and one checkbox per row. Clicks on it never open
- * the row.
+ * checkbox in the header and one checkbox per row, each with a 24px hit
+ * area ({@link checkboxTargetClassName}). Clicks on it never open the row.
  *
  * @param options.selectAllLabel - Accessible name of the header checkbox.
  * @param options.getRowLabel - Accessible name of a row checkbox.
@@ -310,6 +318,7 @@ export function dataTableSelectColumn<TData>({
                     table.toggleAllPageRowsSelected(checked === true)
                 }
                 aria-label={selectAllLabel}
+                className={checkboxTargetClassName}
             />
         ),
         cell: ({ row }) => (
@@ -319,6 +328,7 @@ export function dataTableSelectColumn<TData>({
                     row.toggleSelected(checked === true)
                 }
                 aria-label={getRowLabel(row.original)}
+                className={checkboxTargetClassName}
             />
         ),
     };

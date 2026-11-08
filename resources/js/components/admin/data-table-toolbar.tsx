@@ -44,7 +44,7 @@ export function DataTableToolbar({
     return (
         <div
             className={cn(
-                'flex min-w-0 flex-nowrap items-center justify-between gap-2',
+                'flex min-w-0 flex-wrap items-center justify-between gap-2 sm:flex-nowrap',
                 className,
             )}
         >
@@ -66,7 +66,7 @@ export function DataTableToolbar({
                     ) : null}
                 </>
             ) : (
-                <InputGroup className="min-w-[8rem] flex-1 sm:max-w-xs dark:bg-transparent">
+                <InputGroup className="min-w-[8rem] flex-1 basis-full sm:max-w-xs sm:basis-auto dark:bg-transparent">
                     <InputGroupInput
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
@@ -80,7 +80,7 @@ export function DataTableToolbar({
                 </InputGroup>
             )}
             {!hasSelection && trailing && (
-                <div className="flex shrink-0 flex-nowrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:flex-nowrap">
                     {trailing}
                 </div>
             )}
