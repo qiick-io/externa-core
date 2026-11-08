@@ -44,7 +44,7 @@ export function DataTableColumnHeader<TData, TValue>({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="-ml-2 tracking-wide text-muted-foreground uppercase data-[state=open]:bg-accent"
+                        className="-ml-2 text-sm data-[state=open]:bg-accent"
                         data-test={`column-sort-${column.id}`}
                     >
                         <span>{title}</span>

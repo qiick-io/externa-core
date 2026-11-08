@@ -350,6 +350,7 @@ export default function AdminActivityLogsIndex({
                                     visit({ user_ids: next });
                                 }}
                                 placeholder={t('activityLog.allUsers')}
+                                aria-label={t('activityLog.columns.user')}
                                 initialUsers={initialSelectedUsers}
                                 className="h-auto min-h-control min-w-0"
                             />

@@ -43,6 +43,11 @@ export type PaginatedMultiSelectProps = {
     className?: string;
     /** Avatar + name / email below for user options */
     showUserDetails?: boolean;
+    /**
+     * Accessible name of the trigger. A `combobox` takes no name from its content, so it falls
+     * back to the placeholder; pass the field label when the picker has no visible label.
+     */
+    'aria-label'?: string;
 };
 
 function mapResponse(data: unknown): Paginated<AdminSelectOption> {
@@ -117,6 +122,7 @@ export function PaginatedMultiSelect({
     perPage = 20,
     className,
     showUserDetails = false,
+    'aria-label': ariaLabel,
 }: PaginatedMultiSelectProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
@@ -245,6 +251,7 @@ export function PaginatedMultiSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    aria-label={ariaLabel ?? placeholder}
                     disabled={disabled}
                     className={cn(
                         'w-full justify-between font-normal focus-visible:ring-offset-0',
