@@ -22,7 +22,6 @@ import {
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -102,10 +101,7 @@ export function FileCard({
             <button
                 type="button"
                 data-testid={`file-card-title-${file.id}`}
-                className={cn(
-                    'w-full min-w-0 truncate text-center text-xs leading-4 font-medium hover:underline',
-                    !useCoverLayout && 'h-4',
-                )}
+                className="block w-full min-w-0 truncate text-left text-sm leading-5 font-medium hover:underline"
                 onClick={(event) => {
                     event.stopPropagation();
                     onOpenFolder(file.id);
@@ -117,10 +113,7 @@ export function FileCard({
             <button
                 type="button"
                 data-testid={`file-card-title-${file.id}`}
-                className={cn(
-                    'w-full min-w-0 truncate text-center text-xs leading-4 font-medium',
-                    !useCoverLayout && 'h-4',
-                )}
+                className="block w-full min-w-0 truncate text-left text-sm leading-5 font-medium"
                 onClick={(event) => {
                     event.stopPropagation();
                     onSelect(file.id, event);
@@ -130,63 +123,53 @@ export function FileCard({
             </button>
         );
 
-    const tagsRow =
-        file.tags.length > 0 ? (
-            <div
-                className="flex w-full min-w-0 items-center justify-center gap-1 overflow-hidden"
-                onPointerDown={(event) => event.stopPropagation()}
-            >
+    // Always rendered (empty when untagged) so every card has the same
+    // footer height and the grid rows line up.
+    const tagsRow = (
+        <div
+            className="flex h-5 w-full min-w-0 items-center gap-1 overflow-hidden"
+            data-test={`file-tags-${file.id}`}
+            onPointerDown={(event) => event.stopPropagation()}
+        >
+            {file.tags.length > 0 && (
                 <Badge
-                    variant="muted"
-                    className={cn(
-                        'block min-w-0 truncate',
-                        useCoverLayout && 'bg-background/80 text-foreground',
-                    )}
+                    variant="secondary"
+                    className="block min-w-0 truncate text-xs"
                 >
                     {file.tags[0].name}
                 </Badge>
-                {file.tags.length > 1 && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Badge
-                                    variant="muted"
-                                    className={cn(
-                                        'shrink-0 rounded-full px-1.5 tabular-nums',
-                                        useCoverLayout &&
-                                            'bg-background/80 text-foreground',
-                                    )}
-                                    aria-label={t('files.tags.moreTags', {
-                                        count: file.tags.length - 1,
-                                    })}
-                                >
-                                    +{file.tags.length - 1}
-                                </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {file.tags
-                                    .slice(1)
-                                    .map((tag) => tag.name)
-                                    .join(', ')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-            </div>
-        ) : null;
+            )}
+            {file.tags.length > 1 && (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge
+                            variant="secondary"
+                            className="shrink-0 text-xs tabular-nums"
+                            aria-label={t('files.tags.moreTags', {
+                                count: file.tags.length - 1,
+                            })}
+                        >
+                            +{file.tags.length - 1}
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {file.tags
+                            .slice(1)
+                            .map((tag) => tag.name)
+                            .join(', ')}
+                    </TooltipContent>
+                </Tooltip>
+            )}
+        </div>
+    );
 
     const card = (
-        <AspectRatio
-            ratio={1}
+        <div
             draggable={canDrag && !isFolder && !isTrashed}
             data-file-id={file.id}
             data-testid={`file-card-${file.id}`}
             className={cn(
-                'group w-full min-w-0 overflow-hidden rounded-xl border transition-colors',
-                useCoverLayout
-                    ? 'bg-muted/30'
-                    : 'flex flex-col items-center bg-card p-3 hover:bg-muted/40',
-                'border-sidebar-border/70',
+                'group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 bg-card transition-colors hover:bg-muted/40',
                 // The selection ring is drawn by an inset overlay above the
                 // cover media: an outer ring-2 is cut by the grid's scroll
                 // container on the outer columns and rows.
@@ -268,72 +251,79 @@ export function FileCard({
                 }
             }}
         >
-            {useCoverLayout && (
-                <div className="absolute inset-0 z-0 overflow-hidden rounded-xl">
+            {/* Preview: the image (or the type icon) with nothing over it
+                but the selection controls; name and tags sit below. */}
+            <AspectRatio
+                ratio={1}
+                className={cn(
+                    'overflow-hidden',
+                    useCoverLayout
+                        ? 'bg-muted/30'
+                        : 'flex items-center justify-center bg-muted/20',
+                )}
+            >
+                {useCoverLayout ? (
                     <FilePreview
                         file={file}
                         hovered={hovered}
                         variant="cover"
                     />
-                </div>
-            )}
-
-            <div
-                className={cn(
-                    'absolute top-2 left-2 z-20 transition-opacity',
-                    showCheckbox ? 'opacity-100' : 'opacity-0',
-                )}
-                onPointerDown={(event) => event.stopPropagation()}
-            >
-                <Checkbox
-                    checked={selected}
-                    onClick={(event) => {
-                        // Keep the card's select-only click from replacing the multi-selection (#464).
-                        event.stopPropagation();
-
-                        if (event.shiftKey) {
-                            event.preventDefault();
-                            onSelect(file.id, { shiftKey: true });
-                        }
-                    }}
-                    onCheckedChange={() => onSelect(file.id, { metaKey: true })}
-                    aria-label={t('files.card.select', {
-                        name: file.name,
-                    })}
-                />
-            </div>
-
-            {file.is_favorited && (
-                <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
-            )}
-
-            {file.effective_access === 'private' && (
-                <Badge
-                    variant="outline"
-                    className="absolute bottom-2 left-2 z-20 bg-background/90 text-muted-foreground shadow-sm"
-                    title={t('files.card.privateTitle')}
-                >
-                    {t('files.card.privateBadge')}
-                </Badge>
-            )}
-
-            {useCoverLayout ? (
-                <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-3 py-2 backdrop-blur-md">
-                    <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-                        {titleControl}
-                        {tagsRow}
-                    </div>
-                </div>
-            ) : (
-                <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-2 overflow-hidden">
-                    <div className="flex size-12 shrink-0 items-center justify-center">
+                ) : (
+                    <div className="flex size-12 items-center justify-center">
                         <FilePreview file={file} hovered={hovered} />
                     </div>
-                    {titleControl}
-                    {tagsRow}
+                )}
+
+                <div
+                    className={cn(
+                        'absolute top-2 left-2 z-20 transition-opacity',
+                        showCheckbox ? 'opacity-100' : 'opacity-0',
+                    )}
+                    onPointerDown={(event) => event.stopPropagation()}
+                >
+                    <Checkbox
+                        checked={selected}
+                        onClick={(event) => {
+                            // Keep the card's select-only click from replacing the multi-selection (#464).
+                            event.stopPropagation();
+
+                            if (event.shiftKey) {
+                                event.preventDefault();
+                                onSelect(file.id, { shiftKey: true });
+                            }
+                        }}
+                        onCheckedChange={() =>
+                            onSelect(file.id, { metaKey: true })
+                        }
+                        aria-label={t('files.card.select', {
+                            name: file.name,
+                        })}
+                    />
                 </div>
-            )}
-        </AspectRatio>
+
+                {file.is_favorited && (
+                    <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
+                )}
+
+                {file.effective_access === 'private' && (
+                    <Badge
+                        variant="outline"
+                        className="absolute bottom-2 left-2 z-20 bg-background/90 text-muted-foreground shadow-sm"
+                        title={t('files.card.privateTitle')}
+                    >
+                        {t('files.card.privateBadge')}
+                    </Badge>
+                )}
+            </AspectRatio>
+
+            <div className="flex min-w-0 flex-col gap-1 border-t border-sidebar-border/70 px-2.5 py-2">
+                <Tooltip>
+                    <TooltipTrigger asChild>{titleControl}</TooltipTrigger>
+                    <TooltipContent>{displayName}</TooltipContent>
+                </Tooltip>
+                {tagsRow}
+            </div>
+        </div>
     );
 
     if (actions.length === 0) {
