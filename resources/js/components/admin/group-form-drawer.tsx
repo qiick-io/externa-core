@@ -201,6 +201,7 @@ export function GroupFormDrawer({
                                 }
                                 initialRoles={editing?.roles}
                                 disabled={readOnly}
+                                aria-label="Roles"
                             />
                             <FieldDescription id="group-role-ids-hint">
                                 Members inherit these roles’ Spatie permissions
@@ -224,6 +225,7 @@ export function GroupFormDrawer({
                                 }
                                 initialUsers={editing?.users}
                                 disabled={readOnly}
+                                aria-label="Users"
                             />
                             <FieldError id="group-user-ids-error">
                                 {form.errors.user_ids}

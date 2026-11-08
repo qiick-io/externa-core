@@ -205,6 +205,7 @@ it('adds a member with the keyboard through the server-searched user picker', fu
     visit('/groups')
         ->click('Picker Group')
         ->wait(0.5)
+        ->assertScript("['Roles', 'Users'].every((name) => document.querySelector(`[data-vaul-drawer] [role=\"combobox\"][aria-label=\"\${name}\"]`) !== null)")
         ->click('Select users…')
         ->assertPresent('[cmdk-input]')
         ->type('[cmdk-input]', 'picked-person')

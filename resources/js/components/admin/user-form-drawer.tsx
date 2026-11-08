@@ -358,6 +358,7 @@ export function UserFormDrawer({
                                 }
                                 initialRoles={editing?.roles}
                                 disabled={readOnly}
+                                aria-label="Roles"
                                 placeholder={
                                     roleIsRequired
                                         ? 'Select at least one role'
@@ -382,6 +383,7 @@ export function UserFormDrawer({
                                 }
                                 initialGroups={editing?.groups}
                                 disabled={readOnly}
+                                aria-label="Groups"
                             />
                             <FieldDescription id="user-group-ids-hint">
                                 Group roles are unioned with direct roles for
