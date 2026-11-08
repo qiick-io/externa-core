@@ -61,7 +61,9 @@ class FileEffectiveAccessService
 
         while ($queue !== []) {
             $parentId = array_shift($queue);
+            // Partial select: skip the default currentVersion eager load, it needs current_version_id.
             $children = File::query()
+                ->without('currentVersion')
                 ->where('parent_id', $parentId)
                 ->get(['id', 'parent_id', 'access', 'type', 'effective_access']);
 

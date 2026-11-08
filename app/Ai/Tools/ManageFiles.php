@@ -155,6 +155,7 @@ class ManageFiles implements Approvable, ClassifiesToolActionsContract, Tool
                 'mime_type',
                 'size',
                 'effective_access',
+                'current_version_id',
                 'deleted_at',
             ]);
 

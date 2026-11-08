@@ -66,7 +66,8 @@ test('authorized users can visit the dashboard', function () {
         'size' => 123456789,
     ]);
 
-    FileUpload::query()->create([
+    // forceCreate: the backdated timestamps are not mass assignable.
+    FileUpload::query()->forceCreate([
         'upload_id' => 'test-upload-1',
         'file_name' => 'orphan-upload.txt',
         'mime_type' => 'text/plain',

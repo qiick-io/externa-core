@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 /**
  * Serialize a user record with optional role and group payloads.
@@ -39,7 +40,7 @@ class UserResource extends JsonResource
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($group) => [
                 'id' => $group->id,
                 'name' => $group->name,
-                'slug' => $group->slug,
+                'slug' => Str::slug($group->name),
             ])->values()->all()),
         ];
     }

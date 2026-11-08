@@ -44,6 +44,29 @@ class User extends Authenticatable implements PasskeyUser
     use HasConversations, HasFactory, HasRoles, LogsApplicationActivityTrait, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
+     * The column defaults a freshly created user does not read back from the
+     * database (same values as the users migrations): strict models throw on a
+     * missing attribute.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_active' => true,
+        'last_name' => null,
+        'username' => null,
+        'oidc_sub' => null,
+        'email_verified_at' => null,
+        'phone' => null,
+        'locale' => 'en',
+        'timezone' => 'UTC',
+        'last_login_at' => null,
+        'last_login_ip' => null,
+        'two_factor_secret' => null,
+        'two_factor_recovery_codes' => null,
+        'two_factor_confirmed_at' => null,
+    ];
+
+    /**
      * Activity log options excluding sensitive credential fields.
      */
     public function getActivitylogOptions(): LogOptions

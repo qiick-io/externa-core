@@ -214,7 +214,8 @@ test('user password is excluded from activity log properties', function () {
     $this->actingAs($actor);
 
     $user = User::factory()->create();
-    $user->update(['password' => Hash::make('new-secret-password')]);
+    // A logged field changes too: a password-only change is excluded entirely, so it logs nothing.
+    $user->update(['first_name' => 'Renamed', 'password' => Hash::make('new-secret-password')]);
 
     $activity = Activity::query()
         ->where('subject_type', User::class)
