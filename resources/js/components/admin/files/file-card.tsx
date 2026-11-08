@@ -268,21 +268,18 @@ export function FileCard({
     };
 
     const card = (
-        <div
+        <AspectRatio
+            ratio={1}
             {...surfaceProps}
-            className={cn(
-                'relative flex w-full min-w-0 flex-col',
-                surfaceClassName,
-            )}
+            className={cn('flex min-w-0 flex-col', surfaceClassName)}
         >
-            {/* Square preview, edge to edge; files and folders share it so
-                every card has the same height. */}
-            <AspectRatio
-                ratio={1}
+            {/* The whole card is square (files and folders alike): the
+                preview fills the space above the 40px name row, edge to
+                edge. */}
+            <div
                 data-test={`file-card-preview-${file.id}`}
                 className={cn(
-                    'overflow-hidden',
-                    'bg-muted/30',
+                    'relative min-h-0 flex-1 overflow-hidden bg-muted/30',
                     // Same tile and glyph size as the type icon on file cards.
                     isFolder && 'flex items-center justify-center bg-muted',
                 )}
@@ -304,7 +301,7 @@ export function FileCard({
                 )}
                 {selectionCheckbox}
                 {statusMarks}
-            </AspectRatio>
+            </div>
 
             <div
                 data-test={`file-card-header-${file.id}`}
@@ -387,7 +384,7 @@ export function FileCard({
                     </DropdownMenu>
                 )}
             </div>
-        </div>
+        </AspectRatio>
     );
 
     if (actions.length === 0) {

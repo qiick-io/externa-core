@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('gives files and folders one card size with a square preview, at 1440 and 1920 wide', function () {
+it('keeps every file and folder card square and the same size, at 1440 and 1920 wide', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -265,10 +265,13 @@ it('gives files and folders one card size with a square preview, at 1440 and 192
                     const sameSize = rects.every((rect) =>
                         Math.abs(rect.width - rects[0].width) <= 1 && Math.abs(rect.height - rects[0].height) <= 1,
                     );
+                    // The whole card (preview + name row) is square.
+                    const squareCards = rects.every((rect) => Math.abs(rect.width - rect.height) <= 1);
                     // Cards never get narrower than the 15rem grid minimum.
                     const wideEnough = rects[0].width >= 239;
 
-                    const squarePreviews = cards.every((card) => {
+                    const previewsFillTop = cards.every((card) => {
+                        const cardRect = card.getBoundingClientRect();
                         const preview = card.querySelector('[data-test^="file-card-preview-"]').getBoundingClientRect();
                         const header = card.querySelector('[data-test^="file-card-header-"]').getBoundingClientRect();
 
@@ -276,7 +279,9 @@ it('gives files and folders one card size with a square preview, at 1440 and 192
                         const strayIcons = [...card.querySelectorAll('[data-test^="file-card-header-"] svg')]
                             .filter((icon) => !icon.closest('button'));
 
-                        return Math.abs(preview.width - preview.height) <= 1 && header.top >= preview.bottom - 0.5
+                        // The preview spans the card edge to edge above the 40px name row.
+                        return cardRect.width - preview.width <= 2 && preview.top - cardRect.top <= 1.5
+                            && header.top >= preview.bottom - 0.5 && Math.abs(header.height - 40) <= 1.5
                             && strayIcons.length === 0;
                     });
 
@@ -285,7 +290,7 @@ it('gives files and folders one card size with a square preview, at 1440 and 192
                     const nameRoom = pdfTitle.getBoundingClientRect().width > rects[0].width / 2
                         && pdfTitle.scrollWidth > pdfTitle.clientWidth;
 
-                    return sameSize && wideEnough && squarePreviews && nameRoom;
+                    return sameSize && squareCards && wideEnough && previewsFillTop && nameRoom;
                 }
             JS)
             ->assertNoJavaScriptErrors();
