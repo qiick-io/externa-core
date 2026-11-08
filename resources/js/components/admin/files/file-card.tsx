@@ -1,5 +1,5 @@
 import { EllipsisVertical, Star, Tag } from 'lucide-react';
-import { createElement, useState } from 'react';
+import { useState } from 'react';
 import type { HTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,10 +7,7 @@ import {
     isInternalFileDrag,
 } from '@/components/admin/file-dropzone';
 import { FileActionMenuItems } from '@/components/admin/files/file-action-menu-items';
-import {
-    FilePreview,
-    fileIconForExtension,
-} from '@/components/admin/files/file-preview';
+import { FilePreview } from '@/components/admin/files/file-preview';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,10 +23,14 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import {
     Tooltip,
     TooltipContent,
@@ -130,46 +131,6 @@ export function FileCard({
                 {displayName}
             </button>
         );
-
-    // Always rendered (empty when untagged) so every card has the same
-    // footer height and the grid rows line up.
-    const tagsRow = (
-        <div
-            className="flex h-5 w-full min-w-0 items-center gap-1 overflow-hidden"
-            data-test={`file-tags-${file.id}`}
-            onPointerDown={(event) => event.stopPropagation()}
-        >
-            {file.tags.length > 0 && (
-                <Badge
-                    variant="secondary"
-                    className="block min-w-0 truncate text-xs"
-                >
-                    {file.tags[0].name}
-                </Badge>
-            )}
-            {file.tags.length > 1 && (
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Badge
-                            variant="secondary"
-                            className="shrink-0 text-xs tabular-nums"
-                            aria-label={t('files.tags.moreTags', {
-                                count: file.tags.length - 1,
-                            })}
-                        >
-                            +{file.tags.length - 1}
-                        </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        {file.tags
-                            .slice(1)
-                            .map((tag) => tag.name)
-                            .join(', ')}
-                    </TooltipContent>
-                </Tooltip>
-            )}
-        </div>
-    );
 
     const surfaceClassName = cn(
         'group overflow-hidden rounded-xl border border-sidebar-border/70 bg-card transition-colors hover:bg-muted/40',
@@ -305,115 +266,94 @@ export function FileCard({
         onDoubleClick: (event: { stopPropagation: () => void }) =>
             event.stopPropagation(),
     };
-    const tagAction = actions.find((action) => action.key === 'tag');
-    const typeIcon = fileIconForExtension(
-        file.extension || file.name.split('.').pop() || '',
-    );
 
-    const card = isFolder ? (
-        <div
-            {...surfaceProps}
-            className={cn(
-                'relative flex w-full min-w-0 flex-col',
-                surfaceClassName,
-            )}
-        >
-            {/* Folder: the icon in a square, name and tags below. */}
-            <AspectRatio
-                ratio={1}
-                className="flex items-center justify-center overflow-hidden bg-muted/20"
-            >
-                <div className="flex size-12 items-center justify-center">
-                    <FilePreview file={file} hovered={hovered} />
-                </div>
-                {selectionCheckbox}
-                {statusMarks}
-            </AspectRatio>
-
-            <div className="flex min-w-0 flex-col gap-1 border-t border-sidebar-border/70 px-2.5 py-2">
-                <Tooltip>
-                    <TooltipTrigger asChild>{titleControl}</TooltipTrigger>
-                    <TooltipContent>{displayName}</TooltipContent>
-                </Tooltip>
-                {tagsRow}
-            </div>
-        </div>
-    ) : (
+    const card = (
         <AspectRatio
             ratio={1}
             {...surfaceProps}
             className={cn('flex min-w-0 flex-col', surfaceClassName)}
         >
-            {/* File: the whole card is square. The preview fills the top
-                edge to edge; the type icon, name and menus sit below it. */}
+            {/* The whole card is square (files and folders alike): the
+                preview fills the space above the 40px name row, edge to
+                edge. */}
             <div
                 data-test={`file-card-preview-${file.id}`}
-                className="relative min-h-0 flex-1 overflow-hidden bg-muted/30"
+                className={cn(
+                    'relative min-h-0 flex-1 overflow-hidden bg-muted/30',
+                    // Same tile and glyph size as the type icon on file cards.
+                    isFolder && 'flex items-center justify-center bg-muted',
+                )}
             >
-                <FilePreview file={file} hovered={hovered} variant="cover" />
+                {isFolder ? (
+                    <div className="flex size-1/3 items-center justify-center">
+                        <FilePreview
+                            file={file}
+                            hovered={hovered}
+                            className="size-full"
+                        />
+                    </div>
+                ) : (
+                    <FilePreview
+                        file={file}
+                        hovered={hovered}
+                        variant="cover"
+                    />
+                )}
                 {selectionCheckbox}
                 {statusMarks}
             </div>
 
             <div
                 data-test={`file-card-header-${file.id}`}
-                className="flex h-10 shrink-0 items-center gap-1.5 border-t border-sidebar-border/70 pr-1 pl-2.5"
+                className="flex h-10 shrink-0 items-center gap-1 border-t border-sidebar-border/70 pr-1 pl-2.5"
             >
-                {createElement(typeIcon, {
-                    className: 'size-4 shrink-0 text-muted-foreground',
-                    'aria-hidden': true,
-                })}
                 <Tooltip>
                     <TooltipTrigger asChild>{titleControl}</TooltipTrigger>
                     <TooltipContent>{displayName}</TooltipContent>
                 </Tooltip>
 
                 {file.tags.length > 0 && (
-                    <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
+                    // Hover or focus shows the tags; a click neither opens a
+                    // menu nor selects the card.
+                    <HoverCard openDelay={150} closeDelay={100}>
+                        <HoverCardTrigger asChild>
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon-xs"
                                 className="shrink-0 text-muted-foreground"
                                 data-test={`file-tags-${file.id}`}
                                 aria-label={t('files.card.tagsMenu', {
                                     count: file.tags.length,
                                     name: displayName,
                                 })}
-                                {...menuTriggerProps}
+                                onClick={(event) => event.stopPropagation()}
+                                onDoubleClick={(event) =>
+                                    event.stopPropagation()
+                                }
                             >
                                 <Tag />
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="max-w-64">
-                            <DropdownMenuLabel>
-                                {t('files.tags.label')}
-                            </DropdownMenuLabel>
-                            {file.tags.map((tag) => (
-                                <DropdownMenuItem
-                                    key={tag.id}
-                                    data-test="file-tags-item"
-                                >
-                                    <Tag />
-                                    <span className="truncate">{tag.name}</span>
-                                </DropdownMenuItem>
-                            ))}
-                            {tagAction && (
-                                <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        onSelect={() =>
-                                            onAction?.(tagAction.key, file)
-                                        }
+                        </HoverCardTrigger>
+                        <HoverCardContent
+                            align="end"
+                            className="w-auto max-w-64 p-2"
+                            data-test={`file-tags-card-${file.id}`}
+                        >
+                            <div className="flex flex-wrap gap-1">
+                                {file.tags.map((tag) => (
+                                    <Badge
+                                        key={tag.id}
+                                        variant="secondary"
+                                        className="max-w-full truncate"
+                                        data-test="file-tags-item"
                                     >
-                                        <tagAction.icon />
-                                        {tagAction.label}
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                        {tag.name}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </HoverCardContent>
+                    </HoverCard>
                 )}
 
                 {actions.length > 0 && (
@@ -422,7 +362,7 @@ export function FileCard({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon-xs"
                                 className="shrink-0 text-muted-foreground"
                                 data-test={`file-card-more-${file.id}`}
                                 aria-label={t('files.card.moreActions', {

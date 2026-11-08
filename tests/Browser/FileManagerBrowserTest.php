@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps file cards square and the same size, folders unchanged, and truncates long titles', function () {
+it('keeps every file and folder card square and the same size, at 1440 and 1920 wide', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -236,8 +236,7 @@ it('keeps file cards square and the same size, folders unchanged, and truncates 
         'extension' => 'pdf',
     ]);
 
-    // ponytail: plain text (not image) so layout check never hits thumbnail 404.
-    File::query()->create([
+    $tagged = File::query()->create([
         'type' => FileTypeEnum::File,
         'name' => 'notes.txt',
         'path' => '/notes.txt',
@@ -246,50 +245,56 @@ it('keeps file cards square and the same size, folders unchanged, and truncates 
         'mime_type' => 'text/plain',
         'extension' => 'txt',
     ]);
+    $tagged->attachTags(['summer']);
 
     $this->actingAs($user);
 
-    $page = visit('/files');
+    foreach ([1440, 1920] as $width) {
+        $page = visit('/files');
+        $page->resize($width, 1000);
 
-    $page->assertSee('Layout Folder')
-        ->assertSee('notes.txt')
-        ->assertScript(<<<JS
-            () => {
-                const cards = [...document.querySelectorAll('[data-file-id]')];
-                const folderCard = document.querySelector('[data-testid="file-card-{$folder->id}"]');
-                const fileCards = cards.filter((card) => card !== folderCard);
-                if (fileCards.length < 2 || !folderCard) {
-                    return false;
+        $page->assertSee('Layout Folder')
+            ->assertScript(<<<JS
+                () => {
+                    const cards = [...document.querySelectorAll('[data-file-id]')];
+                    if (cards.length < 3) {
+                        return false;
+                    }
+
+                    const rects = cards.map((card) => card.getBoundingClientRect());
+                    const sameSize = rects.every((rect) =>
+                        Math.abs(rect.width - rects[0].width) <= 1 && Math.abs(rect.height - rects[0].height) <= 1,
+                    );
+                    // The whole card (preview + name row) is square.
+                    const squareCards = rects.every((rect) => Math.abs(rect.width - rect.height) <= 1);
+                    // Cards never get narrower than the 15rem grid minimum.
+                    const wideEnough = rects[0].width >= 239;
+
+                    const previewsFillTop = cards.every((card) => {
+                        const cardRect = card.getBoundingClientRect();
+                        const preview = card.querySelector('[data-test^="file-card-preview-"]').getBoundingClientRect();
+                        const header = card.querySelector('[data-test^="file-card-header-"]').getBoundingClientRect();
+
+                        // No type glyph next to the name: the only icons in the row are its buttons'.
+                        const strayIcons = [...card.querySelectorAll('[data-test^="file-card-header-"] svg')]
+                            .filter((icon) => !icon.closest('button'));
+
+                        // The preview spans the card edge to edge above the 40px name row.
+                        return cardRect.width - preview.width <= 2 && preview.top - cardRect.top <= 1.5
+                            && header.top >= preview.bottom - 0.5 && Math.abs(header.height - 40) <= 1.5
+                            && strayIcons.length === 0;
+                    });
+
+                    // The long name gets most of the row: wider than half the card.
+                    const pdfTitle = document.querySelector('[data-testid="file-card-title-{$longPdf->id}"]');
+                    const nameRoom = pdfTitle.getBoundingClientRect().width > rects[0].width / 2
+                        && pdfTitle.scrollWidth > pdfTitle.clientWidth;
+
+                    return sameSize && squareCards && wideEnough && previewsFillTop && nameRoom;
                 }
-
-                // A file card is itself a 1:1 AspectRatio.
-                const sizes = fileCards.map((card) => card.getBoundingClientRect());
-                const filesSquare = fileCards.every((card, index) =>
-                    card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper')
-                    && sizes[index].width > 0
-                    && Math.abs(sizes[index].width - sizes[index].height) <= 1,
-                );
-                const uniform = sizes.every((size) => Math.abs(size.width - sizes[0].width) <= 1);
-
-                // A folder keeps its square icon area with the name and tags below.
-                const folderPreview = folderCard.querySelector('[data-radix-aspect-ratio-wrapper]');
-                const folderRect = folderCard.getBoundingClientRect();
-                const folderUnchanged = Boolean(folderPreview)
-                    && Math.abs(folderPreview.getBoundingClientRect().width - folderPreview.getBoundingClientRect().height) <= 2
-                    && folderRect.height > folderRect.width;
-
-                const pdfTitle = document.querySelector('[data-testid="file-card-title-{$longPdf->id}"]');
-                const truncated = Boolean(
-                    pdfTitle
-                    && pdfTitle.classList.contains('truncate')
-                    && pdfTitle.classList.contains('min-w-0')
-                    && pdfTitle.scrollWidth > pdfTitle.clientWidth,
-                );
-
-                return filesSquare && uniform && folderUnchanged && truncated;
-            }
-        JS)
-        ->assertNoJavaScriptErrors();
+            JS)
+            ->assertNoJavaScriptErrors();
+    }
 });
 
 it('clears selection when using the toolbar clear control', function () {
@@ -554,7 +559,8 @@ it('fills a tall window with pages automatically and stops at the end of the lis
     $this->actingAs($user);
 
     $page = visit('/files');
-    $page->resize(1440, 3200);
+    // Tall enough for more than one 48-card page of 15rem cards.
+    $page->resize(1440, 5600);
 
     $page->wait(2)
         ->assertScript("document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length === 60")
@@ -718,7 +724,7 @@ JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('lists the file tags in the tag menu', function () {
+it('shows the file tags on hover without selecting the card', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -748,13 +754,16 @@ it('lists the file tags in the tag menu', function () {
 
     visit('/files')
         ->assertMissing("[data-test=\"file-tags-{$untagged->id}\"]")
-        ->click("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->hover("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertPresent("[data-test=\"file-tags-card-{$tagged->id}\"]")
         ->assertScript(<<<'JS'
 (() => {
   const names = [...document.querySelectorAll('[data-test="file-tags-item"]')].map((item) => item.textContent.trim());
   return names.length === 3 && ['summer', 'travel', 'family'].every((name) => names.includes(name));
 })()
 JS)
+        ->click("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertAttribute("[data-testid=\"file-card-{$tagged->id}\"]", 'data-selected', 'false')
         ->assertNoJavaScriptErrors();
 });
 
