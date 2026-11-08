@@ -144,6 +144,44 @@
             "name": "Name der neuen Rolle",
             "submit": "Duplizieren",
             "duplicating": "Wird dupliziert…"
+        },
+        "form": {
+            "editTitle": "Rolle bearbeiten",
+            "systemRoleHint": "Systemrolle — der Name ist gesperrt; kann Benutzern nicht zugewiesen werden.",
+            "create": "Erstellen",
+            "adminPermissions": "Admin-Berechtigungen",
+            "createPrivateChats": "Private Chats erstellen",
+            "filesAccess": "Dateizugriff",
+            "filesAccessDescription": "Dateiberechtigungen der öffentlichen CMS-API. <strong>Lesen</strong> umfasst öffentliche Dateien; <strong>Privat lesen</strong> ist für als privat markierte Dateien/Ordner (und deren geerbte Unterelemente) erforderlich. Fehlende Berechtigung = verweigert.",
+            "resource": "Ressource",
+            "files": "Dateien",
+            "collectionAccess": "Collection-Zugriff",
+            "collectionAccessDescription": "Berechtigungen der öffentlichen CMS-API (Erstellen / Lesen / Aktualisieren / Löschen). Fehlende Berechtigung = verweigert.",
+            "searchCollections": "Collections suchen…",
+            "collection": "Collection",
+            "fieldsAndItemFilter": "Felder & Eintragsfilter",
+            "itemFilter": "Eintragsfilter (UND)",
+            "removeRule": "Entfernen",
+            "addFilterRule": "Filterregel hinzufügen",
+            "fileToggleAllowed": "{{action}} für Dateien: erlaubt",
+            "fileToggleDenied": "{{action}} für Dateien: verweigert",
+            "collectionToggleAllowed": "{{action}} für {{collection}}: erlaubt",
+            "collectionToggleDenied": "{{action}} für {{collection}}: verweigert",
+            "toggleTitleAllowed": "{{action}}: Erlaubt",
+            "toggleTitleDenied": "{{action}}: Verweigert",
+            "actions": {
+                "create": "Erstellen",
+                "read": "Lesen",
+                "readPrivate": "Privat lesen",
+                "update": "Aktualisieren",
+                "delete": "Löschen"
+            },
+            "operators": {
+                "equals": "gleich",
+                "notEquals": "ungleich",
+                "empty": "leer",
+                "notEmpty": "nicht leer"
+            }
         }
     },
     "nav": {
@@ -162,7 +200,8 @@
         "chat": "Chat",
         "settings": "Einstellungen",
         "repository": "Repository",
-        "documentation": "Dokumentation"
+        "documentation": "Dokumentation",
+        "appVersion": "v{{version}}"
     },
     "notifications": {
         "title": "Benachrichtigungen",
@@ -388,7 +427,11 @@
                 "revoked": "Widerrufen"
             },
             "revoke": "Schlüssel widerrufen",
-            "secretValue": "Neuer API-Schlüssel"
+            "secretValue": "Neuer API-Schlüssel",
+            "selectRole": "Rolle auswählen",
+            "ipAllowlist": "IP-Allowlist (optional, kommagetrennt)",
+            "rateLimit": "Rate-Limit / Minute (optional)",
+            "expiresAt": "Läuft ab am"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -1351,7 +1394,320 @@
             "fill": "Breite füllen"
         },
         "reorderColumn": "{{label}} verschieben",
-        "noFieldsMatch": "Keine Felder entsprechen deiner Suche."
+        "noFieldsMatch": "Keine Felder entsprechen deiner Suche.",
+        "fieldSettings": {
+            "common": {
+                "fieldWidth": "Feldbreite",
+                "fieldWidthHint": "Wie viel horizontalen Platz dieses Feld im Formular einnimmt.",
+                "startNewRow": "Neue Zeile beginnen",
+                "startNewRowHint": "Dieses Feld im Formularlayout immer in einer neuen Zeile beginnen.",
+                "required": "Pflichtfeld",
+                "requiredHint": "Der Inhalt kann erst gespeichert werden, wenn dieses Feld einen Wert hat.",
+                "readonly": "Schreibgeschützt",
+                "readonlyHint": "Redakteure sehen den Wert, können ihn nach dem ersten Speichern aber nicht mehr ändern.",
+                "hiddenInForm": "Im Formular ausgeblendet",
+                "hiddenInFormHint": "Blendet dieses Feld im Eintragseditor aus, behält es aber im Schema.",
+                "defaultValue": "Standardwert",
+                "defaultValueHint": "Wird beim Erstellen eines neuen Eintrags verwendet, wenn das Feld leer bleibt.",
+                "defaultValuePlaceholder": "Wird beim Erstellen verwendet, wenn leer"
+            },
+            "rules": {
+                "operator": "Operator",
+                "value": "Wert",
+                "addRule": "Regel hinzufügen"
+            },
+            "validation": {
+                "message": "Validierungsmeldung",
+                "messageHint": "Optionale eigene Fehlermeldung, wenn eine Regel nicht erfüllt ist."
+            },
+            "conditions": {
+                "intro": "Dieses Feld optional abhängig von den Werten anderer Felder anzeigen, sperren oder als Pflichtfeld markieren (UND oder ODER).",
+                "addConditions": "Bedingungen hinzufügen",
+                "hint": "Wenn die Regeln zutreffen, gelten die Optionen unten. Nur einfaches UND / ODER, keine verschachtelten Gruppen.",
+                "match": "Übereinstimmung",
+                "matchAll": "Alle Regeln (UND)",
+                "matchAny": "Mindestens eine Regel (ODER)",
+                "field": "Feld",
+                "selectField": "Feld auswählen…",
+                "valuesCommaSeparated": "Werte (durch Komma getrennt)",
+                "hideWhenMatched": "Bei Übereinstimmung ausblenden",
+                "hideWhenMatchedHint": "Blendet dieses Feld im Eintragsformular aus, wenn die Regeln zutreffen.",
+                "showWhenMatched": "Bei Übereinstimmung anzeigen",
+                "showWhenMatchedHint": "Standardmäßig ausgeblendet; dieses Feld nur anzeigen, wenn die Regeln zutreffen.",
+                "readonlyWhenMatched": "Bei Übereinstimmung schreibgeschützt",
+                "readonlyWhenMatchedHint": "Sperrt das Feld, wenn die Regeln zutreffen.",
+                "requiredWhenMatched": "Bei Übereinstimmung Pflichtfeld",
+                "requiredWhenMatchedHint": "Verlangt einen Wert, wenn die Regeln zutreffen (serverseitig geprüft).",
+                "removeConditions": "Bedingungen entfernen",
+                "operators": {
+                    "equals": "Gleich",
+                    "notEquals": "Ungleich",
+                    "contains": "Enthält",
+                    "empty": "Ist leer",
+                    "notEmpty": "Ist nicht leer",
+                    "gt": "Größer als",
+                    "gte": "Größer oder gleich",
+                    "lt": "Kleiner als",
+                    "lte": "Kleiner oder gleich",
+                    "in": "In Liste",
+                    "notIn": "Nicht in Liste"
+                }
+            },
+            "altro": {
+                "hashIntro": "Speichert beim Speichern eine automatisch generierte Fingerprint-ID (`sha256` einer UUID), wenn das Feld leer ist. Das ist <strong>kein</strong> Passwort-Hash: Die Werte sind Kennungen, keine aus Benutzereingaben abgeleiteten Geheimnisse.",
+                "hashMasked": "Wert im Editor maskieren",
+                "hashMaskedHint": "Nach dem Speichern nur ein kurzes Präfix des Fingerprints anzeigen.",
+                "minimum": "Minimum",
+                "maximum": "Maximum",
+                "step": "Schrittweite",
+                "showValue": "Aktuellen Wert anzeigen",
+                "showValueHint": "Zeigt den Zahlenwert neben dem Schieberegler an."
+            },
+            "groups": {
+                "allClosed": "Alle geschlossen",
+                "firstOpen": "Erster geöffnet",
+                "allOpen": "Alle geöffnet",
+                "maxOneOpen": "Maximal ein Abschnitt geöffnet",
+                "maxOneOpenHint": "Es kann jeweils nur ein Akkordeon-Abschnitt aufgeklappt sein.",
+                "initialState": "Anfangszustand",
+                "accordionHint": "Abschnitte sind meist Rohgruppen, die in diesem Akkordeon verschachtelt sind (zwei leere werden automatisch erstellt). Nutze „Abschnitt hinzufügen“ am Akkordeon oder verschachtle beliebige Felder direkt, auch einfache Felder (diese werden zu Akkordeon-Panels).",
+                "open": "Geöffnet",
+                "closed": "Geschlossen",
+                "fillWidthHint": "Nimmt die volle Formularbreite ein (überschreibt die Breite verschachtelter Gruppen).",
+                "tabsHint": "Tab-Panels sind meist Rohgruppen, die in dieser Tab-Gruppe verschachtelt sind (zwei leere werden automatisch erstellt). Nutze „Tab hinzufügen“ oder verschachtle beliebige Felder direkt, auch einfache Felder (diese werden zu Tabs).",
+                "rawHint": "Nur Verschachtelung, ohne visuelle Darstellung im Eintragsformular. Felder aus der Feldliste per Drag & Drop in diese Gruppe ziehen."
+            },
+            "relational": {
+                "allowMultipleImages": "Mehrere Bilder erlauben",
+                "allowMultipleImagesHint": "Redakteure können mehr als ein Bild in dieses Feld hochladen.",
+                "allowedMimeTypes": "Erlaubte MIME-Typen (durch Komma getrennt)",
+                "cropToFit": "Zuschneiden",
+                "cropToFitHint": "Hochgeladene Bilder auf das eingestellte Seitenverhältnis zuschneiden.",
+                "allowMultipleFiles": "Mehrere Dateien erlauben",
+                "allowMultipleFilesHint": "Redakteure können mehr als eine Datei an dieses Feld anhängen.",
+                "allowedCollections": "Erlaubte Collections",
+                "allowDuplicateBlocks": "Doppelte Blöcke erlauben",
+                "allowDuplicateBlocksHint": "Erlaubt, denselben Collection-Block mehrmals hinzuzufügen.",
+                "relatedCollection": "Verknüpfte Collection",
+                "selectCollection": "Collection auswählen…",
+                "displayField": "Anzeigefeld",
+                "displayTemplate": "Anzeigevorlage",
+                "displayTemplateHint": "Optional. Platzhalter wie {{placeholder}} verwenden; wenn leer, wird das Anzeigefeld genutzt.",
+                "filterJson": "Filter (JSON)",
+                "filterJsonHint": "Optional. Filter mit exakter Übereinstimmung auf Feldwerte der verknüpften Collection (Feldname → erwarteter Wert).",
+                "layout": "Layout",
+                "layoutList": "Liste",
+                "layoutTable": "Tabelle",
+                "allowDuplicateLinks": "Doppelte Verknüpfungen erlauben",
+                "allowDuplicateLinksHint": "Erlaubt, denselben verknüpften Eintrag mehrmals zu verknüpfen.",
+                "junctionFields": "Verknüpfungsfelder (JSON)",
+                "junctionFieldsHint": "Optionales Mini-Schema für Metadaten pro Verknüpfung. Eintragsformulare zeigen diese Felder neben jedem verknüpften Eintrag. Typen: string, number, boolean."
+            },
+            "selection": {
+                "labelOn": "Beschriftung bei „Ein“",
+                "labelOff": "Beschriftung bei „Aus“",
+                "dateMode": "Modus",
+                "dateOnly": "Nur Datum",
+                "timeOnly": "Nur Uhrzeit",
+                "dateAndTime": "Datum und Uhrzeit",
+                "includeSeconds": "Sekunden einbeziehen",
+                "includeSecondsHint": "Erlaubt Zeitwerte mit Sekundengenauigkeit (Modi Uhrzeit / Datum und Uhrzeit).",
+                "geometryMode": "Geometriemodus",
+                "point": "Punkt",
+                "multiPoint": "Mehrere Punkte",
+                "defaultLatitude": "Standard-Breitengrad",
+                "defaultLongitude": "Standard-Längengrad",
+                "defaultZoom": "Standard-Zoom",
+                "enableOpacity": "Deckkraft aktivieren",
+                "enableOpacityHint": "Erlaubt, den Alphakanal im Farbwähler anzupassen.",
+                "presetColors": "Vordefinierte Farben (Hex, durch Komma getrennt)",
+                "allowNone": "Leere Auswahl erlauben",
+                "allowNoneHint": "Redakteure können die Auswahl leeren, ohne eine Option zu wählen.",
+                "allowOther": "Werte außerhalb der Optionen erlauben",
+                "allowOtherHint": "Akzeptiert eigene Werte, die nicht in der Auswahl stehen.",
+                "valueCombining": "Wertkombination",
+                "allSelectedNodes": "Alle ausgewählten Knoten",
+                "leafNodesOnly": "Nur Blattknoten"
+            },
+            "textNumbers": {
+                "inputType": "Eingabetyp",
+                "maxLength": "Maximale Länge",
+                "placeholder": "Platzhalter",
+                "iconLeft": "Symbol links",
+                "iconRight": "Symbol rechts",
+                "trim": "Leerzeichen entfernen",
+                "trimHint": "Entfernt beim Speichern Leerzeichen am Anfang und Ende.",
+                "slugify": "In Slug umwandeln",
+                "slugifyHint": "Wandelt den Wert beim Speichern in einen URL-tauglichen Slug um.",
+                "masked": "Maskiert (Passwort)",
+                "maskedHint": "Verbirgt die eingegebenen Zeichen wie ein Passwortfeld.",
+                "min": "Min",
+                "max": "Max",
+                "language": "Sprache",
+                "template": "Vorlage",
+                "lineNumbers": "Zeilennummern anzeigen",
+                "lineNumbersHint": "Zeigt eine Spalte mit Zeilennummern im Editor des Eintragsformulars.",
+                "lineWrapping": "Zeilenumbruch",
+                "lineWrappingHint": "Lange Zeilen umbrechen statt horizontal zu scrollen.",
+                "tagPresets": "Vorgaben (durch Komma getrennt)",
+                "tagSeparator": "Trennzeichen",
+                "allowCustomTags": "Eigene Tags erlauben",
+                "allowCustomTagsHint": "Redakteure können Tags hinzufügen, die nicht in den Vorgaben stehen.",
+                "lowercase": "Beim Speichern kleinschreiben",
+                "lowercaseHint": "Wandelt Tags beim Speichern in Kleinbuchstaben um.",
+                "alphabetize": "Beim Speichern alphabetisch sortieren",
+                "alphabetizeHint": "Sortiert Tags beim Speichern alphabetisch.",
+                "rows": "Zeilen",
+                "staticComboboxHint": "Statische Combobox: Redakteure wählen aus vordefinierten Optionen oder geben, wenn erlaubt, einen eigenen Wert ein.",
+                "urlTemplate": "URL-Vorlage",
+                "urlTemplateHint": "Verwende {{token}} als Platzhalter für den Suchbegriff. URLs mit gleichem Ursprung vermeiden CORS (z. B. /demo/cities?q={{token}}).",
+                "resultsPath": "Ergebnispfad",
+                "textPath": "Textpfad",
+                "valuePath": "Wertpfad",
+                "trigger": "Auslöser",
+                "debounce": "Debounce",
+                "throttle": "Throttle",
+                "rate": "Intervall (ms)"
+            },
+            "form": {
+                "choices": "Auswahlmöglichkeiten",
+                "choicesHint": "Füge die Werte hinzu, aus denen Benutzer wählen können. Die Beschriftung wird in der Oberfläche angezeigt, der Wert in der Datenbank gespeichert.",
+                "optionLabel": "Beschriftung",
+                "addChoice": "Auswahl hinzufügen",
+                "treeChoices": "Baumauswahl",
+                "treeChoicesHint": "Verschachtelte Optionen festlegen. Das Auswählen eines Elternelements wählt alle Unterelemente aus; bei gemischter Auswahl erscheint das Elternelement unbestimmt.",
+                "addChild": "Unterelement hinzufügen",
+                "addRootChoice": "Hauptauswahl hinzufügen",
+                "nestedRelationHint": "Verschachtelte Beziehungen werden als JSON-Verknüpfungen im Block gespeichert (nicht in Verknüpfungstabellen).",
+                "junctionMetaFields": "Metafelder der Verknüpfung (JSON)",
+                "key": "Schlüssel",
+                "nameHint": "Übersetzte Beschriftung in der Admin-Oberfläche und im Eintragsformular.",
+                "note": "Hinweis",
+                "noteHint": "Optionaler Hilfetext, der im Eintragsformular unter dem Feld angezeigt wird."
+            },
+            "blocks": {
+                "blockTypes": "Blocktypen",
+                "innerBlockTypes": "Innere Blocktypen",
+                "blockTypesHint": "Lege das Inline-Blockschema für dieses Feld fest. Schlüssel müssen in snake_case und kleingeschrieben sein (z. B. rich_text). Maximale Verschachtelungstiefe {{max}} (Obergrenze {{ceiling}}).",
+                "innerBlockTypesHint": "Innere Blöcke (Tiefe {{depth}}/{{max}}). Auf dieser Tiefe ist keine weitere Verschachtelung von Blöcken möglich.",
+                "maxDepth": "Maximale Verschachtelungstiefe",
+                "maxDepthHint": "Standard {{default}}. Absolute Obergrenze {{ceiling}}.",
+                "expandBlockType": "Blocktyp aufklappen",
+                "collapseBlockType": "Blocktyp zuklappen",
+                "blockN": "Block {{n}}",
+                "fieldCount_one": "{{count}} Feld",
+                "fieldCount_other": "{{count}} Felder",
+                "labelPlaceholder": "Rich-Text",
+                "i18n": "I18n",
+                "remove": "Entfernen",
+                "conditions": "Bedingungen (bezogen auf andere Felder in diesem Block)",
+                "addNestedField": "Verschachteltes Feld hinzufügen",
+                "moveUp": "Nach oben",
+                "moveDown": "Nach unten",
+                "deleteBlockType": "Blocktyp löschen",
+                "addBlockType": "Blocktyp hinzufügen"
+            }
+        },
+        "items": {
+            "fields": {
+                "noWriteAccess": "Kein Schreibzugriff",
+                "readonly": "Schreibgeschützt",
+                "includeInApply": "In Übernahme einbeziehen"
+            },
+            "blocks": {
+                "nestingExceeded": "Die Verschachtelung der Blöcke überschreitet die maximale Tiefe ({{max}}).",
+                "empty": "Noch keine Blöcke.",
+                "expand": "Block aufklappen",
+                "collapse": "Block zuklappen",
+                "duplicate": "Duplizieren",
+                "add": "{{label}} hinzufügen",
+                "remove": "Entfernen",
+                "addBlock": "Block hinzufügen",
+                "selectItem": "Block-Eintrag auswählen…"
+            },
+            "choice": {
+                "apiUrlMissing": "Konfiguriere in den Feldeinstellungen eine API-URL, um Vorschläge zu aktivieren.",
+                "generatedOnSave": "Wird beim Speichern erzeugt",
+                "hashHint": "Fingerprint-ID (automatisch). Kein Passwort-Hash.",
+                "other": "Andere",
+                "otherEllipsis": "Andere…",
+                "customValue": "Eigener Wert",
+                "select": "Auswählen…",
+                "selectOptions": "Optionen auswählen…",
+                "additionalCustomValue": "Zusätzlicher eigener Wert"
+            },
+            "date": {
+                "pickDate": "Datum wählen",
+                "pickDateTime": "Datum & Uhrzeit wählen"
+            },
+            "relation": {
+                "selectBy": "Nach {{field}} auswählen…",
+                "selectRelated": "Verknüpften Eintrag auswählen…",
+                "junctionMetadata": "Verknüpfungs-Metadaten"
+            },
+            "previewAsRole": {
+                "title": "Vorschau als Rolle",
+                "description": "Schreibgeschützte Ansicht der Felddaten nach Collection-ACL und Dateizugriffsregeln (einschließlich <code>access: denied</code>). Kein visueller Editor.",
+                "role": "Rolle",
+                "chooseRole": "Rolle wählen",
+                "notReadable": "Für diese Rolle nicht lesbar."
+            },
+            "compare": {
+                "title": "Revision vergleichen",
+                "editedBy": "Bearbeitet von {{name}} · {{date}}",
+                "showDiffOnly": "Nur Unterschiede anzeigen",
+                "selectAll": "Alle Unterschiede auswählen",
+                "deselectAll": "Auswahl aller Unterschiede aufheben",
+                "differences_one": "{{count}} Unterschied",
+                "differences_other": "{{count}} Unterschiede",
+                "previousRevision": "Vorherige Revision",
+                "latest": "Neueste",
+                "previous": "Vorherige",
+                "itemRevision": "Eintragsrevision",
+                "comparingTo": "Verglichen mit",
+                "apply": "Übernehmen"
+            },
+            "columnMenu": {
+                "alignLeft": "Linksbündig",
+                "alignCenter": "Zentriert",
+                "alignRight": "Rechtsbündig",
+                "hideField": "Feld ausblenden"
+            },
+            "form": {
+                "draftRestored": "Ungespeicherter Browser-Entwurf wiederhergestellt.",
+                "discardDraft": "Browser-Entwurf verwerfen",
+                "noActivity": "Noch keine Aktivität erfasst.",
+                "rejectHint": "Erkläre, was der Redakteur vor dem erneuten Einreichen korrigieren soll.",
+                "rejectionNote": "Ablehnungshinweis",
+                "previousNote": "Vorheriger Hinweis: {{note}}"
+            },
+            "list": {
+                "newItem": "Neuer Eintrag"
+            },
+            "filters": {
+                "clearAll": "Alle löschen",
+                "fieldFilters": "Feldfilter",
+                "rulesHint": "Regeln werden mit UND verknüpft und in die URL geschrieben (<code>filter[field][_eq]=…</code>).",
+                "noFilterableFields": "Keine filterbaren Felder in dieser Collection.",
+                "value": "Wert",
+                "addRule": "Regel hinzufügen",
+                "apply": "Anwenden"
+            },
+            "cell": {
+                "point": "Punkt",
+                "points_one": "{{count}} Punkt",
+                "points_other": "{{count}} Punkte"
+            },
+            "kanban": {
+                "updated": "Aktualisiert {{date}}"
+            }
+        },
+        "collectionPages": {
+            "edit": "Bearbeiten",
+            "sort": "Sortieren",
+            "deleteCollection": "Collection löschen",
+            "singletonDescription": "<mono>{{slug}}</mono> · Singleton-Collection. Werte für diesen Eintrag. Feldtypen und Reihenfolge legst du unter <link>Felder bearbeiten</link> fest."
+        }
     },
     "ai": {
         "drawer": {
@@ -1831,7 +2187,8 @@
         "statInProgressContext": "Noch nicht abgeschlossene Chunk-Uploads",
         "statStaleUploads": "Veraltete Uploads",
         "statStaleContext": "Vor dem Abschluss abgelaufen",
-        "statFailedJobsHeadline": "Fehlgeschlagene Jobs: {{count}}"
+        "statFailedJobsHeadline": "Fehlgeschlagene Jobs: {{count}}",
+        "healthWorkloadWaitSeconds": "{{seconds}} s"
     },
     "realtime": {
         "connected": "Realtime verbunden",
@@ -1960,7 +2317,8 @@
         },
         "exportCsv": "CSV exportieren",
         "exportHint": "Exportiert die aktuellen Filter (max. {{limit}} Zeilen).",
-        "exportJson": "JSON exportieren"
+        "exportJson": "JSON exportieren",
+        "ip": "IP"
     },
     "files": {
         "title": "Dateien",
@@ -2231,6 +2589,19 @@
         "status": {
             "active": "Aktiv",
             "inactive": "Inaktiv"
+        },
+        "form": {
+            "editTitle": "Benutzer bearbeiten",
+            "editDescription": "Aktualisieren Sie Profil, direkte Rollen und Gruppenmitgliedschaften. Gruppen erben die Berechtigungen und Sammlungs-/Datei-ACLs ihrer zugewiesenen Rollen.",
+            "createDescription": "Legen Sie einen Benutzer an und weisen Sie direkte Rollen und/oder Gruppen zu. Wenn viele Benutzer dieselben Rollen teilen, sind Gruppen die bessere Wahl.",
+            "requiredHint": "Mit * markierte Felder sind Pflichtfelder.",
+            "emailHint": "Verwenden Sie eine gültige E-Mail-Adresse, zum Beispiel",
+            "username": "Benutzername",
+            "newPasswordOptional": "Neues Passwort (optional)",
+            "selectAtLeastOneRole": "Mindestens eine Rolle auswählen",
+            "selectRoles": "Rollen auswählen…",
+            "groupsHint": "Gruppenrollen werden für Admin-Berechtigungen und Sammlungs-/Dateizugriff mit den direkten Rollen vereint.",
+            "create": "Erstellen"
         }
     },
     "groups": {
@@ -2256,7 +2627,15 @@
         },
         "empty": "Noch keine Gruppen.",
         "membersCount_one": "{{count}} Mitglied",
-        "membersCount_other": "{{count}} Mitglieder"
+        "membersCount_other": "{{count}} Mitglieder",
+        "form": {
+            "editTitle": "Gruppe bearbeiten",
+            "description": "Weisen Sie dieser Gruppe Spatie-Rollen zu, damit Mitglieder die Admin-Berechtigungen und alle an diese Rollen gebundenen Sammlungs-/Datei-ACLs erben. Verwenden Sie bei großen Mitgliederzahlen lieber Gruppen, statt Rollen einzeln pro Benutzer zuzuweisen.",
+            "descriptionLabel": "Beschreibung",
+            "rolesHint": "Mitglieder erben die Spatie-Berechtigungen und Sammlungs-/Dateizugriffsmatrizen dieser Rollen.",
+            "users": "Benutzer",
+            "create": "Erstellen"
+        }
     },
     "pendingToolCalls": {
         "head": "KI-Tool-Freigaben",
@@ -2317,7 +2696,8 @@
             "guard": "Guard"
         },
         "empty": "Keine Berechtigungen in der Datenbank. Synchronisierung ausführen.",
-        "sync": "Aus Enum synchronisieren"
+        "sync": "Aus Enum synchronisieren",
+        "description": "Berechtigungen sind in <code>PermissionEnum</code> definiert und werden mit der Datenbank synchronisiert. Weisen Sie sie auf der Bearbeitungsseite der Rolle den Rollen zu."
     },
     "passwordInput": {
         "strength": "Passwortstärke",

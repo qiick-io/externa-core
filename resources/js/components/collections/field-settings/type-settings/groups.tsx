@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -43,27 +44,46 @@ export function GroupsSettings({
     tabsSettings,
     onTabsSettingsChange,
 }: GroupsSettingsProps) {
+    const { t } = useTranslation();
+
     if (fieldType === 'group_accordion') {
         const startChoices: Array<{
             value: AccordionGroupSettings['start'];
             label: string;
         }> = accordionSettings.accordionMode
             ? [
-                  { value: 'closed', label: 'All closed' },
-                  { value: 'first', label: 'First open' },
+                  {
+                      value: 'closed',
+                      label: t('collections.fieldSettings.groups.allClosed'),
+                  },
+                  {
+                      value: 'first',
+                      label: t('collections.fieldSettings.groups.firstOpen'),
+                  },
               ]
             : [
-                  { value: 'closed', label: 'All closed' },
-                  { value: 'first', label: 'First open' },
-                  { value: 'opened', label: 'All open' },
+                  {
+                      value: 'closed',
+                      label: t('collections.fieldSettings.groups.allClosed'),
+                  },
+                  {
+                      value: 'first',
+                      label: t('collections.fieldSettings.groups.firstOpen'),
+                  },
+                  {
+                      value: 'opened',
+                      label: t('collections.fieldSettings.groups.allOpen'),
+                  },
               ];
 
         return (
             <div className="space-y-6">
                 <SettingCheckbox
                     id="accordion_mode"
-                    label="Max one section open"
-                    description="Only one accordion section can be expanded at a time."
+                    label={t('collections.fieldSettings.groups.maxOneOpen')}
+                    description={t(
+                        'collections.fieldSettings.groups.maxOneOpenHint',
+                    )}
                     checked={accordionSettings.accordionMode}
                     onCheckedChange={(checked) =>
                         onAccordionSettingsChange((current) => ({
@@ -78,7 +98,7 @@ export function GroupsSettings({
                 />
                 <Field>
                     <FieldLabel htmlFor="accordion_start">
-                        Initial state
+                        {t('collections.fieldSettings.groups.initialState')}
                     </FieldLabel>
                     <NativeSelect
                         id="accordion_start"
@@ -105,10 +125,7 @@ export function GroupsSettings({
                     </NativeSelect>
                 </Field>
                 <p className="text-sm text-muted-foreground">
-                    Sections are typically Raw groups nested under this
-                    accordion (two empty ones are created automatically). Use
-                    Add section on the accordion, or nest any field — including
-                    leaves — directly (leaf children become accordion panels).
+                    {t('collections.fieldSettings.groups.accordionHint')}
                 </p>
             </div>
         );
@@ -119,7 +136,7 @@ export function GroupsSettings({
             <div className="space-y-6">
                 <Field>
                     <FieldLabel htmlFor="detail_start">
-                        Initial state
+                        {t('collections.fieldSettings.groups.initialState')}
                     </FieldLabel>
                     <NativeSelect
                         id="detail_start"
@@ -133,8 +150,12 @@ export function GroupsSettings({
                         }
                         className="w-full"
                     >
-                        <option value="open">Open</option>
-                        <option value="closed">Closed</option>
+                        <option value="open">
+                            {t('collections.fieldSettings.groups.open')}
+                        </option>
+                        <option value="closed">
+                            {t('collections.fieldSettings.groups.closed')}
+                        </option>
                     </NativeSelect>
                 </Field>
             </div>
@@ -146,8 +167,10 @@ export function GroupsSettings({
             <div className="space-y-6">
                 <SettingCheckbox
                     id="tabs_fill_width"
-                    label="Fill width"
-                    description="Span the full form width (overwrite nested group width)."
+                    label={t('collections.layoutWidth.fill')}
+                    description={t(
+                        'collections.fieldSettings.groups.fillWidthHint',
+                    )}
                     checked={tabsSettings.fillWidth}
                     onCheckedChange={(checked) =>
                         onTabsSettingsChange((current) => ({
@@ -157,10 +180,7 @@ export function GroupsSettings({
                     }
                 />
                 <p className="text-sm text-muted-foreground">
-                    Tab panels are typically Raw groups nested under this tabs
-                    group (two empty ones are created automatically). Use Add
-                    tab, or nest any field — including leaves — directly (leaf
-                    children become tabs).
+                    {t('collections.fieldSettings.groups.tabsHint')}
                 </p>
             </div>
         );
@@ -169,8 +189,7 @@ export function GroupsSettings({
     if (fieldType === 'group_raw') {
         return (
             <p className="text-sm text-muted-foreground">
-                Nesting only — no chrome on the item form. Nest fields into this
-                group from the fields list (drag and drop).
+                {t('collections.fieldSettings.groups.rawHint')}
             </p>
         );
     }

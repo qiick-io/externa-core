@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ export function GroupFormDrawer({
     onCancel,
     onSuccess,
 }: GroupFormDrawerProps) {
+    const { t } = useTranslation();
     const form = useForm({ ...EMPTY_GROUP_FORM });
 
     useRegisterUnsavedChanges({
@@ -104,17 +106,14 @@ export function GroupFormDrawer({
         }
     };
 
-    const title = editing ? 'Edit group' : 'New group';
+    const title = editing ? t('groups.form.editTitle') : t('groups.newGroup');
 
     return (
         <DrawerContent>
             <DrawerHeader>
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription>
-                    Attach Spatie roles to this group so members inherit admin
-                    permissions and any collection/file ACL tied to those roles.
-                    Prefer groups for large memberships instead of assigning
-                    roles user-by-user.
+                    {t('groups.form.description')}
                 </DrawerDescription>
             </DrawerHeader>
 
@@ -134,7 +133,9 @@ export function GroupFormDrawer({
                         <Field
                             data-invalid={form.errors.name ? true : undefined}
                         >
-                            <FieldLabel htmlFor="group_name">Name</FieldLabel>
+                            <FieldLabel htmlFor="group_name">
+                                {t('groups.columns.name')}
+                            </FieldLabel>
                             <Input
                                 id="group_name"
                                 value={form.data.name}
@@ -164,7 +165,7 @@ export function GroupFormDrawer({
                             }
                         >
                             <FieldLabel htmlFor="group_description">
-                                Description
+                                {t('groups.form.descriptionLabel')}
                             </FieldLabel>
                             <Input
                                 id="group_description"
@@ -193,7 +194,7 @@ export function GroupFormDrawer({
                                 form.errors.role_ids ? true : undefined
                             }
                         >
-                            <FieldLabel>Roles</FieldLabel>
+                            <FieldLabel>{t('groups.columns.roles')}</FieldLabel>
                             <RoleMultiSelect
                                 value={form.data.role_ids}
                                 onChange={(role_ids) =>
@@ -201,11 +202,10 @@ export function GroupFormDrawer({
                                 }
                                 initialRoles={editing?.roles}
                                 disabled={readOnly}
-                                aria-label="Roles"
+                                aria-label={t('groups.columns.roles')}
                             />
                             <FieldDescription id="group-role-ids-hint">
-                                Members inherit these roles’ Spatie permissions
-                                and collection/file access matrices.
+                                {t('groups.form.rolesHint')}
                             </FieldDescription>
                             <FieldError id="group-role-ids-error">
                                 {form.errors.role_ids}
@@ -217,7 +217,7 @@ export function GroupFormDrawer({
                                 form.errors.user_ids ? true : undefined
                             }
                         >
-                            <FieldLabel>Users</FieldLabel>
+                            <FieldLabel>{t('groups.form.users')}</FieldLabel>
                             <UserMultiSelect
                                 value={form.data.user_ids}
                                 onChange={(user_ids) =>
@@ -225,7 +225,7 @@ export function GroupFormDrawer({
                                 }
                                 initialUsers={editing?.users}
                                 disabled={readOnly}
-                                aria-label="Users"
+                                aria-label={t('groups.form.users')}
                             />
                             <FieldError id="group-user-ids-error">
                                 {form.errors.user_ids}
@@ -240,11 +240,13 @@ export function GroupFormDrawer({
                         variant="outline"
                         onClick={() => onCancel?.()}
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     {!readOnly && (
                         <Button type="submit" disabled={form.processing}>
-                            {editing ? 'Save' : 'Create'}
+                            {editing
+                                ? t('common.save')
+                                : t('groups.form.create')}
                         </Button>
                     )}
                 </DrawerFooter>

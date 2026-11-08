@@ -1,5 +1,6 @@
 import { CalendarIcon, ClockIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
     toDateInputValue,
@@ -305,6 +306,7 @@ export function DateFieldInput({
     readonly: boolean;
     hasError?: boolean;
 }) {
+    const { t } = useTranslation();
     const [wire, setWire] = useState(() =>
         initialWire(mode, defaultValue, includeSeconds),
     );
@@ -369,8 +371,8 @@ export function DateFieldInput({
                             {selected
                                 ? formatDisplay(selected, mode, includeSeconds)
                                 : mode === 'date'
-                                  ? 'Pick a date'
-                                  : 'Pick date & time'}
+                                  ? t('collections.items.date.pickDate')
+                                  : t('collections.items.date.pickDateTime')}
                         </span>
                         <CalendarIcon className="size-4 shrink-0 opacity-50" />
                     </Button>
@@ -456,7 +458,7 @@ export function DateFieldInput({
                                     setOpen(false);
                                 }}
                             >
-                                Clear
+                                {t('common.clear')}
                             </Button>
                         </div>
                     ) : null}

@@ -390,7 +390,9 @@ export function BlocksFieldInput({
     if (nestingBlocked) {
         return (
             <p className="text-sm text-muted-foreground">
-                Blocks nesting exceeds the maximum depth ({maxBlocksDepth}).
+                {t('collections.items.blocks.nestingExceeded', {
+                    max: maxBlocksDepth,
+                })}
             </p>
         );
     }
@@ -403,7 +405,9 @@ export function BlocksFieldInput({
             )}
         >
             {blocks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No blocks yet.</p>
+                <p className="text-sm text-muted-foreground">
+                    {t('collections.items.blocks.empty')}
+                </p>
             ) : null}
 
             <div ref={listRef} className="space-y-3">
@@ -435,8 +439,12 @@ export function BlocksFieldInput({
                                     aria-expanded={!collapsed}
                                     aria-label={
                                         collapsed
-                                            ? 'Expand block'
-                                            : 'Collapse block'
+                                            ? t(
+                                                  'collections.items.blocks.expand',
+                                              )
+                                            : t(
+                                                  'collections.items.blocks.collapse',
+                                              )
                                     }
                                     onClick={() => toggleCollapsed(block.id)}
                                 >
@@ -525,7 +533,9 @@ export function BlocksFieldInput({
                                             }
                                         >
                                             <Copy className="mr-1 size-4" />{' '}
-                                            Duplicate
+                                            {t(
+                                                'collections.items.blocks.duplicate',
+                                            )}
                                         </Button>
                                         <Button
                                             type="button"
@@ -535,7 +545,7 @@ export function BlocksFieldInput({
                                             }
                                         >
                                             <Trash2 className="mr-1 size-4" />{' '}
-                                            Delete
+                                            {t('common.delete')}
                                         </Button>
                                     </div>
                                 ) : null}
@@ -786,7 +796,9 @@ export function BlocksFieldInput({
                             variant="outline"
                             onClick={() => addBlock(blockType.key)}
                         >
-                            Add {blockType.label}
+                            {t('collections.items.blocks.add', {
+                                label: blockType.label,
+                            })}
                         </Button>
                     ))}
                 </div>

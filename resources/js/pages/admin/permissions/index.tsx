@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { DataTable } from '@/components/admin/data-table';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageLayout } from '@/components/layout/page-layout';
@@ -86,12 +86,12 @@ export default function AdminPermissionsIndex({
                 <PageLayout
                     className="p-0"
                     description={
-                        <>
-                            Permissions are defined in{' '}
-                            <code className="text-xs">PermissionEnum</code> and
-                            synced to the database. Assign them to roles on the
-                            role edit page.
-                        </>
+                        <Trans
+                            i18nKey="permissions.description"
+                            components={{
+                                code: <code className="text-xs" />,
+                            }}
+                        />
                     }
                 >
                     <DataTable

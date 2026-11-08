@@ -364,6 +364,7 @@ export function ApiAutocompleteInput({
     defaultValue: string;
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
     const apiSettings = parseApiAutocompleteFieldSettings(settings);
     // ponytail: primitives only — parseApiAutocompleteFieldSettings() returns a
     // new object each render; putting it in effect deps re-fired the debounce forever.
@@ -522,12 +523,13 @@ export function ApiAutocompleteInput({
                 )}
             />
             {loading ? (
-                <p className="text-xs text-muted-foreground">Loading…</p>
+                <p className="text-xs text-muted-foreground">
+                    {t('common.loading')}
+                </p>
             ) : null}
             {!url.trim() ? (
                 <p className="text-xs text-muted-foreground">
-                    Configure an API URL in field settings to enable
-                    suggestions.
+                    {t('collections.items.choice.apiUrlMissing')}
                 </p>
             ) : null}
         </div>
@@ -547,6 +549,7 @@ export function HashFieldInput({
     settings?: Record<string, unknown> | null;
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
     const hashSettings = parseHashFieldSettings(settings);
     const displayValue =
         hashSettings.masked && defaultValue
@@ -558,14 +561,17 @@ export function HashFieldInput({
             <Input
                 id={id}
                 type="text"
-                value={displayValue || 'Generated on save'}
+                value={
+                    displayValue ||
+                    t('collections.items.choice.generatedOnSave')
+                }
                 readOnly
                 disabled={readonly}
                 className="font-mono"
             />
             <input type="hidden" name={name} value={defaultValue} />
             <p className="text-xs text-muted-foreground">
-                Fingerprint ID (auto). Not a password hash.
+                {t('collections.items.choice.hashHint')}
             </p>
         </div>
     );
@@ -627,6 +633,7 @@ export function CheckboxGroupInput({
     readonly: boolean;
     allowOther?: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialOther = defaultValues.find(
         (value) => !optionValues.includes(value),
@@ -686,15 +693,17 @@ export function CheckboxGroupInput({
                             onCheckedChange={(next) =>
                                 setOtherEnabled(next === true)
                             }
-                            aria-label="Other"
+                            aria-label={t('collections.items.choice.other')}
                         />
-                        <span>Other</span>
+                        <span>{t('collections.items.choice.other')}</span>
                     </label>
                     {otherEnabled ? (
                         <Input
                             value={otherValue}
                             readOnly={readonly}
-                            placeholder="Custom value"
+                            placeholder={t(
+                                'collections.items.choice.customValue',
+                            )}
                             onChange={(event) =>
                                 setOtherValue(event.target.value)
                             }
@@ -731,6 +740,7 @@ export function SelectWithOtherInput({
     allowNone: boolean;
     allowOther: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialIsOther =
         allowOther &&
@@ -788,7 +798,13 @@ export function SelectWithOtherInput({
                 }}
             >
                 <SelectTrigger id={id} className="w-full">
-                    <SelectValue placeholder={allowNone ? '—' : 'Select…'} />
+                    <SelectValue
+                        placeholder={
+                            allowNone
+                                ? '—'
+                                : t('collections.items.choice.select')
+                        }
+                    />
                 </SelectTrigger>
                 <SelectContent>
                     {allowNone ? (
@@ -801,7 +817,7 @@ export function SelectWithOtherInput({
                     ))}
                     {allowOther ? (
                         <SelectItem value={SELECT_OTHER_VALUE}>
-                            Other…
+                            {t('collections.items.choice.otherEllipsis')}
                         </SelectItem>
                     ) : null}
                 </SelectContent>
@@ -810,7 +826,7 @@ export function SelectWithOtherInput({
                 <Input
                     value={otherValue}
                     readOnly={readonly}
-                    placeholder="Custom value"
+                    placeholder={t('collections.items.choice.customValue')}
                     onChange={(event) => {
                         const next = event.target.value;
                         setOtherValue(next);
@@ -841,6 +857,7 @@ export function RadioWithOtherInput({
     readonly: boolean;
     allowOther: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialIsOther =
         allowOther &&
@@ -899,14 +916,16 @@ export function RadioWithOtherInput({
                                 htmlFor={`${radioIdPrefix}-__other__`}
                                 className="font-normal"
                             >
-                                Other
+                                {t('collections.items.choice.other')}
                             </Label>
                         </div>
                         {selected === '__other__' ? (
                             <Input
                                 value={otherValue}
                                 readOnly={readonly}
-                                placeholder="Custom value"
+                                placeholder={t(
+                                    'collections.items.choice.customValue',
+                                )}
                                 onChange={(event) =>
                                     setOtherValue(event.target.value)
                                 }
@@ -976,7 +995,9 @@ export function MultiselectWithOtherInput({
                         <span className="flex flex-1 flex-wrap gap-1 text-left">
                             {selected.length === 0 ? (
                                 <span className="text-muted-foreground">
-                                    Select options…
+                                    {t(
+                                        'collections.items.choice.selectOptions',
+                                    )}
                                 </span>
                             ) : (
                                 selected.map((value) => (
@@ -1053,7 +1074,9 @@ export function MultiselectWithOtherInput({
                 <Input
                     value={otherValue}
                     readOnly={readonly}
-                    placeholder="Additional custom value"
+                    placeholder={t(
+                        'collections.items.choice.additionalCustomValue',
+                    )}
                     onChange={(event) => setOtherValue(event.target.value)}
                 />
             ) : null}

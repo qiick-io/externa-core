@@ -45,7 +45,9 @@ export function ValidationRuleBuilder({
                                 <FieldLabel
                                     htmlFor={`validation_operator_${index}`}
                                 >
-                                    Operator
+                                    {t(
+                                        'collections.fieldSettings.rules.operator',
+                                    )}
                                 </FieldLabel>
                                 <NativeSelect
                                     id={`validation_operator_${index}`}
@@ -76,7 +78,9 @@ export function ValidationRuleBuilder({
                                     <FieldLabel
                                         htmlFor={`validation_value_${index}`}
                                     >
-                                        Value
+                                        {t(
+                                            'collections.fieldSettings.rules.value',
+                                        )}
                                     </FieldLabel>
                                     <Input
                                         id={`validation_value_${index}`}
@@ -131,13 +135,15 @@ export function ValidationRuleBuilder({
                     ])
                 }
             >
-                Add rule
+                {t('collections.fieldSettings.rules.addRule')}
             </Button>
 
             <TranslatedInput
                 idPrefix="validation_message"
-                label="Validation message"
-                description="Optional custom error shown when a rule fails."
+                label={t('collections.fieldSettings.validation.message')}
+                description={t(
+                    'collections.fieldSettings.validation.messageHint',
+                )}
                 value={validationMessage}
                 onChange={onValidationMessageChange}
             />

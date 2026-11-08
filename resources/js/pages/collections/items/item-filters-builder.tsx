@@ -1,6 +1,6 @@
 import { Filter, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,7 +110,7 @@ export function ItemFiltersBuilder({
                 align="start"
             >
                 <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Filters</p>
+                    <p className="text-sm font-medium">{t('a11y.filters')}</p>
                     {activeCount > 0 ? (
                         <Button
                             type="button"
@@ -122,7 +122,7 @@ export function ItemFiltersBuilder({
                             }}
                         >
                             <X className="mr-1 size-3" />
-                            Clear all
+                            {t('collections.items.filters.clearAll')}
                         </Button>
                     ) : null}
                 </div>
@@ -201,16 +201,19 @@ export function ItemFiltersBuilder({
                 ) : null}
 
                 <div className="space-y-2">
-                    <p className="text-sm font-medium">Field filters</p>
+                    <p className="text-sm font-medium">
+                        {t('collections.items.filters.fieldFilters')}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                        Rules are AND-combined and written to the URL (
-                        <code className="text-xs">filter[field][_eq]=…</code>
-                        ).
+                        <Trans
+                            i18nKey="collections.items.filters.rulesHint"
+                            components={{ code: <code className="text-xs" /> }}
+                        />
                     </p>
 
                     {filterableFields.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
-                            No filterable fields on this collection.
+                            {t('collections.items.filters.noFilterableFields')}
                         </p>
                     ) : (
                         <div className="space-y-2">
@@ -262,7 +265,9 @@ export function ItemFiltersBuilder({
                                             placeholder={
                                                 rule.operator === '_in'
                                                     ? 'a, b, c'
-                                                    : 'Value'
+                                                    : t(
+                                                          'collections.items.filters.value',
+                                                      )
                                             }
                                             aria-label={t('a11y.filterValue')}
                                             onChange={(e) =>
@@ -297,7 +302,7 @@ export function ItemFiltersBuilder({
                                     onClick={addRule}
                                 >
                                     <Plus className="mr-1 size-3.5" />
-                                    Add rule
+                                    {t('collections.items.filters.addRule')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -306,7 +311,7 @@ export function ItemFiltersBuilder({
                                         setOpen(false);
                                     }}
                                 >
-                                    Apply
+                                    {t('collections.items.filters.apply')}
                                 </Button>
                             </div>
                         </div>

@@ -295,7 +295,9 @@ export function M2aFieldInput({
                                                 removeBlock(block.id)
                                             }
                                         >
-                                            Remove
+                                            {t(
+                                                'collections.items.blocks.remove',
+                                            )}
                                         </Button>
                                     </div>
                                 ) : null}
@@ -311,7 +313,9 @@ export function M2aFieldInput({
                                         related_item_id: next[0] ?? 0,
                                     })
                                 }
-                                placeholder="Select block item…"
+                                placeholder={t(
+                                    'collections.items.blocks.selectItem',
+                                )}
                             />
                         </div>
                     );
@@ -340,11 +344,13 @@ export function M2aFieldInput({
                     disabled={allowedCollections.length === 0}
                     onClick={addBlock}
                 >
-                    Add block
+                    {t('collections.items.blocks.addBlock')}
                 </Button>
             ) : null}
             {blocks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No blocks yet.</p>
+                <p className="text-sm text-muted-foreground">
+                    {t('collections.items.blocks.empty')}
+                </p>
             ) : null}
         </div>
     );
