@@ -1,19 +1,10 @@
-import {
-    FileText,
-    HardDrive,
-    ImageIcon,
-    Link2,
-    Lock,
-    MapPin,
-    MoveHorizontal,
-    MoveVertical,
-    Scaling,
-    X,
-} from 'lucide-react';
+import { FileText, HardDrive, Link2, Lock, MapPin, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FilePreview } from '@/components/admin/files/file-preview';
+import { FocalPointPicker } from '@/components/admin/files/focal-point-picker';
+import type { FocalPoint } from '@/components/admin/files/focal-point-picker';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -104,8 +95,10 @@ function SectionHeading({
     );
 }
 
-function optionalNumberString(value: number | null | undefined): string {
-    return value === null || value === undefined ? '' : String(value);
+function focalPointFromFile(file: AdminFileRow): FocalPoint | null {
+    return file.focal_point_x === null || file.focal_point_y === null
+        ? null
+        : { x: file.focal_point_x, y: file.focal_point_y };
 }
 
 function DetailMediaPreview({ file }: { file: AdminFileRow }) {
@@ -182,6 +175,8 @@ export function FileDetailPanel({
     presentation = 'aside',
 }: FileDetailPanelProps) {
     const { t } = useTranslation();
+    const publicUrl = filePublicUrl(file);
+    const hasFocalPoint = file.type === 'file' && isImageFile(file);
     const panelRef = useRef<HTMLElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const replaceInputRef = useRef<HTMLInputElement>(null);
@@ -189,19 +184,9 @@ export function FileDetailPanel({
     const [description, setDescription] = useState(file.description ?? '');
     const [location, setLocation] = useState(file.location ?? '');
     const [downloadName, setDownloadName] = useState(file.download_name ?? '');
-    const [focalX, setFocalX] = useState(
-        optionalNumberString(file.focal_point_x),
+    const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
+        focalPointFromFile(file),
     );
-    const [focalY, setFocalY] = useState(
-        optionalNumberString(file.focal_point_y),
-    );
-    const [translateX, setTranslateX] = useState(
-        optionalNumberString(file.translate_x),
-    );
-    const [translateY, setTranslateY] = useState(
-        optionalNumberString(file.translate_y),
-    );
-    const [scale, setScale] = useState(optionalNumberString(file.scale));
     const [access, setAccess] = useState<AccessChoice>(
         accessChoiceFromFile(file),
     );
@@ -240,11 +225,7 @@ export function FileDetailPanel({
         setDescription(file.description ?? '');
         setLocation(file.location ?? '');
         setDownloadName(file.download_name ?? '');
-        setFocalX(optionalNumberString(file.focal_point_x));
-        setFocalY(optionalNumberString(file.focal_point_y));
-        setTranslateX(optionalNumberString(file.translate_x));
-        setTranslateY(optionalNumberString(file.translate_y));
-        setScale(optionalNumberString(file.scale));
+        setFocalPoint(focalPointFromFile(file));
         setAccess(accessChoiceFromFile(file));
         setTags(file.tags.map((tag) => tag.name));
         setWhereUsedRefs(null);
@@ -287,16 +268,6 @@ export function FileDetailPanel({
         };
     }, [file.id, file.type, t]);
 
-    const parseOptionalNumber = (value: string): number | null => {
-        if (value.trim() === '') {
-            return null;
-        }
-
-        const parsed = Number(value);
-
-        return Number.isFinite(parsed) ? parsed : null;
-    };
-
     const handleSave = async (): Promise<void> => {
         setSaving(true);
 
@@ -304,60 +275,20 @@ export function FileDetailPanel({
             let updated = file;
 
             if (canUpdateMetadata) {
-                const numericFields = {
-                    focal_point_x: parseOptionalNumber(focalX),
-                    focal_point_y: parseOptionalNumber(focalY),
-                    translate_x: parseOptionalNumber(translateX),
-                    translate_y: parseOptionalNumber(translateY),
-                    scale: parseOptionalNumber(scale),
-                };
-
-                const invalidNumericField = (
-                    [
-                        [
-                            t('files.detail.focalX'),
-                            focalX,
-                            numericFields.focal_point_x,
-                        ],
-                        [
-                            t('files.detail.focalY'),
-                            focalY,
-                            numericFields.focal_point_y,
-                        ],
-                        [
-                            t('files.detail.translateX'),
-                            translateX,
-                            numericFields.translate_x,
-                        ],
-                        [
-                            t('files.detail.translateY'),
-                            translateY,
-                            numericFields.translate_y,
-                        ],
-                        [t('files.detail.scale'), scale, numericFields.scale],
-                    ] as const
-                ).find(
-                    ([, rawValue, parsedValue]) =>
-                        rawValue.trim() !== '' && parsedValue === null,
-                );
-
-                if (invalidNumericField) {
-                    toast.error(
-                        t('files.detail.mustBeNumber', {
-                            field: invalidNumericField[0],
-                        }),
-                    );
-
-                    return;
-                }
-
                 updated = await updateFileMetadata(file.id, {
                     title: title.trim() || null,
                     description: description.trim() || null,
                     location: location.trim() || null,
                     download_name: downloadName.trim() || null,
                     access: accessPayload(access),
-                    ...numericFields,
+                    // Only images carry a focal point. Translate / scale are
+                    // no longer sent: nothing reads them (columns go in 1.5.0).
+                    ...(hasFocalPoint
+                        ? {
+                              focal_point_x: focalPoint?.x ?? null,
+                              focal_point_y: focalPoint?.y ?? null,
+                          }
+                        : {}),
                 });
             }
 
@@ -406,7 +337,6 @@ export function FileDetailPanel({
     };
 
     const canSave = canUpdateMetadata || canTag;
-    const numberInputClassName = cn('tabular-nums');
 
     return (
         <aside
@@ -439,7 +369,19 @@ export function FileDetailPanel({
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
                 <div className="flex flex-col items-center gap-3">
-                    <DetailMediaPreview file={file} />
+                    {hasFocalPoint && publicUrl ? (
+                        <FocalPointPicker
+                            src={publicUrl}
+                            alt={file.title || file.name}
+                            imageWidth={file.width}
+                            imageHeight={file.height}
+                            value={focalPoint}
+                            disabled={!canUpdateMetadata}
+                            onChange={setFocalPoint}
+                        />
+                    ) : (
+                        <DetailMediaPreview file={file} />
+                    )}
                     {canReplace && file.type === 'file' && (
                         <>
                             <input
@@ -700,50 +642,6 @@ export function FileDetailPanel({
                 )}
 
                 <FieldSet className="gap-3">
-                    <SectionHeading icon={ImageIcon}>
-                        {t('files.detail.focalPoint')}
-                    </SectionHeading>
-                    <div className="grid grid-cols-2 gap-2">
-                        <Field className="gap-2">
-                            <FieldLabel htmlFor="focal-x">X</FieldLabel>
-                            <Input
-                                id="focal-x"
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                min={0}
-                                max={1}
-                                value={focalX}
-                                disabled={!canUpdateMetadata}
-                                className={numberInputClassName}
-                                onChange={(event) =>
-                                    setFocalX(event.target.value)
-                                }
-                            />
-                        </Field>
-                        <Field className="gap-2">
-                            <FieldLabel htmlFor="focal-y">Y</FieldLabel>
-                            <Input
-                                id="focal-y"
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                min={0}
-                                max={1}
-                                value={focalY}
-                                disabled={!canUpdateMetadata}
-                                className={numberInputClassName}
-                                onChange={(event) =>
-                                    setFocalY(event.target.value)
-                                }
-                            />
-                        </Field>
-                    </div>
-                </FieldSet>
-
-                <Separator />
-
-                <FieldSet className="gap-3">
                     <SectionHeading icon={FileText}>
                         {t('files.detail.fileNaming')}
                     </SectionHeading>
@@ -769,80 +667,6 @@ export function FileDetailPanel({
                                 disabled={!canUpdateMetadata}
                                 onChange={(event) =>
                                     setDownloadName(event.target.value)
-                                }
-                            />
-                        </Field>
-                    </div>
-                </FieldSet>
-
-                <Separator />
-
-                <FieldSet className="gap-3">
-                    <SectionHeading icon={Scaling}>
-                        {t('files.detail.transforms')}
-                    </SectionHeading>
-                    <div className="space-y-3">
-                        <Field className="gap-2">
-                            <FieldLabel
-                                htmlFor="translate-x"
-                                className="flex items-center gap-2"
-                            >
-                                <MoveHorizontal className="size-3.5" />
-                                {t('files.detail.translateX')}
-                            </FieldLabel>
-                            <Input
-                                id="translate-x"
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                value={translateX}
-                                disabled={!canUpdateMetadata}
-                                className={numberInputClassName}
-                                onChange={(event) =>
-                                    setTranslateX(event.target.value)
-                                }
-                            />
-                        </Field>
-                        <Field className="gap-2">
-                            <FieldLabel
-                                htmlFor="translate-y"
-                                className="flex items-center gap-2"
-                            >
-                                <MoveVertical className="size-3.5" />
-                                {t('files.detail.translateY')}
-                            </FieldLabel>
-                            <Input
-                                id="translate-y"
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                value={translateY}
-                                disabled={!canUpdateMetadata}
-                                className={numberInputClassName}
-                                onChange={(event) =>
-                                    setTranslateY(event.target.value)
-                                }
-                            />
-                        </Field>
-                        <Field className="gap-2">
-                            <FieldLabel
-                                htmlFor="file-scale"
-                                className="flex items-center gap-2"
-                            >
-                                <Scaling className="size-3.5" />
-                                {t('files.detail.scale')}
-                            </FieldLabel>
-                            <Input
-                                id="file-scale"
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                min={0}
-                                value={scale}
-                                disabled={!canUpdateMetadata}
-                                className={numberInputClassName}
-                                onChange={(event) =>
-                                    setScale(event.target.value)
                                 }
                             />
                         </Field>

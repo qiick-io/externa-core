@@ -83,9 +83,9 @@ it('supports drive-like selection, details panel, and folder open', function () 
         ->click('[data-testid="files-action-details"]')
         ->assertSee('Replace file')
         ->assertSee('Download name')
-        ->assertSee('Focal point')
-        ->assertSee('Translate X')
-        ->assertSee('Scale');
+        ->assertMissing('[data-test="focal-point-picker"]')
+        ->assertDontSee('Translate X')
+        ->assertDontSee('Transforms');
 
     $page->click("[data-testid=\"file-card-title-{$folder->id}\"]")
         ->assertPathIs('/files/'.$folder->id)
@@ -676,5 +676,109 @@ it('draws the selected card ring inside the card so the grid edge cannot cut it'
   return getComputedStyle(card).boxShadow === 'none' && ring.includes('inset') && !ring.startsWith('none');
 })()
 JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('sets the image focal point by clicking the preview and saves it', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanUpdateFileMetadata->value,
+    ]);
+
+    $photo = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'photo.png',
+        'path' => '/photo.png',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/photo.png',
+        'mime_type' => 'image/png',
+        'extension' => 'png',
+        'width' => 1600,
+        'height' => 900,
+    ]);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Albums',
+        'path' => '/Albums',
+        'disk' => 'assets',
+    ]);
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$photo->id}\"]")
+        ->click('[data-testid="files-action-details"]')
+        ->assertPresent('[data-test="focal-point-picker"]')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'not set')
+        ->assertDontSee('Translate X')
+        ->assertDontSee('Scale');
+
+    // Click a quarter in from the left and three quarters down the image.
+    $page->script(<<<'JS'
+(() => {
+  const picker = document.querySelector('[data-test="focal-point-picker"]');
+  const rect = picker.getBoundingClientRect();
+  picker.dispatchEvent(new MouseEvent('click', {
+    bubbles: true,
+    detail: 1,
+    clientX: rect.left + rect.width * 0.25,
+    clientY: rect.top + rect.height * 0.75,
+  }));
+})()
+JS);
+
+    $page->assertPresent('[data-test="focal-point-marker"]')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 25% · Y 75%')
+        ->click('Save')
+        ->wait(1)
+        ->assertNoJavaScriptErrors();
+
+    $photo->refresh();
+
+    expect((float) $photo->focal_point_x)->toEqualWithDelta(0.25, 0.01)
+        ->and((float) $photo->focal_point_y)->toEqualWithDelta(0.75, 0.01);
+
+    $page->click("[data-testid=\"file-card-{$folder->id}\"]")
+        ->click('[data-testid="files-action-details"]')
+        ->assertMissing('[data-test="focal-point-picker"]')
+        ->assertDontSee('Focal point')
+        ->assertDontSee('Translate X')
+        ->assertNoJavaScriptErrors();
+});
+
+it('nudges the focal point with the keyboard and resets it to the centre', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanUpdateFileMetadata->value,
+    ]);
+
+    $photo = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'portrait.jpg',
+        'path' => '/portrait.jpg',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/portrait.jpg',
+        'mime_type' => 'image/jpeg',
+        'extension' => 'jpg',
+        'width' => 600,
+        'height' => 900,
+        'focal_point_x' => 0.2,
+        'focal_point_y' => 0.2,
+    ]);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->click("[data-testid=\"file-card-{$photo->id}\"]")
+        ->click('[data-testid="files-action-details"]')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 20% · Y 20%')
+        ->keys('[data-test="focal-point-picker"]', ['Shift+ArrowRight', 'ArrowDown'])
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 30% · Y 21%')
+        ->click('Reset to centre')
+        ->assertSeeIn('[data-test="focal-point-readout"]', 'X 50% · Y 50%')
         ->assertNoJavaScriptErrors();
 });
