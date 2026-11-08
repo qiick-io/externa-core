@@ -35,6 +35,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { isImageFile, isPlayableVideo } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type {
     AdminFileRow,
@@ -130,46 +131,6 @@ export function FileCard({
                 {displayName}
             </button>
         );
-
-    // Always rendered (empty when untagged) so every card has the same
-    // footer height and the grid rows line up.
-    const tagsRow = (
-        <div
-            className="flex h-5 w-full min-w-0 items-center gap-1 overflow-hidden"
-            data-test={`file-tags-${file.id}`}
-            onPointerDown={(event) => event.stopPropagation()}
-        >
-            {file.tags.length > 0 && (
-                <Badge
-                    variant="secondary"
-                    className="block min-w-0 truncate text-xs"
-                >
-                    {file.tags[0].name}
-                </Badge>
-            )}
-            {file.tags.length > 1 && (
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Badge
-                            variant="secondary"
-                            className="shrink-0 text-xs tabular-nums"
-                            aria-label={t('files.tags.moreTags', {
-                                count: file.tags.length - 1,
-                            })}
-                        >
-                            +{file.tags.length - 1}
-                        </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        {file.tags
-                            .slice(1)
-                            .map((tag) => tag.name)
-                            .join(', ')}
-                    </TooltipContent>
-                </Tooltip>
-            )}
-        </div>
-    );
 
     const surfaceClassName = cn(
         'group overflow-hidden rounded-xl border border-sidebar-border/70 bg-card transition-colors hover:bg-muted/40',
@@ -310,7 +271,13 @@ export function FileCard({
         file.extension || file.name.split('.').pop() || '',
     );
 
-    const card = isFolder ? (
+    // Image and video covers already show what the file is; other files and
+    // folders keep the type glyph next to the name only when it adds
+    // something (folders show it in the preview area).
+    const showTypeIcon =
+        !isFolder && !isImageFile(file) && !isPlayableVideo(file);
+
+    const card = (
         <div
             {...surfaceProps}
             className={cn(
@@ -318,51 +285,42 @@ export function FileCard({
                 surfaceClassName,
             )}
         >
-            {/* Folder: the icon in a square, name and tags below. */}
+            {/* Square preview, edge to edge; files and folders share it so
+                every card has the same height. */}
             <AspectRatio
                 ratio={1}
-                className="flex items-center justify-center overflow-hidden bg-muted/20"
+                data-test={`file-card-preview-${file.id}`}
+                className={cn(
+                    'overflow-hidden',
+                    isFolder
+                        ? 'flex items-center justify-center bg-muted/20'
+                        : 'bg-muted/30',
+                )}
             >
-                <div className="flex size-12 items-center justify-center">
-                    <FilePreview file={file} hovered={hovered} />
-                </div>
+                {isFolder ? (
+                    <div className="flex size-12 items-center justify-center">
+                        <FilePreview file={file} hovered={hovered} />
+                    </div>
+                ) : (
+                    <FilePreview
+                        file={file}
+                        hovered={hovered}
+                        variant="cover"
+                    />
+                )}
                 {selectionCheckbox}
                 {statusMarks}
             </AspectRatio>
 
-            <div className="flex min-w-0 flex-col gap-1 border-t border-sidebar-border/70 px-2.5 py-2">
-                <Tooltip>
-                    <TooltipTrigger asChild>{titleControl}</TooltipTrigger>
-                    <TooltipContent>{displayName}</TooltipContent>
-                </Tooltip>
-                {tagsRow}
-            </div>
-        </div>
-    ) : (
-        <AspectRatio
-            ratio={1}
-            {...surfaceProps}
-            className={cn('flex min-w-0 flex-col', surfaceClassName)}
-        >
-            {/* File: the whole card is square. The preview fills the top
-                edge to edge; the type icon, name and menus sit below it. */}
-            <div
-                data-test={`file-card-preview-${file.id}`}
-                className="relative min-h-0 flex-1 overflow-hidden bg-muted/30"
-            >
-                <FilePreview file={file} hovered={hovered} variant="cover" />
-                {selectionCheckbox}
-                {statusMarks}
-            </div>
-
             <div
                 data-test={`file-card-header-${file.id}`}
-                className="flex h-10 shrink-0 items-center gap-1.5 border-t border-sidebar-border/70 pr-1 pl-2.5"
+                className="flex h-10 shrink-0 items-center gap-1 border-t border-sidebar-border/70 pr-1 pl-2.5"
             >
-                {createElement(typeIcon, {
-                    className: 'size-4 shrink-0 text-muted-foreground',
-                    'aria-hidden': true,
-                })}
+                {showTypeIcon &&
+                    createElement(typeIcon, {
+                        className: 'size-4 shrink-0 text-muted-foreground',
+                        'aria-hidden': true,
+                    })}
                 <Tooltip>
                     <TooltipTrigger asChild>{titleControl}</TooltipTrigger>
                     <TooltipContent>{displayName}</TooltipContent>
@@ -374,7 +332,7 @@ export function FileCard({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon-xs"
                                 className="shrink-0 text-muted-foreground"
                                 data-test={`file-tags-${file.id}`}
                                 aria-label={t('files.card.tagsMenu', {
@@ -422,7 +380,7 @@ export function FileCard({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon-xs"
                                 className="shrink-0 text-muted-foreground"
                                 data-test={`file-card-more-${file.id}`}
                                 aria-label={t('files.card.moreActions', {
@@ -444,7 +402,7 @@ export function FileCard({
                     </DropdownMenu>
                 )}
             </div>
-        </AspectRatio>
+        </div>
     );
 
     if (actions.length === 0) {

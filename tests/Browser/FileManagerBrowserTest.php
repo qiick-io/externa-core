@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps file cards square and the same size, folders unchanged, and truncates long titles', function () {
+it('gives files and folders one card size with a square preview, at 1440 and 1920 wide', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -236,8 +236,7 @@ it('keeps file cards square and the same size, folders unchanged, and truncates 
         'extension' => 'pdf',
     ]);
 
-    // ponytail: plain text (not image) so layout check never hits thumbnail 404.
-    File::query()->create([
+    $tagged = File::query()->create([
         'type' => FileTypeEnum::File,
         'name' => 'notes.txt',
         'path' => '/notes.txt',
@@ -246,50 +245,46 @@ it('keeps file cards square and the same size, folders unchanged, and truncates 
         'mime_type' => 'text/plain',
         'extension' => 'txt',
     ]);
+    $tagged->attachTags(['summer']);
 
     $this->actingAs($user);
 
-    $page = visit('/files');
+    foreach ([1440, 1920] as $width) {
+        $page = visit('/files');
+        $page->resize($width, 1000);
 
-    $page->assertSee('Layout Folder')
-        ->assertSee('notes.txt')
-        ->assertScript(<<<JS
-            () => {
-                const cards = [...document.querySelectorAll('[data-file-id]')];
-                const folderCard = document.querySelector('[data-testid="file-card-{$folder->id}"]');
-                const fileCards = cards.filter((card) => card !== folderCard);
-                if (fileCards.length < 2 || !folderCard) {
-                    return false;
+        $page->assertSee('Layout Folder')
+            ->assertScript(<<<JS
+                () => {
+                    const cards = [...document.querySelectorAll('[data-file-id]')];
+                    if (cards.length < 3) {
+                        return false;
+                    }
+
+                    const rects = cards.map((card) => card.getBoundingClientRect());
+                    const sameSize = rects.every((rect) =>
+                        Math.abs(rect.width - rects[0].width) <= 1 && Math.abs(rect.height - rects[0].height) <= 1,
+                    );
+                    // Cards never get narrower than the 13rem grid minimum.
+                    const wideEnough = rects[0].width >= 207;
+
+                    const squarePreviews = cards.every((card) => {
+                        const preview = card.querySelector('[data-test^="file-card-preview-"]').getBoundingClientRect();
+                        const header = card.querySelector('[data-test^="file-card-header-"]').getBoundingClientRect();
+
+                        return Math.abs(preview.width - preview.height) <= 1 && header.top >= preview.bottom - 0.5;
+                    });
+
+                    // The long name gets most of the row: wider than half the card.
+                    const pdfTitle = document.querySelector('[data-testid="file-card-title-{$longPdf->id}"]');
+                    const nameRoom = pdfTitle.getBoundingClientRect().width > rects[0].width / 2
+                        && pdfTitle.scrollWidth > pdfTitle.clientWidth;
+
+                    return sameSize && wideEnough && squarePreviews && nameRoom;
                 }
-
-                // A file card is itself a 1:1 AspectRatio.
-                const sizes = fileCards.map((card) => card.getBoundingClientRect());
-                const filesSquare = fileCards.every((card, index) =>
-                    card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper')
-                    && sizes[index].width > 0
-                    && Math.abs(sizes[index].width - sizes[index].height) <= 1,
-                );
-                const uniform = sizes.every((size) => Math.abs(size.width - sizes[0].width) <= 1);
-
-                // A folder keeps its square icon area with the name and tags below.
-                const folderPreview = folderCard.querySelector('[data-radix-aspect-ratio-wrapper]');
-                const folderRect = folderCard.getBoundingClientRect();
-                const folderUnchanged = Boolean(folderPreview)
-                    && Math.abs(folderPreview.getBoundingClientRect().width - folderPreview.getBoundingClientRect().height) <= 2
-                    && folderRect.height > folderRect.width;
-
-                const pdfTitle = document.querySelector('[data-testid="file-card-title-{$longPdf->id}"]');
-                const truncated = Boolean(
-                    pdfTitle
-                    && pdfTitle.classList.contains('truncate')
-                    && pdfTitle.classList.contains('min-w-0')
-                    && pdfTitle.scrollWidth > pdfTitle.clientWidth,
-                );
-
-                return filesSquare && uniform && folderUnchanged && truncated;
-            }
-        JS)
-        ->assertNoJavaScriptErrors();
+            JS)
+            ->assertNoJavaScriptErrors();
+    }
 });
 
 it('clears selection when using the toolbar clear control', function () {
