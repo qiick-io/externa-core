@@ -2129,16 +2129,15 @@ export function ItemChatDrawer({
                                                                                 : 'start'
                                                                         }
                                                                         className={cn(
-                                                                            comment.attachments.some(
-                                                                                isChatMediaAttachment,
-                                                                            ) &&
-                                                                                'min-w-[16rem]',
-                                                                            // BubbleReactions overhang the bubble's bottom edge.
+                                                                            // BubbleReactions overhang the bubble's bottom edge
+                                                                            // by 3/4 of the 24px pill plus its 3px ring (21px).
+                                                                            // Scroller items use content-visibility:auto, which
+                                                                            // clips paint to the item box, so reserve 24px.
                                                                             comment
                                                                                 .reactions
                                                                                 .length >
                                                                                 0 &&
-                                                                                'mb-4',
+                                                                                'mb-6',
                                                                         )}
                                                                     >
                                                                         <BubbleContent
@@ -2146,13 +2145,13 @@ export function ItemChatDrawer({
                                                                                 'flex w-full flex-col gap-1',
                                                                                 mine &&
                                                                                     'text-foreground',
-                                                                                // Media album needs definite min width:
-                                                                                // Bubble is w-fit; min-w-0 + author
-                                                                                // label collapses the grid for !mine.
+                                                                                // With media the bubble takes the album's
+                                                                                // width (w-80): media edge to edge, the
+                                                                                // caption wraps inside that width.
                                                                                 comment.attachments.some(
                                                                                     isChatMediaAttachment,
                                                                                 )
-                                                                                    ? 'min-w-[16rem] gap-0 p-0'
+                                                                                    ? 'w-80 max-w-full gap-0 p-0'
                                                                                     : 'min-w-0',
                                                                             )}
                                                                         >

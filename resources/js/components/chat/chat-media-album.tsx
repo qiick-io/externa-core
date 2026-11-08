@@ -25,21 +25,14 @@ function ChatMediaAlbumLayout({
         return null;
     }
 
-    // Explicit width (not only min/max) so Bubble w-fit gets a real
-    // intrinsic size — % width + min-w-0 parent collapses album for !mine.
+    // One explicit width for every layout (single image included) so the
+    // bubble takes the media's width and the caption wraps inside it, as in
+    // WhatsApp / Telegram / iMessage. A % width + min-w-0 parent would
+    // collapse the album for !mine.
     const shell = 'w-80 max-w-full shrink-0 overflow-hidden bg-black/20';
 
     if (count === 1) {
-        return (
-            <div
-                className={cn(
-                    'w-full max-w-sm min-w-[14rem] shrink-0 overflow-hidden bg-black/20',
-                    className,
-                )}
-            >
-                {renderCell(0, 'flex justify-center')}
-            </div>
-        );
+        return <div className={cn(shell, className)}>{renderCell(0, '')}</div>;
     }
 
     if (count === 2) {
@@ -112,7 +105,8 @@ function ChatMediaAlbumThumb({
         <div
             className={cn(
                 'relative h-full w-full bg-muted/70',
-                single ? 'min-h-[10rem]' : 'min-h-[6rem]',
+                // A single photo keeps its own height once loaded.
+                single ? !loaded && 'min-h-[10rem]' : 'min-h-[6rem]',
             )}
         >
             {!loaded ? (
@@ -125,7 +119,7 @@ function ChatMediaAlbumThumb({
                     <video
                         src={href}
                         className={cn(
-                            'h-full max-h-[22rem] w-full object-cover transition-opacity',
+                            'block h-full max-h-[22rem] w-full object-cover transition-opacity',
                             loaded ? 'opacity-100' : 'opacity-0',
                         )}
                         muted
@@ -146,10 +140,10 @@ function ChatMediaAlbumThumb({
                     src={href}
                     alt={name}
                     className={cn(
-                        'h-full w-full transition-opacity',
-                        single
-                            ? 'max-h-[22rem] object-contain'
-                            : 'object-cover',
+                        'w-full object-cover transition-opacity',
+                        // A single photo fills the album width at its own
+                        // aspect ratio; very tall ones are cropped.
+                        single ? 'block h-auto max-h-[22rem]' : 'h-full',
                         loaded ? 'opacity-100' : 'opacity-0',
                     )}
                     onLoad={() => setLoaded(true)}
