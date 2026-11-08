@@ -30,18 +30,23 @@ export function useScrollRegion<TElement extends HTMLElement>(): (
                 element.removeAttribute('tabindex');
             }
         };
-        const resizeObserver = new ResizeObserver(update);
+        // Absent in jsdom (unit tests) and very old browsers: fall back to
+        // measuring on content changes only.
+        const resizeObserver =
+            typeof ResizeObserver === 'undefined'
+                ? undefined
+                : new ResizeObserver(update);
         const observeChildren = (): void => {
-            resizeObserver.disconnect();
-            resizeObserver.observe(element);
+            resizeObserver?.disconnect();
+            resizeObserver?.observe(element);
 
             // The content box (a table in an overflow-visible wrapper) can
             // grow without its wrapper resizing: watch two levels down.
             for (const child of Array.from(element.children)) {
-                resizeObserver.observe(child);
+                resizeObserver?.observe(child);
 
                 for (const grandchild of Array.from(child.children)) {
-                    resizeObserver.observe(grandchild);
+                    resizeObserver?.observe(grandchild);
                 }
             }
 
@@ -59,7 +64,7 @@ export function useScrollRegion<TElement extends HTMLElement>(): (
         });
 
         return () => {
-            resizeObserver.disconnect();
+            resizeObserver?.disconnect();
             mutationObserver.disconnect();
         };
     }, [element]);
