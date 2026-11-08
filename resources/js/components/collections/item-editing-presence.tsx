@@ -62,7 +62,7 @@ export function ItemEditingPresence({
             {lockedByOther && lockHolderName ? (
                 <div className="flex items-center gap-2">
                     <span
-                        className="text-amber-700 dark:text-amber-400"
+                        className="text-warning-text"
                         data-test="item-presence-soft-lock"
                     >
                         {t('collections.itemPresence.lockedBy', {

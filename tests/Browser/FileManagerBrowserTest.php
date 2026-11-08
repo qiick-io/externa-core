@@ -947,3 +947,47 @@ it('has no critical or serious axe issues on the file cards in light and dark, d
         }
     }
 });
+
+it('paints the folder icon and the favourite star with the theme tokens in light and dark', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Token Folder',
+        'path' => '/Token Folder',
+        'disk' => 'assets',
+    ]);
+    $favourite = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'token-favourite.txt',
+        'path' => '/token-favourite.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/token-favourite.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+    $favourite->favoritedBy()->attach($user->id);
+
+    $this->actingAs($user);
+
+    // amber-600 / amber-500 in light, amber-400 in dark (resources/css/app.css).
+    $expected = [
+        'light' => ['rgb(180, 83, 9)', 'rgb(217, 119, 6)'],
+        'dark' => ['rgb(240, 154, 26)', 'rgb(240, 154, 26)'],
+    ];
+
+    foreach ($expected as $mode => [$folderColour, $starColour]) {
+        $page = $mode === 'dark' ? visit('/files')->inDarkMode() : visit('/files')->inLightMode();
+
+        $page->assertScript(<<<JS
+(() => {
+  const folderIcon = document.querySelector('[data-testid="file-card-{$folder->id}"] svg.lucide-folder-open');
+  const star = document.querySelector('[data-testid="file-card-{$favourite->id}"] svg.lucide-star');
+  return getComputedStyle(folderIcon).color === '{$folderColour}' && getComputedStyle(star).color === '{$starColour}';
+})()
+JS)
+            ->assertNoJavaScriptErrors();
+    }
+});
