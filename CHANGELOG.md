@@ -116,6 +116,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Success messages appear as a short message at the top centre; errors, warnings and info as top-right notifications; form validation errors show under their fields (#519).
 - Avatars: per-user colours on the shadcn avatar, presence as a badge at the bottom right everywhere (green online, grey offline, red only when the realtime connection is lost), groups show three members and +N (#545, #560).
 - Dashboard views are routed tabs with stat cards and chart containers (#517, #542).
+- File cards show the name and tags below the preview instead of over the image, and the details panel sets an image's focal point by clicking its preview (arrow keys nudge it); the unused Translate X / Translate Y / Scale fields are gone from the panel (#583, #584).
+- Every admin table uses one 41px row height with small avatars and row actions, and sortable column headers match the plain ones (#585, #586).
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
@@ -145,6 +147,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Form field controls fill their field width (#555); item form tabs keep every field mounted, so switching tabs no longer loses input (#540).
 - The 404 page gets the app props and renders inside the app shell; the error boundary uses the shared empty state (#544).
 - The selected file's outline is no longer cut by the files grid (#574).
+- Chat photos fill their bubble and the caption wraps inside it; reactions under the last message are no longer cut off (#582).
+- The user and group pickers have an accessible name (#586).
 
 ## [1.3.0] - 2026-10-24
 
