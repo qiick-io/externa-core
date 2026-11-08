@@ -242,7 +242,7 @@ export function FileCard({
     const statusMarks = (
         <>
             {file.is_favorited && (
-                <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
+                <Star className="absolute top-2 right-2 z-20 size-3.5 fill-favorite text-favorite drop-shadow-sm" />
             )}
 
             {file.effective_access === 'private' && (

@@ -648,14 +648,14 @@ function renderFieldControl(context: FieldRenderContext) {
 }
 
 /**
- * Subtle amber asterisk for fields that differ in revision compare.
+ * Subtle warning-coloured asterisk for fields that differ in revision compare.
  */
 function DiffChangedMarker() {
     const { t } = useTranslation();
 
     return (
         <span
-            className="ml-1 inline-flex text-amber-500"
+            className="ml-1 inline-flex text-warning-text"
             title={t('a11y.changed')}
             aria-label={t('a11y.changed')}
         >

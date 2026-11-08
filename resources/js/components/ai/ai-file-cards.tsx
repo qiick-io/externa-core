@@ -89,7 +89,7 @@ export function AiFileCards({ files }: Props) {
                     <Attachment key={file.id} size="sm" orientation="vertical">
                         <AttachmentMedia variant={isImage ? 'image' : 'icon'}>
                             {isFolder ? (
-                                <FolderOpen className="text-amber-500" />
+                                <FolderOpen className="text-folder" />
                             ) : isImage ? (
                                 <img src={publicUrl!} alt="" />
                             ) : (
