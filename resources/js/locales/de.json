@@ -2148,7 +2148,10 @@
         "card": {
             "select": "{{name}} auswählen",
             "privateBadge": "Privat",
-            "privateTitle": "Privat — erfordert Read private auf API-Rollen"
+            "privateTitle": "Privat — erfordert Read private auf API-Rollen",
+            "moreActions": "Weitere Aktionen für {{name}}",
+            "tagsMenu_one": "{{count}} Tag an {{name}}",
+            "tagsMenu_other": "{{count}} Tags an {{name}}"
         },
         "picker": {
             "title": "Datei auswählen",

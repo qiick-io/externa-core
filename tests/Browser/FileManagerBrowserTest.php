@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps mixed file cards the same size with a square preview and truncates long titles', function () {
+it('keeps file cards square and the same size, folders unchanged, and truncates long titles', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -256,49 +256,37 @@ it('keeps mixed file cards the same size with a square preview and truncates lon
         ->assertScript(<<<JS
             () => {
                 const cards = [...document.querySelectorAll('[data-file-id]')];
-                if (cards.length < 3) {
+                const folderCard = document.querySelector('[data-testid="file-card-{$folder->id}"]');
+                const fileCards = cards.filter((card) => card !== folderCard);
+                if (fileCards.length < 2 || !folderCard) {
                     return false;
                 }
 
-                // Each card opens with a 1:1 AspectRatio preview, then the name / tags footer.
-                const aspectSquare = cards.every((card) => {
-                    const preview = card.querySelector('[data-radix-aspect-ratio-wrapper]');
-                    if (!preview) {
-                        return false;
-                    }
-                    const rect = preview.getBoundingClientRect();
-
-                    return Math.abs(rect.width - rect.height) <= 2;
-                });
-
-                const sizes = cards.map((card) => {
-                    const rect = card.getBoundingClientRect();
-
-                    return {
-                        width: Math.round(rect.width),
-                        height: Math.round(rect.height),
-                    };
-                });
-
-                const first = sizes[0];
-                const within = (a, b, tol = 2) => Math.abs(a - b) <= tol;
-                const uniform = sizes.every(
-                    (size) => within(size.width, first.width) && within(size.height, first.height),
+                // A file card is itself a 1:1 AspectRatio.
+                const sizes = fileCards.map((card) => card.getBoundingClientRect());
+                const filesSquare = fileCards.every((card, index) =>
+                    card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper')
+                    && sizes[index].width > 0
+                    && Math.abs(sizes[index].width - sizes[index].height) <= 1,
                 );
-                const square = first.width > 0 && first.height > first.width;
+                const uniform = sizes.every((size) => Math.abs(size.width - sizes[0].width) <= 1);
 
-                const pdfTitle = document.querySelector(
-                    '[data-testid="file-card-title-{$longPdf->id}"]',
-                );
+                // A folder keeps its square icon area with the name and tags below.
+                const folderPreview = folderCard.querySelector('[data-radix-aspect-ratio-wrapper]');
+                const folderRect = folderCard.getBoundingClientRect();
+                const folderUnchanged = Boolean(folderPreview)
+                    && Math.abs(folderPreview.getBoundingClientRect().width - folderPreview.getBoundingClientRect().height) <= 2
+                    && folderRect.height > folderRect.width;
+
+                const pdfTitle = document.querySelector('[data-testid="file-card-title-{$longPdf->id}"]');
                 const truncated = Boolean(
                     pdfTitle
                     && pdfTitle.classList.contains('truncate')
                     && pdfTitle.classList.contains('min-w-0')
-                    && pdfTitle.classList.contains('w-full'),
+                    && pdfTitle.scrollWidth > pdfTitle.clientWidth,
                 );
 
-                return aspectSquare && uniform && square && truncated
-                    && document.querySelector('[data-testid="file-card-{$folder->id}"]') !== null;
+                return filesSquare && uniform && folderUnchanged && truncated;
             }
         JS)
         ->assertNoJavaScriptErrors();
@@ -680,7 +668,7 @@ it('draws the selected card ring inside the card so the grid edge cannot cut it'
 
     visit('/files')
         ->click("[data-testid=\"file-card-{$edge->id}\"]")
-        ->assertAttribute("[data-testid=\"file-card-{$edge->id}\"]", 'aria-pressed', 'true')
+        ->assertAttribute("[data-testid=\"file-card-{$edge->id}\"]", 'data-selected', 'true')
         ->assertScript(<<<JS
 (() => {
   const card = document.querySelector('[data-testid="file-card-{$edge->id}"]');
@@ -691,7 +679,7 @@ JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('shows the name and tags below the image, not over it', function () {
+it('puts the preview edge to edge with the name and menus below it, never over it', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -712,17 +700,104 @@ it('shows the name and tags below the image, not over it', function () {
     $this->actingAs($user);
 
     visit('/files')
-        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", 'summer')
-        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", '+2')
+        ->assertPresent("[data-test=\"file-card-header-{$photo->id}\"]")
         ->assertScript(<<<JS
 (() => {
-  const card = document.querySelector('[data-testid="file-card-{$photo->id}"]');
-  const image = card.querySelector('[data-radix-aspect-ratio-wrapper]').getBoundingClientRect();
+  const card = document.querySelector('[data-testid="file-card-{$photo->id}"]').getBoundingClientRect();
+  const preview = document.querySelector('[data-test="file-card-preview-{$photo->id}"]').getBoundingClientRect();
+  const header = document.querySelector('[data-test="file-card-header-{$photo->id}"]').getBoundingClientRect();
   const title = document.querySelector('[data-testid="file-card-title-{$photo->id}"]').getBoundingClientRect();
   const tags = document.querySelector('[data-test="file-tags-{$photo->id}"]').getBoundingClientRect();
-  return title.top >= image.bottom - 0.5 && tags.top >= title.bottom - 0.5 && tags.bottom <= card.getBoundingClientRect().bottom + 0.5;
+  // Only the 1px card border between the preview and the card edges.
+  const edgeToEdge = preview.left - card.left <= 1.5 && card.right - preview.right <= 1.5
+    && preview.top - card.top <= 1.5 && preview.height > card.height / 2;
+  const below = [header, title, tags].every((rect) => rect.top >= preview.bottom - 0.5 && rect.bottom <= card.bottom + 0.5);
+  return edgeToEdge && below;
 })()
 JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('lists the file tags in the tag menu', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $tagged = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'tagged.txt',
+        'path' => '/tagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/tagged.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+    $tagged->attachTags(['summer', 'travel', 'family']);
+
+    $untagged = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'untagged.txt',
+        'path' => '/untagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/untagged.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->assertMissing("[data-test=\"file-tags-{$untagged->id}\"]")
+        ->click("[data-test=\"file-tags-{$tagged->id}\"]")
+        ->assertScript(<<<'JS'
+(() => {
+  const names = [...document.querySelectorAll('[data-test="file-tags-item"]')].map((item) => item.textContent.trim());
+  return names.length === 3 && ['summer', 'travel', 'family'].every((name) => names.includes(name));
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('opens the same actions from the ⋮ button as from a right-click', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanDeleteFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+        PermissionEnum::CanFavoriteFiles->value,
+        PermissionEnum::CanCopyFiles->value,
+        PermissionEnum::CanTagFiles->value,
+    ]);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'menu.txt',
+        'path' => '/menu.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/menu.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+
+    $this->actingAs($user);
+
+    $listActions = <<<'JS'
+[...document.querySelectorAll('[role="menu"] [data-testid^="files-context-action-"]')].map((item) => item.dataset.testid + ':' + item.textContent.trim()).join('|')
+JS;
+
+    $page = visit('/files')->rightClick("[data-testid=\"file-card-{$file->id}\"]")
+        ->assertPresent('[data-testid="files-context-action-rename"]');
+    $fromRightClick = $page->script($listActions);
+
+    $page = visit('/files')->click("[data-test=\"file-card-more-{$file->id}\"]")
+        ->assertPresent('[data-testid="files-context-action-rename"]');
+    $fromButton = $page->script($listActions);
+
+    expect($fromRightClick)->toContain('files-context-action-delete')
+        ->and($fromButton)->toBe($fromRightClick);
+
+    $page->click('[data-testid="files-context-action-rename"]')
+        ->assertSee('Rename')
         ->assertNoJavaScriptErrors();
 });
 
@@ -828,4 +903,47 @@ it('nudges the focal point with the keyboard and resets it to the centre', funct
         ->click('Reset to centre')
         ->assertSeeIn('[data-test="focal-point-readout"]', 'X 50% · Y 50%')
         ->assertNoJavaScriptErrors();
+});
+
+it('has no critical or serious axe issues on the file cards in light and dark, desktop and mobile', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+        PermissionEnum::CanDeleteFiles->value,
+        PermissionEnum::CanFavoriteFiles->value,
+        PermissionEnum::CanTagFiles->value,
+    ]);
+
+    File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Axe Folder',
+        'path' => '/Axe Folder',
+        'disk' => 'assets',
+    ]);
+    $tagged = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'axe-tagged.txt',
+        'path' => '/axe-tagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/axe-tagged.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]);
+    $tagged->attachTags(['summer']);
+
+    $this->actingAs($user);
+
+    foreach (['light', 'dark'] as $mode) {
+        foreach (['desktop', 'mobile'] as $device) {
+            $page = $mode === 'dark' ? visit('/files')->inDarkMode() : visit('/files')->inLightMode();
+
+            if ($device === 'mobile') {
+                $page = $page->on()->mobile();
+            }
+
+            $page->assertPresent("[data-test=\"file-card-more-{$tagged->id}\"]")
+                ->assertNoAccessibilityIssues(1)
+                ->assertNoJavaScriptErrors();
+        }
+    }
 });
