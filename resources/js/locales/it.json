@@ -1350,7 +1350,6 @@
             "full": "Larghezza massima",
             "fill": "Riempi larghezza"
         },
-        "openCollection": "Apri {{name}}",
         "reorderColumn": "Riordina {{label}}",
         "noFieldsMatch": "Nessun campo corrisponde alla ricerca."
     },

@@ -436,7 +436,7 @@ export default function Dashboard({
                                             aria-label={t(
                                                 'dashboard.latestActivity',
                                             )}
-                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1"
+                                            className="max-h-[20rem] min-h-[10rem] overflow-auto xl:max-h-none xl:min-h-0 xl:flex-1 [&_[data-slot=table-container]]:overflow-visible"
                                             tabIndex={0}
                                         >
                                             <Table>

@@ -187,6 +187,7 @@
 
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
     --color-sidebar-accent: var(--sidebar-accent);
@@ -277,6 +278,8 @@
     --radius: 0.5rem;
     --sidebar: var(--color-ink-50);
     --sidebar-foreground: var(--color-ink-600);
+    /* Group labels: a solid step under the items (4.6:1 on ink-50), not an opacity */
+    --sidebar-muted-foreground: var(--color-ink-500);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
     --sidebar-accent: var(--color-teal-50);
@@ -345,6 +348,7 @@
     /* Shell (sidebar + inset frame) one step lighter than the content, as before 1.4. */
     --sidebar: var(--color-ink-900);
     --sidebar-foreground: var(--color-ink-300);
+    --sidebar-muted-foreground: var(--color-ink-400);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
     --sidebar-accent: var(--color-teal-950);
@@ -546,6 +550,7 @@ html.high-contrast {
     --input: var(--color-ink-600);
     --ring: var(--color-teal-700);
     --sidebar-foreground: var(--color-ink-950);
+    --sidebar-muted-foreground: var(--color-ink-700);
     --sidebar-border: var(--color-ink-500);
     --sidebar-ring: var(--color-teal-700);
     --card-foreground: var(--color-ink-950);
@@ -561,6 +566,7 @@ html.high-contrast.dark {
     --input: var(--color-ink-300);
     --ring: var(--color-teal-300);
     --sidebar-foreground: #ffffff;
+    --sidebar-muted-foreground: var(--color-ink-200);
     --sidebar-border: var(--color-ink-400);
     --sidebar-ring: var(--color-teal-300);
     --card-foreground: #ffffff;
@@ -577,6 +583,7 @@ html.high-contrast.dark {
         --input: var(--color-ink-600);
         --ring: var(--color-teal-700);
         --sidebar-foreground: var(--color-ink-950);
+        --sidebar-muted-foreground: var(--color-ink-700);
         --sidebar-border: var(--color-ink-500);
         --sidebar-ring: var(--color-teal-700);
         --card-foreground: var(--color-ink-950);
@@ -592,6 +599,7 @@ html.high-contrast.dark {
         --input: var(--color-ink-300);
         --ring: var(--color-teal-300);
         --sidebar-foreground: #ffffff;
+        --sidebar-muted-foreground: var(--color-ink-200);
         --sidebar-border: var(--color-ink-400);
         --sidebar-ring: var(--color-teal-300);
         --card-foreground: #ffffff;

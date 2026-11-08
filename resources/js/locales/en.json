@@ -1350,7 +1350,6 @@
             "full": "Full width",
             "fill": "Fill width"
         },
-        "openCollection": "Open {{name}}",
         "reorderColumn": "Reorder {{label}}",
         "noFieldsMatch": "No fields match your search."
     },

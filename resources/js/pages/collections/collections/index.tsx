@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { checkboxTargetClassName } from '@/components/admin/data-table';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
@@ -566,6 +567,9 @@ export default function CollectionsIndex({
                                                     toggleAll(c === true)
                                                 }
                                                 aria-label={t('a11y.selectAll')}
+                                                className={
+                                                    checkboxTargetClassName
+                                                }
                                             />
                                         </TableHead>
                                         <TableHead>
@@ -618,16 +622,6 @@ export default function CollectionsIndex({
                                                         ? undefined
                                                         : 'link'
                                                 }
-                                                aria-label={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : t(
-                                                              'collections.openCollection',
-                                                              {
-                                                                  name: c.name,
-                                                              },
-                                                          )
-                                                }
                                                 onClick={() => {
                                                     if (!isTrashed) {
                                                         router.visit(openUrl);
@@ -663,6 +657,9 @@ export default function CollectionsIndex({
                                                             toggleRow(c.id)
                                                         }
                                                         aria-label={`Select ${c.name}`}
+                                                        className={
+                                                            checkboxTargetClassName
+                                                        }
                                                     />
                                                 </TableCell>
                                                 <TableCell className="max-w-[20rem] font-medium">

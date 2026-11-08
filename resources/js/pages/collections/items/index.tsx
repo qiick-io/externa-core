@@ -25,6 +25,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import { checkboxTargetClassName } from '@/components/admin/data-table';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
@@ -1214,6 +1215,7 @@ export default function ItemsIndex({
                                                 toggleAll(c === true)
                                             }
                                             aria-label={t('a11y.selectAll')}
+                                            className={checkboxTargetClassName}
                                         />
                                     </TableHead>
                                     {listColumns.map((path) => (
@@ -1303,11 +1305,6 @@ export default function ItemsIndex({
                                             role={
                                                 isTrashed ? undefined : 'link'
                                             }
-                                            aria-label={
-                                                isTrashed
-                                                    ? undefined
-                                                    : `Edit item ${row.id}`
-                                            }
                                             onClick={() => {
                                                 if (!isTrashed) {
                                                     router.visit(editUrl);
@@ -1340,6 +1337,9 @@ export default function ItemsIndex({
                                                         toggleRow(row.id)
                                                     }
                                                     aria-label={`Select item ${row.id}`}
+                                                    className={
+                                                        checkboxTargetClassName
+                                                    }
                                                 />
                                             </TableCell>
                                             {listColumns.map((path) => (
