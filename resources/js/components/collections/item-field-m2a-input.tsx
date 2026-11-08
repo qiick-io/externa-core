@@ -305,6 +305,7 @@ export function M2aFieldInput({
                                 value={selectedIds}
                                 disabled={readonly}
                                 multiple={false}
+                                aria-label={field.name}
                                 onChange={(next) =>
                                     updateBlock(block.id, {
                                         related_item_id: next[0] ?? 0,
