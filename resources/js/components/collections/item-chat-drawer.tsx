@@ -181,6 +181,8 @@ type Props = {
     onChatCountChange: (count: number) => void;
     thread?: ChatThreadIdentity | null;
     canCreateDirect?: boolean;
+    /** Pane only: back to the thread list below `md`. */
+    onBack?: () => void;
 };
 
 function renderMessageBody(
@@ -299,6 +301,7 @@ export function ItemChatDrawer({
     onChatCountChange,
     thread = null,
     canCreateDirect = false,
+    onBack,
 }: Props) {
     const { t } = useTranslation();
     const page = usePage();
@@ -1913,6 +1916,7 @@ export function ItemChatDrawer({
                     }
                 }}
                 canCreateDirect={canCreateDirect}
+                onBack={onBack}
             />
             <div
                 className="relative flex min-h-0 flex-1 flex-col"
