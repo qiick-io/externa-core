@@ -214,7 +214,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         ->assertNoJavaScriptErrors();
 });
 
-it('keeps mixed file cards square and truncates long titles', function () {
+it('keeps mixed file cards the same size with a square preview and truncates long titles', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
     ]);
@@ -260,8 +260,16 @@ it('keeps mixed file cards square and truncates long titles', function () {
                     return false;
                 }
 
-                // Cards sit in a 1:1 AspectRatio box (its wrapper is the grid cell).
-                const aspectSquare = cards.every((card) => card.parentElement.hasAttribute('data-radix-aspect-ratio-wrapper'));
+                // Each card opens with a 1:1 AspectRatio preview, then the name / tags footer.
+                const aspectSquare = cards.every((card) => {
+                    const preview = card.querySelector('[data-radix-aspect-ratio-wrapper]');
+                    if (!preview) {
+                        return false;
+                    }
+                    const rect = preview.getBoundingClientRect();
+
+                    return Math.abs(rect.width - rect.height) <= 2;
+                });
 
                 const sizes = cards.map((card) => {
                     const rect = card.getBoundingClientRect();
@@ -277,7 +285,7 @@ it('keeps mixed file cards square and truncates long titles', function () {
                 const uniform = sizes.every(
                     (size) => within(size.width, first.width) && within(size.height, first.height),
                 );
-                const square = within(first.width, first.height) && first.width > 0;
+                const square = first.width > 0 && first.height > first.width;
 
                 const pdfTitle = document.querySelector(
                     '[data-testid="file-card-title-{$longPdf->id}"]',
@@ -614,7 +622,21 @@ it('keeps the loaded pages after a move and keeps loading on scroll', function (
     $this->actingAs($user);
 
     $countCards = "document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length";
+    $scrollGridToEnd = <<<'JS'
+        (() => {
+            let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+            while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                panel = panel.parentElement;
+            }
+            if (panel) {
+                panel.scrollTop = panel.scrollHeight;
+            }
+        })()
+        JS;
     $page = visit('/files')->on()->macbookAir()->wait(1);
+    // Load a second page first (the window alone may hold only one page of cards).
+    $page->script($scrollGridToEnd);
+    $page->wait(1);
     $loaded = $page->script($countCards);
 
     expect($loaded)->toBeGreaterThan(48);
@@ -629,17 +651,7 @@ it('keeps the loaded pages after a move and keeps loading on scroll', function (
 
     // Scroll the grid panel to the bottom, as the wheel would.
     foreach (range(1, 4) as $_) {
-        $page->script(<<<'JS'
-            (() => {
-                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
-                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
-                    panel = panel.parentElement;
-                }
-                if (panel) {
-                    panel.scrollTop = panel.scrollHeight;
-                }
-            })()
-            JS);
+        $page->script($scrollGridToEnd);
         $page->wait(1);
     }
 
@@ -674,6 +686,41 @@ it('draws the selected card ring inside the card so the grid edge cannot cut it'
   const card = document.querySelector('[data-testid="file-card-{$edge->id}"]');
   const ring = getComputedStyle(card, '::after').boxShadow;
   return getComputedStyle(card).boxShadow === 'none' && ring.includes('inset') && !ring.startsWith('none');
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('shows the name and tags below the image, not over it', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+
+    $photo = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'beach-sunset-with-a-very-long-name.png',
+        'path' => '/beach.png',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/beach.png',
+        'mime_type' => 'image/png',
+        'extension' => 'png',
+        'width' => 1600,
+        'height' => 900,
+    ]);
+    $photo->attachTags(['summer', 'travel', 'family']);
+
+    $this->actingAs($user);
+
+    visit('/files')
+        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", 'summer')
+        ->assertSeeIn("[data-test=\"file-tags-{$photo->id}\"]", '+2')
+        ->assertScript(<<<JS
+(() => {
+  const card = document.querySelector('[data-testid="file-card-{$photo->id}"]');
+  const image = card.querySelector('[data-radix-aspect-ratio-wrapper]').getBoundingClientRect();
+  const title = document.querySelector('[data-testid="file-card-title-{$photo->id}"]').getBoundingClientRect();
+  const tags = document.querySelector('[data-test="file-tags-{$photo->id}"]').getBoundingClientRect();
+  return title.top >= image.bottom - 0.5 && tags.top >= title.bottom - 0.5 && tags.bottom <= card.getBoundingClientRect().bottom + 0.5;
 })()
 JS)
         ->assertNoJavaScriptErrors();
