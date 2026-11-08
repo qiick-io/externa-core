@@ -7,7 +7,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Data\Collections\FieldConvertOptionsData;
 use App\Enums\FieldTypeEnum;
@@ -36,7 +36,7 @@ use Stringable;
 /**
  * AI tool for listing and mutating content collections and their settings.
  */
-class ManageCollections implements Approvable, ClassifiesToolActionsInterface, Tool
+class ManageCollections implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use EnforcesAiCollectionPermissionsTrait;

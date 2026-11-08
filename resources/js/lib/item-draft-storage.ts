@@ -1,9 +1,6 @@
 const DRAFT_PREFIX = 'externa:item-draft:';
 
-export function itemDraftKey(
-    collectionId: number,
-    itemId: number | 'new',
-): string {
+function itemDraftKey(collectionId: number, itemId: number | 'new'): string {
     return `${DRAFT_PREFIX}${collectionId}:${itemId}`;
 }
 

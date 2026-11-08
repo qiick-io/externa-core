@@ -15,7 +15,7 @@ export type ChatThreadIdentity = Pick<
 >;
 
 /** Max faces in a stack before the last slot becomes +N. */
-export const CHAT_AVATAR_MAX_VISIBLE = 3;
+const CHAT_AVATAR_MAX_VISIBLE = 3;
 
 export type ChatParticipantRef = ChatSummary['participants'][number];
 

@@ -7,7 +7,7 @@ use App\Ai\Concerns\EnforcesAiFileAccessTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
@@ -24,7 +24,7 @@ use Stringable;
 /**
  * AI tool for browsing and mutating files and folders in the file manager.
  */
-class ManageFiles implements Approvable, ClassifiesToolActionsInterface, Tool
+class ManageFiles implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use EnforcesAiFileAccessTrait;
@@ -155,6 +155,7 @@ class ManageFiles implements Approvable, ClassifiesToolActionsInterface, Tool
                 'mime_type',
                 'size',
                 'effective_access',
+                'current_version_id',
                 'deleted_at',
             ]);
 

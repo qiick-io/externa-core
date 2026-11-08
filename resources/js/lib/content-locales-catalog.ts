@@ -7,7 +7,7 @@ export type ContentLocaleCatalogEntry = {
 };
 
 /** Content locale catalog (static, in-repo). */
-export const CONTENT_LOCALES_CATALOG: ContentLocaleCatalogEntry[] =
+const CONTENT_LOCALES_CATALOG: ContentLocaleCatalogEntry[] =
     catalogJson as ContentLocaleCatalogEntry[];
 
 const byCode = new Map(

@@ -11,7 +11,7 @@ use Stringable;
 /**
  * Single source of truth for an AI / MCP tool: metadata, AuthZ callback, and handler.
  */
-interface ToolDefinitionInterface
+interface ToolDefinitionContract
 {
     /**
      * Stable tool name (matches laravel/ai ToolNameResolver / MCP tools/list).

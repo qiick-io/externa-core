@@ -31,7 +31,6 @@ test('effective permission resolver unions direct roles and group roles', functi
 
     $group = UserGroup::query()->create([
         'name' => 'Editors',
-        'slug' => 'editors',
     ]);
     $group->roles()->attach($groupRole);
     $user->groups()->attach($group);

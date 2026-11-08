@@ -31,7 +31,7 @@ beforeEach(function () {
         PermissionEnum::CanDeleteGroups->value,
     ]);
 
-    $this->superAdminGroup = UserGroup::query()->create(['name' => 'Owners', 'slug' => 'owners']);
+    $this->superAdminGroup = UserGroup::query()->create(['name' => 'Owners']);
     $this->superAdminGroup->roles()->sync([$this->superAdminRole->id]);
 });
 

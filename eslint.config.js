@@ -1,12 +1,14 @@
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import prettier from 'eslint-config-prettier/flat';
+import i18next from 'eslint-plugin-i18next';
 import importPlugin from 'eslint-plugin-import';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import typescript from 'typescript-eslint';
+import qiickStandards from './qiick-standards.eslint.js';
 
 const controlStatements = [
     'if',
@@ -233,6 +235,13 @@ export default [
             'jsx-a11y': jsxA11y,
         },
         rules: jsxA11yWarnRules,
+    },
+    qiickStandards(['resources/js/**/*.{ts,tsx}']),
+    {
+        // Off here; `npm run lint:i18n` turns it on and ratchets it against
+        // i18n-literal-baseline.json (qiick standards, Automated checks).
+        plugins: { i18next },
+        rules: { 'i18next/no-literal-string': 'off' },
     },
     prettier, // Turn off all rules that might conflict with Prettier
     {

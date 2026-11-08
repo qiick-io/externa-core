@@ -19,7 +19,7 @@ import { appLocale } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /** `YYYY-MM-DD` bounds; an empty string means "no bound". */
-export type DateRangeValue = {
+type DateRangeValue = {
     from: string;
     to: string;
 };

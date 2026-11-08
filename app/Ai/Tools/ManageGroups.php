@@ -6,7 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Models\UserGroup;
@@ -21,7 +21,7 @@ use Stringable;
 /**
  * AI tool for listing and mutating user groups and memberships.
  */
-class ManageGroups implements Approvable, ClassifiesToolActionsInterface, Tool
+class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;

@@ -6,6 +6,4 @@
  * @see https://github.com/qiick-io/externa-core/issues/243
  */
 
-export type { ThemePresetSlug } from '@/types/appearance';
-
 export type ThemePresetTokens = Record<string, string>;

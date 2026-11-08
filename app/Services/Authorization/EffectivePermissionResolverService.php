@@ -117,6 +117,8 @@ class EffectivePermissionResolverService
         if (in_array(RoleEnum::SuperAdmin->value, $roleNames, true)) {
             $permissions = PermissionEnum::values();
         } else {
+            // Spatie reads both relations; load them once (strict models forbid lazy loads).
+            $user->loadMissing(['permissions', 'roles.permissions']);
             $directPermissionNames = $user->getAllPermissions()->pluck('name');
 
             $groupPermissionNames = Permission::query()

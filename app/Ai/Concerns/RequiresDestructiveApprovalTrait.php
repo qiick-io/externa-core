@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Concerns;
 
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use Laravel\Ai\Approvals\Approval;
 use Laravel\Ai\Concerns\InteractsWithApprovals;
 use Laravel\Ai\Tools\Request;
@@ -18,7 +18,7 @@ use Laravel\Ai\Tools\Request;
  * chat while the AI write gate is closed for this tool.
  *
  * Tools using this trait must implement Laravel\Ai\Contracts\Approvable and
- * {@see ClassifiesToolActionsInterface}, and call {@see writeActionRefusal()} at the
+ * {@see ClassifiesToolActionsContract}, and call {@see writeActionRefusal()} at the
  * start of `handle()`.
  */
 trait RequiresDestructiveApprovalTrait

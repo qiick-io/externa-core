@@ -25,6 +25,8 @@ class CollectionItemChatAttachment extends Model
      * @var list<string>
      */
     protected $fillable = [
+        // The upload service generates the UUID first: it also names the stored file.
+        'id',
         'message_id',
         'user_id',
         'original_name',

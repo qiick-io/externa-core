@@ -167,28 +167,6 @@ export function parseFieldTreeOptions(
     return raw.map(parseNode);
 }
 
-/**
- * Flattens a tree option list into value/label pairs (depth-first).
- *
- * @param options - Tree nodes to flatten
- * @returns Flat option rows including all descendants
- */
-export function flattenFieldTreeOptions(
-    options: FieldTreeOptionRow[],
-): FieldOptionRow[] {
-    const flattened: FieldOptionRow[] = [];
-
-    for (const option of options) {
-        flattened.push({ value: option.value, label: option.label });
-
-        if (option.children !== undefined && option.children.length > 0) {
-            flattened.push(...flattenFieldTreeOptions(option.children));
-        }
-    }
-
-    return flattened;
-}
-
 /** Parsed settings for string/text input fields. */
 export type StringFieldSettings = {
     inputType: string;
@@ -346,7 +324,7 @@ export function parseBooleanFieldSettings(
 }
 
 /** Date/time picker display options. */
-export type DateFieldMode = 'date' | 'time' | 'datetime';
+type DateFieldMode = 'date' | 'time' | 'datetime';
 
 export type DateFieldSettings = {
     includeSeconds: boolean;
@@ -622,7 +600,7 @@ export type RelationFieldSettings = {
 };
 
 /** Leaf schema for M2M junction metadata fields. */
-export type JunctionFieldDefinition = {
+type JunctionFieldDefinition = {
     name: string;
     type: string;
 };
@@ -630,7 +608,7 @@ export type JunctionFieldDefinition = {
 /**
  * Parse `settings.junction_fields` for many-to-many meta inputs.
  */
-export function parseJunctionFields(
+function parseJunctionFields(
     settings?: Record<string, unknown> | null,
 ): JunctionFieldDefinition[] {
     const raw = settings?.junction_fields;

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-export type ResolvedAppearance = 'light' | 'dark';
+type ResolvedAppearance = 'light' | 'dark';
 export type Appearance = ResolvedAppearance | 'system';
 
 export type UseAppearanceReturn = {

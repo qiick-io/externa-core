@@ -1,8 +1,3 @@
-/** Select option describing one collection field type in the admin UI. */
-export type CollectionFieldTypeOption = {
-    value: string;
-};
-
 type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
 /** Stable group keys used in the field type picker UI (labels via i18n). */
@@ -61,12 +56,12 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
 ];
 
 /** i18n key for a field type display label. */
-export function fieldTypeLabelKey(type: string): string {
+function fieldTypeLabelKey(type: string): string {
     return `collections.fieldTypes.${type}.label`;
 }
 
 /** i18n key for a field type description. */
-export function fieldTypeDescriptionKey(type: string): string {
+function fieldTypeDescriptionKey(type: string): string {
     return `collections.fieldTypes.${type}.description`;
 }
 
@@ -180,7 +175,7 @@ export const STRING_INPUT_TYPES: { value: string; label: string }[] = [
     { value: 'uuid', label: 'UUID' },
 ];
 
-export type BlocksFieldDefinition = {
+type BlocksFieldDefinition = {
     name: string;
     type: string;
     translatable: boolean;
@@ -199,7 +194,7 @@ export const MAX_BLOCKS_DEPTH = 5;
 /** Matches BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH when settings omit max_blocks_depth. */
 export const DEFAULT_BLOCKS_DEPTH = 3;
 
-export const BLOCKS_ALLOWED_FIELD_TYPES = [
+const BLOCKS_ALLOWED_FIELD_TYPES = [
     'string',
     'textarea',
     'wysiwyg',

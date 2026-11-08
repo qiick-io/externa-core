@@ -244,7 +244,6 @@ test('destructive tool call pauses the chat stream and exposes pending approvals
         'path' => 'files/keep-me.txt',
         'mime_type' => 'text/plain',
         'size' => 4,
-        'created_by' => $user->id,
     ]);
 
     AppAssistant::fake([
