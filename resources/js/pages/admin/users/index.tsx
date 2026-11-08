@@ -289,6 +289,7 @@ export default function AdminUsersIndex({
                     <UserAvatar
                         user={row.original}
                         isOnline={onlineUsers.has(row.original.id)}
+                        size="sm"
                     />
                     <TruncatedText text={userDisplayName(row.original)} />
                 </span>

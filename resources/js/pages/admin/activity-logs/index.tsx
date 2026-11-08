@@ -9,6 +9,7 @@ import {
 } from '@/components/admin/data-table';
 import { DataTableFacetedFilter } from '@/components/admin/data-table-faceted-filter';
 import { DateRangePicker } from '@/components/admin/date-range-picker';
+import { TableCellLine } from '@/components/admin/table-cell-line';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
@@ -231,12 +232,11 @@ export default function AdminActivityLogsIndex({
             header: t('activityLog.columns.user'),
             cell: ({ row }) =>
                 row.original.causer ? (
-                    <div className="text-sm">
-                        <div>{row.original.causer.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                            {row.original.causer.email}
-                        </div>
-                    </div>
+                    <TableCellLine
+                        className="max-w-56 text-sm"
+                        primary={row.original.causer.name}
+                        secondary={row.original.causer.email}
+                    />
                 ) : (
                     <span className="text-sm text-muted-foreground">
                         {t('activityLog.system')}
@@ -263,15 +263,16 @@ export default function AdminActivityLogsIndex({
         {
             id: 'subject',
             header: t('activityLog.columns.subject'),
-            meta: { cellClassName: 'text-sm' },
-            cell: ({ row }) =>
-                row.original.subject ? (
-                    <>
-                        {row.original.subject.type} {row.original.subject.label}
-                    </>
-                ) : (
-                    '—'
-                ),
+            meta: { cellClassName: 'max-w-xs text-sm' },
+            cell: ({ row }) => (
+                <TruncatedText
+                    text={
+                        row.original.subject
+                            ? `${row.original.subject.type} ${row.original.subject.label}`
+                            : '—'
+                    }
+                />
+            ),
         },
         {
             id: 'actions',

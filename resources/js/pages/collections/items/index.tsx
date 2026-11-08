@@ -1287,7 +1287,7 @@ export default function ItemsIndex({
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
+                            <TableBody className="[&_td]:h-10">
                                 {items.data.map((row) => {
                                     const editUrl = itemEditUrl(row.id);
 
