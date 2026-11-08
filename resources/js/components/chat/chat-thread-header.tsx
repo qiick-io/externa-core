@@ -1,9 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { MessageCircle } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatDirectThreadMenu } from '@/components/chat/chat-direct-thread-menu';
 import { ChatThreadAvatar } from '@/components/chat/chat-thread-avatar';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
@@ -18,6 +19,8 @@ type Props = {
     notify: boolean;
     onNotifyChange: (next: boolean) => void;
     canCreateDirect?: boolean;
+    /** Back to the thread list: shown below `md`, where the list and the thread take turns. */
+    onBack?: () => void;
 };
 
 export function ChatThreadHeader({
@@ -29,6 +32,7 @@ export function ChatThreadHeader({
     notify,
     onNotifyChange,
     canCreateDirect = false,
+    onBack,
 }: Props) {
     const { t } = useTranslation();
 
@@ -55,6 +59,19 @@ export function ChatThreadHeader({
             data-test="chat-thread-header"
             className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
         >
+            {onBack ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    data-test="chat-thread-back"
+                    className="-ml-2 md:hidden"
+                    aria-label={t('chatHub.backToList')}
+                    onClick={onBack}
+                >
+                    <ArrowLeft />
+                </Button>
+            ) : null}
             {thread ? (
                 <ChatThreadAvatar thread={thread} viewerId={viewerId} />
             ) : (

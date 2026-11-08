@@ -1721,7 +1721,8 @@
             "output": "Ausgabe",
             "reasoning": "Denken",
             "cache": "Cache"
-        }
+        },
+        "backToList": "Zurück zu den Unterhaltungen"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1876,7 +1877,8 @@
         "deleteChat": "Chat löschen",
         "deleteChatError": "Chat konnte nicht gelöscht werden.",
         "messagesRegion": "Nachrichten",
-        "scrollToLatest": "Zur neuesten Nachricht scrollen"
+        "scrollToLatest": "Zur neuesten Nachricht scrollen",
+        "backToList": "Zurück zu den Chats"
     },
     "errors": {
         "notFound": {
