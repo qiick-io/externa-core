@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { copyTextToClipboard } from '@/lib/clipboard';
 
-export type CopiedValue = string | null;
-export type CopyFn = (text: string) => Promise<boolean>;
+type CopiedValue = string | null;
+type CopyFn = (text: string) => Promise<boolean>;
 export type UseClipboardReturn = [CopiedValue, CopyFn];
 
 /**

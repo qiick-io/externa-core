@@ -2,7 +2,7 @@ import Sortable from 'sortablejs';
 import type { Options } from 'sortablejs';
 
 /** defaults for flat lists (Fields may override further). */
-export const SORTABLE_LIST_DEFAULTS: Options = {
+const SORTABLE_LIST_DEFAULTS: Options = {
     animation: 150,
     forceFallback: true,
     fallbackOnBody: true,

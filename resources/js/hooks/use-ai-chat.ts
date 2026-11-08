@@ -112,7 +112,7 @@ const DRY_RUN_PREFIX =
  * @param toolCalls - Tool calls stored on a loaded message
  * @returns A short "Completed via …" sentence
  */
-export function toolFallbackContent(
+function toolFallbackContent(
     toolsUsed: string[] = [],
     toolCalls?: AiChatMessage['tool_calls'],
 ): string {
@@ -181,7 +181,7 @@ export function settleLoadedAiMessages(
  * @param messageId - Message id
  * @returns Whether the server stored the message (local ids start with `local-`)
  */
-export function isPersistedAiMessageId(messageId: string): boolean {
+function isPersistedAiMessageId(messageId: string): boolean {
     return !messageId.startsWith('local-');
 }
 

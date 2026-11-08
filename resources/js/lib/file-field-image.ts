@@ -46,7 +46,7 @@ function resolvePublicUrl(file: FileFieldImageFile): string | null {
 }
 
 /** Layout hint for image/file field slots (half or full column, mobile full). */
-export const FILE_FIELD_IMAGE_SIZES =
+const FILE_FIELD_IMAGE_SIZES =
     '(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 36rem';
 
 /**

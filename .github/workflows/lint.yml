@@ -86,6 +86,9 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.changes.outputs.docs_only != 'true'
+        with:
+          # The Larastan ratchet compares the baseline with the base branch.
+          fetch-depth: 0
 
       - name: Setup PHP
         if: needs.changes.outputs.docs_only != 'true'
@@ -135,6 +138,10 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: composer analyse
 
+      - name: Larastan baseline only shrinks
+        if: needs.changes.outputs.docs_only != 'true'
+        run: node scripts/qiick-ratchet.mjs phpstan
+
       - name: Lint Frontend
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:check -- --max-warnings=0
@@ -151,6 +158,14 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run types:check
 
+      - name: Dead code (knip)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run knip
+
+      - name: Hard-coded UI strings (ratchet)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run lint:i18n
+
       - name: Frontend unit tests (Vitest)
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run test:unit
@@ -161,3 +176,13 @@ jobs:
         run: |
           npm ci
           npm run check
+
+  # The @qiick UI registry copies and the qiick standards pack (agent files,
+  # architecture test, kebab-case file names) must match app-ui.
+  app-ui-drift:
+    uses: qiick-io/app-ui/.github/workflows/drift-check.yml@develop
+    with:
+      standards: true
+      # ponytail: the registry part is already red on develop (data-table-column-header
+      # moved upstream); re-pull it, then drop this line.
+      registry: false

@@ -28,21 +28,6 @@ import type { MapFieldSettings } from '@/lib/collection-field-types/parsers';
 import { normalizeLatLng, parseMapPositions } from '@/lib/map-geometry';
 import type { MapLatLng } from '@/lib/map-geometry';
 
-export type GeoJsonPoint = {
-    type: 'Point';
-    coordinates: [number, number];
-};
-
-export type GeoJsonMultiPoint = {
-    type: 'MultiPoint';
-    coordinates: [number, number][];
-};
-
-export type MapGeoJsonValue = GeoJsonPoint | GeoJsonMultiPoint;
-
-export { normalizeLatLng, parseMapPositions };
-export type { MapLatLng };
-
 type LatLng = MapLatLng;
 
 type MapTool = 'add' | 'delete';

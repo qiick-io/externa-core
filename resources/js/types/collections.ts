@@ -1,5 +1,5 @@
 /** Collection row as stored in list/admin tables (without embedded fields). */
-export type CollectionStatus = 'active' | 'inactive';
+type CollectionStatus = 'active' | 'inactive';
 
 /** Native `<input type="color">` requires a value; not stored unless the user picks one. */
 export const COLLECTION_COLOR_PICKER_FALLBACK = '#64748B'; // slate-500
@@ -99,9 +99,3 @@ export function collectionToFormRow(collection: CollectionView): CollectionRow {
         sort_order: collection.sort_order,
     };
 }
-
-/** Minimal item row for relation/M2A pickers (id + display label). */
-export type ItemPickerRow = {
-    id: number;
-    label: string;
-};

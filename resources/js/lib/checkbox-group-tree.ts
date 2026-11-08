@@ -1,7 +1,7 @@
 import type { FieldTreeOptionRow } from './collection-field-types/catalog';
 
 /** Collect every descendant value under a node (not including the node itself). */
-export function collectDescendantValues(node: FieldTreeOptionRow): string[] {
+function collectDescendantValues(node: FieldTreeOptionRow): string[] {
     if (!node.children?.length) {
         return [];
     }

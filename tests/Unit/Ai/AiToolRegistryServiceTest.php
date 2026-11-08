@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Ai\Registry\LaravelAiToolDefinition;
-use App\Contracts\Ai\ToolDefinitionInterface;
+use App\Contracts\Ai\ToolDefinitionContract;
 use App\Enums\AiToolKindEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -124,7 +124,7 @@ it('does not advertise tools the actor cannot use', function (): void {
 it('allows packages to register additional definitions', function (): void {
     $registry = app(AiToolRegistryService::class);
 
-    $registry->register(new class implements ToolDefinitionInterface
+    $registry->register(new class implements ToolDefinitionContract
     {
         public function name(): string
         {

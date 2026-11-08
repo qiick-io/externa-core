@@ -81,7 +81,7 @@ export type WebhookDeliverySummary = {
     recent: WebhookDeliveryEntry[];
 };
 
-export type DeployHookFormEntry = {
+type DeployHookFormEntry = {
     id: string;
     name: string;
     url_configured: boolean;

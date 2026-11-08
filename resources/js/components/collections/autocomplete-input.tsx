@@ -24,7 +24,7 @@ import {
  */
 const NO_HIGHLIGHT_VALUE = '__autocomplete-no-highlight__';
 
-export type AutocompleteSuggestion = { value: string; label: string };
+type AutocompleteSuggestion = { value: string; label: string };
 
 type AutocompleteInputProps = Omit<ComponentProps<typeof Input>, 'list'> & {
     suggestions: AutocompleteSuggestion[];

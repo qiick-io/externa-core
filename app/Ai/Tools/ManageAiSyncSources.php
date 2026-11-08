@@ -6,7 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\SafeRemoteUrlValidator;
-use App\Contracts\Ai\ClassifiesToolActionsInterface;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Models\AiSyncSource;
 use App\Models\Collection;
@@ -19,7 +19,7 @@ use Stringable;
 /**
  * AI tool for configuring and inspecting AI sync sources.
  */
-class ManageAiSyncSources implements Approvable, ClassifiesToolActionsInterface, Tool
+class ManageAiSyncSources implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;

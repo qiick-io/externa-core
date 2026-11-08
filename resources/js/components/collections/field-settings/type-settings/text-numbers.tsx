@@ -19,7 +19,6 @@ import {
 import type {
     ApiAutocompleteFieldSettings,
     StringFieldSettings,
-    TranslatedText,
 } from '@/lib/collection-field-types';
 
 type TextNumbersSettingsProps = {
@@ -579,9 +578,3 @@ export function serializeTextNumbersTypeSettings(
 
     return {};
 }
-
-export type TextareaLikeSettings = {
-    placeholder: TranslatedText;
-    rows: number;
-    maxLength: number | null;
-};

@@ -9,7 +9,7 @@ type CsrfHeader = {
  *
  * @returns Header name and token value (token may be empty when unavailable)
  */
-export function getCsrfHeader(): CsrfHeader {
+function getCsrfHeader(): CsrfHeader {
     const cookieMatch = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
 
     if (cookieMatch) {
