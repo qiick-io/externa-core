@@ -38,7 +38,7 @@ function pointDivIcon(L: typeof LeafletNS) {
         className: 'externa-map-point',
         html: `<span style="
             display:block;width:14px;height:14px;border-radius:9999px;
-            background:#6644ff;border:2px solid #fff;
+            background:var(--primary);border:2px solid #fff;
             box-shadow:0 1px 4px rgba(0,0,0,.35);
         "></span>`,
         iconSize: [14, 14],

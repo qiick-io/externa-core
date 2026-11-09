@@ -23,9 +23,9 @@ class ApiKeyResource extends JsonResource
             'name' => $this->name,
             'key_prefix' => $this->key_prefix,
             'role_id' => $this->role_id,
-            'role' => $this->whenLoaded('role', fn () => [
-                'id' => $this->role?->id,
-                'name' => $this->role?->name,
+            'role' => $this->whenLoaded('role', fn () => $this->role === null ? null : [
+                'id' => $this->role->id,
+                'name' => $this->role->name,
             ]),
             'owner_id' => $this->owner_id,
             'owner' => $this->whenLoaded('owner', fn () => $this->owner === null ? null : [
