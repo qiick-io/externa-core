@@ -2785,5 +2785,12 @@
         "compareHint": "Select two revisions to see field diffs.",
         "field": "Field",
         "selectRevision": "Select revision #{{id}}"
+    },
+    "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "goToPage": "Go to page {{page}}",
+        "goToPreviousPage": "Go to previous page",
+        "goToNextPage": "Go to next page"
     }
 }

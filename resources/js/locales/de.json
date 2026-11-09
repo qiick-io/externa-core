@@ -2785,5 +2785,12 @@
         "compareHint": "Wähle zwei Revisionen, um die Unterschiede zu sehen.",
         "field": "Feld",
         "selectRevision": "Revision #{{id}} auswählen"
+    },
+    "pagination": {
+        "previous": "Zurück",
+        "next": "Weiter",
+        "goToPage": "Zu Seite {{page}}",
+        "goToPreviousPage": "Zur vorherigen Seite",
+        "goToNextPage": "Zur nächsten Seite"
     }
 }

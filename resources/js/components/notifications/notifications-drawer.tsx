@@ -18,6 +18,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { Spinner } from '@/components/ui/spinner';
 import { downloadPreparedZipUrl } from '@/lib/files-api';
 import {
     fetchNotifications,
@@ -218,9 +219,10 @@ export function NotificationsDrawer({
                 <ScrollArea className="min-h-0 flex-1">
                     <ItemGroup className="gap-2 px-4 pb-4">
                         {isLoading ? (
-                            <p className="text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 {t('notifications.loading')}
-                            </p>
+                            </div>
                         ) : null}
 
                         {!isLoading && notifications.length === 0 ? (

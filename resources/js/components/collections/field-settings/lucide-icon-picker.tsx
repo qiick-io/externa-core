@@ -1,10 +1,17 @@
-import { Check, Search, X } from 'lucide-react';
+import { Search, SearchX, X } from 'lucide-react';
 import { DynamicIcon, dynamicIconImports } from 'lucide-react/dynamic';
 import type { IconName } from 'lucide-react/dynamic';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Field, FieldLabel } from '@/components/ui/field';
 import {
     InputGroup,
@@ -144,6 +151,8 @@ export function LucideIconPicker({
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
+    /** Icon under the pointer or keyboard focus, named under the grid. */
+    const [activeName, setActiveName] = useState('');
 
     const selectedName = value ? toLucideIconName(value) : '';
     const previewName = resolveCollectionIconName(value);
@@ -238,9 +247,21 @@ export function LucideIconPicker({
                     </div>
                     <div className="max-h-72 overflow-y-auto p-3">
                         {filteredCategories.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-muted-foreground">
-                                {t('collections.meta.noIconsFound')}
-                            </p>
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <SearchX />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        <EmptyStatus>
+                                            {t('collections.meta.noIconsFound')}
+                                        </EmptyStatus>
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             <div className="flex flex-col gap-4">
                                 {filteredCategories.map((category) => (
@@ -262,15 +283,25 @@ export function LucideIconPicker({
                                                 }
 
                                                 return (
-                                                    <button
+                                                    <Button
                                                         key={name}
                                                         type="button"
-                                                        title={name}
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={name}
+                                                        aria-pressed={selected}
+                                                        data-test={`icon-picker-option-${name}`}
                                                         className={cn(
-                                                            'flex size-8 items-center justify-center rounded-md border border-transparent transition-colors hover:bg-muted',
+                                                            'border border-transparent',
                                                             selected &&
                                                                 'border-primary bg-primary/10',
                                                         )}
+                                                        onMouseEnter={() =>
+                                                            setActiveName(name)
+                                                        }
+                                                        onFocus={() =>
+                                                            setActiveName(name)
+                                                        }
                                                         onClick={() => {
                                                             onChange(name);
                                                             setOpen(false);
@@ -281,10 +312,7 @@ export function LucideIconPicker({
                                                             name={iconName}
                                                             className="size-4"
                                                         />
-                                                        {selected ? (
-                                                            <Check className="sr-only" />
-                                                        ) : null}
-                                                    </button>
+                                                    </Button>
                                                 );
                                             })}
                                         </div>
@@ -293,6 +321,13 @@ export function LucideIconPicker({
                             </div>
                         )}
                     </div>
+                    <p
+                        aria-hidden
+                        data-test="icon-picker-active-name"
+                        className="h-7 truncate border-t px-3 py-1.5 font-mono text-xs text-muted-foreground"
+                    >
+                        {activeName}
+                    </p>
                     {value ? (
                         <div className="border-t p-2">
                             <Button
