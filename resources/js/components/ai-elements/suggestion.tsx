@@ -7,12 +7,21 @@ import { cn } from '@/lib/utils';
 
 export type SuggestionsProps = ComponentProps<typeof ScrollArea>;
 
+/**
+ * AI Elements `suggestion` (registry.ai-sdk.dev). Change from the registry copy:
+ * `shrink-0`, because inside a flex column (the answer bubble) the scroll area
+ * has no automatic minimum height and was squeezed below the chips' height,
+ * clipping their bottom half.
+ */
 export const Suggestions = ({
     className,
     children,
     ...props
 }: SuggestionsProps) => (
-    <ScrollArea className="w-full overflow-x-auto whitespace-nowrap" {...props}>
+    <ScrollArea
+        className="w-full shrink-0 overflow-x-auto whitespace-nowrap"
+        {...props}
+    >
         <div
             className={cn(
                 'flex w-max flex-nowrap items-center gap-2',

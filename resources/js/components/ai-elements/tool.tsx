@@ -24,7 +24,9 @@ import { cn } from '@/lib/utils';
  * Changes from the registry copy: the ai-sdk `ToolUIPart` types are local
  * (Externa streams its own SSE and does not install `ai`); the status icons use
  * the theme status tokens instead of palette colours; the labels go through
- * i18n (`ai.tool.*`); a running call's name shimmers (AI Elements Shimmer).
+ * i18n (`ai.tool.*`); a running call's name shimmers (AI Elements Shimmer);
+ * the parameters and the result scroll inside a capped height, so a large JSON
+ * result does not push the rest of the answer far down.
  */
 
 /** The ai-sdk tool part states the components switch on. */
@@ -132,7 +134,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
             <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('ai.tool.parameters')}
             </h4>
-            <div className="rounded-md bg-muted/50">
+            <div className="max-h-64 overflow-auto rounded-md bg-muted/50">
                 <CodeBlock
                     code={JSON.stringify(input, null, 2)}
                     language="json"
@@ -176,7 +178,7 @@ export const ToolOutput = ({
             </h4>
             <div
                 className={cn(
-                    'overflow-x-auto rounded-md text-xs [&_table]:w-full',
+                    'max-h-64 overflow-auto rounded-md text-xs [&_table]:w-full',
                     errorText
                         ? 'bg-destructive/10 text-destructive'
                         : 'bg-muted/50 text-foreground',
