@@ -2028,25 +2028,26 @@
         "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti.",
         "conversationRegion": "Conversazione",
         "tool": {
-            "state": {
-                "input-streaming": "In attesa",
-                "input-available": "In esecuzione",
-                "approval-requested": "In attesa di approvazione",
-                "approval-responded": "Risposto",
-                "output-available": "Completato",
-                "output-error": "Errore",
-                "output-denied": "Rifiutato"
+            "title": {
+                "running": "Uso {{tool}}",
+                "done": "Ho usato {{tool}}",
+                "error": "Non sono riuscito a usare {{tool}}",
+                "denied": "Rifiutato: {{tool}}",
+                "approval": "{{tool}} richiede la tua approvazione"
             },
-            "parameters": "Parametri",
-            "result": "Risultato",
-            "error": "Errore",
-            "steps_one": "{{count}} passo con strumenti",
-            "steps_other": "{{count}} passi con strumenti"
+            "provider": {
+                "web_search": "Ho cercato sul web"
+            },
+            "steps_one": "Fatto in {{count}} passaggio",
+            "steps_other": "Fatto in {{count}} passaggi",
+            "stepsRunning_one": "Al lavoro, {{count}} passaggio finora",
+            "stepsRunning_other": "Al lavoro, {{count}} passaggi finora"
         },
         "approval": {
-            "request": "L’assistente vuole eseguire {{tools}}.",
             "approve": "Approva",
-            "reject": "Rifiuta"
+            "reject": "Rifiuta",
+            "question": "Approvi questa azione?",
+            "hint": "L’assistente aspetta la tua risposta prima di continuare."
         },
         "actions": {
             "copy": "Copia",
@@ -2109,9 +2110,9 @@
         "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
         "reasoning": {
             "thinking": "Sto ragionando…",
+            "thoughtFewSeconds": "Ha ragionato per qualche secondo",
             "thoughtFor_one": "Ha ragionato per {{count}} secondo",
-            "thoughtFor_other": "Ha ragionato per {{count}} secondi",
-            "thoughtFewSeconds": "Ha ragionato per qualche secondo"
+            "thoughtFor_other": "Ha ragionato per {{count}} secondi"
         },
         "sources": {
             "used_one": "{{count}} fonte usata",
@@ -2134,6 +2135,118 @@
             "exportJson": "Esporta JSON",
             "recentActivity": "Attività recente",
             "aiOnly": "Solo IA"
+        },
+        "toolCalls": {
+            "DescribeFieldTypes": {
+                "_": "Lettura dei tipi di campo"
+            },
+            "ExportCollection": {
+                "_": "Esportazione di una collection"
+            },
+            "ExtractPdfText": {
+                "_": "Lettura del PDF"
+            },
+            "GetImportJobStatus": {
+                "_": "Controllo dell’importazione"
+            },
+            "ImportCollectionCsv": {
+                "_": "Importazione di un CSV"
+            },
+            "ImportRemoteJson": {
+                "_": "Importazione di dati da un URL"
+            },
+            "ManageAiSyncSources": {
+                "create": "Creazione di una sorgente di sincronizzazione",
+                "delete": "Spostamento nel cestino di una sorgente di sincronizzazione",
+                "disable": "Disattivazione di una sorgente di sincronizzazione",
+                "enable": "Attivazione di una sorgente di sincronizzazione",
+                "list": "Elenco delle sorgenti di sincronizzazione",
+                "update": "Modifica di una sorgente di sincronizzazione"
+            },
+            "ManageCollectionItems": {
+                "bulk_delete": "Spostamento nel cestino di più item",
+                "bulk_update": "Modifica di più item",
+                "create": "Creazione di un item",
+                "delete": "Spostamento nel cestino di un item",
+                "force_delete": "Eliminazione definitiva di un item",
+                "get": "Lettura di un item",
+                "list": "Elenco degli item",
+                "list_relation_options": "Elenco degli item collegabili",
+                "publish": "Pubblicazione di un item",
+                "restore": "Ripristino di un item",
+                "update": "Modifica di un item"
+            },
+            "ManageCollections": {
+                "apply_collection_pack": "Creazione di una collection da un modello",
+                "apply_field_pack": "Aggiunta di un pacchetto di campi",
+                "convert_field": "Cambio del tipo di un campo",
+                "create": "Creazione di una collection",
+                "create_field": "Aggiunta di un campo",
+                "delete": "Spostamento nel cestino di una collection",
+                "delete_field": "Rimozione di un campo",
+                "duplicate": "Duplicazione di una collection",
+                "force_delete": "Eliminazione definitiva di una collection",
+                "get": "Lettura di una collection",
+                "list": "Elenco delle collection",
+                "list_collection_packs": "Elenco dei modelli di collection",
+                "list_field_packs": "Elenco dei pacchetti di campi",
+                "restore": "Ripristino di una collection",
+                "update": "Modifica di una collection",
+                "update_field": "Modifica di un campo"
+            },
+            "ManageFiles": {
+                "create": "Creazione di un file",
+                "create_folder": "Creazione di una cartella",
+                "delete": "Spostamento nel cestino di un file",
+                "force_delete": "Eliminazione definitiva di un file",
+                "list": "Elenco dei file",
+                "move": "Spostamento di un file",
+                "move_many": "Spostamento di più file",
+                "rename": "Rinomina di un file",
+                "restore": "Ripristino di un file",
+                "save_attachment": "Salvataggio dell’allegato in File",
+                "search": "Ricerca tra i file",
+                "tag": "Assegnazione di tag a un file"
+            },
+            "ManageGroups": {
+                "create": "Creazione di un gruppo",
+                "delete": "Spostamento nel cestino di un gruppo",
+                "force_delete": "Eliminazione definitiva di un gruppo",
+                "get": "Lettura di un gruppo",
+                "list": "Elenco dei gruppi",
+                "restore": "Ripristino di un gruppo",
+                "update": "Modifica di un gruppo"
+            },
+            "ManageRoles": {
+                "create": "Creazione di un ruolo",
+                "delete": "Spostamento nel cestino di un ruolo",
+                "duplicate": "Duplicazione di un ruolo",
+                "get": "Lettura di un ruolo",
+                "list": "Elenco dei ruoli",
+                "list_permissions": "Elenco dei permessi",
+                "update": "Modifica di un ruolo"
+            },
+            "ManageUsers": {
+                "create": "Creazione di un utente",
+                "delete": "Spostamento nel cestino di un utente",
+                "force_delete": "Eliminazione definitiva di un utente",
+                "get": "Lettura di un utente",
+                "list": "Elenco degli utenti",
+                "restore": "Ripristino di un utente",
+                "update": "Modifica di un utente"
+            },
+            "QueryActivityLogs": {
+                "_": "Ricerca nell’activity log"
+            },
+            "QueryCollectionItems": {
+                "_": "Ricerca tra gli item"
+            },
+            "RollbackLastAiTurn": {
+                "_": "Annullamento delle ultime modifiche"
+            },
+            "SearchSimilarCollectionItems": {
+                "_": "Ricerca di item simili"
+            }
         }
     },
     "dashboard": {

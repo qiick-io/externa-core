@@ -1,11 +1,8 @@
+import type { TFunction } from 'i18next';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-    ChainOfThought,
-    ChainOfThoughtContent,
-    ChainOfThoughtHeader,
-} from '@/components/ai-elements/chain-of-thought';
+import { ChainOfThought } from '@/components/ai-elements/chain-of-thought';
 import {
     Context,
     ContextCacheUsage,
@@ -17,25 +14,11 @@ import {
     ContextReasoningUsage,
     ContextTrigger,
 } from '@/components/ai-elements/context';
-import {
-    Reasoning,
-    ReasoningContent,
-    ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import { Shimmer } from '@/components/ai-elements/shimmer';
-import {
-    Source,
-    Sources,
-    SourcesContent,
-    SourcesTrigger,
-} from '@/components/ai-elements/sources';
-import {
-    Tool,
-    ToolContent,
-    ToolHeader,
-    ToolInput,
-    ToolOutput,
-} from '@/components/ai-elements/tool';
+import { Reasoning } from '@/components/ai-elements/reasoning';
+import { Sources } from '@/components/ai-elements/sources';
+import { isToolRunning, Tool } from '@/components/ai-elements/tool';
+import type { ToolState } from '@/components/ai-elements/tool';
+import { Trace } from '@/components/ui/trace';
 import type {
     AiMessagePart,
     AiProviderToolPart,
@@ -50,6 +33,63 @@ export type AiAnswerTextRenderer = (
     options: { isLive: boolean },
 ) => ReactNode;
 
+/** One tool call as the describer sees it. */
+export type AiToolCall = {
+    name: string;
+    input: unknown;
+    state: ToolState;
+};
+
+/** The sentence a tool call shows, and an optional detail after it. */
+export type AiToolCallDescription = {
+    title: string;
+    description?: string;
+};
+
+/**
+ * Turns a tool call into the sentence its line shows ("Listed the
+ * collections"). Apps pass one that knows their tools and actions; the
+ * fallback names the tool generically.
+ */
+export type AiToolCallDescriber = (
+    call: AiToolCall,
+    t: TFunction,
+) => AiToolCallDescription;
+
+/** "ManageCollections" or "manage_collections" -> "Manage collections". */
+export const humanizeToolName = (name: string): string => {
+    const words = name
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .trim()
+        .toLowerCase();
+
+    return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** The generic sentence for a call: "Using / Used / Could not use <tool>". */
+export const describeToolCallGenerically: AiToolCallDescriber = (call, t) => {
+    const tool = humanizeToolName(call.name);
+
+    if (isToolRunning(call.state)) {
+        return { title: t('ai.tool.title.running', { tool }) };
+    }
+
+    if (call.state === 'approval-requested') {
+        return { title: t('ai.tool.title.approval', { tool }) };
+    }
+
+    if (call.state === 'output-error') {
+        return { title: t('ai.tool.title.error', { tool }) };
+    }
+
+    if (call.state === 'output-denied') {
+        return { title: t('ai.tool.title.denied', { tool }) };
+    }
+
+    return { title: t('ai.tool.title.done', { tool }) };
+};
+
 /** Plain-text fallback; apps pass a Markdown renderer (Streamdown in externa-core). */
 const renderPlainText: AiAnswerTextRenderer = (text) => (
     <div className="whitespace-pre-wrap">{text}</div>
@@ -63,13 +103,16 @@ type AiAnswerPartsProps = {
     /** Hide calls waiting for approval when an approval block renders them. */
     hidePendingApprovals?: boolean;
     renderText?: AiAnswerTextRenderer;
+    /** The sentence of each tool call; defaults to the generic one. */
+    describeToolCall?: AiToolCallDescriber;
 };
 
 /**
- * An AI answer's parts in the order the model produced them, on AI Elements:
- * reasoning (`Reasoning`, collapsed), tool calls (one `Tool`, or a
- * `ChainOfThought` when the model took several tool steps in a row, its title
- * shimmering while a step runs) and text. The parts come from
+ * An AI answer's parts in the order the model produced them, on the AI
+ * Elements shadcn rebuilt on Trace: reasoning (one line, collapsed), tool
+ * calls (one line each, or a Chain of Thought "Done in N steps" when the
+ * model took several in a row) and text. A tool line is a sentence from
+ * `describeToolCall`, never the raw JSON of the call. The parts come from
  * `lib/ai-message-parts.ts`, live from the stream or rebuilt from the stored
  * steps. Extracted from externa-core's `AssistantParts`.
  */
@@ -79,6 +122,7 @@ export function AiAnswerParts({
     isStreaming,
     hidePendingApprovals = false,
     renderText = renderPlainText,
+    describeToolCall = describeToolCallGenerically,
 }: AiAnswerPartsProps) {
     const { t } = useTranslation();
     const parts = allParts.filter(
@@ -124,10 +168,13 @@ export function AiAnswerParts({
                 if (block.kind === 'tools') {
                     if (block.parts.length === 1) {
                         return (
-                            <AiToolPartView
-                                key={block.index}
-                                part={block.parts[0]!}
-                            />
+                            <Trace key={block.index}>
+                                <AiToolPartView
+                                    part={block.parts[0]!}
+                                    isStreaming={isStreaming}
+                                    describeToolCall={describeToolCall}
+                                />
+                            </Trace>
                         );
                     }
 
@@ -136,40 +183,49 @@ export function AiAnswerParts({
                         block.parts.some(
                             (part) =>
                                 part.type === 'tool' &&
-                                part.state === 'input-available',
+                                isToolRunning(part.state),
                         );
-                    const title = t('ai.tool.steps', {
-                        count: block.parts.length,
-                    });
 
                     return (
-                        <ChainOfThought key={block.index}>
-                            <ChainOfThoughtHeader>
-                                {isRunning ? <Shimmer>{title}</Shimmer> : title}
-                            </ChainOfThoughtHeader>
-                            <ChainOfThoughtContent>
+                        <Trace key={block.index}>
+                            <ChainOfThought
+                                isRunning={isRunning}
+                                title={t(
+                                    isRunning
+                                        ? 'ai.tool.stepsRunning'
+                                        : 'ai.tool.steps',
+                                    { count: block.parts.length },
+                                )}
+                            >
                                 {block.parts.map((part) => (
-                                    <AiToolPartView key={part.id} part={part} />
+                                    <AiToolPartView
+                                        key={part.id}
+                                        part={part}
+                                        isStreaming={isStreaming}
+                                        describeToolCall={describeToolCall}
+                                    />
                                 ))}
-                            </ChainOfThoughtContent>
-                        </ChainOfThought>
+                            </ChainOfThought>
+                        </Trace>
                     );
                 }
 
                 const { part, index } = block;
 
                 if (part.type === 'reasoning') {
+                    const isThinking = isStreaming && part.isStreaming;
+
                     return (
-                        <Reasoning
-                            key={index}
-                            isStreaming={isStreaming && part.isStreaming}
-                            duration={part.durationSeconds ?? undefined}
-                        >
-                            <ReasoningTrigger />
-                            <ReasoningContent>
-                                {renderText(part.text, { isLive: false })}
-                            </ReasoningContent>
-                        </Reasoning>
+                        <Trace key={index}>
+                            <Reasoning
+                                isStreaming={isThinking}
+                                duration={part.durationSeconds ?? undefined}
+                            >
+                                {part.text.trim() === ''
+                                    ? null
+                                    : renderText(part.text, { isLive: false })}
+                            </Reasoning>
+                        </Trace>
                     );
                 }
 
@@ -189,64 +245,64 @@ export function AiAnswerParts({
     );
 }
 
-/** One tool call (or provider tool, e.g. web search) as an AI Elements `Tool` with its input and output. */
+/**
+ * One tool call (or provider tool, e.g. web search) as a Trace `Tool` line.
+ * A call the stream left running after the turn ended is shown as waiting,
+ * not failed (shadcn's guidance).
+ */
 export function AiToolPartView({
     part,
+    isStreaming = false,
+    describeToolCall = describeToolCallGenerically,
 }: {
     part: AiToolPart | AiProviderToolPart;
+    isStreaming?: boolean;
+    describeToolCall?: AiToolCallDescriber;
 }) {
+    const { t } = useTranslation();
+
     if (part.type === 'provider-tool') {
+        const query = part.data.query;
+
         return (
-            <Tool className="mb-0">
-                <ToolHeader
-                    type={`tool-${part.kind}`}
-                    title={part.kind}
-                    state="output-available"
-                />
-                <ToolContent>
-                    <ToolInput input={part.data} />
-                </ToolContent>
-            </Tool>
+            <Tool
+                title={t(`ai.tool.provider.${part.kind}`, {
+                    defaultValue: t('ai.tool.title.done', {
+                        tool: humanizeToolName(part.kind),
+                    }),
+                })}
+                description={typeof query === 'string' ? query : undefined}
+                state="output-available"
+            />
         );
     }
 
+    const description = describeToolCall(
+        { name: part.name, input: part.input, state: part.state },
+        t,
+    );
+
     return (
-        <Tool className="mb-0" data-test="ai-tool-part">
-            <ToolHeader
-                type={`tool-${part.name}`}
-                title={part.name}
-                state={part.state}
-            />
-            <ToolContent>
-                <ToolInput input={part.input} />
-                <ToolOutput
-                    output={part.output}
-                    errorText={part.errorText ?? undefined}
-                />
-            </ToolContent>
-        </Tool>
+        <Tool
+            title={description.title}
+            description={description.description}
+            state={part.state}
+            errorText={part.errorText}
+            isWaiting={!isStreaming && isToolRunning(part.state)}
+        />
     );
 }
 
-/** The answer's citations as AI Elements `Sources` (collapsed, with the count). */
+/** The answer's citations as AI Elements `Sources` ("Used N sources", collapsed). */
 export function AiAnswerSources({ sources }: { sources: AiSource[] }) {
     if (sources.length === 0) {
         return null;
     }
 
     return (
-        <Sources>
-            <SourcesTrigger count={sources.length} />
-            <SourcesContent>
-                {sources.map((source) => (
-                    <Source
-                        key={source.url}
-                        href={source.url}
-                        title={source.title ?? source.url}
-                    />
-                ))}
-            </SourcesContent>
-        </Sources>
+        <Trace>
+            <Sources sources={sources} />
+        </Trace>
     );
 }
 
