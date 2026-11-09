@@ -13,7 +13,7 @@ import { initialsFromName } from '@/lib/format';
 import type { ChatUser } from '@/lib/item-chat-api';
 import { cn } from '@/lib/utils';
 
-type ChatUserHoverCardProps = {
+type UserHoverCardProps = {
     user: ChatUser;
     /** The trigger: an author name or a mention. */
     children: ReactNode;
@@ -23,7 +23,7 @@ type ChatUserHoverCardProps = {
  * A chat participant's card on hover or focus, on shadcn `HoverCard`: avatar,
  * name, role and whether they are online. Wraps author names and mentions.
  */
-export function ChatUserHoverCard({ user, children }: ChatUserHoverCardProps) {
+export function UserHoverCard({ user, children }: UserHoverCardProps) {
     return (
         <HoverCard openDelay={300} closeDelay={100}>
             <HoverCardTrigger asChild>{children}</HoverCardTrigger>

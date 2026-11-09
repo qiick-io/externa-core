@@ -36,7 +36,6 @@ import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
-import { ChatUserHoverCard } from '@/components/chat/chat-user-hover-card';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -75,6 +74,7 @@ import {
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { UserHoverCard } from '@/components/user-hover-card';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { avatarToneClass } from '@/lib/avatar-tone';
@@ -243,9 +243,9 @@ function renderMessageBody(
 
             nodes.push(
                 user ? (
-                    <ChatUserHoverCard key={`${match.index}-${id}`} user={user}>
+                    <UserHoverCard key={`${match.index}-${id}`} user={user}>
                         {label}
-                    </ChatUserHoverCard>
+                    </UserHoverCard>
                 ) : (
                     label
                 ),
@@ -2099,7 +2099,7 @@ export function ItemChatDrawer({
                                                             isGroupStart ? (
                                                                 <MessageHeader className="font-medium text-foreground">
                                                                     {comment.user ? (
-                                                                        <ChatUserHoverCard
+                                                                        <UserHoverCard
                                                                             user={
                                                                                 comment.user
                                                                             }
@@ -2115,7 +2115,7 @@ export function ItemChatDrawer({
                                                                                         .name
                                                                                 }
                                                                             </button>
-                                                                        </ChatUserHoverCard>
+                                                                        </UserHoverCard>
                                                                     ) : null}
                                                                 </MessageHeader>
                                                             ) : null}
