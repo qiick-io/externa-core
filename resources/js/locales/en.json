@@ -921,7 +921,19 @@
             "calendarLoadError": "Could not load calendar items.",
             "calendarTruncated": "Showing {{shown}} of {{total}} items in this month.",
             "activeItems": "Active items",
-            "trash": "Trash"
+            "trash": "Trash",
+            "operators": {
+                "eq": "equals",
+                "neq": "not equals",
+                "contains": "contains",
+                "in": "is one of",
+                "null": "is empty",
+                "nnull": "is not empty",
+                "gt": "greater than",
+                "gte": "greater or equal",
+                "lt": "less than",
+                "lte": "less or equal"
+            }
         },
         "localized": {
             "applyAll": "Apply to all locales",
@@ -2785,5 +2797,12 @@
         "compareHint": "Select two revisions to see field diffs.",
         "field": "Field",
         "selectRevision": "Select revision #{{id}}"
+    },
+    "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "goToPage": "Go to page {{page}}",
+        "goToPreviousPage": "Go to previous page",
+        "goToNextPage": "Go to next page"
     }
 }

@@ -27,6 +27,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Toggle } from '@/components/ui/toggle';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -216,7 +221,7 @@ export default function AdminRoleForm({
             collection_permissions: { ...collection_permissions },
             file_permissions: { ...file_permissions },
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reseed only when another role loads or the collections arrive; Inertia useForm identity changes every render
     }, [role?.id, collections.length]);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
@@ -970,16 +975,22 @@ export default function AdminRoleForm({
                                                                                             }
                                                                                             className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-3 text-xs"
                                                                                         >
-                                                                                            <span
-                                                                                                className="min-w-0 truncate font-medium"
-                                                                                                title={
-                                                                                                    field.name
-                                                                                                }
-                                                                                            >
-                                                                                                {
-                                                                                                    field.name
-                                                                                                }
-                                                                                            </span>
+                                                                                            <Tooltip>
+                                                                                                <TooltipTrigger
+                                                                                                    asChild
+                                                                                                >
+                                                                                                    <span className="min-w-0 truncate font-medium">
+                                                                                                        {
+                                                                                                            field.name
+                                                                                                        }
+                                                                                                    </span>
+                                                                                                </TooltipTrigger>
+                                                                                                <TooltipContent>
+                                                                                                    {
+                                                                                                        field.name
+                                                                                                    }
+                                                                                                </TooltipContent>
+                                                                                            </Tooltip>
                                                                                             {FIELD_ACTIONS.map(
                                                                                                 (
                                                                                                     action,

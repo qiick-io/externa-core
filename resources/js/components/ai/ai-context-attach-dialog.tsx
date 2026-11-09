@@ -1,8 +1,10 @@
 import {
     Check,
+    Database,
     File as FileIcon,
     FolderOpen,
     Library,
+    MessageSquareText,
     Pencil,
     Plus,
     Search,
@@ -11,6 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import {
@@ -21,6 +24,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -30,6 +39,7 @@ import {
 } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
+import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type {
@@ -395,13 +405,26 @@ export function AiContextAttachDialog({
                             className="mt-1 max-h-[40vh] overflow-y-auto"
                         >
                             {loading ? (
-                                <p className="text-sm text-muted-foreground">
+                                <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                    <Spinner className="size-5" />
                                     {t('ai.context.loading')}
-                                </p>
+                                </div>
                             ) : items.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    {t('ai.context.emptyItems')}
-                                </p>
+                                <Empty className="gap-3 p-6 md:p-6">
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-ai/10 text-ai"
+                                        >
+                                            <Database />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            <EmptyStatus>
+                                                {t('ai.context.emptyItems')}
+                                            </EmptyStatus>
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             ) : (
                                 <CommandList
                                     label={t('ai.context.tabs.items')}
@@ -452,13 +475,26 @@ export function AiContextAttachDialog({
                             className="mt-1 max-h-[40vh] overflow-y-auto"
                         >
                             {loading ? (
-                                <p className="text-sm text-muted-foreground">
+                                <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                    <Spinner className="size-5" />
                                     {t('ai.context.loading')}
-                                </p>
+                                </div>
                             ) : files.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    {t('ai.context.emptyFiles')}
-                                </p>
+                                <Empty className="gap-3 p-6 md:p-6">
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-ai/10 text-ai"
+                                        >
+                                            <FileIcon />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            <EmptyStatus>
+                                                {t('ai.context.emptyFiles')}
+                                            </EmptyStatus>
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             ) : (
                                 <CommandList
                                     label={t('ai.context.tabs.files')}
@@ -615,13 +651,26 @@ export function AiContextAttachDialog({
                                     </div>
                                 </div>
                             ) : loading ? (
-                                <p className="text-sm text-muted-foreground">
+                                <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                    <Spinner className="size-5" />
                                     {t('ai.context.loading')}
-                                </p>
+                                </div>
                             ) : prompts.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    {t('ai.context.emptyPrompts')}
-                                </p>
+                                <Empty className="gap-3 p-6 md:p-6">
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-ai/10 text-ai"
+                                        >
+                                            <MessageSquareText />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            <EmptyStatus>
+                                                {t('ai.context.emptyPrompts')}
+                                            </EmptyStatus>
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             ) : (
                                 <CommandList
                                     label={t('ai.context.tabs.prompts')}

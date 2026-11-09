@@ -921,7 +921,19 @@
             "calendarLoadError": "Kalendereinträge konnten nicht geladen werden.",
             "calendarTruncated": "Zeige {{shown}} von {{total}} Einträgen in diesem Monat.",
             "activeItems": "Aktive Einträge",
-            "trash": "Papierkorb"
+            "trash": "Papierkorb",
+            "operators": {
+                "eq": "ist gleich",
+                "neq": "ist ungleich",
+                "contains": "enthält",
+                "in": "ist eines von",
+                "null": "ist leer",
+                "nnull": "ist nicht leer",
+                "gt": "größer als",
+                "gte": "größer oder gleich",
+                "lt": "kleiner als",
+                "lte": "kleiner oder gleich"
+            }
         },
         "localized": {
             "applyAll": "Auf alle Locales anwenden",
@@ -2785,5 +2797,12 @@
         "compareHint": "Wähle zwei Revisionen, um die Unterschiede zu sehen.",
         "field": "Feld",
         "selectRevision": "Revision #{{id}} auswählen"
+    },
+    "pagination": {
+        "previous": "Zurück",
+        "next": "Weiter",
+        "goToPage": "Zu Seite {{page}}",
+        "goToPreviousPage": "Zur vorherigen Seite",
+        "goToNextPage": "Zur nächsten Seite"
     }
 }

@@ -57,6 +57,11 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
@@ -654,13 +659,21 @@ function DiffChangedMarker() {
     const { t } = useTranslation();
 
     return (
-        <span
-            className="ml-1 inline-flex text-warning-text"
-            title={t('a11y.changed')}
-            aria-label={t('a11y.changed')}
-        >
-            <Asterisk className="size-3.5" strokeWidth={2.5} aria-hidden />
-        </span>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span
+                    className="ml-1 inline-flex text-warning-text"
+                    aria-label={t('a11y.changed')}
+                >
+                    <Asterisk
+                        className="size-3.5"
+                        strokeWidth={2.5}
+                        aria-hidden
+                    />
+                </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('a11y.changed')}</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -1262,8 +1275,7 @@ export function DynamicItemFields({
         for (const [fieldName, value] of Object.entries(revisionApply.values)) {
             applyFieldValue(fieldName, value);
         }
-        // nonce is the apply trigger; applyFieldValue is intentionally unstable
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the nonce is the apply trigger; applyFieldValue is intentionally unstable
     }, [revisionApply?.nonce]);
 
     const undoFieldValue = (fieldName: string): void => {

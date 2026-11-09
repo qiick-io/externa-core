@@ -18,7 +18,6 @@ export function useClipboard(): UseClipboardReturn {
         const copied = await copyTextToClipboard(text);
 
         if (!copied) {
-            console.warn('Copy failed');
             setCopiedText(null);
 
             return false;

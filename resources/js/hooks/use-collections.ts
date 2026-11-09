@@ -6,7 +6,6 @@ import {
     useRegisterUnsavedChanges,
     useRequestLeave,
 } from '@/hooks/use-unsaved-changes';
-import { slugify as toSlug } from '@/lib/slugify';
 import type { CollectionRow } from '@/types/collections';
 
 const EMPTY_COLLECTION_FORM = {
@@ -31,16 +30,6 @@ function retentionOrNull(value: number | null | undefined): number | null {
     }
 
     return Number.isFinite(value) && value >= 1 ? Math.trunc(value) : null;
-}
-
-/**
- * Converts a collection display name to a URL-safe slug.
- *
- * @param value - Raw collection name
- * @returns Slug with non-alphanumeric segments replaced by hyphens
- */
-export function slugify(value: string): string {
-    return toSlug(value);
 }
 
 /**
@@ -100,8 +89,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
             form.clearErrors();
             setSlugManual(false);
         }
-        /* `form` omitted from deps: Inertia useForm identity can change every render */
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `form` omitted: Inertia useForm identity can change every render
     }, [open, editing]);
 
     const title = editing ? 'Edit collection' : 'New collection';

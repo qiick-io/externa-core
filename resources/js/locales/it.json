@@ -921,7 +921,19 @@
             "calendarLoadError": "Impossibile caricare gli elementi del calendario.",
             "calendarTruncated": "Mostro {{shown}} di {{total}} elementi in questo mese.",
             "activeItems": "Elementi attivi",
-            "trash": "Cestino"
+            "trash": "Cestino",
+            "operators": {
+                "eq": "uguale a",
+                "neq": "diverso da",
+                "contains": "contiene",
+                "in": "è uno tra",
+                "null": "è vuoto",
+                "nnull": "non è vuoto",
+                "gt": "maggiore di",
+                "gte": "maggiore o uguale",
+                "lt": "minore di",
+                "lte": "minore o uguale"
+            }
         },
         "localized": {
             "applyAll": "Applica a tutte le lingue",
@@ -2785,5 +2797,12 @@
         "compareHint": "Seleziona due revisioni per vedere le differenze.",
         "field": "Campo",
         "selectRevision": "Seleziona revisione #{{id}}"
+    },
+    "pagination": {
+        "previous": "Precedente",
+        "next": "Successiva",
+        "goToPage": "Vai alla pagina {{page}}",
+        "goToPreviousPage": "Vai alla pagina precedente",
+        "goToNextPage": "Vai alla pagina successiva"
     }
 }

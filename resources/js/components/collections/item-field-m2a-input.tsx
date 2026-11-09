@@ -9,6 +9,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { parseM2aFieldSettings } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
+import { moveItem, newListItemId } from '@/lib/list-items';
 import type { FieldDef } from '@/types';
 
 type M2aBlock = {
@@ -19,35 +20,6 @@ type M2aBlock = {
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
-}
-
-function newBlockId(): string {
-    if (
-        typeof crypto !== 'undefined' &&
-        typeof crypto.randomUUID === 'function'
-    ) {
-        try {
-            return crypto.randomUUID();
-        } catch {
-            // some embedded webviews expose the method but throw
-        }
-    }
-
-    // ponytail: UUID v4 fallback when crypto.randomUUID is missing
-    return `m2a-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function moveItem<T>(items: T[], from: number, to: number): T[] {
-    const next = items.slice();
-    const [item] = next.splice(from, 1);
-
-    if (item === undefined) {
-        return items;
-    }
-
-    next.splice(to, 0, item);
-
-    return next;
 }
 
 function parseM2aBlocks(defaultValue: unknown): M2aBlock[] {
@@ -72,7 +44,7 @@ function parseM2aBlocks(defaultValue: unknown): M2aBlock[] {
 
         return [
             {
-                id: newBlockId(),
+                id: newListItemId(),
                 related_collection_id: (
                     entry as {
                         related_collection_id: number;
@@ -136,7 +108,7 @@ export function M2aFieldInput({
         setBlocks((current) => [
             ...current,
             {
-                id: newBlockId(),
+                id: newListItemId(),
                 related_collection_id: firstCollection.id,
                 related_item_id: 0,
             },

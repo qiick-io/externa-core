@@ -8,11 +8,17 @@ import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
     ChatCollection,
     ChatReplyTo,
     ChatUser,
 } from '@/lib/item-chat-api';
+import { isMediaFile } from '@/lib/media-file';
 import { cn } from '@/lib/utils';
 
 type PendingChatFile = {
@@ -46,10 +52,6 @@ type Props = {
     onRetry: (clientId: string) => void;
     onRemoveFile: (clientId: string, fileKey: string) => void;
 };
-
-function isMediaFile(file: File): boolean {
-    return file.type.startsWith('image/') || file.type.startsWith('video/');
-}
 
 function pendingTimeLabel(date: Date): string {
     return date.toLocaleTimeString(undefined, {
@@ -195,18 +197,26 @@ export function ChatOutgoingAttachPreview({
                     >
                         <span className="inline-flex size-2.5 shrink-0 items-center justify-center">
                             {failed ? (
-                                <button
-                                    type="button"
-                                    className="inline-flex size-2.5 items-center justify-center text-destructive hover:text-destructive/80"
-                                    aria-label={retryLabel}
-                                    title={errorLabel}
-                                    onClick={() => onRetry(pending.clientId)}
-                                >
-                                    <RotateCcw
-                                        className="size-2.5"
-                                        aria-hidden
-                                    />
-                                </button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="inline-flex size-2.5 items-center justify-center text-destructive hover:text-destructive/80"
+                                            aria-label={retryLabel}
+                                            onClick={() =>
+                                                onRetry(pending.clientId)
+                                            }
+                                        >
+                                            <RotateCcw
+                                                className="size-2.5"
+                                                aria-hidden
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {errorLabel}
+                                    </TooltipContent>
+                                </Tooltip>
                             ) : inFlight ? (
                                 <Spinner
                                     className="size-2.5 text-muted-foreground"

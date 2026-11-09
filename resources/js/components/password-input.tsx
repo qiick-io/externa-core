@@ -9,6 +9,11 @@ import {
     InputGroupInput,
 } from '@/components/ui/input-group';
 import { Progress } from '@/components/ui/progress';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { evaluatePasswordStrength } from '@/lib/password-strength';
 import type { PasswordPolicy } from '@/lib/password-strength';
 import { cn } from '@/lib/utils';
@@ -118,19 +123,26 @@ export default function PasswordInput({
                 />
                 <InputGroupAddon align="inline-end">
                     {showGenerateButton && (
-                        <InputGroupButton
-                            size="icon-xs"
-                            onClick={() =>
-                                onGenerated?.(generateSecurePassword())
-                            }
-                            disabled={props.disabled}
-                            aria-label={
-                                generateLabel ?? t('passwordInput.generate')
-                            }
-                            title={generateLabel ?? t('passwordInput.generate')}
-                        >
-                            <WandSparkles />
-                        </InputGroupButton>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <InputGroupButton
+                                    size="icon-xs"
+                                    onClick={() =>
+                                        onGenerated?.(generateSecurePassword())
+                                    }
+                                    disabled={props.disabled}
+                                    aria-label={
+                                        generateLabel ??
+                                        t('passwordInput.generate')
+                                    }
+                                >
+                                    <WandSparkles />
+                                </InputGroupButton>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {generateLabel ?? t('passwordInput.generate')}
+                            </TooltipContent>
+                        </Tooltip>
                     )}
                     <InputGroupButton
                         size="icon-xs"

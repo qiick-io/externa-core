@@ -442,9 +442,8 @@ export default function ItemRevisions({
                                         disabled={loading || loadingMore}
                                         onClick={loadMore}
                                     >
-                                        {loadingMore
-                                            ? t('common.loading')
-                                            : t('common.loadMore')}
+                                        {loadingMore ? <Spinner /> : null}
+                                        {t('common.loadMore')}
                                     </Button>
                                 ) : null}
                             </>

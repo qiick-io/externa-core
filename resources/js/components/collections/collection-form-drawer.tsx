@@ -35,14 +35,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { slugify } from '@/hooks/use-collections';
 import type { UseCollectionsReturn } from '@/hooks/use-collections';
 import { jsonRequestHeaders } from '@/lib/csrf';
-import {
-    COLLECTION_SLUG_PATTERN,
-    slugify as finalizeSlug,
-    slugifyInput,
-} from '@/lib/slugify';
+import { COLLECTION_SLUG_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
 import {
     COLLECTION_COLOR_PICKER_FALLBACK,
     resolveCollectionColor,
@@ -86,7 +81,7 @@ export function CollectionFormDrawer({
             // Trailing `-` while typing → compare the finalized slug.
             const key = COLLECTION_SLUG_PATTERN.test(form.data.slug)
                 ? form.data.slug
-                : finalizeSlug(form.data.slug);
+                : slugify(form.data.slug);
 
             if (key === '') {
                 setDebouncedSlugError(undefined);
@@ -220,7 +215,7 @@ export function CollectionFormDrawer({
                                 onBlur={() =>
                                     form.setData(
                                         'slug',
-                                        finalizeSlug(form.data.slug),
+                                        slugify(form.data.slug),
                                     )
                                 }
                                 required
