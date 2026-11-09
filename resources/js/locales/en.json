@@ -2028,25 +2028,26 @@
         "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools.",
         "conversationRegion": "Conversation",
         "tool": {
-            "state": {
-                "input-streaming": "Pending",
-                "input-available": "Running",
-                "approval-requested": "Awaiting approval",
-                "approval-responded": "Responded",
-                "output-available": "Completed",
-                "output-error": "Error",
-                "output-denied": "Denied"
+            "title": {
+                "running": "Using {{tool}}",
+                "done": "Used {{tool}}",
+                "error": "Could not use {{tool}}",
+                "denied": "Denied {{tool}}",
+                "approval": "{{tool}} needs your approval"
             },
-            "parameters": "Parameters",
-            "result": "Result",
-            "error": "Error",
-            "steps_one": "{{count}} tool step",
-            "steps_other": "{{count}} tool steps"
+            "provider": {
+                "web_search": "Searched the web"
+            },
+            "steps_one": "Done in {{count}} step",
+            "steps_other": "Done in {{count}} steps",
+            "stepsRunning_one": "Working, {{count}} step so far",
+            "stepsRunning_other": "Working, {{count}} steps so far"
         },
         "approval": {
-            "request": "The assistant wants to run {{tools}}.",
             "approve": "Approve",
-            "reject": "Reject"
+            "reject": "Reject",
+            "question": "Approve this action?",
+            "hint": "The assistant waits for your answer before it continues."
         },
         "actions": {
             "copy": "Copy",
@@ -2109,9 +2110,9 @@
         "bulkDeleteDescription_other": "You are about to delete {{count}} chats. This action cannot be undone.",
         "reasoning": {
             "thinking": "Thinking…",
+            "thoughtFewSeconds": "Thought for a few seconds",
             "thoughtFor_one": "Thought for {{count}} second",
-            "thoughtFor_other": "Thought for {{count}} seconds",
-            "thoughtFewSeconds": "Thought for a few seconds"
+            "thoughtFor_other": "Thought for {{count}} seconds"
         },
         "sources": {
             "used_one": "Used {{count}} source",
@@ -2134,6 +2135,118 @@
             "exportJson": "Export JSON",
             "recentActivity": "Recent activity",
             "aiOnly": "AI only"
+        },
+        "toolCalls": {
+            "DescribeFieldTypes": {
+                "_": "Read the field types"
+            },
+            "ExportCollection": {
+                "_": "Export a collection"
+            },
+            "ExtractPdfText": {
+                "_": "Read the PDF"
+            },
+            "GetImportJobStatus": {
+                "_": "Check the import"
+            },
+            "ImportCollectionCsv": {
+                "_": "Import a CSV"
+            },
+            "ImportRemoteJson": {
+                "_": "Import data from a URL"
+            },
+            "ManageAiSyncSources": {
+                "create": "Create a sync source",
+                "delete": "Move a sync source to the trash",
+                "disable": "Turn off a sync source",
+                "enable": "Turn on a sync source",
+                "list": "List sync sources",
+                "update": "Update a sync source"
+            },
+            "ManageCollectionItems": {
+                "bulk_delete": "Move several items to the trash",
+                "bulk_update": "Update several items",
+                "create": "Create an item",
+                "delete": "Move an item to the trash",
+                "force_delete": "Delete an item permanently",
+                "get": "Read an item",
+                "list": "List items",
+                "list_relation_options": "List the items you can link",
+                "publish": "Publish an item",
+                "restore": "Restore an item",
+                "update": "Update an item"
+            },
+            "ManageCollections": {
+                "apply_collection_pack": "Create a collection from a template",
+                "apply_field_pack": "Add a field pack",
+                "convert_field": "Change a field type",
+                "create": "Create a collection",
+                "create_field": "Add a field",
+                "delete": "Move a collection to the trash",
+                "delete_field": "Remove a field",
+                "duplicate": "Duplicate a collection",
+                "force_delete": "Delete a collection permanently",
+                "get": "Read a collection",
+                "list": "List collections",
+                "list_collection_packs": "List collection templates",
+                "list_field_packs": "List field packs",
+                "restore": "Restore a collection",
+                "update": "Update a collection",
+                "update_field": "Update a field"
+            },
+            "ManageFiles": {
+                "create": "Create a file",
+                "create_folder": "Create a folder",
+                "delete": "Move a file to the trash",
+                "force_delete": "Delete a file permanently",
+                "list": "List files",
+                "move": "Move a file",
+                "move_many": "Move several files",
+                "rename": "Rename a file",
+                "restore": "Restore a file",
+                "save_attachment": "Save the attachment to Files",
+                "search": "Search the files",
+                "tag": "Tag a file"
+            },
+            "ManageGroups": {
+                "create": "Create a group",
+                "delete": "Move a group to the trash",
+                "force_delete": "Delete a group permanently",
+                "get": "Read a group",
+                "list": "List groups",
+                "restore": "Restore a group",
+                "update": "Update a group"
+            },
+            "ManageRoles": {
+                "create": "Create a role",
+                "delete": "Move a role to the trash",
+                "duplicate": "Duplicate a role",
+                "get": "Read a role",
+                "list": "List roles",
+                "list_permissions": "List permissions",
+                "update": "Update a role"
+            },
+            "ManageUsers": {
+                "create": "Create a user",
+                "delete": "Move a user to the trash",
+                "force_delete": "Delete a user permanently",
+                "get": "Read a user",
+                "list": "List users",
+                "restore": "Restore a user",
+                "update": "Update a user"
+            },
+            "QueryActivityLogs": {
+                "_": "Search the activity log"
+            },
+            "QueryCollectionItems": {
+                "_": "Search the items"
+            },
+            "RollbackLastAiTurn": {
+                "_": "Undo the last changes"
+            },
+            "SearchSimilarCollectionItems": {
+                "_": "Find similar items"
+            }
         }
     },
     "dashboard": {

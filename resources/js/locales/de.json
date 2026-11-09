@@ -2028,25 +2028,26 @@
         "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools.",
         "conversationRegion": "Unterhaltung",
         "tool": {
-            "state": {
-                "input-streaming": "Ausstehend",
-                "input-available": "Läuft",
-                "approval-requested": "Wartet auf Freigabe",
-                "approval-responded": "Beantwortet",
-                "output-available": "Abgeschlossen",
-                "output-error": "Fehler",
-                "output-denied": "Abgelehnt"
+            "title": {
+                "running": "Verwende {{tool}}",
+                "done": "{{tool}} verwendet",
+                "error": "{{tool}} konnte nicht verwendet werden",
+                "denied": "Abgelehnt: {{tool}}",
+                "approval": "{{tool}} braucht deine Freigabe"
             },
-            "parameters": "Parameter",
-            "result": "Ergebnis",
-            "error": "Fehler",
-            "steps_one": "{{count}} Werkzeugschritt",
-            "steps_other": "{{count}} Werkzeugschritte"
+            "provider": {
+                "web_search": "Im Web gesucht"
+            },
+            "steps_one": "In {{count}} Schritt erledigt",
+            "steps_other": "In {{count}} Schritten erledigt",
+            "stepsRunning_one": "In Arbeit, bisher {{count}} Schritt",
+            "stepsRunning_other": "In Arbeit, bisher {{count}} Schritte"
         },
         "approval": {
-            "request": "Der Assistent möchte {{tools}} ausführen.",
             "approve": "Freigeben",
-            "reject": "Ablehnen"
+            "reject": "Ablehnen",
+            "question": "Diese Aktion freigeben?",
+            "hint": "Der Assistent wartet auf deine Antwort, bevor er weitermacht."
         },
         "actions": {
             "copy": "Kopieren",
@@ -2109,9 +2110,9 @@
         "bulkDeleteDescription_other": "Sie löschen {{count}} Chats. Dies kann nicht rückgängig gemacht werden.",
         "reasoning": {
             "thinking": "Denkt nach…",
+            "thoughtFewSeconds": "Ein paar Sekunden nachgedacht",
             "thoughtFor_one": "{{count}} Sekunde nachgedacht",
-            "thoughtFor_other": "{{count}} Sekunden nachgedacht",
-            "thoughtFewSeconds": "Ein paar Sekunden nachgedacht"
+            "thoughtFor_other": "{{count}} Sekunden nachgedacht"
         },
         "sources": {
             "used_one": "{{count}} Quelle verwendet",
@@ -2134,6 +2135,118 @@
             "exportJson": "JSON exportieren",
             "recentActivity": "Letzte Aktivität",
             "aiOnly": "Nur KI"
+        },
+        "toolCalls": {
+            "DescribeFieldTypes": {
+                "_": "Feldtypen lesen"
+            },
+            "ExportCollection": {
+                "_": "Collection exportieren"
+            },
+            "ExtractPdfText": {
+                "_": "PDF lesen"
+            },
+            "GetImportJobStatus": {
+                "_": "Import prüfen"
+            },
+            "ImportCollectionCsv": {
+                "_": "CSV importieren"
+            },
+            "ImportRemoteJson": {
+                "_": "Daten von einer URL importieren"
+            },
+            "ManageAiSyncSources": {
+                "create": "Sync-Quelle erstellen",
+                "delete": "Sync-Quelle in den Papierkorb verschieben",
+                "disable": "Sync-Quelle deaktivieren",
+                "enable": "Sync-Quelle aktivieren",
+                "list": "Sync-Quellen auflisten",
+                "update": "Sync-Quelle bearbeiten"
+            },
+            "ManageCollectionItems": {
+                "bulk_delete": "Mehrere Einträge in den Papierkorb verschieben",
+                "bulk_update": "Mehrere Einträge bearbeiten",
+                "create": "Eintrag erstellen",
+                "delete": "Eintrag in den Papierkorb verschieben",
+                "force_delete": "Eintrag endgültig löschen",
+                "get": "Eintrag lesen",
+                "list": "Einträge auflisten",
+                "list_relation_options": "Verknüpfbare Einträge auflisten",
+                "publish": "Eintrag veröffentlichen",
+                "restore": "Eintrag wiederherstellen",
+                "update": "Eintrag bearbeiten"
+            },
+            "ManageCollections": {
+                "apply_collection_pack": "Collection aus einer Vorlage erstellen",
+                "apply_field_pack": "Feldpaket hinzufügen",
+                "convert_field": "Feldtyp ändern",
+                "create": "Collection erstellen",
+                "create_field": "Feld hinzufügen",
+                "delete": "Collection in den Papierkorb verschieben",
+                "delete_field": "Feld entfernen",
+                "duplicate": "Collection duplizieren",
+                "force_delete": "Collection endgültig löschen",
+                "get": "Collection lesen",
+                "list": "Collections auflisten",
+                "list_collection_packs": "Collection-Vorlagen auflisten",
+                "list_field_packs": "Feldpakete auflisten",
+                "restore": "Collection wiederherstellen",
+                "update": "Collection bearbeiten",
+                "update_field": "Feld bearbeiten"
+            },
+            "ManageFiles": {
+                "create": "Datei erstellen",
+                "create_folder": "Ordner erstellen",
+                "delete": "Datei in den Papierkorb verschieben",
+                "force_delete": "Datei endgültig löschen",
+                "list": "Dateien auflisten",
+                "move": "Datei verschieben",
+                "move_many": "Mehrere Dateien verschieben",
+                "rename": "Datei umbenennen",
+                "restore": "Datei wiederherstellen",
+                "save_attachment": "Anhang in Dateien speichern",
+                "search": "Dateien durchsuchen",
+                "tag": "Datei taggen"
+            },
+            "ManageGroups": {
+                "create": "Gruppe erstellen",
+                "delete": "Gruppe in den Papierkorb verschieben",
+                "force_delete": "Gruppe endgültig löschen",
+                "get": "Gruppe lesen",
+                "list": "Gruppen auflisten",
+                "restore": "Gruppe wiederherstellen",
+                "update": "Gruppe bearbeiten"
+            },
+            "ManageRoles": {
+                "create": "Rolle erstellen",
+                "delete": "Rolle in den Papierkorb verschieben",
+                "duplicate": "Rolle duplizieren",
+                "get": "Rolle lesen",
+                "list": "Rollen auflisten",
+                "list_permissions": "Berechtigungen auflisten",
+                "update": "Rolle bearbeiten"
+            },
+            "ManageUsers": {
+                "create": "Benutzer erstellen",
+                "delete": "Benutzer in den Papierkorb verschieben",
+                "force_delete": "Benutzer endgültig löschen",
+                "get": "Benutzer lesen",
+                "list": "Benutzer auflisten",
+                "restore": "Benutzer wiederherstellen",
+                "update": "Benutzer bearbeiten"
+            },
+            "QueryActivityLogs": {
+                "_": "Aktivitätsprotokoll durchsuchen"
+            },
+            "QueryCollectionItems": {
+                "_": "Einträge durchsuchen"
+            },
+            "RollbackLastAiTurn": {
+                "_": "Letzte Änderungen rückgängig machen"
+            },
+            "SearchSimilarCollectionItems": {
+                "_": "Ähnliche Einträge finden"
+            }
         }
     },
     "dashboard": {

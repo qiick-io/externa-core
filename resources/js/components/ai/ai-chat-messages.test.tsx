@@ -97,7 +97,7 @@ describe('AiChatMessages', () => {
         ).not.toBeNull();
     });
 
-    it('asks for approval with the tool arguments and resolves it', () => {
+    it('asks for approval with the call sentence, never its JSON, and resolves it', () => {
         const handlers = renderMessages([
             prompt,
             {
@@ -114,11 +114,11 @@ describe('AiChatMessages', () => {
             },
         ]);
 
-        expect(screen.getByText('delete_item')).toBeInTheDocument();
-        expect(screen.getByText(/"item_id": 4/)).toBeInTheDocument();
         expect(
-            screen.getByText('ai.approval.request:delete_item'),
+            screen.getByText('ai.toolCalls.delete_item._'),
         ).toBeInTheDocument();
+        expect(screen.getByText('ai.approval.hint')).toBeInTheDocument();
+        expect(screen.queryByText(/item_id/)).toBeNull();
 
         fireEvent.click(
             screen.getByRole('button', { name: 'ai.approval.approve' }),
@@ -273,10 +273,13 @@ describe('AiChatMessages', () => {
             },
         ]);
 
-        expect(screen.getByText('ManageFiles')).toBeInTheDocument();
-        expect(
-            screen.getByText('ai.tool.state.output-error'),
-        ).toBeInTheDocument();
+        const failedCall = screen.getByText('ai.toolCalls.ManageFiles.move');
+
+        expect(failedCall.closest('[data-slot="trace-line"]')).toHaveAttribute(
+            'data-status',
+            'error',
+        );
+        expect(screen.queryByText(/"items"/)).toBeNull();
         expect(
             screen.getByRole('button', { name: /ai.tool.steps/ }),
         ).toBeInTheDocument();
