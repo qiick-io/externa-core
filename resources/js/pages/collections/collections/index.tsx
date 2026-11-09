@@ -142,7 +142,7 @@ export default function CollectionsIndex({
     ];
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Collections', href: collectionRoutes.index.url() },
+        { title: t('nav.collections'), href: collectionRoutes.index.url() },
     ];
 
     const syncClosedRef = useRef<() => void>(() => {});
@@ -297,7 +297,7 @@ export default function CollectionsIndex({
                 ) : undefined
             }
         >
-            <Head title="Collections" />
+            <Head title={t('nav.collections')} />
 
             <ApplyCollectionPackDialog
                 collectionPacks={collectionPacks}
@@ -429,8 +429,8 @@ export default function CollectionsIndex({
                                     size="icon"
                                     aria-label={
                                         direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
+                                            ? t('common.sortAscending')
+                                            : t('common.sortDescending')
                                     }
                                     onClick={() => {
                                         const nextDirection =
@@ -662,7 +662,12 @@ export default function CollectionsIndex({
                                                         onCheckedChange={() =>
                                                             toggleRow(c.id)
                                                         }
-                                                        aria-label={`Select ${c.name}`}
+                                                        aria-label={t(
+                                                            'a11y.selectRow',
+                                                            {
+                                                                name: c.name,
+                                                            },
+                                                        )}
                                                         className={
                                                             checkboxTargetClassName
                                                         }
@@ -711,14 +716,20 @@ export default function CollectionsIndex({
                                                 </TableCell>
                                                 <TableCell className="max-w-[16rem] text-muted-foreground">
                                                     {c.description ? (
-                                                        <span
-                                                            className="line-clamp-2"
-                                                            title={
-                                                                c.description
-                                                            }
-                                                        >
-                                                            {c.description}
-                                                        </span>
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <span className="line-clamp-2">
+                                                                    {
+                                                                        c.description
+                                                                    }
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="max-w-sm">
+                                                                {c.description}
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     ) : (
                                                         <span className="text-muted-foreground">
                                                             —
@@ -748,14 +759,25 @@ export default function CollectionsIndex({
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     ) : (
-                                                        <span
-                                                            className="text-muted-foreground"
-                                                            title={t(
-                                                                'collections.meta.listCollection',
-                                                            )}
-                                                        >
-                                                            —
-                                                        </span>
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <span className="text-muted-foreground">
+                                                                    —
+                                                                    <span className="sr-only">
+                                                                        {t(
+                                                                            'collections.meta.listCollection',
+                                                                        )}
+                                                                    </span>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {t(
+                                                                    'collections.meta.listCollection',
+                                                                )}
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>

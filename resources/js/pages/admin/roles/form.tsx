@@ -27,6 +27,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Toggle } from '@/components/ui/toggle';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -230,7 +235,9 @@ export default function AdminRoleForm({
                 href: rolesRoutes.index.url(),
             },
             {
-                title: isEdit ? 'Edit role' : 'New role',
+                title: isEdit
+                    ? t('roles.form.editTitle')
+                    : t('roles.actions.newRole'),
                 href: isEdit
                     ? rolesRoutes.edit.url(role!.id)
                     : rolesRoutes.create.url(),
@@ -362,7 +369,13 @@ export default function AdminRoleForm({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isEdit ? `Edit ${role?.name}` : 'New role'} />
+            <Head
+                title={
+                    isEdit
+                        ? t('roles.form.editNamed', { name: role?.name })
+                        : t('roles.actions.newRole')
+                }
+            />
 
             <SettingsLayout wide>
                 <div className="flex min-h-0 flex-1 flex-col gap-6">
@@ -962,16 +975,22 @@ export default function AdminRoleForm({
                                                                                             }
                                                                                             className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-3 text-xs"
                                                                                         >
-                                                                                            <span
-                                                                                                className="min-w-0 truncate font-medium"
-                                                                                                title={
-                                                                                                    field.name
-                                                                                                }
-                                                                                            >
-                                                                                                {
-                                                                                                    field.name
-                                                                                                }
-                                                                                            </span>
+                                                                                            <Tooltip>
+                                                                                                <TooltipTrigger
+                                                                                                    asChild
+                                                                                                >
+                                                                                                    <span className="min-w-0 truncate font-medium">
+                                                                                                        {
+                                                                                                            field.name
+                                                                                                        }
+                                                                                                    </span>
+                                                                                                </TooltipTrigger>
+                                                                                                <TooltipContent>
+                                                                                                    {
+                                                                                                        field.name
+                                                                                                    }
+                                                                                                </TooltipContent>
+                                                                                            </Tooltip>
                                                                                             {FIELD_ACTIONS.map(
                                                                                                 (
                                                                                                     action,

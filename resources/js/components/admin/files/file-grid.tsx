@@ -14,6 +14,7 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { Spinner } from '@/components/ui/spinner';
 import type {
     AdminFileRow,
     FileActionDefinition,
@@ -319,9 +320,8 @@ export function FileGrid({
                             disabled={loadingMore}
                             onClick={onLoadMore}
                         >
-                            {loadingMore
-                                ? t('files.loading')
-                                : t('files.loadMore')}
+                            {loadingMore ? <Spinner /> : null}
+                            {t('files.loadMore')}
                         </Button>
                     </div>
                 )}

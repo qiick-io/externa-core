@@ -831,11 +831,11 @@ export default function ItemsForm({
 
     const lastCrumb: BreadcrumbItem = isNew
         ? {
-              title: 'New item',
+              title: t('collections.items.list.newItem'),
               href: collections.items.new.url(collection.id),
           }
         : {
-              title: `Item #${item!.id}`,
+              title: t('nav.itemNumber', { id: item!.id }),
               href: collections.items.show.url({
                   collection: collection.id,
                   item: item!.id,
@@ -845,7 +845,7 @@ export default function ItemsForm({
     const breadcrumbs: BreadcrumbItem[] = [
         ...collectionBreadcrumbs,
         {
-            title: 'Items',
+            title: t('nav.items'),
             href: listHref,
         },
         lastCrumb,
@@ -1042,7 +1042,7 @@ export default function ItemsForm({
                         <FilterSearch
                             value={fieldSearch}
                             onChange={setFieldSearch}
-                            placeholder="Search fields…"
+                            placeholder={t('collections.searchFields')}
                             className={
                                 activeTab === 'activity'
                                     ? 'invisible'
@@ -1264,13 +1264,6 @@ export default function ItemsForm({
                                         className={
                                             publishBlockedByApproval
                                                 ? 'items-start'
-                                                : undefined
-                                        }
-                                        title={
-                                            publishBlockedByApproval
-                                                ? t(
-                                                      'collections.itemToolbar.approveBeforePublish',
-                                                  )
                                                 : undefined
                                         }
                                         data-test="publish-item"
@@ -2183,7 +2176,7 @@ export default function ItemsForm({
                         name: `#${item.id}`,
                     })}
                     description={t('itemConfirm.publishDraftDescription')}
-                    confirmLabel="Publish"
+                    confirmLabel={t('collections.itemToolbar.publish')}
                     confirming={publishing}
                     onConfirm={() => {
                         setPublishing(true);
@@ -2212,7 +2205,7 @@ export default function ItemsForm({
                         name: `#${item.id}`,
                     })}
                     description={t('itemConfirm.discardDraftDescription')}
-                    confirmLabel="Discard draft"
+                    confirmLabel={t('collections.itemToolbar.discardDraft')}
                     confirming={discardingDraft}
                     onConfirm={() => {
                         setDiscardingDraft(true);

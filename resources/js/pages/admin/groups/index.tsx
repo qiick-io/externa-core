@@ -145,8 +145,8 @@ export default function AdminGroupsIndex({
     });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Groups', href: groupsRoutes.index.url() }],
-        [],
+        () => [{ title: t('nav.groups'), href: groupsRoutes.index.url() }],
+        [t],
     );
 
     const visit = useCallback(
@@ -518,7 +518,9 @@ export default function AdminGroupsIndex({
                                         aria-label={t('groups.sortBy')}
                                         className="w-[7.5rem]"
                                     >
-                                        <SelectValue placeholder="Sort" />
+                                        <SelectValue
+                                            placeholder={t('common.sort')}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent align="end">
                                         {groupSortFields.map((field) => (

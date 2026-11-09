@@ -45,6 +45,7 @@ import {
     EmptyMedia,
 } from '@/components/ui/empty';
 import { Item } from '@/components/ui/item';
+import { Spinner } from '@/components/ui/spinner';
 import { useAiChat } from '@/hooks/use-ai-chat';
 import type { AiChatMessage } from '@/hooks/use-ai-chat';
 import AppLayout from '@/layouts/app-layout';
@@ -798,19 +799,33 @@ export default function AiIndexPage({
                                                                     },
                                                                 )}
                                                             />
-                                                            <button
-                                                                type="button"
-                                                                className="min-w-0 flex-1 truncate px-2 py-2 text-left text-sm"
-                                                                onClick={() =>
-                                                                    selectConversation(
-                                                                        conversation.id,
-                                                                    )
-                                                                }
+                                                            <Item
+                                                                asChild
+                                                                size="sm"
+                                                                className="min-w-0 flex-1 flex-nowrap px-2 py-2 text-left"
                                                             >
-                                                                {
-                                                                    conversation.title
-                                                                }
-                                                            </button>
+                                                                <button
+                                                                    type="button"
+                                                                    data-test="ai-conversation-open"
+                                                                    aria-current={
+                                                                        conversation.id ===
+                                                                        chat.conversationId
+                                                                            ? 'true'
+                                                                            : undefined
+                                                                    }
+                                                                    onClick={() =>
+                                                                        selectConversation(
+                                                                            conversation.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="min-w-0 truncate">
+                                                                        {
+                                                                            conversation.title
+                                                                        }
+                                                                    </span>
+                                                                </button>
+                                                            </Item>
                                                             {conversation.pinned_at ? (
                                                                 <Pin
                                                                     className="size-3.5 shrink-0 fill-current text-muted-foreground group-hover:hidden group-has-[[data-state=open]]:hidden"
@@ -883,9 +898,8 @@ export default function AiIndexPage({
                                                 void handleLoadMoreConversations()
                                             }
                                         >
-                                            {isLoadingMore
-                                                ? t('chatHub.loading')
-                                                : t('ai.loadMore')}
+                                            {isLoadingMore ? <Spinner /> : null}
+                                            {t('ai.loadMore')}
                                         </Button>
                                     ) : null}
                                 </>

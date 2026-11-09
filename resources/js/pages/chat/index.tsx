@@ -41,6 +41,7 @@ import { formatChatUnread } from '@/lib/format-chat-unread';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
+import { index as chatIndex } from '@/routes/chat';
 import { useChatStore } from '@/stores/chat/store';
 import { threadsCacheKey } from '@/stores/chat/types';
 import type { BreadcrumbItem } from '@/types';
@@ -54,13 +55,6 @@ type Props = {
     canCreateDirect: boolean;
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Chat',
-        href: '/chat',
-    },
-];
-
 const noopChatCountChange = (): void => undefined;
 
 export default function ChatHubPage({
@@ -71,6 +65,9 @@ export default function ChatHubPage({
     canCreateDirect,
 }: Props) {
     const { t } = useTranslation();
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: t('nav.chat'), href: chatIndex.url() },
+    ];
     const page = usePage();
     const viewerId = page.props.auth.user?.id ?? 0;
     const unread = useChatUnread();

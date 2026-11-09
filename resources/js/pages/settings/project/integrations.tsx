@@ -852,7 +852,9 @@ export default function ProjectIntegrationsSettingsPage({
                                                                         },
                                                                     )
                                                                 }
-                                                                placeholder="Production"
+                                                                placeholder={t(
+                                                                    'settings.project.deployHookNamePlaceholder',
+                                                                )}
                                                                 aria-invalid={
                                                                     errors[
                                                                         `deploy_hooks.${index}.name`
