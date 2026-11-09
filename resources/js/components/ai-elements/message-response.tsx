@@ -47,16 +47,15 @@ const TRANSLATED_KEYS = [
 
 /** Streamdown's control labels from the app locale (`ai.markdown.*`). */
 function useStreamdownTranslations(): Partial<StreamdownTranslations> {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
 
     return useMemo(
         () =>
             Object.fromEntries(
                 TRANSLATED_KEYS.map((key) => [key, t(`ai.markdown.${key}`)]),
             ),
-        // Recompute only when the language changes.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [i18n.language],
+        // react-i18next returns a new `t` when the language changes.
+        [t],
     );
 }
 
