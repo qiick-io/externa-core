@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
+import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
 import type { ChatMentionHit } from '@/components/chat/chat-mention-hit';
@@ -11,6 +12,7 @@ import {
     ChatMentionMenu,
     handleMentionMenuKeyDown,
 } from '@/components/chat/chat-mention-menu';
+import { DropOverlay } from '@/components/drop-overlay';
 import {
     Attachment,
     AttachmentAction,
@@ -30,6 +32,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatBytes } from '@/lib/format';
 import type { ChatAttachment } from '@/lib/item-chat-api';
+import { isMediaFile } from '@/lib/media-file';
 
 export type SendAttachItem = {
     key: string;
@@ -40,10 +43,6 @@ export type SendAttachItem = {
 };
 
 type AttachCaptionMentionHit = ChatMentionHit;
-
-function isMediaFile(file: File): boolean {
-    return file.type.startsWith('image/') || file.type.startsWith('video/');
-}
 
 function fileExtension(name: string): string {
     const parts = name.split('.');
@@ -346,20 +345,10 @@ export function ChatSendAttachmentsDialog({
                                             className="z-[80] w-64 p-2"
                                             align="start"
                                         >
-                                            <div className="grid grid-cols-8 gap-1">
-                                                {emojis.map((emoji) => (
-                                                    <button
-                                                        key={emoji}
-                                                        type="button"
-                                                        className="rounded p-1 text-lg hover:bg-muted"
-                                                        onClick={() =>
-                                                            onInsertEmoji(emoji)
-                                                        }
-                                                    >
-                                                        {emoji}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <ChatEmojiGrid
+                                                emojis={emojis}
+                                                onSelect={onInsertEmoji}
+                                            />
                                         </PopoverContent>
                                     </Popover>
                                 </>
@@ -369,15 +358,10 @@ export function ChatSendAttachmentsDialog({
                 </div>
 
                 {dragOver ? (
-                    <div
-                        className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
-                        aria-hidden
-                    >
-                        <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-                            <Paperclip className="size-4" />
-                            {t('collections.itemChat.dropToAttach')}
-                        </div>
-                    </div>
+                    <DropOverlay
+                        icon={Paperclip}
+                        title={t('collections.itemChat.dropToAttach')}
+                    />
                 ) : null}
             </DialogContent>
         </Dialog>

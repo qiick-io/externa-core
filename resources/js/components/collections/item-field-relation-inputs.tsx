@@ -155,8 +155,7 @@ export function ManyToManyFieldInput({
                 setInitialOptions(options);
             })
             .catch(() => undefined);
-        // ponytail: only refetch labels when ids change, not on meta edits
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch labels only when the selected ids change, not on meta edits
     }, [collectionId, optionsQuery, selectedIds.join(',')]);
 
     const onChangeIds = (nextIds: number[]): void => {

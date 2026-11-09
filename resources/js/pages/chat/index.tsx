@@ -14,6 +14,7 @@ import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
+import { ChatLayout } from '@/components/layout/chat-layout';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +41,7 @@ import type { ChatSummary } from '@/lib/chat-hub-api';
 import { formatChatUnread } from '@/lib/format-chat-unread';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
-import { cn } from '@/lib/utils';
+import { index as chatIndex } from '@/routes/chat';
 import { useChatStore } from '@/stores/chat/store';
 import { threadsCacheKey } from '@/stores/chat/types';
 import type { BreadcrumbItem } from '@/types';
@@ -54,13 +55,6 @@ type Props = {
     canCreateDirect: boolean;
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Chat',
-        href: '/chat',
-    },
-];
-
 const noopChatCountChange = (): void => undefined;
 
 export default function ChatHubPage({
@@ -71,6 +65,9 @@ export default function ChatHubPage({
     canCreateDirect,
 }: Props) {
     const { t } = useTranslation();
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: t('nav.chat'), href: chatIndex.url() },
+    ];
     const page = usePage();
     const viewerId = page.props.auth.user?.id ?? 0;
     const unread = useChatUnread();
@@ -336,27 +333,16 @@ export default function ChatHubPage({
                     </>
                 }
             >
-                <div
+                <ChatLayout
                     data-test="chat-hub"
-                    className="flex min-h-0 flex-1 overflow-hidden"
-                >
-                    {/* Below `md` the list and the open thread take turns, full width. */}
-                    <aside
-                        aria-label={t('a11y.chatThreadList')}
-                        data-test="chat-list-column"
-                        className={cn(
-                            'w-full shrink-0 flex-col md:flex md:w-64 md:border-r lg:w-80',
-                            selectedChat === null ? 'flex' : 'hidden',
-                        )}
-                    >
-                        <div
-                            data-test="chat-list"
-                            className={cn(
-                                'min-h-0 flex-1 overflow-y-auto p-2',
-                                (!threadsLoaded || threads.length === 0) &&
-                                    'flex flex-col items-center justify-center',
-                            )}
-                        >
+                    listLabel={t('a11y.chatThreadList')}
+                    isThreadOpen={selectedChat !== null}
+                    isListCentered={!threadsLoaded || threads.length === 0}
+                    listColumnProps={{ 'data-test': 'chat-list-column' }}
+                    listProps={{ 'data-test': 'chat-list' }}
+                    threadProps={{ 'data-test': 'chat-thread-column' }}
+                    list={
+                        <>
                             {!threadsLoaded ? (
                                 <div
                                     data-test="chat-list-loading"
@@ -396,104 +382,91 @@ export default function ChatHubPage({
                                     />
                                 ))
                             )}
+                        </>
+                    }
+                >
+                    <ItemChatDrawer
+                        key="chat-hub-pane"
+                        open={selectedChat !== null}
+                        variant="pane"
+                        chatId={selectedChat?.id ?? null}
+                        kind={selectedKind}
+                        collectionId={selectedChat?.collection_id ?? undefined}
+                        itemId={selectedChat?.collection_item_id ?? undefined}
+                        fields={fieldRows}
+                        chatCount={0}
+                        onChatCountChange={noopChatCountChange}
+                        thread={selectedChat}
+                        canCreateDirect={canCreateDirect}
+                        onBack={closeThread}
+                    />
+                    {selectedChat === null ? (
+                        <div className="absolute inset-0 flex flex-col bg-background">
+                            <Empty
+                                data-test="chat-pane-empty"
+                                className="min-h-0 flex-1"
+                            >
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <MessageSquare />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        {t('chatHub.pickThread')}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                            {/* Same composer frame as an open thread, disabled until one is picked. */}
+                            <DrawerFooter
+                                data-test="chat-composer-placeholder"
+                                className="p-3"
+                            >
+                                <ChatComposer
+                                    disabled
+                                    value=""
+                                    onValueChange={() => undefined}
+                                    onSubmit={() => undefined}
+                                    canSubmit={false}
+                                    placeholder={t(
+                                        'collections.itemChat.placeholder',
+                                    )}
+                                    label={t(
+                                        'collections.itemChat.placeholder',
+                                    )}
+                                    sendLabel={t('collections.itemChat.send')}
+                                    actions={
+                                        <>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                disabled
+                                                aria-label={t(
+                                                    'collections.itemChat.emoji',
+                                                )}
+                                            >
+                                                <Smile className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                disabled
+                                                aria-label={t(
+                                                    'collections.itemChat.attach',
+                                                )}
+                                            >
+                                                <Paperclip className="size-4" />
+                                            </Button>
+                                        </>
+                                    }
+                                />
+                            </DrawerFooter>
                         </div>
-                    </aside>
-                    <section
-                        data-test="chat-thread-column"
-                        className={cn(
-                            'relative min-h-0 min-w-0 flex-1 flex-col md:flex',
-                            selectedChat === null ? 'hidden' : 'flex',
-                        )}
-                    >
-                        <ItemChatDrawer
-                            key="chat-hub-pane"
-                            open={selectedChat !== null}
-                            variant="pane"
-                            chatId={selectedChat?.id ?? null}
-                            kind={selectedKind}
-                            collectionId={
-                                selectedChat?.collection_id ?? undefined
-                            }
-                            itemId={
-                                selectedChat?.collection_item_id ?? undefined
-                            }
-                            fields={fieldRows}
-                            chatCount={0}
-                            onChatCountChange={noopChatCountChange}
-                            thread={selectedChat}
-                            canCreateDirect={canCreateDirect}
-                            onBack={closeThread}
-                        />
-                        {selectedChat === null ? (
-                            <div className="absolute inset-0 flex flex-col bg-background">
-                                <Empty
-                                    data-test="chat-pane-empty"
-                                    className="min-h-0 flex-1"
-                                >
-                                    <EmptyHeader>
-                                        <EmptyMedia
-                                            variant="icon"
-                                            className="bg-primary/10 text-primary"
-                                        >
-                                            <MessageSquare />
-                                        </EmptyMedia>
-                                        <EmptyDescription>
-                                            {t('chatHub.pickThread')}
-                                        </EmptyDescription>
-                                    </EmptyHeader>
-                                </Empty>
-                                {/* Same composer frame as an open thread, disabled until one is picked. */}
-                                <DrawerFooter
-                                    data-test="chat-composer-placeholder"
-                                    className="p-3"
-                                >
-                                    <ChatComposer
-                                        disabled
-                                        value=""
-                                        onValueChange={() => undefined}
-                                        onSubmit={() => undefined}
-                                        canSubmit={false}
-                                        placeholder={t(
-                                            'collections.itemChat.placeholder',
-                                        )}
-                                        label={t(
-                                            'collections.itemChat.placeholder',
-                                        )}
-                                        sendLabel={t(
-                                            'collections.itemChat.send',
-                                        )}
-                                        actions={
-                                            <>
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    disabled
-                                                    aria-label={t(
-                                                        'collections.itemChat.emoji',
-                                                    )}
-                                                >
-                                                    <Smile className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    disabled
-                                                    aria-label={t(
-                                                        'collections.itemChat.attach',
-                                                    )}
-                                                >
-                                                    <Paperclip className="size-4" />
-                                                </Button>
-                                            </>
-                                        }
-                                    />
-                                </DrawerFooter>
-                            </div>
-                        ) : null}
-                    </section>
-                </div>
+                    ) : null}
+                </ChatLayout>
             </PageLayout>
         </AppLayout>
     );

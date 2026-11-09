@@ -169,7 +169,11 @@ describe('AiChatMessages', () => {
             },
         ]);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Verify import' }));
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'ai.suggestedActions.verifyImport',
+            }),
+        );
 
         expect(handlers.onSuggestedAction).toHaveBeenCalledWith(
             'Verify the latest imported items.',

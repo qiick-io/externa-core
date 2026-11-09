@@ -40,6 +40,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
     cascadeToggleValues,
@@ -523,7 +524,8 @@ export function ApiAutocompleteInput({
                 )}
             />
             {loading ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Spinner className="size-3" />
                     {t('common.loading')}
                 </p>
             ) : null}
@@ -1109,6 +1111,8 @@ function CheckboxGroupTreeNodes({
     onToggleExpand: (value: string) => void;
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <>
             {nodes.map((node) => {
@@ -1132,7 +1136,9 @@ function CheckboxGroupTreeNodes({
                                     className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
                                     aria-expanded={expanded}
                                     aria-label={
-                                        expanded ? 'Collapse' : 'Expand'
+                                        expanded
+                                            ? t('common.collapse')
+                                            : t('common.expand')
                                     }
                                     onClick={() => onToggleExpand(node.value)}
                                 >

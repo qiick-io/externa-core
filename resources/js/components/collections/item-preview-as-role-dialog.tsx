@@ -18,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
     TooltipContent,
@@ -232,9 +233,8 @@ export function ItemPreviewAsRoleDialog({
                                 void runPreview();
                             }}
                         >
-                            {loading
-                                ? t('common.loading')
-                                : t('common.preview')}
+                            {loading ? <Spinner /> : null}
+                            {t('common.preview')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

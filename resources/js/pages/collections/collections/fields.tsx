@@ -86,7 +86,7 @@ export default function CollectionsFields({
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
-            { title: 'Collections', href: collections.index.url() },
+            { title: t('nav.collections'), href: collections.index.url() },
             {
                 title: collection.name,
                 href: collection.is_singleton
@@ -94,11 +94,11 @@ export default function CollectionsFields({
                     : collections.items.index.url(collection.id),
             },
             {
-                title: 'Fields',
+                title: t('nav.fields'),
                 href: FieldController.index.url(collection.id),
             },
         ],
-        [collection.id, collection.name, collection.is_singleton],
+        [collection.id, collection.name, collection.is_singleton, t],
     );
 
     const collectionForm = useCollectionEditDrawer();

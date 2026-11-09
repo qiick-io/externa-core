@@ -151,8 +151,8 @@ export default function AdminUsersIndex({
     });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Users', href: usersRoutes.index.url() }],
-        [],
+        () => [{ title: t('nav.users'), href: usersRoutes.index.url() }],
+        [t],
     );
 
     const visit = useCallback(
@@ -489,7 +489,9 @@ export default function AdminUsersIndex({
                                         aria-label={t('users.sortBy')}
                                         className="w-[7.5rem]"
                                     >
-                                        <SelectValue placeholder="Sort" />
+                                        <SelectValue
+                                            placeholder={t('common.sort')}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent align="end">
                                         {userSortFields.map((field) => (

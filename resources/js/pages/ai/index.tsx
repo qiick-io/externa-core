@@ -20,6 +20,7 @@ import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog'
 import { AiImportJobMarker } from '@/components/ai/ai-run-status';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { ChatLayout, ChatListSection } from '@/components/layout/chat-layout';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ import {
     EmptyMedia,
 } from '@/components/ui/empty';
 import { Item } from '@/components/ui/item';
+import { Spinner } from '@/components/ui/spinner';
 import { useAiChat } from '@/hooks/use-ai-chat';
 import type { AiChatMessage } from '@/hooks/use-ai-chat';
 import AppLayout from '@/layouts/app-layout';
@@ -692,26 +694,16 @@ export default function AiIndexPage({
                     </HeaderIconButton>
                 }
             >
-                <div
+                <ChatLayout
                     data-test="ai-hub"
-                    className="flex min-h-0 flex-1 overflow-hidden"
-                >
-                    <aside
-                        aria-label={t('ai.conversations')}
-                        data-test="ai-list-column"
-                        className={cn(
-                            'w-full shrink-0 flex-col md:flex md:w-64 md:border-r lg:w-80',
-                            conversationOpen ? 'hidden' : 'flex',
-                        )}
-                    >
-                        <div
-                            data-test="ai-list"
-                            className={cn(
-                                'min-h-0 flex-1 overflow-y-auto p-2',
-                                conversationItems.length === 0 &&
-                                    'flex flex-col items-center justify-center',
-                            )}
-                        >
+                    listLabel={t('ai.conversations')}
+                    isThreadOpen={conversationOpen}
+                    isListCentered={conversationItems.length === 0}
+                    listColumnProps={{ 'data-test': 'ai-list-column' }}
+                    listProps={{ 'data-test': 'ai-list' }}
+                    threadProps={{ 'data-test': 'ai-thread-column' }}
+                    list={
+                        <>
                             {conversationItems.length === 0 ? (
                                 <Empty
                                     data-test="ai-list-empty"
@@ -734,13 +726,15 @@ export default function AiIndexPage({
                             ) : (
                                 <>
                                     {conversationSections.map((section) => (
-                                        <div key={section.key} className="mb-3">
-                                            <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                {section.key === 'pinned' ? (
+                                        <ChatListSection
+                                            key={section.key}
+                                            label={section.label}
+                                            icon={
+                                                section.key === 'pinned' ? (
                                                     <Pin className="size-3 fill-current" />
-                                                ) : null}
-                                                {section.label}
-                                            </div>
+                                                ) : null
+                                            }
+                                        >
                                             {section.conversations.map(
                                                 (conversation) => {
                                                     const index =
@@ -798,19 +792,33 @@ export default function AiIndexPage({
                                                                     },
                                                                 )}
                                                             />
-                                                            <button
-                                                                type="button"
-                                                                className="min-w-0 flex-1 truncate px-2 py-2 text-left text-sm"
-                                                                onClick={() =>
-                                                                    selectConversation(
-                                                                        conversation.id,
-                                                                    )
-                                                                }
+                                                            <Item
+                                                                asChild
+                                                                size="sm"
+                                                                className="min-w-0 flex-1 flex-nowrap px-2 py-2 text-left"
                                                             >
-                                                                {
-                                                                    conversation.title
-                                                                }
-                                                            </button>
+                                                                <button
+                                                                    type="button"
+                                                                    data-test="ai-conversation-open"
+                                                                    aria-current={
+                                                                        conversation.id ===
+                                                                        chat.conversationId
+                                                                            ? 'true'
+                                                                            : undefined
+                                                                    }
+                                                                    onClick={() =>
+                                                                        selectConversation(
+                                                                            conversation.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="min-w-0 truncate">
+                                                                        {
+                                                                            conversation.title
+                                                                        }
+                                                                    </span>
+                                                                </button>
+                                                            </Item>
                                                             {conversation.pinned_at ? (
                                                                 <Pin
                                                                     className="size-3.5 shrink-0 fill-current text-muted-foreground group-hover:hidden group-has-[[data-state=open]]:hidden"
@@ -871,7 +879,7 @@ export default function AiIndexPage({
                                                     );
                                                 },
                                             )}
-                                        </div>
+                                        </ChatListSection>
                                     ))}
                                     {hasMoreConversations ? (
                                         <Button
@@ -883,152 +891,141 @@ export default function AiIndexPage({
                                                 void handleLoadMoreConversations()
                                             }
                                         >
-                                            {isLoadingMore
-                                                ? t('chatHub.loading')
-                                                : t('ai.loadMore')}
+                                            {isLoadingMore ? <Spinner /> : null}
+                                            {t('ai.loadMore')}
                                         </Button>
                                     ) : null}
                                 </>
                             )}
-                        </div>
-                    </aside>
-
-                    <section
-                        data-test="ai-thread-column"
-                        className={cn(
-                            'min-w-0 flex-1 flex-col md:flex',
-                            conversationOpen ? 'flex' : 'hidden',
-                        )}
+                        </>
+                    }
+                >
+                    <div
+                        data-test="ai-thread-header"
+                        className="flex h-12 shrink-0 items-center gap-2 border-b px-2 md:hidden"
                     >
-                        <div
-                            data-test="ai-thread-header"
-                            className="flex h-12 shrink-0 items-center gap-2 border-b px-2 md:hidden"
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            data-test="ai-thread-back"
+                            aria-label={t('ai.backToList')}
+                            onClick={closeConversation}
                         >
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                data-test="ai-thread-back"
-                                aria-label={t('ai.backToList')}
-                                onClick={closeConversation}
-                            >
-                                <ArrowLeft />
-                            </Button>
-                            <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                                {selectedConversation?.title ?? t('ai.newChat')}
-                            </span>
-                        </div>
-                        <AiChatDropZone
-                            disabled={
-                                chat.isStreaming || chat.isUploadingAttachment
+                            <ArrowLeft />
+                        </Button>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                            {selectedConversation?.title ?? t('ai.newChat')}
+                        </span>
+                    </div>
+                    <AiChatDropZone
+                        disabled={
+                            chat.isStreaming || chat.isUploadingAttachment
+                        }
+                        onFilesSelected={(files) =>
+                            void chat.handleAttachmentFiles(files)
+                        }
+                    >
+                        <ChatMessageScroller
+                            empty={
+                                chat.messages.length === 0 ? (
+                                    <Empty
+                                        data-test="ai-pane-empty"
+                                        className="m-auto"
+                                    >
+                                        <EmptyHeader>
+                                            <EmptyMedia
+                                                variant="icon"
+                                                className="bg-ai/10 text-ai"
+                                            >
+                                                <Sparkles />
+                                            </EmptyMedia>
+                                            <EmptyDescription>
+                                                {t('ai.paneEmpty')}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                    </Empty>
+                                ) : null
                             }
-                            onFilesSelected={(files) =>
-                                void chat.handleAttachmentFiles(files)
-                            }
+                            autoScroll={!chat.isStreaming}
+                            label={t('ai.conversationRegion')}
+                            contentClassName="px-4 py-4"
+                            // AiChatMessages announces finished answers itself.
+                            contentProps={{ 'aria-live': 'off' }}
                         >
-                            <ChatMessageScroller
-                                empty={
-                                    chat.messages.length === 0 ? (
-                                        <Empty
-                                            data-test="ai-pane-empty"
-                                            className="m-auto"
-                                        >
-                                            <EmptyHeader>
-                                                <EmptyMedia
-                                                    variant="icon"
-                                                    className="bg-ai/10 text-ai"
-                                                >
-                                                    <Sparkles />
-                                                </EmptyMedia>
-                                                <EmptyDescription>
-                                                    {t('ai.paneEmpty')}
-                                                </EmptyDescription>
-                                            </EmptyHeader>
-                                        </Empty>
-                                    ) : null
+                            <AiChatMessages
+                                messages={chat.messages}
+                                isStreaming={chat.isStreaming}
+                                editingMessageId={chat.editingMessageId}
+                                editingDraft={chat.editingDraft}
+                                onEditingDraftChange={chat.setEditingDraft}
+                                onCancelEdit={chat.cancelEditing}
+                                onStartEdit={chat.startEditing}
+                                onResendEdited={(messageId) =>
+                                    void chat.handleResendEdited(messageId)
                                 }
-                                autoScroll={!chat.isStreaming}
-                                label={t('ai.conversationRegion')}
-                                contentClassName="px-4 py-4"
-                                // AiChatMessages announces finished answers itself.
-                                contentProps={{ 'aria-live': 'off' }}
-                            >
-                                <AiChatMessages
-                                    messages={chat.messages}
-                                    isStreaming={chat.isStreaming}
-                                    editingMessageId={chat.editingMessageId}
-                                    editingDraft={chat.editingDraft}
-                                    onEditingDraftChange={chat.setEditingDraft}
-                                    onCancelEdit={chat.cancelEditing}
-                                    onStartEdit={chat.startEditing}
-                                    onResendEdited={(messageId) =>
-                                        void chat.handleResendEdited(messageId)
-                                    }
-                                    onRegenerate={(messageId, options) =>
-                                        void chat.handleRegenerate(
-                                            messageId,
-                                            options,
-                                        )
-                                    }
-                                    onSuggestedAction={chat.setComposer}
-                                    onResolveApprovals={(messageId, approved) =>
-                                        void chat.handleResolveApprovals(
-                                            messageId,
-                                            approved,
-                                        )
-                                    }
-                                />
-                                <AiImportJobMarker status={importJobStatus} />
-                            </ChatMessageScroller>
+                                onRegenerate={(messageId, options) =>
+                                    void chat.handleRegenerate(
+                                        messageId,
+                                        options,
+                                    )
+                                }
+                                onSuggestedAction={chat.setComposer}
+                                onResolveApprovals={(messageId, approved) =>
+                                    void chat.handleResolveApprovals(
+                                        messageId,
+                                        approved,
+                                    )
+                                }
+                            />
+                            <AiImportJobMarker status={importJobStatus} />
+                        </ChatMessageScroller>
 
-                            <div className="border-t p-3">
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept={AI_CHAT_ATTACHMENT_ACCEPT}
-                                    multiple
-                                    className="hidden"
-                                    onChange={(event) =>
-                                        void chat.handleAttachmentSelected(
-                                            event,
-                                        )
-                                    }
-                                />
-                                <AiComposer
-                                    value={chat.composer}
-                                    onChange={chat.setComposer}
-                                    onSubmit={() => void chat.handleSend()}
-                                    onStop={chat.handleStop}
-                                    isStreaming={chat.isStreaming}
-                                    attachments={chat.pendingAttachments}
-                                    onRemoveAttachment={
-                                        chat.removePendingAttachment
-                                    }
-                                    contextAttachments={
-                                        chat.pendingContextAttachments
-                                    }
-                                    onRemoveContextAttachment={
-                                        chat.removePendingContextAttachment
-                                    }
-                                    onAttach={() => setContextAttachOpen(true)}
-                                    isUploadingAttachment={
-                                        chat.isUploadingAttachment
-                                    }
-                                    attachDisabled={
-                                        chat.pendingAttachments.length >=
-                                        AI_CHAT_ATTACHMENT_MAX_COUNT
-                                    }
-                                    speechSupported={chat.speechSupported}
-                                    isListening={chat.isListening}
-                                    onToggleVoice={chat.toggleVoiceInput}
-                                    dryRunMode={chat.dryRunMode}
-                                    onDryRunModeChange={chat.setDryRunMode}
-                                    onOpenPresets={() => setPresetsOpen(true)}
-                                />
-                            </div>
-                        </AiChatDropZone>
-                    </section>
-                </div>
+                        <div className="border-t p-3">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept={AI_CHAT_ATTACHMENT_ACCEPT}
+                                multiple
+                                className="hidden"
+                                onChange={(event) =>
+                                    void chat.handleAttachmentSelected(event)
+                                }
+                            />
+                            <AiComposer
+                                value={chat.composer}
+                                onChange={chat.setComposer}
+                                onSubmit={() => void chat.handleSend()}
+                                onStop={chat.handleStop}
+                                isStreaming={chat.isStreaming}
+                                attachments={chat.pendingAttachments}
+                                onRemoveAttachment={
+                                    chat.removePendingAttachment
+                                }
+                                contextAttachments={
+                                    chat.pendingContextAttachments
+                                }
+                                onRemoveContextAttachment={
+                                    chat.removePendingContextAttachment
+                                }
+                                onAttach={() => setContextAttachOpen(true)}
+                                isUploadingAttachment={
+                                    chat.isUploadingAttachment
+                                }
+                                attachDisabled={
+                                    chat.pendingAttachments.length >=
+                                    AI_CHAT_ATTACHMENT_MAX_COUNT
+                                }
+                                speechSupported={chat.speechSupported}
+                                isListening={chat.isListening}
+                                onToggleVoice={chat.toggleVoiceInput}
+                                dryRunMode={chat.dryRunMode}
+                                onDryRunModeChange={chat.setDryRunMode}
+                                onOpenPresets={() => setPresetsOpen(true)}
+                            />
+                        </div>
+                    </AiChatDropZone>
+                </ChatLayout>
             </PageLayout>
 
             <AiContextAttachDialog

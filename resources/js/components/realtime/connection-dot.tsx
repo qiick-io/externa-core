@@ -41,7 +41,6 @@ export function ConnectionDot({ className }: { className?: string }) {
     return (
         <AvatarBadge
             className={cn('pointer-events-none', toneFor(state), className)}
-            title={label}
             aria-label={label}
             role="status"
             data-test="realtime-connection-dot"

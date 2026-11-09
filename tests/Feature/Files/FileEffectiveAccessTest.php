@@ -9,6 +9,7 @@ use App\Services\FileService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -102,6 +103,64 @@ it('backfill command is idempotent', function (): void {
 
     $changed = app(FileEffectiveAccessService::class)->backfillAll();
     expect($changed)->toBe(0);
+});
+
+it('resolves ancestors outside a backfill chunk without a query per row', function (): void {
+    $root = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'deep-root',
+        'path' => '/deep-root',
+        'disk' => 'assets',
+        'access' => FileAccessEnum::Private->value,
+    ]);
+    $children = collect(range(1, 12))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => "deep-{$index}",
+        'path' => "/deep-root/deep-{$index}",
+        'disk' => 'assets',
+        'parent_id' => $root->id,
+    ]));
+    File::query()->update(['effective_access' => null]);
+
+    DB::enableQueryLog();
+    // Chunks of 2: every chunk after the first needs the root from outside it.
+    $changed = app(FileEffectiveAccessService::class)->backfillAll(2);
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($changed)->toBe(13)
+        ->and($children->every(fn (File $child): bool => $child->fresh()->effective_access === FileAccessEnum::Private->value))->toBeTrue()
+        // 7 chunks: select + one ancestor lookup + one update each, plus the closing empty select.
+        ->and($queries)->toBeLessThanOrEqual(7 * 3 + 1);
+});
+
+it('refreshes a folder subtree with one update per access value', function (): void {
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'bulk-vault',
+        'path' => '/bulk-vault',
+        'disk' => 'assets',
+        'access' => FileAccessEnum::Public->value,
+    ]);
+    foreach (range(1, 10) as $index) {
+        File::query()->create([
+            'type' => FileTypeEnum::Folder,
+            'name' => "bulk-{$index}",
+            'path' => "/bulk-vault/bulk-{$index}",
+            'disk' => 'assets',
+            'parent_id' => $folder->id,
+        ]);
+    }
+
+    File::query()->whereKey($folder->id)->update(['access' => FileAccessEnum::Private->value]);
+
+    DB::enableQueryLog();
+    app(FileEffectiveAccessService::class)->refreshDescendants($folder->fresh());
+    $updates = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_starts_with(strtolower($query['query']), 'update'));
+    DB::disableQueryLog();
+
+    expect($updates)->toHaveCount(1)
+        ->and(File::query()->where('parent_id', $folder->id)->where('effective_access', FileAccessEnum::Private->value)->count())->toBe(10);
 });
 
 /**

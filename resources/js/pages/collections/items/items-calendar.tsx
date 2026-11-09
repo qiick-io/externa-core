@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    CalendarDays,
     ChevronLeft,
     ChevronRight,
     ChevronsLeft,
@@ -12,6 +13,12 @@ import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Item, ItemGroup } from '@/components/ui/item';
 import {
     Popover,
@@ -20,12 +27,17 @@ import {
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { createSortableList } from '@/lib/create-sortable-list';
+import { buildItemListQuery, itemRowTitle } from '@/lib/item-list-views';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
 import type { CollectionFieldRow, CollectionView, ItemRow } from '@/types';
-import type { QueryParams } from '@/wayfinder';
 
 export type CalendarMonthPayload = {
     field: string;
@@ -110,32 +122,6 @@ function withUpdatedDate(
     };
 }
 
-function itemTitle(row: ItemRow): string {
-    const display = row.displays?.title;
-
-    if (typeof display === 'string' && display.trim() !== '') {
-        return display;
-    }
-
-    const title = row.data?.title;
-
-    if (typeof title === 'string' && title.trim() !== '') {
-        return title;
-    }
-
-    if (title && typeof title === 'object' && !Array.isArray(title)) {
-        const first = Object.values(title as Record<string, unknown>).find(
-            (value) => typeof value === 'string' && value.trim() !== '',
-        );
-
-        if (typeof first === 'string') {
-            return first;
-        }
-    }
-
-    return `#${row.id}`;
-}
-
 function formatDayKey(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -203,51 +189,6 @@ function visibleDaysForMonth(month: string): Date[] {
     }
 
     return days;
-}
-
-function buildListQuery(filters: Record<string, unknown>): QueryParams {
-    const query: QueryParams = {};
-    const filter: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(filters)) {
-        if (
-            key === 'trashed' ||
-            key === 'has_draft' ||
-            key === 'in_review' ||
-            key === 'sort' ||
-            key === 'direction'
-        ) {
-            continue;
-        }
-
-        filter[key] = value;
-    }
-
-    if (Object.keys(filter).length > 0) {
-        query.filter = filter as QueryParams['filter'];
-    }
-
-    if (filters.trashed === true) {
-        query.trashed = true;
-    }
-
-    if (filters.has_draft === true) {
-        query.has_draft = true;
-    }
-
-    if (filters.in_review === true) {
-        query.in_review = true;
-    }
-
-    if (typeof filters.sort === 'string' && filters.sort !== '') {
-        query.sort = filters.sort;
-    }
-
-    if (filters.direction === 'asc' || filters.direction === 'desc') {
-        query.direction = filters.direction;
-    }
-
-    return query;
 }
 
 function itemHref(collectionId: number, itemId: number): string {
@@ -348,7 +289,7 @@ export function ItemsCalendar({
     const itemsRef = useRef(items);
     itemsRef.current = items;
 
-    const listQuery = useMemo(() => buildListQuery(filters), [filters]);
+    const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 
     const range = useMemo(() => {
         if (view === 'week') {
@@ -781,12 +722,22 @@ export function ItemsCalendar({
 
     if (!fieldName || !field) {
         return (
-            <p
-                className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            <Empty
+                className="gap-3 border border-dashed p-6 md:p-6"
                 data-test="calendar-missing-field"
             >
-                {t('collections.itemsList.calendarMissingField')}
-            </p>
+                <EmptyHeader>
+                    <EmptyMedia
+                        variant="icon"
+                        className="bg-primary/10 text-primary"
+                    >
+                        <CalendarDays />
+                    </EmptyMedia>
+                    <EmptyDescription>
+                        {t('collections.itemsList.calendarMissingField')}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         );
     }
 
@@ -813,13 +764,17 @@ export function ItemsCalendar({
                     <GripVertical className={compact ? 'size-3' : 'size-3.5'} />
                 </span>
             ) : null}
-            <Link
-                href={itemHref(collection.id, item.id)}
-                className="min-w-0 flex-1 truncate px-0.5 text-foreground"
-                title={itemTitle(item)}
-            >
-                {itemTitle(item)}
-            </Link>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link
+                        href={itemHref(collection.id, item.id)}
+                        className="min-w-0 flex-1 truncate px-0.5 text-foreground"
+                    >
+                        {itemRowTitle(item)}
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent>{itemRowTitle(item)}</TooltipContent>
+            </Tooltip>
         </div>
     );
 
@@ -1063,8 +1018,7 @@ export function ItemsCalendar({
 
                 {view === 'week' ? (
                     <div
-                        className="grid min-h-0 flex-1 grid-cols-7 border-t border-l"
-                        style={{ gridTemplateRows: 'auto minmax(0, 1fr)' }}
+                        className="grid min-h-0 flex-1 grid-cols-7 grid-rows-[auto_minmax(0,1fr)] border-t border-l"
                         data-test="calendar-week"
                     >
                         {weekdayLabels.map((label) => (
@@ -1163,7 +1117,7 @@ export function ItemsCalendar({
                                             )}
                                             className="min-w-0 flex-1 truncate text-sm text-foreground hover:underline"
                                         >
-                                            {itemTitle(item)}
+                                            {itemRowTitle(item)}
                                         </Link>
                                     </Item>
                                 ))}

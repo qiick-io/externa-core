@@ -16,7 +16,7 @@ import type {
     ChatParticipantRef,
     ChatThreadIdentity,
 } from '@/lib/chat-thread-identity';
-import { contrastingForeground } from '@/lib/contrasting-foreground';
+import { contrastingForeground } from '@/lib/color-contrast';
 import { cn } from '@/lib/utils';
 
 function FaceCircle({

@@ -1,5 +1,7 @@
+import { UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EmptyStatus } from '@/components/empty-status';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +18,13 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import { fetchChatDirectory } from '@/lib/chat-hub-api';
 import type { ChatDirectoryRow, ChatListMeta } from '@/lib/chat-hub-api';
@@ -176,14 +185,27 @@ export function ChatUsersDrawer({
                         className="max-h-none flex-1 px-3 py-2"
                     >
                         {loading ? (
-                            <p className="text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 {t('chatHub.loading')}
-                            </p>
+                            </div>
                         ) : null}
                         {!loading && rows.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('chatHub.emptyDirectory')}
-                            </p>
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <UsersRound />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        <EmptyStatus>
+                                            {t('chatHub.emptyDirectory')}
+                                        </EmptyStatus>
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : null}
                         {rows.map((row) => {
                             const key = directoryKey(row);
@@ -252,9 +274,8 @@ export function ChatUsersDrawer({
                                     )
                                 }
                             >
-                                {loadingMore
-                                    ? t('chatHub.loading')
-                                    : t('chatHub.loadMore')}
+                                {loadingMore ? <Spinner /> : null}
+                                {t('chatHub.loadMore')}
                             </Button>
                         ) : null}
                     </CommandList>

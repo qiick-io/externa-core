@@ -16,6 +16,7 @@ import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import { ChatMention } from '@/components/chat/chat-mention';
 import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
 import {
     ChatMentionMenu,
@@ -36,11 +37,10 @@ import { ChatReplyQuote } from '@/components/chat/chat-reply-quote';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
-import { ChatUserHoverCard } from '@/components/chat/chat-user-hover-card';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { DropOverlay } from '@/components/drop-overlay';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +75,7 @@ import {
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { UserHoverCard } from '@/components/user-hover-card';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { avatarToneClass } from '@/lib/avatar-tone';
@@ -218,37 +219,12 @@ function renderMessageBody(
                 </Link>,
             );
         } else {
-            const user = users.get(id);
-            const text = `@${user?.name ?? `user ${id}`}`;
-            const label = user ? (
-                <Badge
-                    key={`${match.index}-${id}`}
-                    variant="secondary"
-                    className="cursor-default bg-primary/15 px-1 align-baseline text-sm text-foreground"
-                    data-test="chat-mention"
-                    asChild
-                >
-                    <button type="button">{text}</button>
-                </Badge>
-            ) : (
-                <Badge
-                    key={`${match.index}-${id}`}
-                    variant="secondary"
-                    className="bg-primary/15 px-1 align-baseline text-sm text-foreground"
-                    data-test="chat-mention"
-                >
-                    {text}
-                </Badge>
-            );
-
             nodes.push(
-                user ? (
-                    <ChatUserHoverCard key={`${match.index}-${id}`} user={user}>
-                        {label}
-                    </ChatUserHoverCard>
-                ) : (
-                    label
-                ),
+                <ChatMention
+                    key={`${match.index}-${id}`}
+                    user={users.get(id)}
+                    fallbackLabel={`@user ${id}`}
+                />,
             );
         }
 
@@ -1980,9 +1956,8 @@ export function ItemChatDrawer({
                                     load(oldestId);
                                 }}
                             >
-                                {loadingMore
-                                    ? t('collections.itemChat.loading')
-                                    : t('collections.itemChat.loadOlder')}
+                                {loadingMore ? <Spinner /> : null}
+                                {t('collections.itemChat.loadOlder')}
                             </Button>
                         ) : null}
                         {error ? (
@@ -2099,7 +2074,7 @@ export function ItemChatDrawer({
                                                             isGroupStart ? (
                                                                 <MessageHeader className="font-medium text-foreground">
                                                                     {comment.user ? (
-                                                                        <ChatUserHoverCard
+                                                                        <UserHoverCard
                                                                             user={
                                                                                 comment.user
                                                                             }
@@ -2115,7 +2090,7 @@ export function ItemChatDrawer({
                                                                                         .name
                                                                                 }
                                                                             </button>
-                                                                        </ChatUserHoverCard>
+                                                                        </UserHoverCard>
                                                                     ) : null}
                                                                 </MessageHeader>
                                                             ) : null}
@@ -2600,15 +2575,10 @@ export function ItemChatDrawer({
                     </ChatMentionMenu>
                 </DrawerFooter>
                 {composerDragOver ? (
-                    <div
-                        className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
-                        aria-hidden
-                    >
-                        <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-                            <Paperclip className="size-4" />
-                            {t('collections.itemChat.dropToAttach')}
-                        </div>
-                    </div>
+                    <DropOverlay
+                        icon={Paperclip}
+                        title={t('collections.itemChat.dropToAttach')}
+                    />
                 ) : null}
             </div>
         </>

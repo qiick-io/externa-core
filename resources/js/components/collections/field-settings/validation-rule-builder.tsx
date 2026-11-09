@@ -67,7 +67,13 @@ export function ValidationRuleBuilder({
                                                 key={option.value}
                                                 value={option.value}
                                             >
-                                                {option.label}
+                                                {t(
+                                                    `collections.fieldSettings.rules.operators.${option.value}`,
+                                                    {
+                                                        defaultValue:
+                                                            option.label,
+                                                    },
+                                                )}
                                             </option>
                                         ),
                                     )}
