@@ -16,6 +16,7 @@ import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import { ChatMention } from '@/components/chat/chat-mention';
 import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
 import {
     ChatMentionMenu,
@@ -39,7 +40,6 @@ import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -218,37 +218,12 @@ function renderMessageBody(
                 </Link>,
             );
         } else {
-            const user = users.get(id);
-            const text = `@${user?.name ?? `user ${id}`}`;
-            const label = user ? (
-                <Badge
-                    key={`${match.index}-${id}`}
-                    variant="secondary"
-                    className="cursor-default bg-primary/15 px-1 align-baseline text-sm text-foreground"
-                    data-test="chat-mention"
-                    asChild
-                >
-                    <button type="button">{text}</button>
-                </Badge>
-            ) : (
-                <Badge
-                    key={`${match.index}-${id}`}
-                    variant="secondary"
-                    className="bg-primary/15 px-1 align-baseline text-sm text-foreground"
-                    data-test="chat-mention"
-                >
-                    {text}
-                </Badge>
-            );
-
             nodes.push(
-                user ? (
-                    <UserHoverCard key={`${match.index}-${id}`} user={user}>
-                        {label}
-                    </UserHoverCard>
-                ) : (
-                    label
-                ),
+                <ChatMention
+                    key={`${match.index}-${id}`}
+                    user={users.get(id)}
+                    fallbackLabel={`@user ${id}`}
+                />,
             );
         }
 
