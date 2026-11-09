@@ -10,6 +10,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 ### Changed
+- Hand-built UI moved onto shadcn components: send-dialog emoji grid reuses `ChatEmojiGrid`, icon picker options are ghost icon `Button`s with `aria-label` / `aria-pressed`, list pagination uses `Button` with translated labels, AI conversation rows use `Item asChild` (focus ring), assistant markdown tables use `ui/table`, panel empty states use compact `Empty`, loading text gets `Spinner`, native `title` tooltips become `Tooltip`.
 - Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
 
 ### Fixed

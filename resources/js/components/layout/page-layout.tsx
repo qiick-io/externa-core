@@ -1,11 +1,13 @@
 import { router } from '@inertiajs/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/layout/page-header';
-import { buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
 } from '@/components/ui/pagination';
 import {
@@ -151,31 +153,36 @@ function paginationPlainLabel(label: string): string {
     );
 }
 
+type PaginationLinkKind = 'page' | 'previous' | 'next' | 'ellipsis';
+
 /**
- * @param {string} label - Raw Laravel pagination link label (may include HTML entities).
- * @returns {string | undefined} Accessible name for the control.
+ * Classifies a Laravel paginator link by its plain label: a page number, the
+ * previous / next arrows (English or translated "&laquo;" / "&raquo;" labels)
+ * or the "..." gap.
+ *
+ * @param {string} plain - Label from {@link paginationPlainLabel}
+ * @returns {PaginationLinkKind}
  */
-function paginationAriaLabel(label: string): string | undefined {
-    const plain = paginationPlainLabel(label);
-
+function paginationLinkKind(plain: string): PaginationLinkKind {
     if (/^\d+$/.test(plain)) {
-        return `Go to page ${plain}`;
+        return 'page';
     }
 
-    if (/previous/i.test(plain)) {
-        return 'Go to previous page';
+    if (/previous|«|‹/i.test(plain)) {
+        return 'previous';
     }
 
-    if (/next/i.test(plain)) {
-        return 'Go to next page';
+    if (/next|»|›/i.test(plain)) {
+        return 'next';
     }
 
-    return plain.length > 0 ? plain : undefined;
+    return 'ellipsis';
 }
 
 /**
- * Laravel-style pagination link row via shadcn Pagination + Inertia visits.
- * Query params are unchanged; controls remain `<button>` for browser tests.
+ * Laravel-style pagination link row on shadcn `Pagination` + `Button`, with
+ * Inertia visits. Query params are unchanged; controls stay `<button>` for
+ * browser tests. Labels and accessible names are translated (`common.*`).
  *
  * @param {{ links: TablePaginationLink[] }} props - Component props.
  * @param {TablePaginationLink[]} props.links - Pagination links from the server.
@@ -188,6 +195,8 @@ export function TablePagination({
     links: TablePaginationLink[];
     className?: string;
 }) {
+    const { t } = useTranslation();
+
     if (links.length === 0) {
         return null;
     }
@@ -197,33 +206,52 @@ export function TablePagination({
             <PaginationContent>
                 {links.map((link, index) => {
                     const plain = paginationPlainLabel(link.label);
-                    const isPageNumber = /^\d+$/.test(plain);
+                    const kind = paginationLinkKind(plain);
+
+                    if (kind === 'ellipsis') {
+                        return (
+                            <PaginationItem key={index}>
+                                <PaginationEllipsis />
+                            </PaginationItem>
+                        );
+                    }
+
+                    const ariaLabel =
+                        kind === 'page'
+                            ? t('pagination.goToPage', { page: plain })
+                            : kind === 'previous'
+                              ? t('pagination.goToPreviousPage')
+                              : t('pagination.goToNextPage');
 
                     return (
                         <PaginationItem key={index}>
-                            <button
+                            <Button
                                 type="button"
+                                variant={link.active ? 'outline' : 'ghost'}
+                                size={kind === 'page' ? 'icon' : 'default'}
                                 className={cn(
-                                    buttonVariants({
-                                        variant: link.active
-                                            ? 'outline'
-                                            : 'ghost',
-                                        size: isPageNumber ? 'icon' : 'default',
-                                    }),
-                                    !isPageNumber && 'min-w-0 px-2.5',
-                                    !link.url &&
-                                        'pointer-events-none opacity-50',
+                                    kind === 'previous' && 'gap-1 px-2.5',
+                                    kind === 'next' && 'gap-1 px-2.5',
                                 )}
                                 disabled={!link.url}
-                                aria-label={paginationAriaLabel(link.label)}
+                                aria-label={ariaLabel}
                                 aria-current={link.active ? 'page' : undefined}
                                 onClick={() =>
                                     link.url && router.visit(link.url)
                                 }
-                                dangerouslySetInnerHTML={{
-                                    __html: link.label,
-                                }}
-                            />
+                            >
+                                {kind === 'previous' ? <ChevronLeft /> : null}
+                                {kind === 'page' ? (
+                                    plain
+                                ) : (
+                                    <span className="hidden sm:block">
+                                        {kind === 'previous'
+                                            ? t('pagination.previous')
+                                            : t('pagination.next')}
+                                    </span>
+                                )}
+                                {kind === 'next' ? <ChevronRight /> : null}
+                            </Button>
                         </PaginationItem>
                     );
                 })}

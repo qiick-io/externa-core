@@ -1266,13 +1266,6 @@ export default function ItemsForm({
                                                 ? 'items-start'
                                                 : undefined
                                         }
-                                        title={
-                                            publishBlockedByApproval
-                                                ? t(
-                                                      'collections.itemToolbar.approveBeforePublish',
-                                                  )
-                                                : undefined
-                                        }
                                         data-test="publish-item"
                                         onClick={() => {
                                             if (publishBlockedByApproval) {

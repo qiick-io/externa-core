@@ -379,9 +379,8 @@ export function ItemRevisionsDrawer({
                                 disabled={loading || loadingMore}
                                 onClick={loadMore}
                             >
-                                {loadingMore
-                                    ? t('common.loading')
-                                    : t('common.loadMore')}
+                                {loadingMore ? <Spinner /> : null}
+                                {t('common.loadMore')}
                             </Button>
                         ) : null}
                     </DrawerBody>

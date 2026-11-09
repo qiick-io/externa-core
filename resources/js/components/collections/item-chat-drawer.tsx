@@ -1980,9 +1980,8 @@ export function ItemChatDrawer({
                                     load(oldestId);
                                 }}
                             >
-                                {loadingMore
-                                    ? t('collections.itemChat.loading')
-                                    : t('collections.itemChat.loadOlder')}
+                                {loadingMore ? <Spinner /> : null}
+                                {t('collections.itemChat.loadOlder')}
                             </Button>
                         ) : null}
                         {error ? (

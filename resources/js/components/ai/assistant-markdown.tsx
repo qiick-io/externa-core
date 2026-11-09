@@ -2,6 +2,14 @@ import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 type AssistantMarkdownProps = {
@@ -90,23 +98,24 @@ const markdownComponents: Components = {
         <h3 className="mt-3 mb-2 text-sm font-semibold">{children}</h3>
     ),
     table: ({ children }) => (
-        <div className="my-3 overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[12rem] border-collapse text-xs">
-                {children}
-            </table>
+        <div className="my-3 rounded-lg border border-border">
+            <Table className="min-w-48 text-xs">{children}</Table>
         </div>
     ),
-    thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
-    th: ({ children }) => (
-        <th className="border-b border-border px-3 py-2 text-left font-medium whitespace-nowrap">
-            {children}
-        </th>
+    thead: ({ children }) => (
+        <TableHeader className="bg-muted/60">{children}</TableHeader>
     ),
-    td: ({ children }) => <td className="px-3 py-2 align-top">{children}</td>,
-    tr: ({ children }) => (
-        <tr className="border-b border-border/70 last:border-b-0 even:bg-muted/30">
+    tbody: ({ children }) => <TableBody>{children}</TableBody>,
+    th: ({ children }) => (
+        <TableHead className="h-auto px-3 py-2">{children}</TableHead>
+    ),
+    td: ({ children }) => (
+        <TableCell className="px-3 py-2 align-top whitespace-normal">
             {children}
-        </tr>
+        </TableCell>
+    ),
+    tr: ({ children }) => (
+        <TableRow className="even:bg-muted/30">{children}</TableRow>
     ),
     hr: () => <hr className="my-4 border-border" />,
 };

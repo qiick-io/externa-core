@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatComposer } from '@/components/chat/chat-composer';
+import { ChatEmojiGrid } from '@/components/chat/chat-emoji-grid';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMentionHitLabel } from '@/components/chat/chat-mention-hit';
 import type { ChatMentionHit } from '@/components/chat/chat-mention-hit';
@@ -346,20 +347,10 @@ export function ChatSendAttachmentsDialog({
                                             className="z-[80] w-64 p-2"
                                             align="start"
                                         >
-                                            <div className="grid grid-cols-8 gap-1">
-                                                {emojis.map((emoji) => (
-                                                    <button
-                                                        key={emoji}
-                                                        type="button"
-                                                        className="rounded p-1 text-lg hover:bg-muted"
-                                                        onClick={() =>
-                                                            onInsertEmoji(emoji)
-                                                        }
-                                                    >
-                                                        {emoji}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <ChatEmojiGrid
+                                                emojis={emojis}
+                                                onSelect={onInsertEmoji}
+                                            />
                                         </PopoverContent>
                                     </Popover>
                                 </>

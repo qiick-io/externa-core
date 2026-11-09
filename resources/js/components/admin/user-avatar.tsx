@@ -5,6 +5,11 @@ import {
     AvatarFallback,
     AvatarImage,
 } from '@/components/ui/avatar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import { formatUserDisplayName, initialsFromName } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -47,13 +52,23 @@ export function UserAvatar({
                 {initials}
             </AvatarFallback>
             {isOnline === undefined ? null : (
-                <AvatarBadge
-                    className={isOnline ? 'bg-success' : 'bg-muted-foreground'}
-                    title={isOnline ? t('common.online') : t('common.offline')}
-                    data-test="user-online-dot"
-                    data-online={isOnline ? '1' : '0'}
-                    aria-hidden
-                />
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <AvatarBadge
+                            // TooltipTrigger asChild would otherwise replace the slot.
+                            data-slot="avatar-badge"
+                            className={
+                                isOnline ? 'bg-success' : 'bg-muted-foreground'
+                            }
+                            data-test="user-online-dot"
+                            data-online={isOnline ? '1' : '0'}
+                            aria-hidden
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {isOnline ? t('common.online') : t('common.offline')}
+                    </TooltipContent>
+                </Tooltip>
             )}
         </Avatar>
     );

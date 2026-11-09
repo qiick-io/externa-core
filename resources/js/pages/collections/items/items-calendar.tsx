@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    CalendarDays,
     ChevronLeft,
     ChevronRight,
     ChevronsLeft,
@@ -12,6 +13,12 @@ import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Item, ItemGroup } from '@/components/ui/item';
 import {
     Popover,
@@ -20,6 +27,11 @@ import {
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import { cn } from '@/lib/utils';
@@ -781,12 +793,22 @@ export function ItemsCalendar({
 
     if (!fieldName || !field) {
         return (
-            <p
-                className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            <Empty
+                className="gap-3 border border-dashed p-6 md:p-6"
                 data-test="calendar-missing-field"
             >
-                {t('collections.itemsList.calendarMissingField')}
-            </p>
+                <EmptyHeader>
+                    <EmptyMedia
+                        variant="icon"
+                        className="bg-primary/10 text-primary"
+                    >
+                        <CalendarDays />
+                    </EmptyMedia>
+                    <EmptyDescription>
+                        {t('collections.itemsList.calendarMissingField')}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         );
     }
 
@@ -813,13 +835,17 @@ export function ItemsCalendar({
                     <GripVertical className={compact ? 'size-3' : 'size-3.5'} />
                 </span>
             ) : null}
-            <Link
-                href={itemHref(collection.id, item.id)}
-                className="min-w-0 flex-1 truncate px-0.5 text-foreground"
-                title={itemTitle(item)}
-            >
-                {itemTitle(item)}
-            </Link>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link
+                        href={itemHref(collection.id, item.id)}
+                        className="min-w-0 flex-1 truncate px-0.5 text-foreground"
+                    >
+                        {itemTitle(item)}
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent>{itemTitle(item)}</TooltipContent>
+            </Tooltip>
         </div>
     );
 
