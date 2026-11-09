@@ -107,3 +107,62 @@ arch('traits end with Trait')
     ->traits()
     ->toHaveSuffix('Trait')
     ->ignoring($ignoredBy('traits'));
+
+/**
+ * Thin controllers (code standard, "Architecture", rule 1): at most five public
+ * methods of their own per controller. Controllers that already have more are
+ * listed in `naming-architecture.php` under `controllerPublicMethods` with their
+ * current count, a ratchet: the count may not grow, and an entry fails once the
+ * controller shrinks, so it is lowered or removed and cannot grow back.
+ */
+test('controllers stay thin', function () use ($namingArchitecture, $rootNamespace): void {
+    $maximumPublicMethods = 5;
+    /** @var array<class-string, int> $allowedPublicMethodsByController */
+    $allowedPublicMethodsByController = $namingArchitecture['controllerPublicMethods'] ?? [];
+    /** @var array<string, list<string>> $sourceDirectoriesByNamespace */
+    $sourceDirectoriesByNamespace = require dirname(__DIR__, 2).'/vendor/composer/autoload_psr4.php';
+    $violations = [];
+
+    foreach ($sourceDirectoriesByNamespace[$rootNamespace.'\\'] ?? [] as $sourceDirectory) {
+        $controllersDirectory = $sourceDirectory.'/Http/Controllers';
+
+        if (! is_dir($controllersDirectory)) {
+            continue;
+        }
+
+        $controllerFiles = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($controllersDirectory, FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($controllerFiles as $controllerFile) {
+            if ($controllerFile->getExtension() !== 'php') {
+                continue;
+            }
+
+            $relativeClassPath = substr($controllerFile->getPathname(), strlen($sourceDirectory) + 1, -4);
+            $controllerClass = $rootNamespace.'\\'.str_replace('/', '\\', $relativeClassPath);
+
+            if (! class_exists($controllerClass) || (new ReflectionClass($controllerClass))->isAbstract()) {
+                continue;
+            }
+
+            $publicMethodCount = count(array_filter(
+                (new ReflectionClass($controllerClass))->getMethods(ReflectionMethod::IS_PUBLIC),
+                static fn (ReflectionMethod $method): bool => $method->getDeclaringClass()->getName() === $controllerClass
+                    && ! $method->isConstructor()
+                    && ! $method->isStatic(),
+            ));
+            $allowedPublicMethods = $allowedPublicMethodsByController[$controllerClass] ?? $maximumPublicMethods;
+
+            if ($publicMethodCount > $allowedPublicMethods) {
+                $violations[] = "{$controllerClass} has {$publicMethodCount} public methods (allowed {$allowedPublicMethods}): split it, or move the logic into Actions / Services. Existing debt only, when adopting this rule: '{$controllerClass}' => {$publicMethodCount},";
+            } elseif (isset($allowedPublicMethodsByController[$controllerClass]) && $publicMethodCount < $allowedPublicMethods) {
+                $violations[] = $publicMethodCount <= $maximumPublicMethods
+                    ? "{$controllerClass} is thin now: remove it from controllerPublicMethods."
+                    : "{$controllerClass} shrank to {$publicMethodCount}: set '{$controllerClass}' => {$publicMethodCount} in controllerPublicMethods.";
+            }
+        }
+    }
+
+    expect($violations)->toBe([], implode("\n", $violations));
+});
