@@ -15,6 +15,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 - Breadcrumbs, page titles, nav items, select placeholders, confirm labels and aria-labels that bypassed `t()` are translated (en/it/de); validation operators, text input types and AI suggestion chips are localized; settings Jobs and item History links use Wayfinder. New lint rule `externa/no-literal-ui-prop` fails CI on hard-coded text in UI props and `{ title, href }` items.
+- Registry drift covers more of the UI: `user-hover-card` and `ai/assistant-panel` live at the registry paths (with override reasons), `ui/alert` and `ui/calendar` are upstreamed to `@qiick` (qiick-io/app-ui#44); `message-response` declares its `useMemo` deps instead of disabling the lint.
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
 
 ### Added
