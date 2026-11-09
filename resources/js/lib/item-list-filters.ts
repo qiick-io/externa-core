@@ -49,19 +49,6 @@ const NON_FILTERABLE_TYPES = new Set([
     'hash',
 ]);
 
-export const OPERATOR_LABELS: Record<FilterOperator, string> = {
-    _eq: 'equals',
-    _neq: 'not equals',
-    _contains: 'contains',
-    _in: 'is one of',
-    _null: 'is empty',
-    _nnull: 'is not empty',
-    _gt: 'greater than',
-    _gte: 'greater or equal',
-    _lt: 'less than',
-    _lte: 'less or equal',
-};
-
 export function operatorNeedsValue(operator: FilterOperator): boolean {
     return operator !== '_null' && operator !== '_nnull';
 }
