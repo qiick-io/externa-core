@@ -10,6 +10,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { WebhookDeliveryEntry, WebhookDeliverySummary } from '@/types';
 
 function formatAt(value: string): string {
@@ -125,22 +130,31 @@ export function WebhookDeliveryStatus({
                                     </code>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge
-                                        variant={
-                                            entry.outcome === 'success'
-                                                ? 'secondary'
-                                                : 'destructive'
-                                        }
-                                        title={entry.message ?? undefined}
-                                    >
-                                        {entry.outcome === 'success'
-                                            ? t(
-                                                  'settings.project.webhookOutcomeSuccess',
-                                              )
-                                            : t(
-                                                  'settings.project.webhookOutcomeFailed',
-                                              )}
-                                    </Badge>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge
+                                                data-slot="badge"
+                                                variant={
+                                                    entry.outcome === 'success'
+                                                        ? 'secondary'
+                                                        : 'destructive'
+                                                }
+                                            >
+                                                {entry.outcome === 'success'
+                                                    ? t(
+                                                          'settings.project.webhookOutcomeSuccess',
+                                                      )
+                                                    : t(
+                                                          'settings.project.webhookOutcomeFailed',
+                                                      )}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        {entry.message ? (
+                                            <TooltipContent className="max-w-sm">
+                                                {entry.message}
+                                            </TooltipContent>
+                                        ) : null}
+                                    </Tooltip>
                                 </TableCell>
                             </TableRow>
                         ))}

@@ -1,5 +1,10 @@
 import { Check, X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { formatDateTime } from '@/lib/format';
 import i18n from '@/lib/i18n';
@@ -172,10 +177,19 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                 : [String(value)];
             const text = tags.join(', ');
 
+            if (!text) {
+                return <span className="text-sm">{empty()}</span>;
+            }
+
             return (
-                <span className="max-w-[14rem] truncate text-sm" title={text}>
-                    {text || empty()}
-                </span>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="max-w-[14rem] truncate text-sm">
+                            {text}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">{text}</TooltipContent>
+                </Tooltip>
             );
         }
         case 'map': {
@@ -221,12 +235,16 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
         }
         case 'hash':
             return (
-                <span
-                    className="max-w-[10rem] truncate font-mono text-xs"
-                    title={String(value)}
-                >
-                    {String(value)}
-                </span>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="max-w-[10rem] truncate font-mono text-xs">
+                            {String(value)}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="font-mono">
+                        {String(value)}
+                    </TooltipContent>
+                </Tooltip>
             );
         case 'color':
             return (

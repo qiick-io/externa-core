@@ -45,7 +45,6 @@ export function FileActionMenuItems({
                     variant={action.destructive ? 'destructive' : 'default'}
                     data-testid={`files-context-action-${action.key}`}
                     disabled={Boolean(action.disabledReason)}
-                    title={action.disabledReason}
                     onSelect={() => onAction(action.key)}
                 >
                     <Icon className="size-4" />

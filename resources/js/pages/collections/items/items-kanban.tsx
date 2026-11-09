@@ -1,11 +1,17 @@
 import { Link, router } from '@inertiajs/react';
 import type { TFunction } from 'i18next';
-import { GripVertical } from 'lucide-react';
+import { Columns3, GripVertical } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
@@ -545,12 +551,22 @@ export function ItemsKanban({
 
     if (!board || !fieldName) {
         return (
-            <p
-                className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            <Empty
+                className="gap-3 border border-dashed p-6 md:p-6"
                 data-test="kanban-missing-field"
             >
-                {t('collections.itemsList.kanbanMissingField')}
-            </p>
+                <EmptyHeader>
+                    <EmptyMedia
+                        variant="icon"
+                        className="bg-primary/10 text-primary"
+                    >
+                        <Columns3 />
+                    </EmptyMedia>
+                    <EmptyDescription>
+                        {t('collections.itemsList.kanbanMissingField')}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         );
     }
 

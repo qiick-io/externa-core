@@ -2797,5 +2797,12 @@
         "compareHint": "Seleziona due revisioni per vedere le differenze.",
         "field": "Campo",
         "selectRevision": "Seleziona revisione #{{id}}"
+    },
+    "pagination": {
+        "previous": "Precedente",
+        "next": "Successiva",
+        "goToPage": "Vai alla pagina {{page}}",
+        "goToPreviousPage": "Vai alla pagina precedente",
+        "goToNextPage": "Vai alla pagina successiva"
     }
 }

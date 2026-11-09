@@ -3,6 +3,7 @@ import { Database, Plus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatUsersDrawer } from '@/components/chat/chat-users-drawer';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -23,6 +24,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
 import { createChatThread, fetchChatItemPicker } from '@/lib/chat-hub-api';
 import type { ChatItemPickerGroup, ChatListMeta } from '@/lib/chat-hub-api';
 import { toast } from '@/lib/toast';
@@ -200,14 +208,27 @@ function ItemsDrawer({
                         className="max-h-none flex-1 px-3 py-2"
                     >
                         {loading ? (
-                            <p className="text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 {t('chatHub.loading')}
-                            </p>
+                            </div>
                         ) : null}
                         {!loading && groups.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('chatHub.emptyItems')}
-                            </p>
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <Database />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        <EmptyStatus>
+                                            {t('chatHub.emptyItems')}
+                                        </EmptyStatus>
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : null}
                         {groups.map((collection) => (
                             <CommandGroup
@@ -244,9 +265,8 @@ function ItemsDrawer({
                                     )
                                 }
                             >
-                                {loadingMore
-                                    ? t('chatHub.loading')
-                                    : t('chatHub.loadMore')}
+                                {loadingMore ? <Spinner /> : null}
+                                {t('chatHub.loadMore')}
                             </Button>
                         ) : null}
                     </CommandList>
