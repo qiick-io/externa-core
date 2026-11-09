@@ -1,6 +1,6 @@
 {
-    "$comment": "qiick standards pack: https://github.com/qiick-io/app-ui/tree/develop/standards. Sync: node <app-ui>/scripts/sync-standards.mjs --target .",
-    "ref": "develop",
+    "$comment": "qiick standards pack: https://github.com/qiick-io/app-ui/tree/v0.2.0/standards. Sync: node <app-ui>/scripts/sync-standards.mjs --target .",
+    "ref": "v0.2.0",
     "uiPreset": "Teal",
     "php": true,
     "frontendRoots": ["resources/js"],

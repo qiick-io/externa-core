@@ -12,12 +12,13 @@
  *   The one exception is the PR that raises `level:` in phpstan.neon(.dist):
  *   it may baseline the new level's errors.
  *
- *     <lint --format json> | node scripts/qiick-ratchet.mjs lint --rule <id> --baseline <file.json> [--update]
+ *     <lint --format json> | node scripts/qiick-ratchet.mjs lint --rule <id>[,<id>…] --baseline <file.json> [--update]
  *
  *   Reads an ESLint or oxlint JSON report from stdin and counts the findings of
- *   one rule per file. Fails when a file has more than its baseline count (or is
+ *   each rule per file. Fails when a file has more than its baseline count (or is
  *   new), and when a file has fewer (lower the baseline with `--update`, so paid
- *   debt cannot come back).
+ *   debt cannot come back). One rule: the baseline maps file => count. Several
+ *   rules: it maps rule => file => count.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -160,27 +161,13 @@ function countLintFindings(report, ruleId) {
     );
 }
 
-function checkLint() {
-    const ruleId = option('rule');
-    const baselinePath = option('baseline');
-
-    if (!ruleId || !baselinePath) {
-        throw new Error('lint needs --rule <id> and --baseline <file.json>.');
-    }
-
-    const counts = countLintFindings(fs.readFileSync(0, 'utf8'), ruleId);
-
-    if (process.argv.includes('--update')) {
-        fs.writeFileSync(baselinePath, `${JSON.stringify(counts, null, 4)}\n`);
-        console.log(`qiick-ratchet lint: wrote ${baselinePath}`);
-
-        return;
-    }
-
-    /** @type {Record<string, number>} */
-    const baseline = fs.existsSync(baselinePath)
-        ? JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
-        : {};
+/**
+ * @param {Record<string, number>} counts - Findings now, file => count
+ * @param {Record<string, number>} baseline - Allowed, file => count
+ * @param {string} ruleId
+ * @returns {string[]} Errors
+ */
+function compareWithBaseline(counts, baseline, ruleId) {
     /** @type {string[]} */
     const errors = [];
 
@@ -200,9 +187,59 @@ function checkLint() {
         }
     }
 
-    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    return errors;
+}
 
-    console.log(`qiick-ratchet lint: ${total} ${ruleId} findings baselined`);
+function checkLint() {
+    const ruleIds = (option('rule') ?? '').split(',').filter(Boolean);
+    const baselinePath = option('baseline');
+
+    if (ruleIds.length === 0 || !baselinePath) {
+        throw new Error(
+            'lint needs --rule <id>[,<id>…] and --baseline <file.json>.',
+        );
+    }
+
+    const report = fs.readFileSync(0, 'utf8');
+    const isSingleRule = ruleIds.length === 1;
+    /** @type {Record<string, Record<string, number>>} */
+    const countsByRule = Object.fromEntries(
+        ruleIds.map((ruleId) => [ruleId, countLintFindings(report, ruleId)]),
+    );
+
+    if (process.argv.includes('--update')) {
+        const baseline = isSingleRule ? countsByRule[ruleIds[0]] : countsByRule;
+
+        fs.writeFileSync(
+            baselinePath,
+            `${JSON.stringify(baseline, null, 4)}\n`,
+        );
+        console.log(`qiick-ratchet lint: wrote ${baselinePath}`);
+
+        return;
+    }
+
+    const storedBaseline = fs.existsSync(baselinePath)
+        ? JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
+        : {};
+    /** @type {string[]} */
+    const errors = [];
+
+    for (const ruleId of ruleIds) {
+        const counts = countsByRule[ruleId];
+        const baseline = isSingleRule
+            ? storedBaseline
+            : (storedBaseline[ruleId] ?? {});
+        const total = Object.values(counts).reduce(
+            (sum, count) => sum + count,
+            0,
+        );
+
+        errors.push(...compareWithBaseline(counts, baseline, ruleId));
+        console.log(
+            `qiick-ratchet lint: ${total} ${ruleId} findings baselined`,
+        );
+    }
 
     if (errors.length > 0) {
         console.error(`\n${errors.join('\n')}`);

@@ -2,7 +2,59 @@
 
 # qiick standards
 
-These rules bind every agent and contributor in this repo from the first task. They are the same in every qiick repo (source: https://github.com/qiick-io/app-ui/tree/develop/standards), and CI fails when this block differs from the source. Rules for this repo only live outside this block; where they are more specific, they win.
+These rules bind every agent and contributor in this repo from the first task. They are the same in every qiick repo (source: https://github.com/qiick-io/app-ui/tree/develop/standards), and CI fails when this block differs from the source. Rules for this repo only live outside this block; where they are more specific, they win. Starting a new qiick product: https://github.com/qiick-io/app-ui/blob/develop/docs/new-product.md.
+
+## Stack
+
+Every qiick app runs the same stack, so code, rules and registry items move between apps unchanged. A new app starts here; an existing app that differs converges on it, one PR per change. Steps from an empty repo to a green CI: https://github.com/qiick-io/app-ui/blob/develop/docs/new-product.md
+
+### Bootstrap
+
+```bash
+laravel new <app> --react --pest --npm --database=sqlite --git
+```
+
+The Laravel installer with the official **React starter kit** (Inertia, React, TypeScript, Tailwind, shadcn, Fortify, Wayfinder). Same result without the installer: `composer create-project laravel/react-starter-kit <app>`. Do not start from another kit, template or a copy of an existing app.
+
+### Versions (majors are pinned; minors float)
+
+| Layer       | Package                                                                  | Major   |
+| ----------- | ------------------------------------------------------------------------ | ------- |
+| Runtime     | PHP                                                                      | `^8.4`  |
+| Framework   | `laravel/framework`                                                      | 13      |
+| Auth        | `laravel/fortify` (+ passkeys, 2FA from the kit)                         | 1       |
+| Routes      | `laravel/wayfinder` + `@laravel/vite-plugin-wayfinder`                   | 0.1     |
+| Server ↔ UI | `inertiajs/inertia-laravel`, `@inertiajs/react`                          | 3       |
+| UI          | `react` / `react-dom`, Tailwind CSS, TypeScript (the kit's major)        | 19 / 4  |
+| Primitives  | shadcn (`radix-ui`), `lucide-react`, `sonner` through `@/lib/toast` only | —       |
+| i18n        | `i18next` + `react-i18next`                                              | 26 / 17 |
+| Tests       | `pestphp/pest`, `pest-plugin-laravel`, `pest-plugin-browser`             | 5       |
+| Static      | `larastan/larastan`, `laravel/pint`                                      | 3 / 1   |
+| Node        | Node.js (`.nvmrc` `24`, `"engines": { "node": "24.x" }`), npm            | 24      |
+| Agents      | `laravel/boost` (dev)                                                    | 2       |
+
+Composer and npm keep caret ranges inside the pinned major; Dependabot (or Renovate) proposes minors and patches; a major bump is its own PR with the maintainer's OK.
+
+### One lint and format toolchain
+
+**ESLint 9 (flat config) + Prettier 3** for TypeScript / React, **Pint** (`laravel` preset) and **Larastan** for PHP. ESLint loads the pack's `qiick-standards.eslint.js` (`"eslint": true` in `qiick-standards.json`), `typescript-eslint`, `eslint-plugin-react`, `react-hooks`, `jsx-a11y`, `import`, `@stylistic` and `i18next`; Prettier uses `prettier-plugin-tailwindcss`. externa-core is the reference (`eslint.config.js`, `.prettierrc`).
+
+Why ESLint and not oxlint / Vite+ `vp check`: the shared rules (boolean prefixes through type-aware `@typescript-eslint/naming-convention`, restricted imports, `padding-line-between-statements`, `jsx-a11y`, the i18n ratchet) exist and are tested in ESLint. A starter kit that ships Vite+ keeps `vite` for the build; lint and format run through ESLint and Prettier. excubia-app converges by replacing `vp check` / oxlint with this toolchain; externa-core converges on Inertia 3 and Pest 5 (it is on Inertia 2 and Pest 4).
+
+The quality gate every app exposes as npm scripts: `lint` (ESLint `--max-warnings=0` + `check-ui-tokens`), `format:check`, `types:check` (`tsc --noEmit`), `knip`, `lint:i18n`; and in PHP `vendor/bin/pint --test`, `vendor/bin/phpstan analyse`, `php artisan test`.
+
+### Runtime defaults
+
+- **Database:** SQLite by default (install, tests, CI); MySQL 8 and PostgreSQL 17 supported and tested in CI. No vendor-specific SQL outside a driver check.
+- **Queue:** the `database` driver by default; **Horizon** (`laravel/horizon`) when Redis is configured. Slow work (mail, AI, imports, webhooks) is a queued `*Job`.
+- **Realtime:** **Reverb** (`laravel/reverb`) with `laravel-echo` + `pusher-js`; broadcasting is optional and the UI works without it (realtime badge grey).
+- **Cache / session:** `database` by default, Redis when configured.
+- **Locales:** `en`, `it`, `de` from the first commit: every UI string through `t('…')`, every key in all three locale files.
+- **Self-hosting:** an app is installed with `composer create-project` and `php artisan <app>:install`, updated with `<app>:upgrade` (see the distribution rules).
+
+### Local development
+
+**Laravel Herd** serves the app at `https://<app>.test` (`herd link`, `herd secure`); `composer run dev` starts Vite, the queue worker and Pail. No Sail or Docker for day-to-day work: Docker is the distribution image, not the dev environment.
 
 ## Code standard
 
@@ -83,7 +135,7 @@ Do not invent other role nouns (`...Normalizer`, `...Publisher`, `...Recorder`, 
 4. **Authorization in Policies**, called through `Gate::authorize()` or a FormRequest `authorize()`, not scattered checks.
 5. **One domain for every surface.** The Inertia UI, the REST / GraphQL API, MCP / AI tools and the CLI call the same `*Action` and `*Service` classes; domain logic is never duplicated per surface.
 
-The Pest architecture test (`tests/Arch/NamingArchitectureTest.php`) enforces the suffixes, readonly DTOs, `declare(strict_types=1)`, no debugging helpers, no `env()` outside `config/`, and no `DB` facade in controllers.
+The Pest architecture test (`tests/Arch/NamingArchitectureTest.php`) enforces the suffixes, readonly DTOs, `declare(strict_types=1)`, no debugging helpers, no `env()` outside `config/`, no `DB` facade in controllers, and at most five public methods per controller (existing debt ratcheted in `naming-architecture.php`).
 
 ### Formatting
 
@@ -106,12 +158,69 @@ This replaces the "comment only exceptionally complex logic" default of Laravel 
 
 ### Contracts: never break them
 
-1. **Migrations are forward-only.** Never edit, rename or delete a migration in `database/migrations/` once it is merged into a released version: existing self-hosted installs would no longer upgrade. A schema or stored-data change is a new migration with a safe backfill. A repo that has not released yet may state a pre-release exception in its own section.
+1. **Migrations are forward-only.** Never edit, rename or delete a migration in `database/migrations/` once it is merged into a released version: existing self-hosted installs would no longer upgrade. A schema or stored-data change is a new migration with a safe backfill. The reusable `migrations-frozen.yml` fails CI when a migration on `main`, on the latest tag or in `database/migrations/.frozen` changes. A repo that has not released yet may state a pre-release exception in its own section.
 2. **Framework method contracts keep their names** (no `is` / `has` prefix forced on them): `FormRequest::authorize()`, Policy methods (`viewAny`, `view`, `create`, `update`, `delete`, `restore`, `forceDelete`), `Rule::passes()` / `ValidationRule::validate()`, `broadcastWhen()`, `shouldQueue()`.
 3. **Native and library props keep their names:** `disabled`, `required`, `checked`, `open`, `defaultOpen`, `readOnly`, `asChild`, `modal`, `preserveScroll`, `preserveState`, `replace` (DOM, React, Radix / shadcn, Inertia). The prefix rule applies only to our own props and state.
 4. **Wire formats stay stable** when a PHP class is renamed: REST JSON keys, GraphQL type and field names, webhook payloads, `broadcastAs()` names, Inertia page paths, named routes, morph maps (`Relation::enforceMorphMap`), queued job class names. Enum backing values stay identical.
 5. **Convention-driven directories** (`app/GraphQL/`, `app/Ai/`, MCP tools) keep the names their resolver expects unless the resolver mapping changes in the same PR.
 6. **Mechanical renames and behaviour changes never share a PR.** Land the `git mv` + import updates first with green tests, then extract or change logic in a separate PR.
+
+## Backend conventions
+
+How the five layers look in a qiick app. Each topic has a page with the externa-core (or excubia-app) files to copy; read it before touching that area.
+
+| Topic                                                  | Page                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Auth pages, 2FA, passkeys, SSO through Signaculum      | https://github.com/qiick-io/app-ui/blob/develop/docs/auth.md                  |
+| Roles, permissions, policies, `<app>:sync-permissions` | https://github.com/qiick-io/app-ui/blob/develop/docs/roles-and-permissions.md |
+| Error pages 403 / 404 / 500 / 503                      | https://github.com/qiick-io/app-ui/blob/develop/docs/error-pages.md           |
+| REST API, OpenAPI, API keys and scopes                 | https://github.com/qiick-io/app-ui/blob/develop/docs/api.md                   |
+| Realtime: Reverb, channels, presence                   | https://github.com/qiick-io/app-ui/blob/develop/docs/realtime.md              |
+| Security headers                                       | https://github.com/qiick-io/app-ui/blob/develop/docs/security-headers.md      |
+| Logging and activity (audit) log                       | https://github.com/qiick-io/app-ui/blob/develop/docs/logging-and-audit.md     |
+| AI backend: providers, tools, approvals                | https://github.com/qiick-io/app-ui/blob/develop/docs/ai-backend.md            |
+
+### Requests and controllers
+
+- Every write takes a `FormRequest` in `app/Http/Requests/<Area>/`: `Store<Model>Request`, `Update<Model>Request`, `Bulk<Model>ActionRequest`; shared rules live in `app/Http/Requests/Concerns/*Trait.php` (`ValidatesListPerPageTrait`, `ValidatesSearchQueryTrait`). `authorize()` checks the permission (or the policy); `rules()` validates the whole payload at the trust boundary.
+- A controller method receives the request, builds a `*Data` DTO from `validated()`, calls one `*Action` (write) or `*Service` (read), and returns an Inertia page, a redirect with a flash message, or a `*Resource`. Index pages paginate on the server (`?page`, `?per_page`, `?sort`, `?search`).
+- Wayfinder generates the frontend route helpers (`@/routes/...`, `@/actions/App/Http/Controllers/...`): never hard-code a URL in TypeScript.
+
+### Permissions and policies
+
+- Permissions are a string-backed `app/Enums/PermissionEnum.php` (`CanShowUsers = 'can-show-users'`, `can-<verb>-<resource>`), roles a `RoleEnum` (`super-admin`, `admin`, …), stored with `spatie/laravel-permission`.
+- `php artisan <app>:sync-permissions` creates the missing permissions from the enum, grants new ones to `admin`, clears the permission cache and writes `resources/js/enums/permission-enum.ts`. `<app>:install` and `<app>:upgrade` run it; never seed permissions by hand.
+- Route groups are gated with the `permission:<value>` middleware; record-level decisions (ownership, state) live in `app/Policies/*Policy.php`, called through `Gate::authorize()` or `authorize()`. `Gate::before` grants `super-admin` everything.
+- The UI receives `auth.permissions` as a shared Inertia prop and hides what the user cannot do (`useCan()`); the server check is the one that counts.
+
+### API
+
+Only when the spec asks for one: REST under `/api/v1`, `*Resource` responses, a hand-written OpenAPI file served at `/api/v1/openapi.json`, hashed API keys with scopes, named rate limiters. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/api.md
+
+### Security
+
+- `SetSecurityHeadersMiddleware` on the `web` group (CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`), configured in `config/security.php`; HSTS belongs on the reverse proxy.
+- Rate limiters for login, 2FA, passkeys and sensitive actions; `DB::prohibitDestructiveCommands(app()->isProduction())`; secrets stored encrypted (`encrypted` cast), never logged.
+- Outbound URLs that users configure (OIDC issuers, webhooks) are SSRF-validated before the request.
+
+### Logging and audit
+
+- Every domain model a user can change uses `app/Traits/LogsApplicationActivityTrait.php` (`spatie/laravel-activitylog`: all attributes, only dirty, never empty), excluding secrets (`password`, `two_factor_*`, `remember_token`, key hashes).
+- Log names: `default`, `auth`, `settings`, `ai`, plus one per domain area; `ip` and `user_agent` are added to every entry. The activity log is a page behind `can-show-activity-logs`.
+- Application logs go to the stock `config/logging.php` channels (`stack` → `single` / `daily`, `stderr` in Docker). No personal data or secrets in log messages.
+
+### Realtime
+
+Broadcasting is optional: `BROADCAST_CONNECTION=null` must leave the app fully usable. Events are `app/Events/*Event.php` with `ShouldBroadcastNow` and a stable `broadcastAs()`; channels are `App.Models.User.{id}` (private), `online` (presence) and `<resource>.{id}` (presence when people collaborate), each authorised in `routes/channels.php` with `is_active` checked. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/realtime.md
+
+### AI
+
+AI is off for writes by default: read-only tools only, write and destructive tools behind an env kill switch, an allowlist and a per-call approval; every tool call is logged; tests fake the agent. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/ai-backend.md
+
+### Operations
+
+- `GET /health/live` (process up, no I/O) and `GET /health/ready` (database, cache and queue reachable, `503` otherwise), outside auth, from `routes/health.php`.
+- Every Artisan command of the app is in the `<app>:` namespace (`<app>:install`, `<app>:upgrade`, `<app>:sync-permissions`, `<app>:create-user`).
 
 ## Testing
 
@@ -127,7 +236,7 @@ This replaces the "comment only exceptionally complex logic" default of Laravel 
 ## Git, commits and pull requests
 
 - **English everywhere in the repo:** code, comments, docs, commit messages, issues, pull requests.
-- **Conventional Commits:** `type(scope): summary` in the imperative, lower case, no trailing period. Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `ci`, `build`, `security`. `!` or a `BREAKING CHANGE:` footer for breaking changes. commitlint checks PR titles in CI.
+- **Conventional Commits:** `type(scope): summary` in the imperative, lower case, no trailing period. Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `ci`, `build`, `security`. `!` or a `BREAKING CHANGE:` footer for breaking changes. commitlint checks PR titles in CI through the reusable `qiick-io/app-ui/.github/workflows/pr-title.yml` (check `pr-title / commitlint`), which every repo calls on `pull_request` with the `edited` type.
 - **One issue, one branch, one pull request.** Branch from `develop` as `<type>/<issue>-<kebab-slug>` (`feat/42-project-registration`). Never commit directly to `develop` or `main`.
 - Pull requests target `develop` and are **squash-merged**, so the PR title becomes the commit: make it a valid Conventional Commit. The body says what changed, why, and `Closes #<issue>`.
 - Never force-push a shared branch, never `--no-verify`, never `--admin` or any branch-protection bypass.
@@ -153,6 +262,13 @@ Agents must not, unless the maintainer explicitly says so in this conversation:
 
 How a release goes, for reference: release PR → the maintainer merges it → tag `vX.Y.Z` on the merge commit → GitHub Release titled exactly with the tag, listing the included PRs → `main` is merged back into `develop`.
 
+### Lifecycle (what the release PR prepares)
+
+- **Versions:** Semantic Versioning. Pre-releases are `vX.Y.Z-beta.N`, then `vX.Y.Z-rc.N`, then `vX.Y.Z`; Composer packages declare them with `@beta` / `@RC` stability. Before `1.0.0` a minor may break; the notes say so.
+- **`CHANGELOG.md`:** [Keep a Changelog](https://keepachangelog.com/en/1.1.0/): `[Unreleased]` collects `Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security` as PRs land; the release PR moves it to `[X.Y.Z] - YYYY-MM-DD` with an **Upgrade notes** subsection (commands to run, config or env changes, breaking changes, data migrations that take long) and the compare link.
+- **Versions in files:** `composer.json` / `package.json` `version`, the app's version constant or config, and the docs site version, bumped in the release PR only.
+- **Required checks** on `develop` and `main` (the maintainer sets them; agents ask): the repo's own test, lint and type jobs, `pr-title / commitlint`, `app-ui-drift / standards`, and in apps `app-ui-drift / drift`, `ui-quality / ui-quality`, `migrations-frozen / migrations-frozen`, `distribution-smoke / smoke`.
+
 ## Automated checks
 
 Machines enforce these in CI; keep them green, and never silence one to get green.
@@ -160,6 +276,9 @@ Machines enforce these in CI; keep them green, and never silence one to get gree
 - **Dead code.** `knip` (unused files, exports, dependencies) runs in CI with the repo's committed `knip.json`. TypeScript has `noUnusedLocals` and `noUnusedParameters` on. Delete what is unused; prefix a parameter a signature forces on you with `_`. A knip `ignore*` entry needs a comment-worthy reason in the PR.
 - **Strict models.** Each app's `AppServiceProvider::boot()` calls `Model::shouldBeStrict(! app()->isProduction())`: lazy loading, silently discarded attributes and missing attributes throw outside production. Fix the query (eager load, `$fillable`, select the column), never turn it off.
 - **Larastan ratchet.** Each repo runs Larastan one level above where it started. Its `phpstan-baseline.neon` may only shrink: `scripts/qiick-ratchet.mjs phpstan` fails CI when the baseline holds more errors than on the base branch (only the PR that raises `level:` may baseline that level's errors). Never add to the baseline; fix the new error.
+- **Theme tokens only.** In apps with the qiick UI, `scripts/check-ui-tokens.mjs` (synced by the pack, part of `npm run lint`) fails on arbitrary font sizes (`text-[11px]`) and on raw palette / `#hex` classes beyond `scripts/ui-token-baseline.txt`; the baseline only shrinks. The reusable `ui-quality.yml` runs it with the WCAG 2.2 AA contrast check of the installed theme and the app's axe smoke browser test (light, dark, high contrast).
+- **Ratcheted code rules (ESLint repos).** `qiickRatchetedRules()` from `qiick-standards.eslint.js` turns prose rules into checks: only `lucide-react` icons and shadcn primitives (`no-restricted-imports` on other icon and component libraries), toasts only through `@/lib/toast` (not `sonner`), the clipboard only through `@/lib/clipboard` (`no-restricted-properties` on `navigator.clipboard`), booleans prefixed `is` / `has` / `can` / `should` (`@typescript-eslint/naming-convention`, type-aware; destructured contract names exempt), no single-letter names (`id-length`; `i`, `j`, `k`, `t`, `_` allowed). They run only in `npm run lint:standards` (`QIICK_RATCHET=1`), ratcheted per file and rule against `qiick-lint-baseline.json`: existing debt is listed, new findings fail, paid debt must be removed (`--update`).
+- **Thin controllers.** The architecture test fails on a controller with more than five public methods of its own; controllers that already have more are listed with their count in `tests/Arch/naming-architecture.php` (`controllerPublicMethods`), and the test fails when a count grows or when it shrinks without the entry being lowered.
 - **No hard-coded UI strings.** `i18next/no-literal-string` (JSX text only, not attributes such as `className` or `data-*`) flags visible text that bypasses translations: use `t('…')` with keys in every locale file. Existing debt is in `i18n-literal-baseline.json`; `scripts/qiick-ratchet.mjs lint` fails when a file's count grows, and when a count shrinks without the baseline being lowered (`--update`).
 
 ## Self-hosted app distribution
@@ -169,9 +288,10 @@ For apps a customer installs (not for Composer packages, which ship with plain `
 1. **Install from Packagist:** `composer create-project qiick/<app>`. `create-project` only copies `.env` and runs `key:generate`: no migrate, seed or database assumption.
 2. **First run:** `php artisan <app>:install`, interactive (database, name / URL, stack profile, optional seed, frontend build), with a non-interactive mode for CI (`--no-interaction --force`).
 3. **Updates:** `php artisan <app>:upgrade` (migrate, permissions, caches, version-specific steps), plus opt-in `--sync-upstream=vX.Y.Z` with `--dry-run`. `create-project` is never the update channel, and the README says so.
-4. **Docker:** an image on GHCR with semver tags, published by the release workflow; a Compose quick start; `GET /health/live` and `GET /health/ready`.
-5. **Docs:** installation and upgrade pages, and an "Upgrade notes" section for every version in the `CHANGELOG`.
-6. **CI smoke** (`qiick-io/app-ui/.github/workflows/app-distribution-smoke.yml`): `create-project` from the current `develop`, non-interactive install, health endpoints, and an upgrade from the previous tag.
+4. **Docker:** `ghcr.io/qiick-io/<repo>` (for example `ghcr.io/qiick-io/externa-core`), linux/amd64 and arm64, published by the release workflow on a `v*` tag only, tagged `X.Y.Z` and `latest` for a stable release, only `X.Y.Z-beta.N` / `X.Y.Z-rc.N` for a pre-release (externa-core `docker.yml`, job `ghcr-publish`); a Compose quick start; `GET /health/live` and `GET /health/ready`.
+5. **Docs:** a docs site (`docs.<app>.qiick.io`, or `docs/` in the repo until it exists) with installation (Composer, Docker), configuration, upgrade and backup pages, and an "Upgrade notes" section for every version in the `CHANGELOG`.
+6. **Packagist** (first release, by the maintainer): the package `qiick/<repo>` with the GitHub hook, `"type": "project"`, `license`, `support` (issues, source, docs) and keywords in `composer.json`; `composer create-project qiick/<repo>` tested from a clean machine before the release is announced.
+7. **CI smoke** (`qiick-io/app-ui/.github/workflows/app-distribution-smoke.yml`, check `distribution-smoke / smoke`): `create-project` from the current `develop`, non-interactive install, health endpoints, and an upgrade from the previous tag. An app whose install needs more than the workflow does (excubia-app: its core package and first-run wizard, `scripts/e2e/install-upgrade.sh`) may keep its own job, as long as it covers the same four steps; it says so in its own `AGENTS.md` section.
 
 ## UI (qiick app UI)
 
@@ -190,6 +310,10 @@ No agent invents a layout, a component, a colour or a component position in a qi
 | Page: `PageLayout`, header actions, view tabs, segmented filters | https://github.com/qiick-io/app-ui/blob/develop/docs/page.md                |
 | List page: toolbar, selection bar, overflow, table, pagination   | https://github.com/qiick-io/app-ui/blob/develop/docs/list-page.md           |
 | Settings page: secondary nav, form, Save bar                     | https://github.com/qiick-io/app-ui/blob/develop/docs/settings.md            |
+| Forms: page vs drawer vs dialog, `Field`, validation errors      | https://github.com/qiick-io/app-ui/blob/develop/docs/forms.md               |
+| Detail page: record header, status, fields                       | https://github.com/qiick-io/app-ui/blob/develop/docs/detail-page.md         |
+| Auth pages and SSO                                               | https://github.com/qiick-io/app-ui/blob/develop/docs/auth.md                |
+| Error pages 403 / 404 / 500 / 503                                | https://github.com/qiick-io/app-ui/blob/develop/docs/error-pages.md         |
 | Empty states                                                     | https://github.com/qiick-io/app-ui/blob/develop/docs/empty-states.md        |
 | Destructive actions                                              | https://github.com/qiick-io/app-ui/blob/develop/docs/destructive-actions.md |
 | Dashboard cards                                                  | https://github.com/qiick-io/app-ui/blob/develop/docs/dashboard.md           |

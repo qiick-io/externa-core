@@ -180,7 +180,7 @@ jobs:
   # The @qiick UI registry copies and the qiick standards pack (agent files,
   # architecture test, kebab-case file names) must match app-ui.
   app-ui-drift:
-    uses: qiick-io/app-ui/.github/workflows/drift-check.yml@develop
+    uses: qiick-io/app-ui/.github/workflows/drift-check.yml@v0.2.0
     with:
       standards: true
       registry: true
