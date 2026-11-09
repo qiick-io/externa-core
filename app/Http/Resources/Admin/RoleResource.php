@@ -28,11 +28,9 @@ class RoleResource extends JsonResource
             'guard_name' => $this->guard_name,
             'is_system' => (bool) $this->is_system,
             'is_assignable' => (bool) $this->is_assignable,
-            'permissions_count' => $this->when(
-                $this->relationLoaded('permissions'),
-                fn () => $this->permissions->count(),
-                $this->permissions_count ?? null,
-            ),
+            'permissions_count' => $this->relationLoaded('permissions')
+                ? $this->permissions->count()
+                : $this->whenCounted('permissions'),
             'permissions' => $this->whenLoaded('permissions', fn () => $this->permissions->map(fn ($permission) => [
                 'id' => $permission->id,
                 'name' => $permission->name,

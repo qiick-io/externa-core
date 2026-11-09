@@ -7,7 +7,7 @@ import {
     FieldTitle,
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { contrastingForeground } from '@/lib/contrasting-foreground';
+import { contrastingForeground } from '@/lib/color-contrast';
 import type { ThemePresetCatalogItem, ThemePresetSlug } from '@/types';
 
 /** Translation keys for the built-in preset names (en / de / it). */

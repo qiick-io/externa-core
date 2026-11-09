@@ -13,6 +13,7 @@ import type {
     ChatReplyTo,
     ChatUser,
 } from '@/lib/item-chat-api';
+import { isMediaFile } from '@/lib/media-file';
 import { cn } from '@/lib/utils';
 
 type PendingChatFile = {
@@ -46,10 +47,6 @@ type Props = {
     onRetry: (clientId: string) => void;
     onRemoveFile: (clientId: string, fileKey: string) => void;
 };
-
-function isMediaFile(file: File): boolean {
-    return file.type.startsWith('image/') || file.type.startsWith('video/');
-}
 
 function pendingTimeLabel(date: Date): string {
     return date.toLocaleTimeString(undefined, {

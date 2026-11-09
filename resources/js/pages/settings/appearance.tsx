@@ -32,7 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { brandPassesAa } from '@/lib/brand-contrast';
+import { brandPassesAa } from '@/lib/color-contrast';
 import { applyThemeCss, buildPreviewThemeCss } from '@/lib/theme-css';
 import { edit as editAppearance } from '@/routes/appearance';
 import type {
@@ -292,7 +292,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColor',
                                             )}
                                         </FieldLabel>
-                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-white/25 dark:bg-transparent">
+                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-input dark:bg-transparent">
                                             <InputGroupAddon
                                                 align="inline-start"
                                                 className="pl-2"
@@ -353,7 +353,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColorDark',
                                             )}
                                         </FieldLabel>
-                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-white/25 dark:bg-transparent">
+                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-input dark:bg-transparent">
                                             <InputGroupAddon
                                                 align="inline-start"
                                                 className="pl-2"

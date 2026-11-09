@@ -11,6 +11,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 - Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
+- Duplicate helpers merged before 1.4.0: one `lib/color-contrast` (hex, luminance, AA checks) replaces `brand-contrast` / `contrasting-foreground` and theme-css's parser; `slugify` only in `lib/slugify`; dead `hooks/use-initials` removed (`lib/format` has both helpers); shared `isMediaFile`, `moveItem` / `newListItemId`, calendar + kanban `itemRowTitle` / `buildItemListQuery`, `useSettingsFormState` for the 7 project settings pages and one `DropOverlay`. Inertia progress bar and map markers use the primary token. `FileEffectiveAccessService` loads ancestors and writes `effective_access` in batches instead of one query per row; `RoleResource` uses `whenCounted`.
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).

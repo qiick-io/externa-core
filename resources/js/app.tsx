@@ -92,6 +92,7 @@ createInertiaApp({
         );
     },
     progress: {
-        color: '#4B5563',
+        // Theme token, so the bar follows the brand and dark mode.
+        color: 'var(--primary)',
     },
 });

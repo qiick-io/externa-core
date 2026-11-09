@@ -38,6 +38,7 @@ import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dia
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
 import { ChatUserHoverCard } from '@/components/chat/chat-user-hover-card';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { DropOverlay } from '@/components/drop-overlay';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -2600,15 +2601,10 @@ export function ItemChatDrawer({
                     </ChatMentionMenu>
                 </DrawerFooter>
                 {composerDragOver ? (
-                    <div
-                        className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
-                        aria-hidden
-                    >
-                        <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-                            <Paperclip className="size-4" />
-                            {t('collections.itemChat.dropToAttach')}
-                        </div>
-                    </div>
+                    <DropOverlay
+                        icon={Paperclip}
+                        title={t('collections.itemChat.dropToAttach')}
+                    />
                 ) : null}
             </div>
         </>

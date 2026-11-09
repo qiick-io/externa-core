@@ -2,6 +2,7 @@ import { Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DropOverlay } from '@/components/drop-overlay';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -173,16 +174,12 @@ export function FileDropzone({
                 {hiddenInput}
                 {children}
                 {pageDragOver && !disabled && (
-                    <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10">
-                        <div className="pointer-events-none rounded-lg border bg-card p-8 shadow-lg">
-                            <p className="text-sm font-semibold">
-                                {t('files.dropzone.dropToUpload')}
-                            </p>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                {t('files.dropzone.chunkedHint')}
-                            </p>
-                        </div>
-                    </div>
+                    <DropOverlay
+                        className="rounded-xl"
+                        icon={Upload}
+                        title={t('files.dropzone.dropToUpload')}
+                        description={t('files.dropzone.chunkedHint')}
+                    />
                 )}
             </div>
         );

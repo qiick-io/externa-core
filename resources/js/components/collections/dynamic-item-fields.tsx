@@ -1262,8 +1262,7 @@ export function DynamicItemFields({
         for (const [fieldName, value] of Object.entries(revisionApply.values)) {
             applyFieldValue(fieldName, value);
         }
-        // nonce is the apply trigger; applyFieldValue is intentionally unstable
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the nonce is the apply trigger; applyFieldValue is intentionally unstable
     }, [revisionApply?.nonce]);
 
     const undoFieldValue = (fieldName: string): void => {

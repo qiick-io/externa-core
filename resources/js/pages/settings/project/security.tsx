@@ -1,6 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useMemo } from 'react';
+import type {} from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSecuritySettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSecuritySettingsController';
 import Heading from '@/components/heading';
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editSecurity } from '@/routes/project/security';
@@ -84,22 +84,8 @@ export default function ProjectSecuritySettingsPage({
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(() => buildFormState(project), [project]);
-    const [form, setFormState] = useState(initialForm);
-    const [isDirty, setIsDirty] = useState(false);
-
-    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
-        setIsDirty(true);
-        setFormState(action);
-    };
-
-    useRegisterUnsavedChanges({
-        scope: 'page',
-        isDirty,
-        onDiscard: () => {
-            setFormState(initialForm);
-            setIsDirty(false);
-        },
-    });
+    const { form, setForm, isDirty, markSaved } =
+        useSettingsFormState(initialForm);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -121,7 +107,7 @@ export default function ProjectSecuritySettingsPage({
                     {...ProjectSecuritySettingsController.update.form()}
                     options={{ preserveScroll: true }}
                     className="space-y-12"
-                    onSuccess={() => setIsDirty(false)}
+                    onSuccess={markSaved}
                     noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
