@@ -921,7 +921,19 @@
             "calendarLoadError": "Could not load calendar items.",
             "calendarTruncated": "Showing {{shown}} of {{total}} items in this month.",
             "activeItems": "Active items",
-            "trash": "Trash"
+            "trash": "Trash",
+            "operators": {
+                "eq": "equals",
+                "neq": "not equals",
+                "contains": "contains",
+                "in": "is one of",
+                "null": "is empty",
+                "nnull": "is not empty",
+                "gt": "greater than",
+                "gte": "greater or equal",
+                "lt": "less than",
+                "lte": "less or equal"
+            }
         },
         "localized": {
             "applyAll": "Apply to all locales",

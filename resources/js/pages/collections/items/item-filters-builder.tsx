@@ -21,7 +21,6 @@ import {
     countActiveFilterRules,
     emptyFilterRule,
     isFilterableFieldType,
-    OPERATOR_LABELS,
     operatorNeedsValue,
     FILTER_OPERATORS,
 } from '@/lib/item-list-filters';
@@ -254,7 +253,9 @@ export function ItemFiltersBuilder({
                                     >
                                         {FILTER_OPERATORS.map((op) => (
                                             <option key={op} value={op}>
-                                                {OPERATOR_LABELS[op]}
+                                                {t(
+                                                    `collections.itemsList.operators.${op.slice(1)}`,
+                                                )}
                                             </option>
                                         ))}
                                     </NativeSelect>

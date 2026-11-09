@@ -921,7 +921,19 @@
             "calendarLoadError": "Impossibile caricare gli elementi del calendario.",
             "calendarTruncated": "Mostro {{shown}} di {{total}} elementi in questo mese.",
             "activeItems": "Elementi attivi",
-            "trash": "Cestino"
+            "trash": "Cestino",
+            "operators": {
+                "eq": "uguale a",
+                "neq": "diverso da",
+                "contains": "contiene",
+                "in": "è uno tra",
+                "null": "è vuoto",
+                "nnull": "non è vuoto",
+                "gt": "maggiore di",
+                "gte": "maggiore o uguale",
+                "lt": "minore di",
+                "lte": "minore o uguale"
+            }
         },
         "localized": {
             "applyAll": "Applica a tutte le lingue",
