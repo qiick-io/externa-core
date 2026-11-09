@@ -19,6 +19,7 @@ import { cn, toUrl } from '@/lib/utils';
 import apiKeys from '@/routes/api-keys';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editSidebar } from '@/routes/appearance/sidebar';
+import jobs from '@/routes/jobs';
 import { edit as editPerformance } from '@/routes/performance';
 import permissions from '@/routes/permissions';
 import { edit } from '@/routes/profile';
@@ -155,8 +156,8 @@ export default function SettingsLayout({
         ...(can(PermissionEnum.CanShowJobs)
             ? [
                   {
-                      title: 'Jobs',
-                      href: '/settings/jobs',
+                      title: t('settings.layout.jobs'),
+                      href: jobs.index.url(),
                       icon: null,
                   },
               ]

@@ -230,7 +230,9 @@ export default function AdminRoleForm({
                 href: rolesRoutes.index.url(),
             },
             {
-                title: isEdit ? 'Edit role' : 'New role',
+                title: isEdit
+                    ? t('roles.form.editTitle')
+                    : t('roles.actions.newRole'),
                 href: isEdit
                     ? rolesRoutes.edit.url(role!.id)
                     : rolesRoutes.create.url(),
@@ -362,7 +364,13 @@ export default function AdminRoleForm({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isEdit ? `Edit ${role?.name}` : 'New role'} />
+            <Head
+                title={
+                    isEdit
+                        ? t('roles.form.editNamed', { name: role?.name })
+                        : t('roles.actions.newRole')
+                }
+            />
 
             <SettingsLayout wide>
                 <div className="flex min-h-0 flex-1 flex-col gap-6">
