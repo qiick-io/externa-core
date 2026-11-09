@@ -43,7 +43,10 @@
         "filter": "Filter",
         "from": "From",
         "to": "To",
-        "system": "System"
+        "system": "System",
+        "sort": "Sort",
+        "collapse": "Collapse",
+        "expand": "Expand"
     },
     "picker": {
         "search": "Search…",
@@ -181,7 +184,8 @@
                 "notEquals": "not_equals",
                 "empty": "empty",
                 "notEmpty": "not_empty"
-            }
+            },
+            "editNamed": "Edit {{name}}"
         }
     },
     "nav": {
@@ -201,7 +205,11 @@
         "settings": "Settings",
         "repository": "Repository",
         "documentation": "Documentation",
-        "appVersion": "v{{version}}"
+        "appVersion": "v{{version}}",
+        "items": "Items",
+        "fields": "Fields",
+        "history": "History",
+        "itemNumber": "Item #{{id}}"
     },
     "notifications": {
         "title": "Notifications",
@@ -381,7 +389,8 @@
             "pendingToolCalls": "AI tool approvals",
             "sectionAi": "AI",
             "aiToolsNav": "Write tools",
-            "pendingToolCallsNav": "Tool approvals"
+            "pendingToolCallsNav": "Tool approvals",
+            "jobs": "Jobs"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -691,7 +700,8 @@
             "integrationsNav": {
                 "breadcrumb": "Integrations",
                 "head": "Integrations"
-            }
+            },
+            "deployHookNamePlaceholder": "Production"
         },
         "appearance": {
             "breadcrumb": "Appearance settings",
@@ -1414,7 +1424,20 @@
             "rules": {
                 "operator": "Operator",
                 "value": "Value",
-                "addRule": "Add rule"
+                "addRule": "Add rule",
+                "operators": {
+                    "required": "Required",
+                    "unique": "Unique",
+                    "min_length": "Min length",
+                    "max_length": "Max length",
+                    "min": "Min value",
+                    "max": "Max value",
+                    "regex": "Regex",
+                    "contains": "Contains",
+                    "not_contains": "Does not contain",
+                    "equals": "Equals",
+                    "not_equals": "Does not equal"
+                }
             },
             "validation": {
                 "message": "Validation message",
@@ -1567,7 +1590,16 @@
                 "trigger": "Trigger",
                 "debounce": "Debounce",
                 "throttle": "Throttle",
-                "rate": "Rate (ms)"
+                "rate": "Rate (ms)",
+                "inputTypes": {
+                    "string": "String",
+                    "text": "Text",
+                    "integer": "Integer",
+                    "bigInteger": "Big Integer",
+                    "float": "Float",
+                    "decimal": "Decimal",
+                    "uuid": "UUID"
+                }
             },
             "form": {
                 "choices": "Choices",
@@ -1700,14 +1732,17 @@
             },
             "kanban": {
                 "updated": "Updated {{date}}"
-            }
+            },
+            "pageTitle": "Items — {{collection}}",
+            "selectItem": "Select item {{id}}"
         },
         "collectionPages": {
             "edit": "Edit",
             "sort": "Sort",
             "deleteCollection": "Delete collection",
             "singletonDescription": "<mono>{{slug}}</mono> · Singleton collection. Values for this entry. Define field types and order under <link>Edit fields</link>."
-        }
+        },
+        "editCollection": "Edit collection"
     },
     "ai": {
         "drawer": {
@@ -2077,7 +2112,17 @@
             "reasoning": "Reasoning",
             "cache": "Cache"
         },
-        "backToList": "Back to conversations"
+        "backToList": "Back to conversations",
+        "suggestedActions": {
+            "verifyImport": "Verify import",
+            "exportCsv": "Export CSV",
+            "scheduleSync": "Schedule sync",
+            "addFields": "Add fields",
+            "showItems": "Show items",
+            "exportJson": "Export JSON",
+            "recentActivity": "Recent activity",
+            "aiOnly": "AI only"
+        }
     },
     "dashboard": {
         "title": "Dashboard",

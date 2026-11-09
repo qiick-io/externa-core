@@ -88,21 +88,24 @@ export default function ItemRevisions({
     const canRestore = can(PermissionEnum.CanEditCollections);
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Collections', href: collections.index.url() },
+        { title: t('nav.collections'), href: collections.index.url() },
         {
             title: collection.name,
             href: collections.items.index.url(collection.id),
         },
         {
-            title: `Item #${item.id}`,
+            title: t('nav.itemNumber', { id: item.id }),
             href: collections.items.show.url({
                 collection: collection.id,
                 item: item.id,
             }),
         },
         {
-            title: 'History',
-            href: `/collections/${collection.id}/items/${item.id}/revisions`,
+            title: t('nav.history'),
+            href: collections.items.revisions.index.url({
+                collection: collection.id,
+                item: item.id,
+            }),
         },
     ];
 

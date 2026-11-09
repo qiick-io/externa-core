@@ -142,7 +142,7 @@ export default function CollectionsIndex({
     ];
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Collections', href: collectionRoutes.index.url() },
+        { title: t('nav.collections'), href: collectionRoutes.index.url() },
     ];
 
     const syncClosedRef = useRef<() => void>(() => {});
@@ -297,7 +297,7 @@ export default function CollectionsIndex({
                 ) : undefined
             }
         >
-            <Head title="Collections" />
+            <Head title={t('nav.collections')} />
 
             <ApplyCollectionPackDialog
                 collectionPacks={collectionPacks}
@@ -429,8 +429,8 @@ export default function CollectionsIndex({
                                     size="icon"
                                     aria-label={
                                         direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
+                                            ? t('common.sortAscending')
+                                            : t('common.sortDescending')
                                     }
                                     onClick={() => {
                                         const nextDirection =
@@ -662,7 +662,12 @@ export default function CollectionsIndex({
                                                         onCheckedChange={() =>
                                                             toggleRow(c.id)
                                                         }
-                                                        aria-label={`Select ${c.name}`}
+                                                        aria-label={t(
+                                                            'a11y.selectRow',
+                                                            {
+                                                                name: c.name,
+                                                            },
+                                                        )}
                                                         className={
                                                             checkboxTargetClassName
                                                         }

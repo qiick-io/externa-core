@@ -372,17 +372,17 @@ export default function ItemsIndex({
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
-            { title: 'Collections', href: collections.index.url() },
+            { title: t('nav.collections'), href: collections.index.url() },
             {
                 title: collection.name,
                 href: collections.items.index.url(collection.id),
             },
             {
-                title: 'Items',
+                title: t('nav.items'),
                 href: collections.items.index.url(collection.id),
             },
         ],
-        [collection.id, collection.name],
+        [collection.id, collection.name, t],
     );
 
     const fieldsByName = useMemo(() => {
@@ -807,7 +807,11 @@ export default function ItemsIndex({
                 </>
             }
         >
-            <Head title={`Items — ${collection.name}`} />
+            <Head
+                title={t('collections.items.pageTitle', {
+                    collection: collection.name,
+                })}
+            />
 
             <PageLayout
                 filters={
@@ -1340,7 +1344,12 @@ export default function ItemsIndex({
                                                     onCheckedChange={() =>
                                                         toggleRow(row.id)
                                                     }
-                                                    aria-label={`Select item ${row.id}`}
+                                                    aria-label={t(
+                                                        'collections.items.selectItem',
+                                                        {
+                                                            id: row.id,
+                                                        },
+                                                    )}
                                                     className={
                                                         checkboxTargetClassName
                                                     }

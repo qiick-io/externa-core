@@ -14,6 +14,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
 
 ### Fixed
+- Breadcrumbs, page titles, nav items, select placeholders, confirm labels and aria-labels that bypassed `t()` are translated (en/it/de); validation operators, text input types and AI suggestion chips are localized; settings Jobs and item History links use Wayfinder. New lint rule `externa/no-literal-ui-prop` fails CI on hard-coded text in UI props and `{ title, href }` items.
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
 
 ### Added

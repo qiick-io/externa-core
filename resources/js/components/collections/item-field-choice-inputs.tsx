@@ -1111,6 +1111,8 @@ function CheckboxGroupTreeNodes({
     onToggleExpand: (value: string) => void;
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <>
             {nodes.map((node) => {
@@ -1134,7 +1136,9 @@ function CheckboxGroupTreeNodes({
                                     className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
                                     aria-expanded={expanded}
                                     aria-label={
-                                        expanded ? 'Collapse' : 'Expand'
+                                        expanded
+                                            ? t('common.collapse')
+                                            : t('common.expand')
                                     }
                                     onClick={() => onToggleExpand(node.value)}
                                 >

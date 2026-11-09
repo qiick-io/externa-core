@@ -9,6 +9,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import typescript from 'typescript-eslint';
 import qiickStandards from './qiick-standards.eslint.js';
+import externa from './scripts/eslint/no-literal-ui-prop.mjs';
 
 const controlStatements = [
     'if',
@@ -171,7 +172,7 @@ export default [
                 'error',
                 {
                     selector:
-                        "Literal[value=/^\\/(users|groups|files|activity-logs|settings\\/(roles|api-keys|permissions))(\\/|$)/]",
+                        'Literal[value=/^\\/(users|groups|files|activity-logs|settings\\/(roles|api-keys|permissions))(\\/|$)/]',
                     message:
                         'Use Wayfinder route helpers (@/routes/...) instead of hard-coded admin paths.',
                 },
@@ -242,6 +243,18 @@ export default [
         // i18n-literal-baseline.json (qiick standards, Automated checks).
         plugins: { i18next },
         rules: { 'i18next/no-literal-string': 'off' },
+    },
+    {
+        // UI props (`title`, `label`, `placeholder`, `aria-label`, `confirmLabel`, …)
+        // and `{ title, href }` breadcrumb / nav items go through t() too: the
+        // i18next rule above only sees JSX text.
+        files: ['resources/js/**/*.{ts,tsx}'],
+        ignores: [
+            'resources/js/**/*.{test,spec}.{ts,tsx}',
+            'resources/js/test/**',
+        ],
+        plugins: { externa },
+        rules: { 'externa/no-literal-ui-prop': 'error' },
     },
     prettier, // Turn off all rules that might conflict with Prettier
     {

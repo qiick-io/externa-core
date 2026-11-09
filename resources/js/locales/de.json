@@ -43,7 +43,10 @@
         "filter": "Filtern",
         "from": "Von",
         "to": "Bis",
-        "system": "System"
+        "system": "System",
+        "sort": "Sortieren",
+        "collapse": "Einklappen",
+        "expand": "Ausklappen"
     },
     "picker": {
         "search": "Suchen…",
@@ -181,7 +184,8 @@
                 "notEquals": "ungleich",
                 "empty": "leer",
                 "notEmpty": "nicht leer"
-            }
+            },
+            "editNamed": "{{name}} bearbeiten"
         }
     },
     "nav": {
@@ -201,7 +205,11 @@
         "settings": "Einstellungen",
         "repository": "Repository",
         "documentation": "Dokumentation",
-        "appVersion": "v{{version}}"
+        "appVersion": "v{{version}}",
+        "items": "Einträge",
+        "fields": "Felder",
+        "history": "Verlauf",
+        "itemNumber": "Eintrag #{{id}}"
     },
     "notifications": {
         "title": "Benachrichtigungen",
@@ -381,7 +389,8 @@
             "pendingToolCalls": "KI-Tool-Freigaben",
             "sectionAi": "KI",
             "aiToolsNav": "Schreibwerkzeuge",
-            "pendingToolCallsNav": "Tool-Freigaben"
+            "pendingToolCallsNav": "Tool-Freigaben",
+            "jobs": "Jobs"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -691,7 +700,8 @@
             "integrationsNav": {
                 "breadcrumb": "Integrationen",
                 "head": "Integrationen"
-            }
+            },
+            "deployHookNamePlaceholder": "Produktion"
         },
         "appearance": {
             "breadcrumb": "Darstellungseinstellungen",
@@ -1414,7 +1424,20 @@
             "rules": {
                 "operator": "Operator",
                 "value": "Wert",
-                "addRule": "Regel hinzufügen"
+                "addRule": "Regel hinzufügen",
+                "operators": {
+                    "required": "Pflichtfeld",
+                    "unique": "Eindeutig",
+                    "min_length": "Mindestlänge",
+                    "max_length": "Maximallänge",
+                    "min": "Mindestwert",
+                    "max": "Höchstwert",
+                    "regex": "Regex",
+                    "contains": "Enthält",
+                    "not_contains": "Enthält nicht",
+                    "equals": "Gleich",
+                    "not_equals": "Ungleich"
+                }
             },
             "validation": {
                 "message": "Validierungsmeldung",
@@ -1567,7 +1590,16 @@
                 "trigger": "Auslöser",
                 "debounce": "Debounce",
                 "throttle": "Throttle",
-                "rate": "Intervall (ms)"
+                "rate": "Intervall (ms)",
+                "inputTypes": {
+                    "string": "Zeichenkette",
+                    "text": "Text",
+                    "integer": "Ganzzahl",
+                    "bigInteger": "Große Ganzzahl",
+                    "float": "Gleitkommazahl",
+                    "decimal": "Dezimalzahl",
+                    "uuid": "UUID"
+                }
             },
             "form": {
                 "choices": "Auswahlmöglichkeiten",
@@ -1700,14 +1732,17 @@
             },
             "kanban": {
                 "updated": "Aktualisiert {{date}}"
-            }
+            },
+            "pageTitle": "Einträge — {{collection}}",
+            "selectItem": "Eintrag {{id}} auswählen"
         },
         "collectionPages": {
             "edit": "Bearbeiten",
             "sort": "Sortieren",
             "deleteCollection": "Collection löschen",
             "singletonDescription": "<mono>{{slug}}</mono> · Singleton-Collection. Werte für diesen Eintrag. Feldtypen und Reihenfolge legst du unter <link>Felder bearbeiten</link> fest."
-        }
+        },
+        "editCollection": "Sammlung bearbeiten"
     },
     "ai": {
         "drawer": {
@@ -2077,7 +2112,17 @@
             "reasoning": "Denken",
             "cache": "Cache"
         },
-        "backToList": "Zurück zu den Unterhaltungen"
+        "backToList": "Zurück zu den Unterhaltungen",
+        "suggestedActions": {
+            "verifyImport": "Import prüfen",
+            "exportCsv": "CSV exportieren",
+            "scheduleSync": "Synchronisierung planen",
+            "addFields": "Felder hinzufügen",
+            "showItems": "Einträge anzeigen",
+            "exportJson": "JSON exportieren",
+            "recentActivity": "Letzte Aktivität",
+            "aiOnly": "Nur KI"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
