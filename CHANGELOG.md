@@ -9,7 +9,6 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 
 
 ## [1.4.0] - 2026-11-02
@@ -36,18 +35,6 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - **Files API:** on installs upgraded from 1.3.0, `GET /api/v1/files` no longer lists private files, or files in private folders, to roles without `read_private`; a file whose `effective_access` is not computed yet is hidden instead of treated as public (#434).
 - **MCP authorization parity:** MCP resources and tools enforce the same collection, item, field and file permissions as the chat tools, plus the API key's `collection_slugs`, `files_scope` and `read_only`. `publish_item` and `tag_file` run through the AI tool executor (kill switch, allowlist, human approval) and the admin publish checks, so publishing no longer fires deploy hooks without approval (#435).
 - **Security headers for the admin UI** (#187): `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a default `Content-Security-Policy` on web/Inertia responses (API, GraphQL and responses with their own CSP are skipped). Env keys: `SECURITY_HEADERS_ENABLED` (default `true`), `SECURITY_CSP`, `SECURITY_X_FRAME_OPTIONS` (default `DENY`), `SECURITY_REFERRER_POLICY` (default `strict-origin-when-cross-origin`), `SECURITY_PERMISSIONS_POLICY` (default `camera=(), microphone=(self), geolocation=(), payment=(), usb=()`).
-=======
-### Changed
-- Hand-built UI moved onto shadcn components: send-dialog emoji grid reuses `ChatEmojiGrid`, icon picker options are ghost icon `Button`s with `aria-label` / `aria-pressed`, list pagination uses `Button` with translated labels, AI conversation rows use `Item asChild` (focus ring), assistant markdown tables use `ui/table`, panel empty states use compact `Empty`, loading text gets `Spinner`, native `title` tooltips become `Tooltip`.
-- Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
-- Duplicate helpers merged before 1.4.0: one `lib/color-contrast` (hex, luminance, AA checks) replaces `brand-contrast` / `contrasting-foreground` and theme-css's parser; `slugify` only in `lib/slugify`; dead `hooks/use-initials` removed (`lib/format` has both helpers); shared `isMediaFile`, `moveItem` / `newListItemId`, calendar + kanban `itemRowTitle` / `buildItemListQuery`, `useSettingsFormState` for the 7 project settings pages and one `DropOverlay`. Inertia progress bar and map markers use the primary token. `FileEffectiveAccessService` loads ancestors and writes `effective_access` in batches instead of one query per row; `RoleResource` uses `whenCounted`.
-
-### Fixed
-- Breadcrumbs, page titles, nav items, select placeholders, confirm labels and aria-labels that bypassed `t()` are translated (en/it/de); validation operators, text input types and AI suggestion chips are localized; settings Jobs and item History links use Wayfinder. New lint rule `externa/no-literal-ui-prop` fails CI on hard-coded text in UI props and `{ title, href }` items.
-- `/ai` and `/chat` render through the registry: `ChatLayout` / `ChatListSection` (phone list or thread, qiick-io/app-ui#46), answers through `AiAnswerParts` / `AiAnswerSources` / `AiAnswerUsage`, and @mentions through `ChatMention`. Behaviour and look unchanged.
-- Registry drift covers more of the UI: `user-hover-card` and `ai/assistant-panel` live at the registry paths (with override reasons), `ui/alert` and `ui/calendar` are upstreamed to `@qiick` (qiick-io/app-ui#44); `message-response` declares its `useMemo` deps instead of disabling the lint.
-- AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
->>>>>>> origin/develop
 
 ### Added
 - Optional first-party MCP server (`/mcp`, `laravel/mcp`): `AI_MCP_ENABLED` / `AI_MCP_WRITE_ENABLED`, owned API keys with `mcp:read`/`mcp:write` scopes, permission-aware tools/resources over the shared AI tool registry, dedicated `mcp` rate limiter; OAuth/Passport deferred (#121).
