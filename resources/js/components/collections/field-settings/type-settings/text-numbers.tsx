@@ -74,7 +74,10 @@ export function TextNumbersSettings({
                         >
                             {STRING_INPUT_TYPES.map((option) => (
                                 <option key={option.value} value={option.value}>
-                                    {option.label}
+                                    {t(
+                                        `collections.fieldSettings.textNumbers.inputTypes.${option.value}`,
+                                        { defaultValue: option.label },
+                                    )}
                                 </option>
                             ))}
                         </NativeSelect>

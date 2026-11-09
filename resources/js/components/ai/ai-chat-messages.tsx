@@ -536,11 +536,13 @@ function AssistantMessage({
                             <Suggestions>
                                 {suggestions.map((action) => (
                                     <Suggestion
-                                        key={action.label}
+                                        key={action.id}
                                         suggestion={action.prompt}
                                         onClick={onSuggestedAction}
                                     >
-                                        {action.label}
+                                        {t(`ai.suggestedActions.${action.id}`, {
+                                            defaultValue: action.label,
+                                        })}
                                     </Suggestion>
                                 ))}
                             </Suggestions>

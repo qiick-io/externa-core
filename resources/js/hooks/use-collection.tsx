@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem } from '@/types';
 import type { CollectionView } from '@/types/collections';
@@ -27,12 +28,13 @@ export function useCollection({
     contentDefaults: Record<string, unknown>;
     hasFields: boolean;
 } {
+    const { t } = useTranslation();
     const { collectionLocales } = usePage().props;
     const locales = (collectionLocales as string[]) ?? ['en'];
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
-            { title: 'Collections', href: collections.index.url() },
+            { title: t('nav.collections'), href: collections.index.url() },
             {
                 title: collection.name,
                 href: collection.is_singleton
@@ -40,7 +42,7 @@ export function useCollection({
                     : collections.items.index.url(collection.id),
             },
         ],
-        [collection.id, collection.name, collection.is_singleton],
+        [collection.id, collection.name, collection.is_singleton, t],
     );
 
     const contentDefaults = collection.is_singleton
