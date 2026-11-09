@@ -1,7 +1,11 @@
 {
     "$schema": "https://unpkg.com/knip@6/schema.json",
-    "entry": ["resources/js/pages/**/*.tsx"],
-    "project": ["resources/js/**/*.{ts,tsx}"],
+    "entry": [
+        "resources/js/pages/**/*.tsx"
+    ],
+    "project": [
+        "resources/js/**/*.{ts,tsx}"
+    ],
     "ignore": [
         "resources/js/components/ui/**",
         "resources/js/components/ai-elements/**",
@@ -11,7 +15,9 @@
         "resources/js/components/stat-card.tsx",
         "resources/js/lib/ai-message-parts.ts",
         "resources/js/lib/live-announcer.ts",
-        "resources/js/lib/toast.ts"
+        "resources/js/lib/toast.ts",
+        "resources/js/components/ai/ai-answer-parts.tsx",
+        "resources/js/components/layout/chat-layout.tsx"
     ],
     "ignoreDependencies": [
         "concurrently",
