@@ -9,13 +9,14 @@ import {
 } from 'lucide-react';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    AiAnswerParts,
+    AiAnswerSources,
+    AiAnswerUsage,
+} from '@/components/ai/ai-answer-parts';
+import type { AiAnswerTextRenderer } from '@/components/ai/ai-answer-parts';
 import { AiFileCards } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
-import {
-    ChainOfThought,
-    ChainOfThoughtContent,
-    ChainOfThoughtHeader,
-} from '@/components/ai-elements/chain-of-thought';
 import {
     Confirmation,
     ConfirmationAction,
@@ -23,39 +24,16 @@ import {
     ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
 import {
-    Context,
-    ContextCacheUsage,
-    ContextContent,
-    ContextContentBody,
-    ContextContentHeader,
-    ContextInputUsage,
-    ContextOutputUsage,
-    ContextReasoningUsage,
-    ContextTrigger,
-} from '@/components/ai-elements/context';
-import {
     MessageAction,
     MessageActions,
 } from '@/components/ai-elements/message';
-import {
-    Reasoning,
-    ReasoningContent,
-    ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
 import { Shimmer } from '@/components/ai-elements/shimmer';
-import {
-    Source,
-    Sources,
-    SourcesContent,
-    SourcesTrigger,
-} from '@/components/ai-elements/sources';
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
 import {
     Tool,
     ToolContent,
     ToolHeader,
     ToolInput,
-    ToolOutput,
 } from '@/components/ai-elements/tool';
 import {
     Attachment,
@@ -79,13 +57,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAiAvailability } from '@/hooks/use-ai-availability';
 import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
 import { exportTextAsPdf, speakText } from '@/lib/ai-chat';
-import type {
-    AiMessagePart,
-    AiProviderToolPart,
-    AiSource,
-    AiToolPart,
-    AiUsage,
-} from '@/lib/ai-message-parts';
+import type { AiMessagePart, AiSource, AiUsage } from '@/lib/ai-message-parts';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { announce } from '@/lib/live-announcer';
@@ -501,27 +473,14 @@ function AssistantMessage({
             <MessageContent>
                 <Bubble variant="ghost" align="start">
                     <BubbleContent className="flex w-full max-w-full flex-col gap-3">
-                        <AssistantParts
-                            message={message}
+                        <AiAnswerParts
+                            parts={message.parts ?? []}
+                            content={message.content}
                             isStreaming={isStreaming}
                             hidePendingApprovals={showApprovals}
+                            renderText={renderAnswerText}
                         />
-                        {message.sources && message.sources.length > 0 ? (
-                            <Sources>
-                                <SourcesTrigger
-                                    count={message.sources.length}
-                                />
-                                <SourcesContent>
-                                    {message.sources.map((source) => (
-                                        <Source
-                                            key={source.url}
-                                            href={source.url}
-                                            title={source.title ?? source.url}
-                                        />
-                                    ))}
-                                </SourcesContent>
-                            </Sources>
-                        ) : null}
+                        <AiAnswerSources sources={message.sources ?? []} />
                         {message.fileCards && message.fileCards.length > 0 ? (
                             <AiFileCards files={message.fileCards} />
                         ) : null}
@@ -565,220 +524,30 @@ function AssistantMessage({
 }
 
 /**
- * The answer's parts in the order the model produced them: reasoning
- * (collapsed), tool calls (one Tool, or a ChainOfThought when the model took
- * several tool steps in a row) and text. Falls back to the plain content when a
- * turn has no text part (tool-only turns, older messages).
+ * Markdown for an answer's text and reasoning parts (Streamdown, loaded
+ * lazily): animated while that text still streams, static otherwise. The
+ * plain text shows until the renderer has loaded.
  */
-function AssistantParts({
-    message,
-    isStreaming,
-    hidePendingApprovals,
-}: {
-    message: AiChatMessageView;
-    isStreaming: boolean;
-    /** The approval block renders the paused calls itself. */
-    hidePendingApprovals: boolean;
-}) {
-    const { t } = useTranslation();
-    const parts = (message.parts ?? []).filter(
-        (part) =>
-            !(
-                hidePendingApprovals &&
-                part.type === 'tool' &&
-                part.state === 'approval-requested'
-            ),
-    );
+const renderAnswerText: AiAnswerTextRenderer = (text, { isLive }) => (
+    <Suspense fallback={<div className="whitespace-pre-wrap">{text}</div>}>
+        <MessageResponse
+            mode={isLive ? 'streaming' : 'static'}
+            isAnimating={isLive}
+        >
+            {text}
+        </MessageResponse>
+    </Suspense>
+);
 
-    if (
-        !parts.some((part) => part.type === 'text') &&
-        message.content.trim() !== ''
-    ) {
-        parts.push({ type: 'text', text: message.content });
-    }
-
-    const lastTextIndex = parts.findLastIndex((part) => part.type === 'text');
-    const blocks: Array<
-        | { kind: 'single'; part: AiMessagePart; index: number }
-        | {
-              kind: 'tools';
-              parts: Array<AiToolPart | AiProviderToolPart>;
-              index: number;
-          }
-    > = [];
-
-    parts.forEach((part, index) => {
-        const isToolPart =
-            part.type === 'tool' || part.type === 'provider-tool';
-        const previous = blocks.at(-1);
-
-        if (isToolPart && previous?.kind === 'tools') {
-            previous.parts.push(part);
-        } else if (isToolPart) {
-            blocks.push({ kind: 'tools', parts: [part], index });
-        } else {
-            blocks.push({ kind: 'single', part, index });
-        }
-    });
-
-    return (
-        <>
-            {blocks.map((block) => {
-                if (block.kind === 'tools') {
-                    if (block.parts.length === 1) {
-                        return (
-                            <ToolPartView
-                                key={block.index}
-                                part={block.parts[0]!}
-                            />
-                        );
-                    }
-
-                    const isRunning =
-                        isStreaming &&
-                        block.parts.some(
-                            (part) =>
-                                part.type === 'tool' &&
-                                part.state === 'input-available',
-                        );
-
-                    return (
-                        <ChainOfThought key={block.index}>
-                            <ChainOfThoughtHeader>
-                                {isRunning ? (
-                                    <Shimmer>
-                                        {t('ai.tool.steps', {
-                                            count: block.parts.length,
-                                        })}
-                                    </Shimmer>
-                                ) : (
-                                    t('ai.tool.steps', {
-                                        count: block.parts.length,
-                                    })
-                                )}
-                            </ChainOfThoughtHeader>
-                            <ChainOfThoughtContent>
-                                {block.parts.map((part) => (
-                                    <ToolPartView key={part.id} part={part} />
-                                ))}
-                            </ChainOfThoughtContent>
-                        </ChainOfThought>
-                    );
-                }
-
-                const { part, index } = block;
-
-                if (part.type === 'reasoning') {
-                    return (
-                        <Reasoning
-                            key={index}
-                            isStreaming={isStreaming && part.isStreaming}
-                            duration={part.durationSeconds ?? undefined}
-                        >
-                            <ReasoningTrigger />
-                            <ReasoningContent>
-                                <Suspense
-                                    fallback={
-                                        <div className="whitespace-pre-wrap">
-                                            {part.text}
-                                        </div>
-                                    }
-                                >
-                                    <MessageResponse mode="static">
-                                        {part.text}
-                                    </MessageResponse>
-                                </Suspense>
-                            </ReasoningContent>
-                        </Reasoning>
-                    );
-                }
-
-                if (part.type === 'text') {
-                    const isLive = isStreaming && index === lastTextIndex;
-
-                    return (
-                        <Suspense
-                            key={index}
-                            fallback={
-                                <div className="whitespace-pre-wrap">
-                                    {part.text}
-                                </div>
-                            }
-                        >
-                            <MessageResponse
-                                mode={isLive ? 'streaming' : 'static'}
-                                isAnimating={isLive}
-                            >
-                                {part.text}
-                            </MessageResponse>
-                        </Suspense>
-                    );
-                }
-
-                return null;
-            })}
-        </>
-    );
-}
-
-/** One tool call (or provider tool) as an AI Elements Tool with its input and output. */
-function ToolPartView({ part }: { part: AiToolPart | AiProviderToolPart }) {
-    if (part.type === 'provider-tool') {
-        return (
-            <Tool className="mb-0">
-                <ToolHeader
-                    type={`tool-${part.kind}`}
-                    title={part.kind}
-                    state="output-available"
-                />
-                <ToolContent>
-                    <ToolInput input={part.data} />
-                </ToolContent>
-            </Tool>
-        );
-    }
-
-    return (
-        <Tool className="mb-0" data-test="ai-tool-part">
-            <ToolHeader
-                type={`tool-${part.name}`}
-                title={part.name}
-                state={part.state}
-            />
-            <ToolContent>
-                <ToolInput input={part.input} />
-                <ToolOutput
-                    output={part.output}
-                    errorText={part.errorText ?? undefined}
-                />
-            </ToolContent>
-        </Tool>
-    );
-}
-
-/** Token usage of the turn against the model's context window (AI Elements Context). */
+/** Token usage of the turn against the provider's context window. */
 function AssistantUsage({ usage }: { usage: AiUsage | null | undefined }) {
     const { status } = useAiAvailability();
-    const maxTokens = status.context_window ?? null;
-    const usedTokens = (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0);
-
-    if (!usage || !maxTokens || usedTokens === 0) {
-        return null;
-    }
 
     return (
-        <Context usedTokens={usedTokens} maxTokens={maxTokens} usage={usage}>
-            <ContextTrigger size="sm" className="text-xs" />
-            <ContextContent align="start">
-                <ContextContentHeader />
-                <ContextContentBody>
-                    <ContextInputUsage />
-                    <ContextOutputUsage />
-                    <ContextReasoningUsage />
-                    <ContextCacheUsage />
-                </ContextContentBody>
-            </ContextContent>
-        </Context>
+        <AiAnswerUsage
+            usage={usage}
+            maxTokens={status.context_window ?? null}
+        />
     );
 }
 

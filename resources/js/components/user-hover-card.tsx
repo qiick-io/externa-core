@@ -10,20 +10,39 @@ import {
 import { useOnlineUsers } from '@/hooks/use-online-users';
 import { avatarToneClass } from '@/lib/avatar-tone';
 import { initialsFromName } from '@/lib/format';
-import type { ChatUser } from '@/lib/item-chat-api';
 import { cn } from '@/lib/utils';
 
+/** The user a card describes; `name` is the display name (same shape as the registry item). */
+export type UserHoverCardUser = {
+    id: number | string;
+    name: string;
+    email?: string;
+    avatar?: string | null;
+    /** Role label shown as a badge (already translated). */
+    role?: string | null;
+};
+
 type UserHoverCardProps = {
-    user: ChatUser;
+    user: UserHoverCardUser;
+    /**
+     * Presence. Omit it to let the card read the realtime presence itself,
+     * only while it is open (externa-core always has presence).
+     */
+    isOnline?: boolean;
     /** The trigger: an author name or a mention. */
     children: ReactNode;
 };
 
 /**
  * A chat participant's card on hover or focus, on shadcn `HoverCard`: avatar,
- * name, role and whether they are online. Wraps author names and mentions.
+ * name, role and whether they are online. Wraps author names and mentions
+ * (`ChatMention`). Same API as the registry `UserHoverCard`.
  */
-export function UserHoverCard({ user, children }: UserHoverCardProps) {
+export function UserHoverCard({
+    user,
+    isOnline,
+    children,
+}: UserHoverCardProps) {
     return (
         <HoverCard openDelay={300} closeDelay={100}>
             <HoverCardTrigger asChild>{children}</HoverCardTrigger>
@@ -32,16 +51,36 @@ export function UserHoverCard({ user, children }: UserHoverCardProps) {
                 className="w-64"
                 data-test="chat-user-hover-card"
             >
-                <ChatUserCard user={user} />
+                {isOnline === undefined ? (
+                    <UserCardWithPresence user={user} />
+                ) : (
+                    <UserCard user={user} isOnline={isOnline} />
+                )}
             </HoverCardContent>
         </HoverCard>
     );
 }
 
-/** The card body; mounted only while open, so presence is read on demand. */
-function ChatUserCard({ user }: { user: ChatUser }) {
+/** Reads presence on demand: the card body only mounts while it is open. */
+function UserCardWithPresence({ user }: { user: UserHoverCardUser }) {
+    const onlineUsers = useOnlineUsers();
+
+    return (
+        <UserCard
+            user={user}
+            isOnline={typeof user.id === 'number' && onlineUsers.has(user.id)}
+        />
+    );
+}
+
+function UserCard({
+    user,
+    isOnline,
+}: {
+    user: UserHoverCardUser;
+    isOnline: boolean;
+}) {
     const { t } = useTranslation();
-    const online = useOnlineUsers().has(user.id);
 
     return (
         <div className="flex items-center gap-3">
@@ -67,12 +106,12 @@ function ChatUserCard({ user }: { user: ChatUser }) {
                             aria-hidden
                             className={cn(
                                 'size-2 rounded-full',
-                                online
+                                isOnline
                                     ? 'bg-success'
                                     : 'bg-muted-foreground/40',
                             )}
                         />
-                        {online ? t('common.online') : t('common.offline')}
+                        {isOnline ? t('common.online') : t('common.offline')}
                     </span>
                 </div>
             </div>
