@@ -1190,8 +1190,7 @@ export default function AdminFilesIndex({
             setDetailFile(row);
             selection.selectOnly(row.id);
         });
-        // Boot once from URL; selection/files identity changes intentionally ignored
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once from the URL; later selection/files identity changes are ignored on purpose
     }, []);
 
     const openRenameDialog = (file: AdminFileRow): void => {

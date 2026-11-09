@@ -31,6 +31,7 @@ import type {
 } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
+import { moveItem, newListItemId } from '@/lib/list-items';
 import { cn } from '@/lib/utils';
 import type { FieldDef } from '@/types';
 
@@ -72,40 +73,6 @@ type BlocksFieldBlock = {
     data: Record<string, unknown>;
 };
 
-function newBlockId(): string {
-    if (
-        typeof crypto !== 'undefined' &&
-        typeof crypto.randomUUID === 'function'
-    ) {
-        try {
-            return crypto.randomUUID();
-        } catch {
-            // some embedded webviews expose the method but throw
-        }
-    }
-
-    // ponytail: UUID v4 fallback when crypto.randomUUID is missing (e.g. some webviews)
-    const bytes = new Uint8Array(16);
-
-    if (
-        typeof crypto !== 'undefined' &&
-        typeof crypto.getRandomValues === 'function'
-    ) {
-        crypto.getRandomValues(bytes);
-    } else {
-        for (let i = 0; i < 16; i++) {
-            bytes[i] = Math.floor(Math.random() * 256);
-        }
-    }
-
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-    const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
-
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
 function parseBlocksValue(defaultValue: unknown): BlocksFieldBlock[] {
     if (!Array.isArray(defaultValue)) {
         return [];
@@ -122,7 +89,7 @@ function parseBlocksValue(defaultValue: unknown): BlocksFieldBlock[] {
             id:
                 typeof entry.id === 'string' && entry.id
                     ? entry.id
-                    : newBlockId(),
+                    : newListItemId(),
             type: typeof entry.type === 'string' ? entry.type : '',
             data:
                 entry.data &&
@@ -166,19 +133,6 @@ function blockSummary(
     }
 
     return text.length > 80 ? `${text.slice(0, 77)}…` : text;
-}
-
-function moveItem<T>(items: T[], from: number, to: number): T[] {
-    const next = items.slice();
-    const [item] = next.splice(from, 1);
-
-    if (item === undefined) {
-        return items;
-    }
-
-    next.splice(to, 0, item);
-
-    return next;
 }
 
 export function BlocksFieldInput({
@@ -249,7 +203,7 @@ export function BlocksFieldInput({
             return;
         }
 
-        const id = newBlockId();
+        const id = newListItemId();
         setBlocks((current) => [...current, { id, type: nextType, data: {} }]);
         setSiblingValues((current) => ({ ...current, [id]: {} }));
     };
@@ -310,7 +264,7 @@ export function BlocksFieldInput({
             const original = current[index];
             const duplicate = {
                 ...original,
-                id: newBlockId(),
+                id: newListItemId(),
                 data: JSON.parse(JSON.stringify(original.data)) as Record<
                     string,
                     unknown

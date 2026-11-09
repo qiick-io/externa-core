@@ -14,10 +14,10 @@ import {
 } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
 import { createSortableList } from '@/lib/create-sortable-list';
+import { buildItemListQuery, itemRowTitle } from '@/lib/item-list-views';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
 import type { CollectionView, ItemRow } from '@/types';
-import type { QueryParams } from '@/wayfinder';
 
 export type KanbanColumnPage = {
     value: string;
@@ -37,26 +37,6 @@ export type KanbanBoard = {
 type ColumnState = KanbanColumnPage & {
     loading: boolean;
 };
-
-function itemTitle(row: ItemRow): string {
-    const display = row.displays?.title;
-
-    if (typeof display === 'string' && display.trim() !== '') {
-        return display;
-    }
-
-    const raw = row.data?.title;
-
-    if (typeof raw === 'string' && raw.trim() !== '') {
-        return raw;
-    }
-
-    if (typeof raw === 'number') {
-        return String(raw);
-    }
-
-    return `#${row.id}`;
-}
 
 function formatUpdatedAt(value: string | null | undefined): string | null {
     if (typeof value !== 'string' || value === '') {
@@ -90,51 +70,6 @@ function approvalLabel(status: string, t: TFunction): string {
     }
 
     return status;
-}
-
-function buildListQuery(filters: Record<string, unknown>): QueryParams {
-    const query: QueryParams = {};
-    const filter: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(filters)) {
-        if (
-            key === 'trashed' ||
-            key === 'has_draft' ||
-            key === 'in_review' ||
-            key === 'sort' ||
-            key === 'direction'
-        ) {
-            continue;
-        }
-
-        filter[key] = value;
-    }
-
-    if (Object.keys(filter).length > 0) {
-        query.filter = filter as QueryParams['filter'];
-    }
-
-    if (filters.trashed === true) {
-        query.trashed = true;
-    }
-
-    if (filters.has_draft === true) {
-        query.has_draft = true;
-    }
-
-    if (filters.in_review === true) {
-        query.in_review = true;
-    }
-
-    if (typeof filters.sort === 'string' && filters.sort !== '') {
-        query.sort = filters.sort;
-    }
-
-    if (filters.direction === 'asc' || filters.direction === 'desc') {
-        query.direction = filters.direction;
-    }
-
-    return query;
 }
 
 /**
@@ -239,7 +174,7 @@ export function ItemsKanban({
         setSortableEpoch((epoch) => epoch + 1);
     }, [board]);
 
-    const listQuery = useMemo(() => buildListQuery(filters), [filters]);
+    const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 
     const loadMore = useCallback(
         async (columnValue: string) => {
@@ -652,7 +587,7 @@ export function ItemsKanban({
                                                         )}
                                                         className="min-w-0 flex-1 text-sm leading-snug font-medium hover:underline"
                                                     >
-                                                        {itemTitle(item)}
+                                                        {itemRowTitle(item)}
                                                     </Link>
                                                     {showDraft ? (
                                                         <Badge

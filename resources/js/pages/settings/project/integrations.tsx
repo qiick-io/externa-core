@@ -1,7 +1,7 @@
 import { Form, Head, router } from '@inertiajs/react';
 import { Plus, Rocket, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import type {} from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectIntegrationsSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectIntegrationsSettingsController';
 import Heading from '@/components/heading';
@@ -21,7 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
-import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import {
@@ -112,8 +112,8 @@ export default function ProjectIntegrationsSettingsPage({
     const { t } = useTranslation();
     const { can } = useCan();
     const initialForm = useMemo(() => buildFormState(project), [project]);
-    const [form, setFormState] = useState<IntegrationsFormState>(initialForm);
-    const [isDirty, setIsDirty] = useState(false);
+    const { form, setForm, isDirty, markSaved } =
+        useSettingsFormState<IntegrationsFormState>(initialForm);
     const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
     const [sendingTestSlackNotifier, setSendingTestSlackNotifier] =
         useState(false);
@@ -121,22 +121,6 @@ export default function ProjectIntegrationsSettingsPage({
         useState(false);
     const [isDeploying, setIsDeploying] = useState(false);
     const canTriggerDeploy = can(PermissionEnum.DeployTrigger);
-
-    const setForm: Dispatch<SetStateAction<IntegrationsFormState>> = (
-        action,
-    ) => {
-        setIsDirty(true);
-        setFormState(action);
-    };
-
-    useRegisterUnsavedChanges({
-        scope: 'page',
-        isDirty,
-        onDiscard: () => {
-            setFormState(initialForm);
-            setIsDirty(false);
-        },
-    });
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -255,7 +239,7 @@ export default function ProjectIntegrationsSettingsPage({
                     {...ProjectIntegrationsSettingsController.update.form()}
                     options={{ preserveScroll: true }}
                     className="space-y-12"
-                    onSuccess={() => setIsDirty(false)}
+                    onSuccess={markSaved}
                     noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => {

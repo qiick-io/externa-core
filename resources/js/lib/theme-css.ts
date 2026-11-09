@@ -1,5 +1,8 @@
-import { meetsUiContrast } from '@/lib/brand-contrast';
-import { contrastingForeground } from '@/lib/contrasting-foreground';
+import {
+    contrastingForeground,
+    meetsUiContrast,
+    parseHexRgb,
+} from '@/lib/color-contrast';
 import type { ThemePresetTokens } from '@/lib/theme-presets';
 import type {
     ThemeAiOverride,
@@ -188,7 +191,7 @@ function isNearAiHue(
         return false;
     }
 
-    const rgb = parseHex(hex);
+    const rgb = parseHexRgb(hex);
 
     if (!rgb) {
         return false;
@@ -203,27 +206,6 @@ function isNearAiHue(
     const delta = Math.abs(hue - aiOverride.hue) % 360;
 
     return Math.min(delta, 360 - delta) <= aiOverride.tolerance;
-}
-
-function parseHex(hex: string): [number, number, number] | null {
-    let value = hex.trim().replace(/^#/, '');
-
-    if (value.length === 3 && /^[0-9a-fA-F]{3}$/.test(value)) {
-        value = value
-            .split('')
-            .map((ch) => ch + ch)
-            .join('');
-    }
-
-    if (value.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(value)) {
-        return null;
-    }
-
-    return [
-        Number.parseInt(value.slice(0, 2), 16) / 255,
-        Number.parseInt(value.slice(2, 4), 16) / 255,
-        Number.parseInt(value.slice(4, 6), 16) / 255,
-    ];
 }
 
 function rgbToHue(r: number, g: number, b: number): number | null {

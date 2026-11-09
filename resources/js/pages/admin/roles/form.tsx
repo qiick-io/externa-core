@@ -221,7 +221,7 @@ export default function AdminRoleForm({
             collection_permissions: { ...collection_permissions },
             file_permissions: { ...file_permissions },
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reseed only when another role loads or the collections arrive; Inertia useForm identity changes every render
     }, [role?.id, collections.length]);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(

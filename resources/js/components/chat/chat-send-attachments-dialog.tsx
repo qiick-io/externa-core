@@ -12,6 +12,7 @@ import {
     ChatMentionMenu,
     handleMentionMenuKeyDown,
 } from '@/components/chat/chat-mention-menu';
+import { DropOverlay } from '@/components/drop-overlay';
 import {
     Attachment,
     AttachmentAction,
@@ -31,6 +32,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatBytes } from '@/lib/format';
 import type { ChatAttachment } from '@/lib/item-chat-api';
+import { isMediaFile } from '@/lib/media-file';
 
 export type SendAttachItem = {
     key: string;
@@ -41,10 +43,6 @@ export type SendAttachItem = {
 };
 
 type AttachCaptionMentionHit = ChatMentionHit;
-
-function isMediaFile(file: File): boolean {
-    return file.type.startsWith('image/') || file.type.startsWith('video/');
-}
 
 function fileExtension(name: string): string {
     const parts = name.split('.');
@@ -360,15 +358,10 @@ export function ChatSendAttachmentsDialog({
                 </div>
 
                 {dragOver ? (
-                    <div
-                        className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
-                        aria-hidden
-                    >
-                        <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-                            <Paperclip className="size-4" />
-                            {t('collections.itemChat.dropToAttach')}
-                        </div>
-                    </div>
+                    <DropOverlay
+                        icon={Paperclip}
+                        title={t('collections.itemChat.dropToAttach')}
+                    />
                 ) : null}
             </DialogContent>
         </Dialog>
