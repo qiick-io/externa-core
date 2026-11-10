@@ -116,7 +116,7 @@
         "zustand": "^5.0.16"
     },
     "optionalDependencies": {
-        "@rollup/rollup-linux-x64-gnu": "4.63.4",
+        "@rollup/rollup-linux-x64-gnu": "4.68.0",
         "@rollup/rollup-win32-x64-msvc": "4.63.4",
         "@tailwindcss/oxide-linux-x64-gnu": "^4.3.3",
         "@tailwindcss/oxide-win32-x64-msvc": "^4.3.3",
