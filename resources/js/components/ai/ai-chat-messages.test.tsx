@@ -144,6 +144,7 @@ describe('AiChatMessages', () => {
             id: 'local-assistant-1',
             role: 'assistant' as const,
             content: 'Waiting for your approval.',
+            toolNames: ['ManageCollections'],
             pending_approvals: [
                 { id: 'approval-1', tool: 'ManageCollections', reason },
             ],
@@ -161,6 +162,7 @@ describe('AiChatMessages', () => {
         ).not.toHaveClass('bg-destructive');
         expect(screen.getByText('ai.approval.hint')).toBeInTheDocument();
         expect(screen.queryByText(/writes data/)).toBeNull();
+        expect(screen.queryByText(/ai\.suggestedActions\./)).toBeNull();
         cleanup();
 
         renderMessages([

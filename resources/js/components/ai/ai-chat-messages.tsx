@@ -457,8 +457,10 @@ function AssistantMessage({
             ?.map((toolCall) => toolCall.name ?? toolCall.function?.name)
             .filter((name): name is string => Boolean(name)) ??
         [];
+    // A turn waiting for approval offers no follow-ups: the only next step is
+    // Reject or Approve, and the suggestions describe what the call has done.
     const suggestions =
-        isLastMessage && onSuggestedAction
+        isLastMessage && onSuggestedAction && !showApprovals
             ? suggestedActionsForTools(toolNames)
             : [];
 
