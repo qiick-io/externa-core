@@ -1,4 +1,5 @@
 import { BrainIcon } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,18 +14,19 @@ import {
 /*
  * AI Elements `reasoning` as shadcn rebuilt it on Trace
  * (ui.shadcn.com/docs/ai-elements/base/reasoning): "Thinking…" shimmering while
- * the model reasons, then "Thought for N seconds", opening to the text.
- * Changes from upstream: collapsed by default with no auto-open while it
- * streams (Luca, 2026-11-07: reasoning is shown to everyone, collapsed); the
- * duration comes from the caller (measured while streaming, unknown on
- * reload); the labels go through i18n (`ai.reasoning.*`). Render it inside a
- * `Trace`.
+ * the model reasons, then "Thought for N seconds", opening to the text. As
+ * upstream, it opens while it streams and closes when it finishes; once the
+ * person opens or closes it, their choice wins. No height limit, as upstream.
+ * Changes from upstream: the duration comes from the caller (measured while
+ * streaming, unknown on reload); the labels go through i18n
+ * (`ai.reasoning.*`). Render it inside a `Trace`.
  */
 
 export type ReasoningProps = {
     isStreaming?: boolean;
     /** Whole seconds spent thinking; undefined when unknown (a reload). */
     duration?: number;
+    /** Start open, as if the person had opened it. */
     defaultOpen?: boolean;
     /** The reasoning text, rendered by the caller (Markdown). */
     children?: ReactNode;
@@ -37,6 +39,10 @@ export const Reasoning = ({
     children,
 }: ReasoningProps) => {
     const { t } = useTranslation();
+    // Undefined until the person opens or closes it: then it follows the stream.
+    const [isOpenByPerson, setIsOpenByPerson] = useState<boolean | undefined>(
+        defaultOpen ? true : undefined,
+    );
     const title =
         isStreaming || duration === 0
             ? t('ai.reasoning.thinking')
@@ -57,7 +63,10 @@ export const Reasoning = ({
     }
 
     return (
-        <TraceCollapsible defaultOpen={defaultOpen}>
+        <TraceCollapsible
+            open={isOpenByPerson ?? isStreaming}
+            onOpenChange={setIsOpenByPerson}
+        >
             <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
             <TraceCollapsibleContent className="text-sm">
                 {children}
