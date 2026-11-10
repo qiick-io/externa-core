@@ -71,7 +71,7 @@
         "@tiptap/extension-link": "^3.31.3",
         "@tiptap/extension-placeholder": "^3.31.3",
         "@tiptap/pm": "^3.31.3",
-        "@tiptap/react": "^3.31.3",
+        "@tiptap/react": "^3.33.0",
         "@tiptap/starter-kit": "^3.31.3",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
