@@ -213,7 +213,7 @@ Shots from the admin with demo content, in light and dark (they follow your GitH
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/file-manager-dark.webp">
-    <img src="docs/images/file-manager-light.webp" alt="File manager with folders, photos and documents" width="800" />
+    <img src="docs/images/file-manager-light.webp" alt="File manager with folders, photos, documents and a selected file" width="800" />
   </picture>
   <br />
   <em>File manager — folders, assets and tags</em>
@@ -222,7 +222,7 @@ Shots from the admin with demo content, in light and dark (they follow your GitH
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/ai-chat-dark.webp">
-    <img src="docs/images/ai-chat-light.webp" alt="AI assistant answering from collection data" width="800" />
+    <img src="docs/images/ai-chat-light.webp" alt="AI assistant answer with reasoning, tool calls and sources" width="800" />
   </picture>
   <br />
   <em>Assistant — answers and actions with your permissions</em>
@@ -231,7 +231,7 @@ Shots from the admin with demo content, in light and dark (they follow your GitH
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/chat-dark.webp">
-    <img src="docs/images/chat-light.webp" alt="Item chat thread on a product" width="800" />
+    <img src="docs/images/chat-light.webp" alt="Item chat on a product with an image, reactions and a reply" width="800" />
   </picture>
   <br />
   <em>Chat — item and private threads</em>
