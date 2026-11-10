@@ -321,7 +321,7 @@ describe('useAiChat', () => {
 
         const pausedMessage = result.current.messages[1];
         expect(pausedMessage?.pending_approvals).toHaveLength(1);
-        expect(pausedMessage?.content).toContain('delete_item');
+        expect(pausedMessage?.content).toBe('ai.awaitingApproval');
 
         await act(async () => {
             await result.current.handleResolveApprovals(

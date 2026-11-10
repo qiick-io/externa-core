@@ -2047,7 +2047,8 @@
             "approve": "Approva",
             "reject": "Rifiuta",
             "question": "Approvi questa azione?",
-            "hint": "L’assistente aspetta la tua risposta prima di continuare."
+            "hint": "L’assistente aspetta la tua risposta prima di continuare.",
+            "destructiveHint": "Questa azione elimina dati. L’assistente aspetta la tua risposta prima di continuare."
         },
         "actions": {
             "copy": "Copia",
@@ -2100,7 +2101,7 @@
             "truncate": "Impossibile troncare la conversazione",
             "popupBlocked": "Popup bloccato: consenti le finestre popup per esportare il PDF."
         },
-        "awaitingApproval": "In attesa della tua approvazione per eseguire {{tools}}.",
+        "awaitingApproval": "In attesa della tua approvazione.",
         "aTool": "uno strumento",
         "toolFallback": "Completato con {{tools}}. Chiedimi di verificare il risultato se serve.",
         "pinned": "Fissate",

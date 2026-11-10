@@ -629,7 +629,7 @@ export function useAiChat(options: UseAiChatOptions = {}) {
                                 content:
                                     trimmed !== ''
                                         ? fullText
-                                        : awaitingApprovalContent(requested),
+                                        : awaitingApprovalContent(),
                                 isError: false,
                                 pending_approvals: requested,
                             }));

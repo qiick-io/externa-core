@@ -275,7 +275,7 @@ test('destructive tool call pauses the chat stream and exposes pending approvals
         ->assertOk()
         ->assertJsonPath('messages.1.pending_approvals.0.id', 'call_delete')
         ->assertJsonPath('messages.1.pending_approvals.0.tool', 'ManageFiles')
-        ->assertJsonPath('messages.1.content', 'Waiting for your approval to run ManageFiles.');
+        ->assertJsonPath('messages.1.content', 'Waiting for your approval.');
 
     $this->get(route('ai.show', $conversation->id))
         ->assertOk()

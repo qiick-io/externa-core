@@ -45,7 +45,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useAiAvailability } from '@/hooks/use-ai-availability';
 import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
-import { exportTextAsPdf, speakText } from '@/lib/ai-chat';
+import {
+    exportTextAsPdf,
+    isDestructiveApproval,
+    speakText,
+} from '@/lib/ai-chat';
 import type { AiMessagePart, AiSource, AiUsage } from '@/lib/ai-message-parts';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
 import { describeAssistantToolCall } from '@/lib/ai-tool-call-descriptions';
@@ -453,8 +457,10 @@ function AssistantMessage({
             ?.map((toolCall) => toolCall.name ?? toolCall.function?.name)
             .filter((name): name is string => Boolean(name)) ??
         [];
+    // A turn waiting for approval offers no follow-ups: the only next step is
+    // Reject or Approve, and the suggestions describe what the call has done.
     const suggestions =
-        isLastMessage && onSuggestedAction
+        isLastMessage && onSuggestedAction && !showApprovals
             ? suggestedActionsForTools(toolNames)
             : [];
 
@@ -609,9 +615,10 @@ function AssistantActions({
 /**
  * A turn paused for tool approval, as one AI Elements `Confirmation` (on
  * `Item`): the sentence the call's line will show and the record it touches
- * (several calls: the question, with their sentences listed). The server's
- * reason, when it gives one, replaces the hint. The server resumes the calls
- * together, so Reject / Approve answer all of them.
+ * (several calls: the question, with their sentences listed). Approve is red
+ * only when a call deletes data, and the hint then says so; the server's own
+ * reason text is never shown. The server resumes the calls together, so
+ * Reject / Approve answer all of them.
  */
 function ToolApprovals({
     approvals,
@@ -637,10 +644,10 @@ function ToolApprovals({
             ? `${call.title}: ${call.description}`
             : call.title;
     });
-    const reasons = approvals
-        .map((approval) => approval.reason)
-        .filter((reason): reason is string => Boolean(reason));
-    const hint = reasons.length > 0 ? reasons.join(' ') : t('ai.approval.hint');
+    const isDestructive = approvals.some(isDestructiveApproval);
+    const hint = t(
+        isDestructive ? 'ai.approval.destructiveHint' : 'ai.approval.hint',
+    );
 
     return (
         <Confirmation
@@ -655,6 +662,7 @@ function ToolApprovals({
                     : `${sentences.join('; ')}. ${hint}`
             }
             disabled={disabled}
+            isDestructive={isDestructive}
             onApprove={() => onResolve(true)}
             onDeny={() => onResolve(false)}
         />

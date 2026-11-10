@@ -225,7 +225,7 @@ class AiChatController extends Controller
         if ($response->hasPendingApprovals()) {
             return $text !== ''
                 ? $text
-                : AiToolTurnSummary::awaitingApproval($response->pendingApprovals->map->toArray()->all());
+                : AiToolTurnSummary::awaitingApproval();
         }
 
         if ($text === '' && $response->toolResults->isNotEmpty()) {
