@@ -1,160 +1,76 @@
-import { createContext, useContext } from 'react';
-import type { ComponentProps, ReactNode } from 'react';
-import type { ToolState } from '@/components/ai-elements/tool';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ShieldAlertIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
+} from '@/components/ui/item';
 
 /*
- * AI Elements `confirmation` (registry.ai-sdk.dev), presentation only.
- * Changes from the registry copy: the ai-sdk `ToolUIPart` types are local
- * (Externa streams its own SSE and does not install `ai`).
+ * AI Elements `confirmation` as shadcn rebuilt it on Item
+ * (ui.shadcn.com/docs/ai-elements/base/confirmation): a call waiting for
+ * approval, with a question and Deny / Approve. It sits outside the `Trace`;
+ * once answered, the call becomes a `Tool` line again. Change from upstream:
+ * the button labels go through i18n (`ai.approval.*`). Approve takes the brand
+ * (default) variant for a call that writes, and the destructive variant only
+ * for one that deletes (`isDestructive`), as for every other destructive action.
  */
 
-type ToolApproval =
-    | { id: string; approved?: never; reason?: never }
-    | { id: string; approved: boolean; reason?: string }
-    | undefined;
-
-type ConfirmationContextValue = {
-    approval: ToolApproval;
-    state: ToolState;
-};
-
-const ConfirmationContext = createContext<ConfirmationContextValue | null>(
-    null,
-);
-
-const useConfirmation = () => {
-    const context = useContext(ConfirmationContext);
-
-    if (!context) {
-        throw new Error(
-            'Confirmation components must be used within Confirmation',
-        );
-    }
-
-    return context;
-};
-
-const isResponded = (state: ToolState): boolean =>
-    state === 'approval-responded' ||
-    state === 'output-denied' ||
-    state === 'output-available';
-
-export type ConfirmationProps = ComponentProps<typeof Alert> & {
-    approval?: ToolApproval;
-    state: ToolState;
+export type ConfirmationProps = {
+    /** The question, such as "Delete the collection Products?". */
+    title: ReactNode;
+    description?: ReactNode;
+    disabled?: boolean;
+    /** The call deletes data: Approve turns destructive. */
+    isDestructive?: boolean;
+    onApprove: () => void;
+    onDeny: () => void;
 };
 
 export const Confirmation = ({
-    className,
-    approval,
-    state,
-    ...props
+    title,
+    description,
+    disabled = false,
+    isDestructive = false,
+    onApprove,
+    onDeny,
 }: ConfirmationProps) => {
-    if (
-        !approval ||
-        state === 'input-streaming' ||
-        state === 'input-available'
-    ) {
-        return null;
-    }
+    const { t } = useTranslation();
 
     return (
-        <ConfirmationContext.Provider value={{ approval, state }}>
-            <Alert
-                className={cn('flex flex-col gap-2', className)}
-                {...props}
-            />
-        </ConfirmationContext.Provider>
+        <Item variant="outline" size="sm">
+            <ItemMedia variant="icon">
+                <ShieldAlertIcon />
+            </ItemMedia>
+            <ItemContent>
+                <ItemTitle>{title}</ItemTitle>
+                {description ? (
+                    <ItemDescription>{description}</ItemDescription>
+                ) : null}
+            </ItemContent>
+            <ItemActions>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={disabled}
+                    onClick={onDeny}
+                >
+                    {t('ai.approval.reject')}
+                </Button>
+                <Button
+                    size="sm"
+                    variant={isDestructive ? 'destructive' : 'default'}
+                    disabled={disabled}
+                    onClick={onApprove}
+                >
+                    {t('ai.approval.approve')}
+                </Button>
+            </ItemActions>
+        </Item>
     );
 };
-
-export type ConfirmationTitleProps = ComponentProps<typeof AlertDescription>;
-
-export const ConfirmationTitle = ({
-    className,
-    ...props
-}: ConfirmationTitleProps) => (
-    <AlertDescription className={cn('inline', className)} {...props} />
-);
-
-export type ConfirmationRequestProps = {
-    children?: ReactNode;
-};
-
-export const ConfirmationRequest = ({ children }: ConfirmationRequestProps) => {
-    const { state } = useConfirmation();
-
-    // Only show when approval is requested
-    if (state !== 'approval-requested') {
-        return null;
-    }
-
-    return children;
-};
-
-export type ConfirmationAcceptedProps = {
-    children?: ReactNode;
-};
-
-export const ConfirmationAccepted = ({
-    children,
-}: ConfirmationAcceptedProps) => {
-    const { approval, state } = useConfirmation();
-
-    // Only show when approved and in response states
-    if (!approval?.approved || !isResponded(state)) {
-        return null;
-    }
-
-    return children;
-};
-
-export type ConfirmationRejectedProps = {
-    children?: ReactNode;
-};
-
-export const ConfirmationRejected = ({
-    children,
-}: ConfirmationRejectedProps) => {
-    const { approval, state } = useConfirmation();
-
-    // Only show when rejected and in response states
-    if (approval?.approved !== false || !isResponded(state)) {
-        return null;
-    }
-
-    return children;
-};
-
-export type ConfirmationActionsProps = ComponentProps<'div'>;
-
-export const ConfirmationActions = ({
-    className,
-    ...props
-}: ConfirmationActionsProps) => {
-    const { state } = useConfirmation();
-
-    // Only show when approval is requested
-    if (state !== 'approval-requested') {
-        return null;
-    }
-
-    return (
-        <div
-            className={cn(
-                'flex items-center justify-end gap-2 self-end',
-                className,
-            )}
-            {...props}
-        />
-    );
-};
-
-export type ConfirmationActionProps = ComponentProps<typeof Button>;
-
-export const ConfirmationAction = (props: ConfirmationActionProps) => (
-    <Button type="button" {...props} />
-);

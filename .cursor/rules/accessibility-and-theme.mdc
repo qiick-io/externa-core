@@ -23,6 +23,10 @@ No agent invents a layout, a component, a colour or a component position in a qi
 | Page: `PageLayout`, header actions, view tabs, segmented filters | https://github.com/qiick-io/app-ui/blob/develop/docs/page.md                |
 | List page: toolbar, selection bar, overflow, table, pagination   | https://github.com/qiick-io/app-ui/blob/develop/docs/list-page.md           |
 | Settings page: secondary nav, form, Save bar                     | https://github.com/qiick-io/app-ui/blob/develop/docs/settings.md            |
+| Forms: page vs drawer vs dialog, `Field`, validation errors      | https://github.com/qiick-io/app-ui/blob/develop/docs/forms.md               |
+| Detail page: record header, status, fields                       | https://github.com/qiick-io/app-ui/blob/develop/docs/detail-page.md         |
+| Auth pages and SSO                                               | https://github.com/qiick-io/app-ui/blob/develop/docs/auth.md                |
+| Error pages 403 / 404 / 500 / 503                                | https://github.com/qiick-io/app-ui/blob/develop/docs/error-pages.md         |
 | Empty states                                                     | https://github.com/qiick-io/app-ui/blob/develop/docs/empty-states.md        |
 | Destructive actions                                              | https://github.com/qiick-io/app-ui/blob/develop/docs/destructive-actions.md |
 | Dashboard cards                                                  | https://github.com/qiick-io/app-ui/blob/develop/docs/dashboard.md           |

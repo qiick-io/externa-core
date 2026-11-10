@@ -49,13 +49,12 @@ final class AiToolTurnSummary
     }
 
     /**
-     * Build a short English notice for a turn paused on destructive tool approvals.
-     *
-     * @param  list<array{tool?: string}>  $pendingApprovals
+     * Build a short English notice for a turn paused on tool approvals. It names
+     * no tool: the approval card describes each call in words.
      */
-    public static function awaitingApproval(array $pendingApprovals): string
+    public static function awaitingApproval(): string
     {
-        return 'Waiting for your approval to run '.self::approvalToolLabel($pendingApprovals).'.';
+        return 'Waiting for your approval.';
     }
 
     /**

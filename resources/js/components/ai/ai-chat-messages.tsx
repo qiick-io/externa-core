@@ -17,24 +17,13 @@ import {
 import type { AiAnswerTextRenderer } from '@/components/ai/ai-answer-parts';
 import { AiFileCards } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
-import {
-    Confirmation,
-    ConfirmationAction,
-    ConfirmationActions,
-    ConfirmationTitle,
-} from '@/components/ai-elements/confirmation';
+import { Confirmation } from '@/components/ai-elements/confirmation';
 import {
     MessageAction,
     MessageActions,
 } from '@/components/ai-elements/message';
 import { Shimmer } from '@/components/ai-elements/shimmer';
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
-import {
-    Tool,
-    ToolContent,
-    ToolHeader,
-    ToolInput,
-} from '@/components/ai-elements/tool';
 import {
     Attachment,
     AttachmentContent,
@@ -56,9 +45,14 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useAiAvailability } from '@/hooks/use-ai-availability';
 import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
-import { exportTextAsPdf, speakText } from '@/lib/ai-chat';
+import {
+    exportTextAsPdf,
+    isDestructiveApproval,
+    speakText,
+} from '@/lib/ai-chat';
 import type { AiMessagePart, AiSource, AiUsage } from '@/lib/ai-message-parts';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
+import { describeAssistantToolCall } from '@/lib/ai-tool-call-descriptions';
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { announce } from '@/lib/live-announcer';
 import { toast } from '@/lib/toast';
@@ -463,8 +457,10 @@ function AssistantMessage({
             ?.map((toolCall) => toolCall.name ?? toolCall.function?.name)
             .filter((name): name is string => Boolean(name)) ??
         [];
+    // A turn waiting for approval offers no follow-ups: the only next step is
+    // Reject or Approve, and the suggestions describe what the call has done.
     const suggestions =
-        isLastMessage && onSuggestedAction
+        isLastMessage && onSuggestedAction && !showApprovals
             ? suggestedActionsForTools(toolNames)
             : [];
 
@@ -479,6 +475,7 @@ function AssistantMessage({
                             isStreaming={isStreaming}
                             hidePendingApprovals={showApprovals}
                             renderText={renderAnswerText}
+                            describeToolCall={describeAssistantToolCall}
                         />
                         <AiAnswerSources sources={message.sources ?? []} />
                         {message.fileCards && message.fileCards.length > 0 ? (
@@ -616,9 +613,12 @@ function AssistantActions({
 }
 
 /**
- * A turn paused for tool approval: each pending call as an AI Elements Tool
- * with its arguments in a code block, then one Confirmation for all of them
- * (the server resumes them together).
+ * A turn paused for tool approval, as one AI Elements `Confirmation` (on
+ * `Item`): the sentence the call's line will show and the record it touches
+ * (several calls: the question, with their sentences listed). Approve is red
+ * only when a call deletes data, and the hint then says so; the server's own
+ * reason text is never shown. The server resumes the calls together, so
+ * Reject / Approve answer all of them.
  */
 function ToolApprovals({
     approvals,
@@ -630,58 +630,41 @@ function ToolApprovals({
     onResolve: (approved: boolean) => void;
 }) {
     const { t } = useTranslation();
-    const reasons = approvals
-        .map((approval) => approval.reason)
-        .filter((reason): reason is string => Boolean(reason));
+    const sentences = approvals.map((approval) => {
+        const call = describeAssistantToolCall(
+            {
+                name: approval.tool,
+                input: approval.arguments ?? {},
+                state: 'approval-requested',
+            },
+            t,
+        );
+
+        return call.description
+            ? `${call.title}: ${call.description}`
+            : call.title;
+    });
+    const isDestructive = approvals.some(isDestructiveApproval);
+    const hint = t(
+        isDestructive ? 'ai.approval.destructiveHint' : 'ai.approval.hint',
+    );
 
     return (
-        <div className="flex flex-col gap-2 whitespace-normal">
-            {approvals.map((approval) => (
-                <Tool key={approval.id} defaultOpen className="mb-0">
-                    <ToolHeader
-                        type={`tool-${approval.tool}`}
-                        title={approval.tool}
-                        state="approval-requested"
-                    />
-                    <ToolContent>
-                        <ToolInput input={approval.arguments ?? {}} />
-                    </ToolContent>
-                </Tool>
-            ))}
-            <Confirmation
-                approval={{ id: approvals[0]?.id ?? '' }}
-                state="approval-requested"
-            >
-                <ConfirmationTitle>
-                    {reasons.length > 0
-                        ? reasons.join(' ')
-                        : t('ai.approval.request', {
-                              tools: [
-                                  ...new Set(
-                                      approvals.map(
-                                          (approval) => approval.tool,
-                                      ),
-                                  ),
-                              ].join(', '),
-                          })}
-                </ConfirmationTitle>
-                <ConfirmationActions>
-                    <ConfirmationAction
-                        variant="outline"
-                        disabled={disabled}
-                        onClick={() => onResolve(false)}
-                    >
-                        {t('ai.approval.reject')}
-                    </ConfirmationAction>
-                    <ConfirmationAction
-                        variant="destructive"
-                        disabled={disabled}
-                        onClick={() => onResolve(true)}
-                    >
-                        {t('ai.approval.approve')}
-                    </ConfirmationAction>
-                </ConfirmationActions>
-            </Confirmation>
-        </div>
+        <Confirmation
+            title={
+                sentences.length === 1
+                    ? sentences[0]
+                    : t('ai.approval.question')
+            }
+            description={
+                sentences.length === 1
+                    ? hint
+                    : `${sentences.join('; ')}. ${hint}`
+            }
+            disabled={disabled}
+            isDestructive={isDestructive}
+            onApprove={() => onResolve(true)}
+            onDeny={() => onResolve(false)}
+        />
     );
 }

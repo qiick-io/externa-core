@@ -97,13 +97,13 @@ describe('AiChatMessages', () => {
         ).not.toBeNull();
     });
 
-    it('asks for approval with the tool arguments and resolves it', () => {
+    it('asks for approval with the call sentence, never its JSON, and resolves it', () => {
         const handlers = renderMessages([
             prompt,
             {
                 id: 'local-assistant-1',
                 role: 'assistant',
-                content: 'Waiting for your approval to run delete_item.',
+                content: 'Waiting for your approval.',
                 pending_approvals: [
                     {
                         id: 'approval-1',
@@ -114,11 +114,11 @@ describe('AiChatMessages', () => {
             },
         ]);
 
-        expect(screen.getByText('delete_item')).toBeInTheDocument();
-        expect(screen.getByText(/"item_id": 4/)).toBeInTheDocument();
         expect(
-            screen.getByText('ai.approval.request:delete_item'),
+            screen.getByText('ai.toolCalls.delete_item._'),
         ).toBeInTheDocument();
+        expect(screen.getByText('ai.approval.hint')).toBeInTheDocument();
+        expect(screen.queryByText(/item_id/)).toBeNull();
 
         fireEvent.click(
             screen.getByRole('button', { name: 'ai.approval.approve' }),
@@ -137,6 +137,45 @@ describe('AiChatMessages', () => {
             'local-assistant-1',
             false,
         );
+    });
+
+    it('keeps Approve on the brand colour for a write and turns it red for a delete', () => {
+        const approvalMessage = (reason: string) => ({
+            id: 'local-assistant-1',
+            role: 'assistant' as const,
+            content: 'Waiting for your approval.',
+            toolNames: ['ManageCollections'],
+            pending_approvals: [
+                { id: 'approval-1', tool: 'ManageCollections', reason },
+            ],
+        });
+
+        renderMessages([
+            prompt,
+            approvalMessage(
+                'ManageCollections apply_collection_pack writes data.',
+            ),
+        ]);
+
+        expect(
+            screen.getByRole('button', { name: 'ai.approval.approve' }),
+        ).not.toHaveClass('bg-destructive');
+        expect(screen.getByText('ai.approval.hint')).toBeInTheDocument();
+        expect(screen.queryByText(/writes data/)).toBeNull();
+        expect(screen.queryByText(/ai\.suggestedActions\./)).toBeNull();
+        cleanup();
+
+        renderMessages([
+            prompt,
+            approvalMessage('ManageCollections delete deletes data.'),
+        ]);
+
+        expect(
+            screen.getByRole('button', { name: 'ai.approval.approve' }),
+        ).toHaveClass('bg-destructive');
+        expect(
+            screen.getByText('ai.approval.destructiveHint'),
+        ).toBeInTheDocument();
     });
 
     it('offers retry on an error answer', () => {
@@ -273,10 +312,13 @@ describe('AiChatMessages', () => {
             },
         ]);
 
-        expect(screen.getByText('ManageFiles')).toBeInTheDocument();
-        expect(
-            screen.getByText('ai.tool.state.output-error'),
-        ).toBeInTheDocument();
+        const failedCall = screen.getByText('ai.toolCalls.ManageFiles.move');
+
+        expect(failedCall.closest('[data-slot="trace-line"]')).toHaveAttribute(
+            'data-status',
+            'error',
+        );
+        expect(screen.queryByText(/"items"/)).toBeNull();
         expect(
             screen.getByRole('button', { name: /ai.tool.steps/ }),
         ).toBeInTheDocument();

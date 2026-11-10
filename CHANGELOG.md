@@ -9,9 +9,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
-
-
-## [1.4.0] - 2026-11-02
+## [1.4.0] - 2026-11-10
 
 ### Upgrade notes
 - **Docker workers as www-data (#320):** existing bind-mounted `storage/` / `bootstrap/cache` volumes that were created as root may need a one-time `chown -R www-data:www-data storage bootstrap/cache` (or recreate the volume). The entrypoint still `chown`s when it starts as root.
@@ -121,6 +119,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Every remaining hard-coded admin string is translated (en/it/de), and colours come only from theme tokens: folders and favourites use their own amber tokens, and the light-mode success, warning and info colours are one step darker so status badges meet WCAG AA (#593, #595).
 - Contributor rules come from the qiick standards pack (agent files, architecture tests, strict Eloquent models outside production, knip, and ratchets for Larastan, untranslated strings and raw colours), checked in CI together with the app-ui registry drift check (#588, #594).
 - The AI assistant and chat pages render through the shared @qiick registry components (chat layout, answer parts, mentions), and hand-built controls (emoji grid, icon picker, pagination, conversation rows, markdown tables, empty and loading states, native tooltips) use the standard shadcn components (#603, #606, #607).
+- Assistant answers show each tool call as one line with a sentence ("List collections", "Searched the web") and the record it works on, never its JSON; several calls fold into "Done in N steps", and reasoning and sources are lines of the same trace (#615).
+- The assistant's reasoning opens while the model thinks and closes to "Thought for N seconds" when it finishes; once you open or close it, your choice stays (#621).
+- A write the assistant wants to make waits on one approval card with the call in words: Approve takes the brand colour for a write and turns red only when the call deletes data, and no follow-up suggestions show until you decide (#619).
 
 ### Fixed
 - AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
@@ -157,6 +158,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Accessibility sweep fixes: sidebar label contrast, 24px checkbox targets, matching accessible names on collection rows and date-range pickers, focusable scroll regions; list filters wrap on phones and input groups are transparent in dark mode (#591).
 - Breadcrumbs, page titles, placeholders, confirm buttons, item filter operators and other labels are translated in Italian and German; a lint rule now catches untranslated UI props (#602, #605).
 - Recomputing file access no longer queries each file one by one (#604).
+- The Chat hub's Private tab no longer fails when you have two or more direct chats (#623).
+- The Chat hub's Collection badge counts only chats of collections you can read, so it never shows a number over an empty list (#625).
 
 ## [1.3.0] - 2026-10-24
 

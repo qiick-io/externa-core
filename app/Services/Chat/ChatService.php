@@ -461,7 +461,8 @@ class ChatService
             'title' => $title,
             'collection_id' => $chat->collection_id !== null ? (int) $chat->collection_id : null,
             'collection_item_id' => $chat->collection_item_id !== null ? (int) $chat->collection_item_id : null,
-            'collection_name' => $chat->collection?->name,
+            // Only item chats belong to a collection; a direct chat never loads the relation.
+            'collection_name' => $chat->isItem() ? $chat->collection?->name : null,
             'collection_icon' => $chat->isItem() ? ($chat->collection?->icon) : null,
             'collection_color' => $chat->isItem() ? ($chat->collection?->color) : null,
             'item_label' => $chat->isItem() && $chat->item instanceof CollectionItem

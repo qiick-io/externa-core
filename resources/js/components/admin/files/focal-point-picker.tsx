@@ -28,7 +28,7 @@ function asPercent(value: number): number {
 }
 
 /**
- * Directus-style focal point picker for the file detail panel: click the
+ * Focal point picker for the file detail panel: click the
  * image to set the point, a crosshair marks it. The image sits in a 16:9
  * `AspectRatio` frame inside a box with its own aspect ratio, so click
  * coordinates map to the image and never to the letterbox.
