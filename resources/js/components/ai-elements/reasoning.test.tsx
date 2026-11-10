@@ -9,10 +9,12 @@ vi.mock('react-i18next', () => ({
 
 afterEach(cleanup);
 
+const reasoningText = 'The model weighs the options.';
+
 const renderReasoning = (isStreaming: boolean) => (
     <Trace>
         <Reasoning isStreaming={isStreaming} duration={isStreaming ? 0 : 4}>
-            The model weighs the options.
+            {reasoningText}
         </Reasoning>
     </Trace>
 );
@@ -21,20 +23,20 @@ describe('Reasoning', () => {
     it('opens while it streams and closes when it finishes', () => {
         const { rerender } = render(renderReasoning(true));
 
-        expect(screen.getByText('The model weighs the options.')).toBeVisible();
+        expect(screen.getByText(reasoningText)).toBeVisible();
 
         rerender(renderReasoning(false));
 
-        expect(screen.queryByText('The model weighs the options.')).toBeNull();
+        expect(screen.queryByText(reasoningText)).toBeNull();
     });
 
     it('keeps the person’s choice once they close it', () => {
         const { rerender } = render(renderReasoning(true));
 
         fireEvent.click(screen.getByRole('button'));
-        expect(screen.queryByText('The model weighs the options.')).toBeNull();
+        expect(screen.queryByText(reasoningText)).toBeNull();
 
         rerender(renderReasoning(true));
-        expect(screen.queryByText('The model weighs the options.')).toBeNull();
+        expect(screen.queryByText(reasoningText)).toBeNull();
     });
 });
