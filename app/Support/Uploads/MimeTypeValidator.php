@@ -27,17 +27,8 @@ final class MimeTypeValidator
         $sniffed = SafeUploadMime::sniff($bytes !== '' ? $bytes : $header);
         $sniffed = strtolower(trim(explode(';', $sniffed, 2)[0]));
 
-        /** @var list<string> $allowed */
-        $allowed = array_values(array_filter(array_map(
-            static fn (mixed $mime): string => strtolower(trim((string) $mime)),
-            (array) config('files.upload_allowed_mimes', []),
-        )));
-
-        if ($allowed !== [] && ! in_array($sniffed, $allowed, true)) {
-            throw ValidationException::withMessages([
-                $field => ['This file type is not allowed.'],
-            ]);
-        }
+        self::assertMimeAllowlisted($sniffed, $field);
+        app(UploadAllowlist::class)->assertExtensionAllowed($fileName, $field);
 
         return $sniffed !== '' ? $sniffed : 'application/octet-stream';
     }
@@ -52,7 +43,7 @@ final class MimeTypeValidator
         $handle = @fopen($absolutePath, 'rb');
         if ($handle === false) {
             throw ValidationException::withMessages([
-                $field => ['Unable to read uploaded file.'],
+                $field => [__('Unable to read uploaded file.')],
             ]);
         }
 
@@ -73,19 +64,24 @@ final class MimeTypeValidator
             ? strtolower(trim(explode(';', $sniffed, 2)[0]))
             : 'application/octet-stream';
 
-        /** @var list<string> $allowed */
-        $allowed = array_values(array_filter(array_map(
-            static fn (mixed $mime): string => strtolower(trim((string) $mime)),
-            (array) config('files.upload_allowed_mimes', []),
-        )));
+        self::assertMimeAllowlisted($sniffed, $field);
+        app(UploadAllowlist::class)->assertExtensionAllowed($fileName, $field);
+
+        return $sniffed;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private static function assertMimeAllowlisted(string $sniffed, string $field): void
+    {
+        $allowed = app(UploadAllowlist::class)->allowedMimes();
 
         if ($allowed !== [] && ! in_array($sniffed, $allowed, true)) {
             throw ValidationException::withMessages([
-                $field => ['This file type is not allowed.'],
+                $field => [__('This file type is not in the project upload allowlist.')],
             ]);
         }
-
-        return $sniffed;
     }
 
     /**
@@ -114,7 +110,7 @@ final class MimeTypeValidator
         }
 
         throw ValidationException::withMessages([
-            $field => ['File content does not match the declared file type.'],
+            $field => [__('File content does not match the declared file type.')],
         ]);
     }
 }

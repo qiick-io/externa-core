@@ -7,7 +7,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionListColumnsNormalizer;
+use App\Services\Collections\CollectionListColumnsNormalizerService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -45,7 +45,7 @@ class UpdateCollectionListColumnsRequest extends FormRequest
         /** @var Collection $collection */
         $collection = $this->route('collection');
 
-        $normalized = app(CollectionListColumnsNormalizer::class)
+        $normalized = app(CollectionListColumnsNormalizerService::class)
             ->normalize($this->input('columns'), $collection);
 
         $allowed = array_flip($normalized);

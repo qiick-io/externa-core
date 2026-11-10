@@ -18,6 +18,10 @@ class PrepareFilesZipJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 2;
+
+    public int $timeout = 300;
+
     /**
      * @param  list<int>  $fileIds
      */
@@ -26,6 +30,14 @@ class PrepareFilesZipJob implements ShouldQueue
         public readonly array $fileIds,
         public readonly string $jobUuid,
     ) {}
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [30, 60];
+    }
 
     /**
      * Build the zip on disk and notify the user with a download link.
@@ -38,31 +50,38 @@ class PrepareFilesZipJob implements ShouldQueue
             return;
         }
 
-        try {
-            $zipPath = $fileService->buildZipArchive(
-                $this->fileIds,
-                $fileService->zipStoragePath($this->userId, $this->jobUuid),
-            );
+        $zipPath = $fileService->buildZipArchive(
+            $this->fileIds,
+            $fileService->zipStoragePath($this->userId, $this->jobUuid),
+        );
 
-            $ttlMinutes = (int) config('files.zip_ttl_minutes', 60);
-            $expiresAt = Carbon::now()->addMinutes($ttlMinutes);
+        $ttlMinutes = (int) config('files.zip_ttl_minutes', 60);
+        $expiresAt = Carbon::now()->addMinutes($ttlMinutes);
 
-            $user->notify(new FileZipReadyNotification(
-                jobId: $this->jobUuid,
-                downloadUrl: route('files.zips.download', $this->jobUuid),
-                expiresAt: $expiresAt->toIso8601String(),
-                fileCount: count($this->fileIds),
-                zipBytes: is_file($zipPath) ? (int) filesize($zipPath) : null,
-            ));
-        } catch (Throwable $exception) {
-            report($exception);
+        $user->notify(new FileZipReadyNotification(
+            jobId: $this->jobUuid,
+            downloadUrl: route('files.zips.download', $this->jobUuid),
+            expiresAt: $expiresAt->toIso8601String(),
+            fileCount: count($this->fileIds),
+            zipBytes: is_file($zipPath) ? (int) filesize($zipPath) : null,
+        ));
+    }
 
-            $user->notify(new FileZipFailedNotification(
-                jobId: $this->jobUuid,
-                message: $exception->getMessage(),
-            ));
+    /**
+     * Notify the requester once retries are exhausted (timeouts / hard failures).
+     */
+    public function failed(?Throwable $exception): void
+    {
+        report($exception);
 
-            throw $exception;
+        $user = User::query()->find($this->userId);
+        if ($user === null) {
+            return;
         }
+
+        $user->notify(new FileZipFailedNotification(
+            jobId: $this->jobUuid,
+            message: $exception?->getMessage() ?? 'Zip preparation failed.',
+        ));
     }
 }

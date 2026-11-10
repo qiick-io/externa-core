@@ -8,14 +8,15 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Notifications\ItemScheduleFailedNotification;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemPublisher;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Webhooks\OutboundWebhookCatalog;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemPublisherService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Webhooks\OutboundWebhookCatalogService;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
@@ -36,8 +37,8 @@ test('schedule publish promotes draft when due via artisan command', function ()
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $item->draft_data = ['title' => 'soon'];
@@ -52,7 +53,7 @@ test('schedule publish promotes draft when due via artisan command', function ()
     $item->refresh();
     expect($item->draft_data)->toBeNull();
     expect($item->publish_at)->toBeNull();
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('soon');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('soon');
 });
 
 test('cancel schedule clears publish_at before due', function () {
@@ -147,8 +148,8 @@ test('publish sets published_at timestamp', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $item->draft_data = ['title' => 'staging'];
@@ -162,13 +163,13 @@ test('publish sets published_at timestamp', function () {
 });
 
 test('catalog includes item.published', function () {
-    expect(OutboundWebhookCatalog::has('item.published'))->toBeTrue();
-    expect(OutboundWebhookCatalog::types())->toContain('item.published');
+    expect(OutboundWebhookCatalogService::has('item.published'))->toBeTrue();
+    expect(OutboundWebhookCatalogService::types())->toContain('item.published');
 });
 
 test('catalog includes item.publish_failed', function () {
-    expect(OutboundWebhookCatalog::has('item.publish_failed'))->toBeTrue();
-    expect(OutboundWebhookCatalog::types())->toContain('item.publish_failed');
+    expect(OutboundWebhookCatalogService::has('item.publish_failed'))->toBeTrue();
+    expect(OutboundWebhookCatalogService::types())->toContain('item.publish_failed');
 });
 
 test('editing approved scheduled draft warns that publish will not run', function () {
@@ -210,13 +211,13 @@ test('scheduled publish failure persists error, notifies, and emits webhook', fu
     Notification::fake();
     Queue::fake();
 
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'webhook_secret',
-        ProjectSettings::encryptWebhookSecret('test-signing-secret'),
+        ProjectSettingsService::encryptWebhookSecret('test-signing-secret'),
     );
 
     $editor = grantCollectionPermissions(User::factory()->create());
@@ -270,7 +271,7 @@ test('scheduled publish failure for non-approval promote errors uses same handli
         'user_updated_id' => $editor->id,
     ]);
 
-    $this->mock(CollectionItemPublisher::class, function ($mock): void {
+    $this->mock(CollectionItemPublisherService::class, function ($mock): void {
         $mock->shouldReceive('promote')
             ->once()
             ->andThrow(new RuntimeException('Simulated promote failure'));
@@ -309,4 +310,59 @@ test('reschedule clears previous schedule failure state', function () {
     expect($item->publish_at)->not->toBeNull()
         ->and($item->schedule_error)->toBeNull()
         ->and($item->schedule_failed_at)->toBeNull();
+});
+
+test('promote rolls back synced values when draft clear fails mid-flight', function () {
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = $collection->items()->create([]);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
+
+    $item->draft_data = ['title' => 'soon'];
+    $item->publish_at = now()->subMinute();
+    $item->save();
+
+    $realWriter = app(CollectionItemValuesWriterService::class);
+    $this->mock(CollectionItemValuesWriterService::class, function ($mock) use ($realWriter): void {
+        $mock->shouldReceive('sync')->once()->andReturnUsing(
+            function (...$args) use ($realWriter): void {
+                $realWriter->sync(...$args);
+                throw new RuntimeException('simulated post-sync failure');
+            },
+        );
+    });
+
+    expect(fn () => app(CollectionItemPublisherService::class)->promote(
+        $item->fresh(),
+        $collection,
+        scheduled: true,
+    ))->toThrow(RuntimeException::class, 'simulated post-sync failure');
+
+    $item->refresh();
+    expect($item->draft_data)->toBe(['title' => 'soon'])
+        ->and(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('live');
+});
+
+test('schedule definitions prevent overlapping multi-server runs', function () {
+    $schedule = app(Schedule::class);
+    $commands = collect($schedule->events())
+        ->map(fn ($event) => [
+            'command' => $event->command ?? $event->description,
+            'withoutOverlapping' => $event->withoutOverlapping,
+            'onOneServer' => $event->onOneServer,
+        ]);
+
+    foreach (['collections:process-schedules', 'ai:run-sync-sources'] as $needle) {
+        $match = $commands->first(fn (array $row): bool => is_string($row['command']) && str_contains($row['command'], $needle));
+        expect($match)->not->toBeNull("missing schedule for {$needle}")
+            ->and($match['withoutOverlapping'])->toBeTrue()
+            ->and($match['onOneServer'])->toBeTrue();
+    }
 });

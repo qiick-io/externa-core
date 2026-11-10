@@ -7,7 +7,7 @@ export type ContentLocaleCatalogEntry = {
 };
 
 /** Content locale catalog (static, in-repo). */
-export const CONTENT_LOCALES_CATALOG: ContentLocaleCatalogEntry[] =
+const CONTENT_LOCALES_CATALOG: ContentLocaleCatalogEntry[] =
     catalogJson as ContentLocaleCatalogEntry[];
 
 const byCode = new Map(
@@ -27,13 +27,4 @@ export function contentLocaleMeta(code: string): ContentLocaleCatalogEntry {
                 : code.toUpperCase(),
         }
     );
-}
-
-/**
- * @param codes - Enabled locale codes in display order
- */
-export function contentLocalesMeta(
-    codes: string[],
-): ContentLocaleCatalogEntry[] {
-    return codes.map(contentLocaleMeta);
 }

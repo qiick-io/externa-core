@@ -23,17 +23,20 @@
                         document.documentElement.classList.add('dark');
                     }
                 }
+
+                document.documentElement.style.colorScheme =
+                    document.documentElement.classList.contains('dark') ? 'dark' : 'light';
             })();
         </script>
 
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+        {{-- FOUC: match ink surfaces from app.css (not default shadcn oklch) --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: #ffffff;
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: #0e171e;
             }
         </style>
 
@@ -47,22 +50,41 @@
             <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
         @endif
 
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
-
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
 
-        {{-- Brand hex as-is; .dark switches to --brand-primary-dark via app.css --}}
-        @if (! empty($projectColor))
-            <style>
+        {{-- Theme preset CSS variables (+ optional custom brand hex via --brand-primary).
+             The id lets the Appearance live preview rewrite this block (resources/js/lib/theme-css.ts). --}}
+        @php
+            $themeCss = $projectThemeCss ?? null;
+            $themeLight = is_array($themeCss['light'] ?? null) ? $themeCss['light'] : [];
+            $themeDark = is_array($themeCss['dark'] ?? null) ? $themeCss['dark'] : [];
+            $brandPrimary = $themeCss['brandPrimary'] ?? $projectColor ?? null;
+            $brandPrimaryDark = $themeCss['brandPrimaryDark'] ?? $projectColorDark ?? $brandPrimary;
+            $brandPrimaryForeground = $themeCss['brandPrimaryForeground'] ?? $projectColorForeground ?? null;
+            $brandPrimaryDarkForeground = $themeCss['brandPrimaryDarkForeground'] ?? $projectColorDarkForeground ?? $brandPrimaryForeground;
+        @endphp
+        @if ($themeLight !== [] || $themeDark !== [] || ! empty($brandPrimary))
+            <style id="externa-theme-css">
                 :root {
-                    --brand-primary: {{ $projectColor }};
-                    --brand-primary-foreground: {{ $projectColorForeground ?? '#ffffff' }};
-                    --brand-primary-dark: {{ $projectColorDark ?? $projectColor }};
-                    --brand-primary-dark-foreground: {{ $projectColorDarkForeground ?? $projectColorForeground ?? '#ffffff' }};
+                    @foreach ($themeLight as $cssVar => $cssValue)
+                        --{{ $cssVar }}: {{ $cssValue }};
+                    @endforeach
+                    @if (! empty($brandPrimary))
+                        --brand-primary: {{ $brandPrimary }};
+                        --brand-primary-foreground: {{ $brandPrimaryForeground ?? '#ffffff' }};
+                        --brand-primary-dark: {{ $brandPrimaryDark ?? $brandPrimary }};
+                        --brand-primary-dark-foreground: {{ $brandPrimaryDarkForeground ?? $brandPrimaryForeground ?? '#ffffff' }};
+                    @endif
                 }
+                @if ($themeDark !== [])
+                .dark {
+                    @foreach ($themeDark as $cssVar => $cssValue)
+                        --{{ $cssVar }}: {{ $cssValue }};
+                    @endforeach
+                }
+                @endif
             </style>
         @endif
     </head>

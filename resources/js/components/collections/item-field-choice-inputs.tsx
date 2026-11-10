@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import {
     Fragment,
     useCallback,
@@ -8,10 +8,30 @@ import {
     useState,
 } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { AutocompleteInput } from '@/components/collections/autocomplete-input';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -20,6 +40,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import {
     cascadeToggleValues,
     collectExpandableKeys,
@@ -27,7 +49,6 @@ import {
     getTreeNodeCheckState,
 } from '@/lib/checkbox-group-tree';
 import {
-    getFieldNote,
     getFieldPlaceholder,
     parseApiAutocompleteFieldSettings,
     parseBooleanFieldSettings,
@@ -43,11 +64,10 @@ import {
     fieldControlChromeMulti,
     fieldControlChromeSingle,
     fieldControlHeight,
+    fieldFocusRing,
+    fieldOpenBorder,
 } from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
 
 /** Radix Select forbids empty string values — map allowNone ↔ sentinel. */
 const SELECT_NONE_VALUE = '__none__';
@@ -66,40 +86,7 @@ export function defaultBooleanChecked(value: DefaultValue): boolean {
     return value === true || value === 1 || value === '1';
 }
 
-export function toDatetimeLocalValue(
-    value: DefaultValue,
-    includeSeconds: boolean,
-): string {
-    if (value === null || value === undefined || value === '') {
-        return '';
-    }
-
-    const stringValue = String(value);
-
-    if (/^\d{4}-\d{2}-\d{2}T/.test(stringValue)) {
-        return includeSeconds
-            ? stringValue.slice(0, 19)
-            : stringValue.slice(0, 16);
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
-        return `${stringValue}T00:00${includeSeconds ? ':00' : ''}`;
-    }
-
-    const parsedDate = new Date(stringValue);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-        return stringValue;
-    }
-
-    const pad = (part: number) => String(part).padStart(2, '0');
-
-    const formatted = `${parsedDate.getFullYear()}-${pad(parsedDate.getMonth() + 1)}-${pad(parsedDate.getDate())}T${pad(parsedDate.getHours())}:${pad(parsedDate.getMinutes())}`;
-
-    return includeSeconds
-        ? `${formatted}:${pad(parsedDate.getSeconds())}`
-        : formatted;
-}
+export { toDatetimeLocalValue } from '@/lib/format';
 
 export function toDateInputValue(value: DefaultValue): string {
     if (value === null || value === undefined || value === '') {
@@ -165,34 +152,17 @@ function getPathValue(source: unknown, path: string): unknown {
 /**
  * Always reserves one line of vertical space below the control so half-width siblings stay aligned.
  */
+/**
+ * Field note under the control; the line is always reserved so half-width
+ * siblings stay aligned.
+ * @returns {JSX.Element}
+ */
 export function FieldNoteSlot({ note }: { note?: string }) {
     return (
-        <p
-            className="min-h-5 text-sm text-muted-foreground"
-            aria-hidden={!note}
-        >
+        <FieldDescription className="min-h-5" aria-hidden={!note}>
             {note || '\u00A0'}
-        </p>
+        </FieldDescription>
     );
-}
-
-export function FieldNote({
-    settings,
-    locales,
-    reserveSpace = false,
-}: {
-    settings?: Record<string, unknown> | null;
-    locales: string[];
-    /** When true, always render a one-line slot even if note is empty. */
-    reserveSpace?: boolean;
-}) {
-    const note = getFieldNote(settings, locales);
-
-    if (!note && !reserveSpace) {
-        return null;
-    }
-
-    return <FieldNoteSlot note={note} />;
 }
 
 /**
@@ -270,7 +240,7 @@ export function BooleanToggleInput({
 }) {
     const booleanSettings = parseBooleanFieldSettings(settings);
     const [checked, setChecked] = useState(defaultChecked);
-    // Boolean: checkbox + fixed affirmative label (not a Yes/No flip).
+    // Boolean ("Toggle"): Switch + fixed affirmative label (not a Yes/No flip).
     const onLabel = resolveTranslatedText(
         booleanSettings.labelOn,
         locales,
@@ -283,15 +253,20 @@ export function BooleanToggleInput({
             className={cn(
                 fieldControlChromeSingle,
                 'cursor-pointer gap-3',
-                readonly && 'cursor-not-allowed opacity-50',
+                readonly && 'cursor-default bg-muted/50',
             )}
         >
-            <Checkbox
+            <Switch
                 id={id}
                 checked={checked}
                 disabled={readonly}
+                className={
+                    readonly
+                        ? 'disabled:cursor-default disabled:opacity-100'
+                        : undefined
+                }
                 onCheckedChange={(next) => {
-                    if (readonly || next === 'indeterminate') {
+                    if (readonly) {
                         return;
                     }
 
@@ -312,6 +287,11 @@ export function BooleanToggleInput({
     );
 }
 
+/**
+ * Free-text input with suggestions from the field options (was `<datalist>`):
+ * the typed text is submitted, the options only help to fill it.
+ * @returns {JSX.Element}
+ */
 export function StaticAutocompleteInput({
     id,
     name,
@@ -327,36 +307,44 @@ export function StaticAutocompleteInput({
     defaultValue: string;
     readonly: boolean;
 }) {
-    const listId = useId();
     const stringSettings = parseStringFieldSettings(settings);
     const options = parseFieldOptions(settings).filter(
         (option) => option.value.trim() !== '',
     );
     const placeholder = getFieldPlaceholder(settings, locales);
+    const [text, setText] = useState(defaultValue);
+    const normalizedText = text.trim().toLowerCase();
+    const suggestions = options
+        .filter(
+            (option) =>
+                option.value !== text &&
+                (option.value.toLowerCase().includes(normalizedText) ||
+                    option.label.toLowerCase().includes(normalizedText)),
+        )
+        .map((option) => ({
+            value: option.value,
+            label: option.label || option.value,
+        }));
 
     return (
-        <InputWithIcons
-            iconLeft={stringSettings.iconLeft}
-            iconRight={stringSettings.iconRight}
-        >
-            <Input
-                id={id}
-                name={name}
-                list={listId}
-                defaultValue={defaultValue}
-                placeholder={placeholder}
-                readOnly={readonly}
-            />
-            <datalist id={listId}>
-                {options.map((option) => (
-                    <option
-                        key={option.value}
-                        value={option.value}
-                        label={option.label || option.value}
-                    />
-                ))}
-            </datalist>
-        </InputWithIcons>
+        <AutocompleteInput
+            id={id}
+            name={name}
+            value={text}
+            placeholder={placeholder}
+            readOnly={readonly}
+            suggestions={suggestions}
+            onChange={(event) => setText(event.target.value)}
+            onSelectSuggestion={(suggestion) => setText(suggestion.value)}
+            renderInput={(input) => (
+                <InputWithIcons
+                    iconLeft={stringSettings.iconLeft}
+                    iconRight={stringSettings.iconRight}
+                >
+                    {input}
+                </InputWithIcons>
+            )}
+        />
     );
 }
 
@@ -377,8 +365,7 @@ export function ApiAutocompleteInput({
     defaultValue: string;
     readonly: boolean;
 }) {
-    const listId = useId();
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { t } = useTranslation();
     const apiSettings = parseApiAutocompleteFieldSettings(settings);
     // ponytail: primitives only — parseApiAutocompleteFieldSettings() returns a
     // new object each render; putting it in effect deps re-fired the debounce forever.
@@ -507,88 +494,44 @@ export function ApiAutocompleteInput({
         return () => window.clearTimeout(delayTimer);
     }, [url, trigger, rate, fetchSuggestions, query]);
 
-    useEffect(() => {
-        const onPointerDown = (event: MouseEvent) => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
-            ) {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', onPointerDown);
-
-        return () => document.removeEventListener('mousedown', onPointerDown);
-    }, []);
-
     return (
-        <div className="relative space-y-1" ref={containerRef}>
-            <InputWithIcons iconLeft={iconLeft} iconRight={iconRight}>
-                <Input
-                    id={id}
-                    name={name}
-                    role="combobox"
-                    aria-expanded={open}
-                    aria-controls={listId}
-                    aria-autocomplete="list"
-                    autoComplete="off"
-                    value={query}
-                    placeholder={placeholder}
-                    readOnly={readonly}
-                    onChange={(event) => {
-                        committedSelectionRef.current = null;
-                        setQuery(event.target.value);
-                        setOpen(true);
-                    }}
-                    onFocus={() => {
-                        if (suggestions.length > 0) {
-                            setOpen(true);
-                        }
-                    }}
-                    onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
-                            setOpen(false);
-                        }
-                    }}
-                />
-            </InputWithIcons>
-            {open && suggestions.length > 0 ? (
-                <ul
-                    id={listId}
-                    role="listbox"
-                    className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-popover p-1 text-sm shadow-md"
-                >
-                    {suggestions.map((suggestion) => (
-                        <li
-                            key={`${suggestion.value}-${suggestion.text}`}
-                            role="option"
-                        >
-                            <button
-                                type="button"
-                                className="flex w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => {
-                                    committedSelectionRef.current =
-                                        suggestion.value;
-                                    setQuery(suggestion.value);
-                                    setOpen(false);
-                                    setSuggestions([]);
-                                }}
-                            >
-                                {suggestion.text}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            ) : null}
+        <div className="space-y-1">
+            <AutocompleteInput
+                id={id}
+                name={name}
+                value={query}
+                placeholder={placeholder}
+                readOnly={readonly}
+                open={open}
+                onOpenChange={setOpen}
+                suggestions={suggestions.map((suggestion) => ({
+                    value: suggestion.value,
+                    label: suggestion.text,
+                }))}
+                onChange={(event) => {
+                    committedSelectionRef.current = null;
+                    setQuery(event.target.value);
+                }}
+                onSelectSuggestion={(suggestion) => {
+                    committedSelectionRef.current = suggestion.value;
+                    setQuery(suggestion.value);
+                    setSuggestions([]);
+                }}
+                renderInput={(input) => (
+                    <InputWithIcons iconLeft={iconLeft} iconRight={iconRight}>
+                        {input}
+                    </InputWithIcons>
+                )}
+            />
             {loading ? (
-                <p className="text-xs text-muted-foreground">Loading…</p>
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Spinner className="size-3" />
+                    {t('common.loading')}
+                </p>
             ) : null}
             {!url.trim() ? (
                 <p className="text-xs text-muted-foreground">
-                    Configure an API URL in field settings to enable
-                    suggestions.
+                    {t('collections.items.choice.apiUrlMissing')}
                 </p>
             ) : null}
         </div>
@@ -608,6 +551,7 @@ export function HashFieldInput({
     settings?: Record<string, unknown> | null;
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
     const hashSettings = parseHashFieldSettings(settings);
     const displayValue =
         hashSettings.masked && defaultValue
@@ -619,14 +563,17 @@ export function HashFieldInput({
             <Input
                 id={id}
                 type="text"
-                value={displayValue || 'Generated on save'}
+                value={
+                    displayValue ||
+                    t('collections.items.choice.generatedOnSave')
+                }
                 readOnly
                 disabled={readonly}
                 className="font-mono"
             />
             <input type="hidden" name={name} value={defaultValue} />
             <p className="text-xs text-muted-foreground">
-                Fingerprint ID (auto). Not a password hash.
+                {t('collections.items.choice.hashHint')}
             </p>
         </div>
     );
@@ -653,7 +600,7 @@ export function SliderFieldInput({
         <div className={cn(fieldControlChromeSingle, 'gap-2')}>
             {sliderSettings.showValue ? (
                 <span
-                    className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums"
+                    className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-2 font-mono text-xs text-foreground tabular-nums"
                     aria-live="polite"
                 >
                     {value}
@@ -688,6 +635,7 @@ export function CheckboxGroupInput({
     readonly: boolean;
     allowOther?: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialOther = defaultValues.find(
         (value) => !optionValues.includes(value),
@@ -747,14 +695,17 @@ export function CheckboxGroupInput({
                             onCheckedChange={(next) =>
                                 setOtherEnabled(next === true)
                             }
+                            aria-label={t('collections.items.choice.other')}
                         />
-                        Other
+                        <span>{t('collections.items.choice.other')}</span>
                     </label>
                     {otherEnabled ? (
                         <Input
                             value={otherValue}
                             readOnly={readonly}
-                            placeholder="Custom value"
+                            placeholder={t(
+                                'collections.items.choice.customValue',
+                            )}
                             onChange={(event) =>
                                 setOtherValue(event.target.value)
                             }
@@ -791,6 +742,7 @@ export function SelectWithOtherInput({
     allowNone: boolean;
     allowOther: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialIsOther =
         allowOther &&
@@ -848,7 +800,13 @@ export function SelectWithOtherInput({
                 }}
             >
                 <SelectTrigger id={id} className="w-full">
-                    <SelectValue placeholder={allowNone ? '—' : 'Select…'} />
+                    <SelectValue
+                        placeholder={
+                            allowNone
+                                ? '—'
+                                : t('collections.items.choice.select')
+                        }
+                    />
                 </SelectTrigger>
                 <SelectContent>
                     {allowNone ? (
@@ -861,7 +819,7 @@ export function SelectWithOtherInput({
                     ))}
                     {allowOther ? (
                         <SelectItem value={SELECT_OTHER_VALUE}>
-                            Other…
+                            {t('collections.items.choice.otherEllipsis')}
                         </SelectItem>
                     ) : null}
                 </SelectContent>
@@ -870,7 +828,7 @@ export function SelectWithOtherInput({
                 <Input
                     value={otherValue}
                     readOnly={readonly}
-                    placeholder="Custom value"
+                    placeholder={t('collections.items.choice.customValue')}
                     onChange={(event) => {
                         const next = event.target.value;
                         setOtherValue(next);
@@ -901,6 +859,7 @@ export function RadioWithOtherInput({
     readonly: boolean;
     allowOther: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialIsOther =
         allowOther &&
@@ -914,50 +873,69 @@ export function RadioWithOtherInput({
     );
 
     const submitted = selected === '__other__' ? otherValue : selected;
+    const radioIdPrefix = useId();
 
     return (
         <div className={cn('flex flex-col gap-2', fieldControlChromeMulti)}>
-            {options.map((option) => (
-                <label
-                    key={option.value}
-                    className="flex items-center gap-2 text-sm"
-                >
-                    <input
-                        type="radio"
-                        name={`${name}__ui`}
-                        value={option.value}
-                        checked={selected === option.value}
-                        disabled={readonly}
-                        onChange={() => setSelected(option.value)}
-                    />
-                    {option.label || option.value}
-                </label>
-            ))}
-            {allowOther ? (
-                <label className="flex flex-col gap-2 text-sm">
-                    <span className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name={`${name}__ui`}
-                            value="__other__"
-                            checked={selected === '__other__'}
-                            disabled={readonly}
-                            onChange={() => setSelected('__other__')}
-                        />
-                        Other
-                    </span>
-                    {selected === '__other__' ? (
-                        <Input
-                            value={otherValue}
-                            readOnly={readonly}
-                            placeholder="Custom value"
-                            onChange={(event) =>
-                                setOtherValue(event.target.value)
-                            }
-                        />
-                    ) : null}
-                </label>
-            ) : null}
+            <RadioGroup
+                value={selected}
+                onValueChange={(next) => {
+                    if (!readonly) {
+                        setSelected(next);
+                    }
+                }}
+                disabled={readonly}
+                className="gap-2"
+            >
+                {options.map((option) => {
+                    const optionId = `${radioIdPrefix}-${option.value}`;
+
+                    return (
+                        <div
+                            key={option.value}
+                            className="flex items-center gap-2 text-sm"
+                        >
+                            <RadioGroupItem
+                                value={option.value}
+                                id={optionId}
+                                disabled={readonly}
+                            />
+                            <Label htmlFor={optionId} className="font-normal">
+                                {option.label || option.value}
+                            </Label>
+                        </div>
+                    );
+                })}
+                {allowOther ? (
+                    <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                                value="__other__"
+                                id={`${radioIdPrefix}-__other__`}
+                                disabled={readonly}
+                            />
+                            <Label
+                                htmlFor={`${radioIdPrefix}-__other__`}
+                                className="font-normal"
+                            >
+                                {t('collections.items.choice.other')}
+                            </Label>
+                        </div>
+                        {selected === '__other__' ? (
+                            <Input
+                                value={otherValue}
+                                readOnly={readonly}
+                                placeholder={t(
+                                    'collections.items.choice.customValue',
+                                )}
+                                onChange={(event) =>
+                                    setOtherValue(event.target.value)
+                                }
+                            />
+                        ) : null}
+                    </div>
+                ) : null}
+            </RadioGroup>
             <input type="hidden" name={name} value={submitted} />
         </div>
     );
@@ -976,6 +954,7 @@ export function MultiselectWithOtherInput({
     readonly: boolean;
     allowOther: boolean;
 }) {
+    const { t } = useTranslation();
     const optionValues = options.map((option) => option.value);
     const initialOther = defaultValues.find(
         (value) => !optionValues.includes(value),
@@ -985,7 +964,6 @@ export function MultiselectWithOtherInput({
     );
     const [otherValue, setOtherValue] = useState(initialOther ?? '');
     const [open, setOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     const stored = [
         ...selected,
@@ -995,133 +973,112 @@ export function MultiselectWithOtherInput({
     const toggle = (value: string): void => {
         setSelected((current) =>
             current.includes(value)
-                ? current.filter((v) => v !== value)
+                ? current.filter((selectedValue) => selectedValue !== value)
                 : [...current, value],
         );
     };
 
-    useEffect(() => {
-        const handleClickOutside = (event: Event): void => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
-            ) {
-                setOpen(false);
-            }
-        };
-
-        if (open) {
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('touchstart', handleClickOutside);
-
-            return () => {
-                document.removeEventListener('mousedown', handleClickOutside);
-                document.removeEventListener('touchstart', handleClickOutside);
-            };
-        }
-
-        return () => {};
-    }, [open]);
-
     return (
         <div className="space-y-2">
-            <div ref={containerRef} className="relative">
-                <button
-                    type="button"
-                    disabled={readonly}
-                    onClick={() => setOpen(!open)}
-                    className={cn(
-                        inputLike,
-                        'flex h-auto min-h-9 w-full items-center justify-between gap-2 text-left',
-                    )}
-                >
-                    {selected.length === 0 ? (
-                        <span className="text-muted-foreground">
-                            Select options…
-                        </span>
-                    ) : (
-                        <div className="flex flex-wrap gap-1">
-                            {selected.map((value) => {
-                                const option = options.find(
-                                    (opt) => opt.value === value,
-                                );
-
-                                return (
-                                    <span
-                                        key={value}
-                                        className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-xs"
-                                    >
-                                        {option?.label || value}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
-                    <svg
-                        className="size-4 shrink-0 opacity-50"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
-                </button>
-                {open && !readonly && (
-                    <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
-                        {options.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
-                                No options available.
-                            </p>
-                        ) : (
-                            options.map((option) => {
-                                const checked = selected.includes(option.value);
-
-                                return (
-                                    <div
-                                        key={option.value}
-                                        role="option"
-                                        aria-selected={checked}
-                                        tabIndex={0}
-                                        className={cn(
-                                            'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
-                                            checked && 'bg-accent/50',
-                                        )}
-                                        onClick={() => toggle(option.value)}
-                                        onKeyDown={(event) => {
-                                            if (
-                                                event.key === 'Enter' ||
-                                                event.key === ' '
-                                            ) {
-                                                event.preventDefault();
-                                                toggle(option.value);
-                                            }
-                                        }}
-                                    >
-                                        <Checkbox
-                                            checked={checked}
-                                            tabIndex={-1}
-                                            className="pointer-events-none"
-                                        />
-                                        <span className="flex-1 truncate">
-                                            {option.label || option.value}
-                                        </span>
-                                    </div>
-                                );
-                            })
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        disabled={readonly}
+                        className={cn(
+                            'h-auto min-h-control w-full justify-between font-normal focus-visible:ring-offset-0',
+                            fieldFocusRing,
+                            fieldOpenBorder,
                         )}
-                    </div>
-                )}
-            </div>
+                    >
+                        <span className="flex flex-1 flex-wrap gap-1 text-left">
+                            {selected.length === 0 ? (
+                                <span className="text-muted-foreground">
+                                    {t(
+                                        'collections.items.choice.selectOptions',
+                                    )}
+                                </span>
+                            ) : (
+                                selected.map((value) => (
+                                    <Badge
+                                        key={value}
+                                        variant="secondary"
+                                        className="font-normal"
+                                    >
+                                        {options.find(
+                                            (option) => option.value === value,
+                                        )?.label || value}
+                                    </Badge>
+                                ))
+                            )}
+                        </span>
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    className="w-(--radix-popover-trigger-width) p-0"
+                    align="start"
+                >
+                    <Command>
+                        <CommandInput
+                            placeholder={t('picker.search')}
+                            aria-label={t('a11y.search')}
+                        />
+                        <CommandList>
+                            <CommandEmpty>
+                                {options.length === 0
+                                    ? 'No options available.'
+                                    : t('picker.noResults')}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {options.map((option) => {
+                                    const isSelected = selected.includes(
+                                        option.value,
+                                    );
+
+                                    return (
+                                        <CommandItem
+                                            key={option.value}
+                                            value={option.value}
+                                            keywords={[option.label]}
+                                            data-checked={isSelected}
+                                            onSelect={() =>
+                                                toggle(option.value)
+                                            }
+                                        >
+                                            <span
+                                                aria-hidden
+                                                className={cn(
+                                                    'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input',
+                                                    isSelected &&
+                                                        'border-primary bg-primary text-primary-foreground',
+                                                )}
+                                            >
+                                                {isSelected && (
+                                                    <Check className="size-3.5 text-primary-foreground" />
+                                                )}
+                                            </span>
+                                            <span className="flex-1 truncate">
+                                                {option.label || option.value}
+                                            </span>
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
             {allowOther ? (
                 <Input
                     value={otherValue}
                     readOnly={readonly}
-                    placeholder="Additional custom value"
+                    placeholder={t(
+                        'collections.items.choice.additionalCustomValue',
+                    )}
                     onChange={(event) => setOtherValue(event.target.value)}
                 />
             ) : null}
@@ -1154,6 +1111,8 @@ function CheckboxGroupTreeNodes({
     onToggleExpand: (value: string) => void;
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <>
             {nodes.map((node) => {
@@ -1177,7 +1136,9 @@ function CheckboxGroupTreeNodes({
                                     className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
                                     aria-expanded={expanded}
                                     aria-label={
-                                        expanded ? 'Collapse' : 'Expand'
+                                        expanded
+                                            ? t('common.collapse')
+                                            : t('common.expand')
                                     }
                                     onClick={() => onToggleExpand(node.value)}
                                 >

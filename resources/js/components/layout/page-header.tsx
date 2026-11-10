@@ -1,12 +1,16 @@
 import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 
 /** Shared Tailwind classes for filter select elements in page headers. */
 export const filterSelectClassName =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 min-w-[8rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
+    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-control min-w-[8rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
 
 export type PageHeaderProps = {
     description?: ReactNode;
@@ -29,22 +33,26 @@ export function PageHeader({
     const showFilterRow = Boolean(filters || filtersRight);
 
     return (
-        <div className="flex shrink-0 flex-col gap-3">
+        <div data-slot="page-header" className="flex shrink-0 flex-col gap-3">
             {description ? (
                 <p className="max-w-2xl text-sm text-muted-foreground">
                     {description}
                 </p>
             ) : null}
             {subheader}
+            {/* -m-1 p-1: room for field focus halos inside the scrolling row. */}
             {showFilterRow ? (
-                <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto">
+                <div
+                    data-slot="page-header-filters"
+                    className="-m-1 flex min-w-0 flex-wrap items-center gap-3 p-1 sm:flex-nowrap sm:overflow-x-auto"
+                >
                     {filters ? (
-                        <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
+                        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:flex-1 sm:flex-nowrap">
                             {filters}
                         </div>
                     ) : null}
                     {filtersRight ? (
-                        <div className="flex shrink-0 flex-nowrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:flex-nowrap">
                             {filtersRight}
                         </div>
                     ) : null}
@@ -61,6 +69,8 @@ export type FilterSearchProps = {
     className?: string;
     id?: string;
     maxLength?: number;
+    /** `data-test` hook on the input for browser tests. */
+    dataTest?: string;
 };
 
 /**
@@ -75,23 +85,26 @@ export function FilterSearch({
     className,
     id,
     maxLength = STRING_LIMITS.SEARCH,
+    dataTest,
 }: FilterSearchProps) {
     return (
-        <div
+        <InputGroup
             className={cn(
-                'relative min-w-[8rem] flex-1 sm:max-w-xs',
+                'min-w-[8rem] flex-1 basis-full sm:max-w-xs sm:basis-auto dark:bg-transparent',
                 className,
             )}
         >
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <InputGroupInput
                 id={id}
+                data-test={dataTest}
                 value={value}
                 onChange={(changeEvent) => onChange(changeEvent.target.value)}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                className="h-9 pl-8"
             />
-        </div>
+            <InputGroupAddon>
+                <Search />
+            </InputGroupAddon>
+        </InputGroup>
     );
 }

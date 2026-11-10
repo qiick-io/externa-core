@@ -1,9 +1,8 @@
-import type Echo from 'laravel-echo';
+import type { EchoInstance } from '@/lib/echo';
 import {
     applyLockWhisper,
     buildLockClaim,
     isLockActive,
-    ITEM_LOCK_TTL_MS,
     lockHeldByOther,
 } from '@/lib/item-presence-lock';
 import type { ItemLockState } from '@/lib/item-presence-lock';
@@ -12,8 +11,6 @@ export type ItemPresenceUser = {
     id: number;
     name?: string;
 };
-
-type EchoInstance = Echo<'reverb'>;
 
 type PresenceChannel = {
     here: (cb: (users: ItemPresenceUser[]) => void) => PresenceChannel;
@@ -251,17 +248,3 @@ export function isRemoteUpdatedAtStale(
 
     return remoteMs > baseMs;
 }
-
-/** Test helper — reset module state between node:test cases. */
-export function resetItemPresenceForTests(): void {
-    stopHeartbeat();
-    channelRef = null;
-    editors = [];
-    remoteUpdatedAt = null;
-    lock = null;
-    viewerId = 0;
-    viewerName = '';
-    listeners.clear();
-}
-
-export { ITEM_LOCK_TTL_MS };

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Events\ChatThreadUpsertedEvent;
@@ -11,8 +12,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia;
@@ -92,6 +93,28 @@ test('create direct chat works with can-create-direct-chats', function () {
         ->getJson(route('chat.threads.index', ['tab' => 'collection']))
         ->assertOk()
         ->assertJsonCount(0, 'data');
+});
+
+test('the private tab lists several direct chats without lazy loading', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+    $third = User::factory()->create();
+
+    foreach ([$other, $third] as $peer) {
+        $this->actingAs($user)
+            ->postJson(route('chat.threads.store'), [
+                'kind' => Chat::KIND_DIRECT,
+                'user_ids' => [$peer->id],
+            ])
+            ->assertCreated();
+    }
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.collection_name', null);
 });
 
 test('create direct chat broadcasts ThreadUpserted to peer private channel', function () {
@@ -267,6 +290,33 @@ test('item chat uuid is 404 when the item is not readable', function () {
         ->assertNotFound();
 });
 
+test('the collection unread badge skips chats of collections the user cannot read', function () {
+    ['user' => $user, 'other' => $other, 'collection' => $collection, 'item' => $item] = hubKitchen();
+
+    $this->actingAs($other)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), ['body' => 'first'])
+        ->assertCreated();
+    $this->actingAs($user)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), ['body' => 'reply'])
+        ->assertCreated();
+
+    $this->actingAs($other)
+        ->getJson(route('chat.unread-count'))
+        ->assertJsonPath('unread_collection', 1);
+
+    // The other user's role now reads another collection only, so Kitchen Sink is hidden.
+    $otherRole = $other->roles()->firstOrFail();
+    grantRoleActions($otherRole, Collection::factory()->create(), [CollectionPermissionActionEnum::Read]);
+
+    $this->actingAs($other)
+        ->getJson(route('chat.unread-count'))
+        ->assertJsonPath('unread_collection', 0);
+    $this->actingAs($other)
+        ->getJson(route('chat.threads.index', ['tab' => 'collection']))
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+});
+
 test('collection tab lists readable item threads the viewer did not start', function () {
     ['user' => $user, 'other' => $other, 'collection' => $collection, 'item' => $item] = hubKitchen();
 
@@ -348,10 +398,10 @@ test('item picker groups readable items by collection', function () {
     ]);
     $otherItem = $other->items()->create([]);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, [
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, [
             'title' => 'Sink Widget',
         ], true),
     );

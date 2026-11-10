@@ -7,9 +7,9 @@ use App\Enums\RoleEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\Role;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\FileFieldExpander;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Api\FileFieldExpanderService;
 use App\Support\Api\ApiAccess;
 use App\Support\Collections\CollectionItemDataAccessor;
 use App\Support\Collections\CollectionLocaleResolver;
@@ -21,9 +21,9 @@ use Illuminate\Http\Request;
 class ItemRolePreviewService
 {
     public function __construct(
-        private CollectionPermissionGuard $guard,
-        private CollectionPermissionEnforcer $enforcer,
-        private FileFieldExpander $fileFieldExpander,
+        private CollectionPermissionGuardService $guard,
+        private CollectionPermissionEnforcerService $enforcer,
+        private FileFieldExpanderService $fileFieldExpander,
         private CollectionItemDataAccessor $dataAccessor,
         private CollectionLocaleResolver $localeResolver,
     ) {}

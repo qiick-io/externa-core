@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -19,7 +19,7 @@ use Laravel\Fortify\Features;
 class SecurityController extends Controller implements HasMiddleware
 {
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
+        private readonly ProjectSettingsService $projectSettings,
     ) {}
 
     /**
@@ -48,21 +48,21 @@ class SecurityController extends Controller implements HasMiddleware
         $user = $request->user();
         $canManageTwoFactor = Features::canManageTwoFactorAuthentication();
         $canManagePasskeys = Features::canManagePasskeys();
-        $twoFactorRequired = $this->projectSettings->twoFactorRequired();
+        $isTwoFactorRequired = $this->projectSettings->isTwoFactorRequired();
         $twoFactorEnabled = false;
         $hasPasskeys = false;
 
         $props = [
             'canManageTwoFactor' => $canManageTwoFactor,
             'canManagePasskeys' => $canManagePasskeys,
-            'twoFactorRequired' => $twoFactorRequired,
+            'isTwoFactorRequired' => $isTwoFactorRequired,
         ];
 
         if ($canManageTwoFactor) {
             // ponytail: do not call Fortify ensureStateIsValid() here.
             // It disables unfinished enrollment on any later security.edit in a
             // different Unix second (InteractsWithTwoFactorState), which races
-            // Inertia redirects/prefetch and EnsureTwoFactorIsEnabled while the
+            // Inertia redirects/prefetch and EnsureTwoFactorIsEnabledMiddleware while the
             // QR modal still shows the old secret — OTP then never verifies.
             // Abandoned secrets stay usable via Enable (no-op) + QR endpoints.
             $twoFactorEnabled = $user->hasEnabledTwoFactorAuthentication();
@@ -87,7 +87,7 @@ class SecurityController extends Controller implements HasMiddleware
 
         // Banner: project requires MFA and this user has neither TOTP nor a passkey.
         $props['twoFactorEnforcedForUser'] = $canManageTwoFactor
-            && $twoFactorRequired
+            && $isTwoFactorRequired
             && ! $twoFactorEnabled
             && ! ($canManagePasskeys && $hasPasskeys);
 

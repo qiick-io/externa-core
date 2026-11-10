@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BulkUserGroupActionRequest;
 use App\Http\Requests\Admin\StoreUserGroupRequest;
 use App\Http\Requests\Admin\UpdateUserGroupRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
@@ -25,6 +26,7 @@ use Inertia\Response;
 class UserGroupController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
     use ValidatesSearchQueryTrait;
 
     /**
@@ -72,7 +74,7 @@ class UserGroupController extends Controller
 
         $paginator = $query
             ->orderBy($sort, $direction)
-            ->paginate($request->integer('per_page', 15))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         if ($wantsJson) {
@@ -240,7 +242,7 @@ class UserGroupController extends Controller
 
         abort_if(
             ! $superAdminGuard->canManageSuperAdmins(auth()->user())
-                && $superAdminGuard->includesSuperAdminGroup([$group->id]),
+                && $superAdminGuard->hasSuperAdminGroup([$group->id]),
             403,
         );
     }

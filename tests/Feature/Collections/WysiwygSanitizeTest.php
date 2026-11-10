@@ -3,11 +3,11 @@
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\WysiwygHtmlSanitizer;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\WysiwygHtmlSanitizerService;
 
 test('wysiwyg sanitizer strips scripts and keeps safe tags', function () {
-    $sanitizer = app(WysiwygHtmlSanitizer::class);
+    $sanitizer = app(WysiwygHtmlSanitizerService::class);
 
     $clean = $sanitizer->sanitize(
         '<p>Hello <strong>world</strong></p><script>alert(1)</script><a href="javascript:alert(1)">x</a><a href="https://example.com">ok</a>',
@@ -32,7 +32,7 @@ test('normalizer sanitizes wysiwyg field values', function () {
         'type' => FieldTypeEnum::Wysiwyg,
     ]);
 
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, [
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($collection, [
         'body' => '<p>Safe</p><img src=x onerror=alert(1)><script>bad()</script>',
     ], true);
 

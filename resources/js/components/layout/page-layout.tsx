@@ -1,6 +1,24 @@
 import { router } from '@inertiajs/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/layout/page-header';
+import { Button } from '@/components/ui/button';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+} from '@/components/ui/pagination';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useScrollRegion } from '@/hooks/use-scroll-region';
+import { LIST_PER_PAGE_OPTIONS, listUrlWithPerPage } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 
 export type PageLayoutProps = {
@@ -67,7 +85,14 @@ export function PageLayout({
 }
 
 /**
- * Bordered card wrapper for data tables with optional sticky footer.
+ * Flat wrapper for data tables with optional sticky footer: no card surface,
+ * the table sits straight on the framed content panel (like the file grid),
+ * so lists don't read as a box inside a box. Spacing and row separators come
+ * from Table*.
+ * The panel is the scroll container: the Table wrapper's own overflow is
+ * released so the header row sticks to the top of the panel while rows scroll
+ * (the bottom rule is an inset shadow because collapsed borders scroll away).
+ *
  * @param {{ children: ReactNode, className?: string, footer?: ReactNode }} props - Panel props.
  * @param {ReactNode} props.children - Table or list content.
  * @param {string} [props.className] - Additional panel classes.
@@ -83,16 +108,24 @@ export function TablePanel({
     className?: string;
     footer?: ReactNode;
 }) {
+    const scrollRegionRef = useScrollRegion<HTMLDivElement>();
+
     return (
         <div
             className={cn(
-                'flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 bg-card dark:border-sidebar-border',
+                'flex min-h-0 flex-1 flex-col overflow-hidden',
                 className,
             )}
         >
-            <div className="min-h-0 flex-1 overflow-auto p-1">{children}</div>
+            <div
+                ref={scrollRegionRef}
+                data-slot="table-panel-scroll"
+                className="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-background [&_thead_th]:shadow-[inset_0_-1px_0_var(--color-border)] [&_thead_tr]:border-b-0"
+            >
+                {children}
+            </div>
             {footer ? (
-                <div className="flex shrink-0 justify-center border-t border-sidebar-border/70 px-4 py-3 dark:border-sidebar-border">
+                <div className="flex shrink-0 justify-center border-t px-2 pt-3">
                     {footer}
                 </div>
             ) : null}
@@ -107,28 +140,224 @@ export type TablePaginationLink = {
 };
 
 /**
- * Laravel-style pagination link row that visits URLs via Inertia.
+ * Strip Laravel pagination HTML labels to plain text for aria / layout checks.
+ */
+function paginationPlainLabel(label: string): string {
+    // Parse as HTML so tags/entities resolve safely — regex tag-stripping
+    // reintroduces nested sequences (CodeQL js/incomplete-multi-character-sanitization).
+    return (
+        new DOMParser()
+            .parseFromString(label, 'text/html')
+            .body.textContent?.replace(/\s+/g, ' ')
+            .trim() ?? ''
+    );
+}
+
+type PaginationLinkKind = 'page' | 'previous' | 'next' | 'ellipsis';
+
+/**
+ * Classifies a Laravel paginator link by its plain label: a page number, the
+ * previous / next arrows (English or translated "&laquo;" / "&raquo;" labels)
+ * or the "..." gap.
+ *
+ * @param {string} plain - Label from {@link paginationPlainLabel}
+ * @returns {PaginationLinkKind}
+ */
+function paginationLinkKind(plain: string): PaginationLinkKind {
+    if (/^\d+$/.test(plain)) {
+        return 'page';
+    }
+
+    if (/previous|«|‹/i.test(plain)) {
+        return 'previous';
+    }
+
+    if (/next|»|›/i.test(plain)) {
+        return 'next';
+    }
+
+    return 'ellipsis';
+}
+
+/**
+ * Laravel-style pagination link row on shadcn `Pagination` + `Button`, with
+ * Inertia visits. Query params are unchanged; controls stay `<button>` for
+ * browser tests. Labels and accessible names are translated (`common.*`).
+ *
  * @param {{ links: TablePaginationLink[] }} props - Component props.
  * @param {TablePaginationLink[]} props.links - Pagination links from the server.
  * @returns {JSX.Element | null}
  */
-export function TablePagination({ links }: { links: TablePaginationLink[] }) {
+export function TablePagination({
+    links,
+    className,
+}: {
+    links: TablePaginationLink[];
+    className?: string;
+}) {
+    const { t } = useTranslation();
+
     if (links.length === 0) {
         return null;
     }
 
     return (
-        <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
-            {links.map((link, index) => (
-                <button
-                    key={index}
-                    type="button"
-                    className={link.active ? 'font-semibold underline' : ''}
-                    disabled={!link.url}
-                    onClick={() => link.url && router.visit(link.url)}
-                    dangerouslySetInnerHTML={{ __html: link.label }}
+        <Pagination className={className}>
+            <PaginationContent>
+                {links.map((link, index) => {
+                    const plain = paginationPlainLabel(link.label);
+                    const kind = paginationLinkKind(plain);
+
+                    if (kind === 'ellipsis') {
+                        return (
+                            <PaginationItem key={index}>
+                                <PaginationEllipsis />
+                            </PaginationItem>
+                        );
+                    }
+
+                    const ariaLabel =
+                        kind === 'page'
+                            ? t('pagination.goToPage', { page: plain })
+                            : kind === 'previous'
+                              ? t('pagination.goToPreviousPage')
+                              : t('pagination.goToNextPage');
+
+                    return (
+                        <PaginationItem key={index}>
+                            <Button
+                                type="button"
+                                variant={link.active ? 'outline' : 'ghost'}
+                                size={kind === 'page' ? 'icon' : 'default'}
+                                className={cn(
+                                    kind === 'previous' && 'gap-1 px-2.5',
+                                    kind === 'next' && 'gap-1 px-2.5',
+                                )}
+                                disabled={!link.url}
+                                aria-label={ariaLabel}
+                                aria-current={link.active ? 'page' : undefined}
+                                onClick={() =>
+                                    link.url && router.visit(link.url)
+                                }
+                            >
+                                {kind === 'previous' ? <ChevronLeft /> : null}
+                                {kind === 'page' ? (
+                                    plain
+                                ) : (
+                                    <span className="hidden sm:block">
+                                        {kind === 'previous'
+                                            ? t('pagination.previous')
+                                            : t('pagination.next')}
+                                    </span>
+                                )}
+                                {kind === 'next' ? <ChevronRight /> : null}
+                            </Button>
+                        </PaginationItem>
+                    );
+                })}
+            </PaginationContent>
+        </Pagination>
+    );
+}
+
+/** Paginator slice the list footer needs (flat `Paginated` shape). */
+export type TablePaginationState = {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    links?: TablePaginationLink[];
+};
+
+/**
+ * Whether a list needs its pagination footer: more than one page, or enough
+ * rows that a smaller / larger "Rows per page" choice changes what is shown.
+ *
+ * @param pagination - Current paginator state
+ * @returns `true` when {@link TablePaginationFooter} has something to render
+ */
+export function hasTablePaginationFooter(
+    pagination: TablePaginationState,
+): boolean {
+    return (
+        pagination.last_page > 1 || pagination.total > LIST_PER_PAGE_OPTIONS[0]
+    );
+}
+
+/**
+ * Admin list footer in three areas: the row range ("1–20 of 312") on the
+ * left, the page links centred, and the shared rows-per-page select ("20 /
+ * page"; 10 / 20 / 50 / 100, URL `per_page`, resets to page 1 and keeps every
+ * other query param) on the right. Default-size (32px) shadcn Select per the control scale.
+ *
+ * @param props.pagination - Current paginator state
+ * @returns {JSX.Element}
+ */
+export function TablePaginationFooter({
+    pagination,
+}: {
+    pagination: TablePaginationState;
+}) {
+    const { t } = useTranslation();
+    const firstRow = Math.min(
+        (pagination.current_page - 1) * pagination.per_page + 1,
+        pagination.total,
+    );
+    const lastRow = Math.min(
+        pagination.current_page * pagination.per_page,
+        pagination.total,
+    );
+
+    return (
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3 sm:grid sm:grid-cols-[1fr_auto_1fr]">
+            <p
+                className="text-sm whitespace-nowrap text-muted-foreground tabular-nums"
+                data-test="pagination-range"
+            >
+                {t('common.pageRange', {
+                    from: firstRow,
+                    to: lastRow,
+                    total: pagination.total,
+                })}
+            </p>
+            {pagination.last_page > 1 ? (
+                <TablePagination
+                    links={pagination.links ?? []}
+                    className="mx-0 w-auto sm:col-start-2"
                 />
-            ))}
+            ) : null}
+            <div className="sm:col-start-3 sm:justify-self-end">
+                <Select
+                    value={String(pagination.per_page)}
+                    onValueChange={(value) =>
+                        router.get(
+                            listUrlWithPerPage(
+                                window.location.href,
+                                Number(value),
+                            ),
+                            {},
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    <SelectTrigger
+                        aria-label={t('common.rowsPerPage')}
+                        className="w-auto"
+                        data-test="rows-per-page"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {LIST_PER_PAGE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={String(option)}>
+                                {t('common.perPageOption', {
+                                    count: option,
+                                })}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
     );
 }

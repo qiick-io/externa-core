@@ -1,4 +1,3 @@
-import { Transition } from '@headlessui/react';
 import { Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -25,18 +24,20 @@ export function SettingsFormActions({
 
     return (
         <div className="sticky bottom-0 z-10 -mx-1 border-t border-border/80 bg-background/90 px-1 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md supports-backdrop-filter:bg-background/75">
-            <div className="flex w-full items-center justify-end gap-4">
-                <Transition
-                    show={recentlySuccessful}
-                    enter="transition ease-in-out"
-                    enterFrom="opacity-0"
-                    leave="transition ease-in-out"
-                    leaveTo="opacity-0"
-                >
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <div
+                className="flex w-full flex-wrap items-center justify-end gap-4"
+                role="status"
+                aria-live="polite"
+                aria-busy={processing || undefined}
+            >
+                {recentlySuccessful ? (
+                    <p className="animate-in text-sm text-muted-foreground duration-200 ease-in-out fade-in">
                         {t('common.saved')}
                     </p>
-                </Transition>
+                ) : null}
+                {processing ? (
+                    <span className="sr-only">{t('a11y.saving')}</span>
+                ) : null}
                 <UnsavedChangesToolbar
                     isDirty={isDirty}
                     className="flex items-center gap-2"
@@ -45,8 +46,9 @@ export function SettingsFormActions({
                     type="submit"
                     disabled={processing}
                     data-test={dataTest}
+                    aria-busy={processing || undefined}
                 >
-                    <Save className="size-4" />
+                    <Save className="size-4" aria-hidden="true" />
                     {t('common.save')}
                 </Button>
             </div>

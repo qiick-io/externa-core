@@ -4,6 +4,7 @@ namespace App\Ai\Concerns;
 
 use App\Ai\Support\AiActivityLogger;
 use App\Models\User;
+use App\Services\Ai\AiToolArgumentRedactorService;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 use Throwable;
@@ -38,6 +39,11 @@ trait LogsAiToolUseTrait
                     $resultText,
                     $conversationId,
                     failed: str_starts_with($resultText, 'Error:'),
+                    extra: [
+                        'surface' => 'chat',
+                        'decision' => 'executed',
+                        'status' => str_starts_with($resultText, 'Error:') ? 'failed' : 'ok',
+                    ],
                 );
             }
 
@@ -53,6 +59,11 @@ trait LogsAiToolUseTrait
                     $message,
                     $conversationId,
                     failed: true,
+                    extra: [
+                        'surface' => 'chat',
+                        'decision' => 'failed',
+                        'status' => 'failed',
+                    ],
                 );
             }
 
@@ -104,39 +115,6 @@ trait LogsAiToolUseTrait
      */
     protected function redactSensitiveToolInput(array $input): array
     {
-        $sensitiveKeys = [
-            'auth_bearer',
-            'auth_header',
-            'authorization',
-            'bearer',
-            'password',
-            'token',
-            'api_key',
-            'apikey',
-            'email',
-            'phone',
-            'telephone',
-            'ssn',
-            'social_security_number',
-            'credit_card',
-            'card_number',
-            'cvv',
-        ];
-
-        foreach ($input as $key => $value) {
-            if (! is_string($key)) {
-                continue;
-            }
-
-            if (! in_array(strtolower($key), $sensitiveKeys, true)) {
-                continue;
-            }
-
-            if (is_string($value) && $value !== '') {
-                $input[$key] = '[redacted]';
-            }
-        }
-
-        return $input;
+        return app(AiToolArgumentRedactorService::class)->redact($input);
     }
 }

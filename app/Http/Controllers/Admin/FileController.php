@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Ai\Support\SafeRemoteFetcher;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateFileMetadataRequest;
 use App\Http\Resources\Admin\FileResource;
 use App\Jobs\DuplicateFilesJob;
+use App\Jobs\EmptyFilesTrashJob;
 use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
-use App\Services\Files\FileWhereUsedScanner;
+use App\Services\Files\FileWhereUsedScannerService;
 use App\Services\FileService;
 use App\Services\FileTransformService;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use App\Support\Files\FilesDisk;
 use App\Support\Uploads\UploadSizeLimiter;
 use App\Support\Validation\SearchQueryRules;
@@ -24,7 +26,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -41,6 +42,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class FileController extends Controller
 {
     /**
+     * Files per grid page: divisible by 2, 3, 4, 6 and 8, so every responsive
+     * column count ends on a full row.
+     */
+    private const PAGE_SIZE = 48;
+
+    /**
      * @var list<string>
      */
     private const SORTABLE_COLUMNS = ['name', 'size', 'created_at', 'updated_at'];
@@ -48,7 +55,7 @@ class FileController extends Controller
     public function __construct(
         protected FileService $fileService,
         protected FileTransformService $fileTransformService,
-        protected FileWhereUsedScanner $fileWhereUsedScanner,
+        protected FileWhereUsedScannerService $fileWhereUsedScanner,
     ) {}
 
     /**
@@ -112,7 +119,7 @@ class FileController extends Controller
             $sort,
             $direction,
         )
-            ->paginate(50, ['*'], 'page', 1)
+            ->paginate(self::PAGE_SIZE, ['*'], 'page', 1)
             ->withQueryString();
 
         $breadcrumbs = [];
@@ -209,7 +216,7 @@ class FileController extends Controller
             $tagNames,
             $validated['sort'] ?? 'name',
             $validated['direction'] ?? 'asc',
-        )->paginate(50);
+        )->paginate(self::PAGE_SIZE);
 
         return response()->json([
             'data' => FileResource::collection($paginator->items())->resolve(),
@@ -276,7 +283,7 @@ class FileController extends Controller
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
         $size = (int) $uploaded->getSize();
-        $maxBytes = app(ProjectSettings::class)->filesMaxUploadBytes();
+        $maxBytes = app(ProjectSettingsService::class)->filesMaxUploadBytes();
         UploadSizeLimiter::assertWithinCap($maxBytes, $size);
         UploadSizeLimiter::assertFitsPhpSingleUpload($size);
 
@@ -314,44 +321,33 @@ class FileController extends Controller
         $maxBytes = 25 * 1024 * 1024;
 
         try {
-            $response = Http::timeout(30)
-                ->connectTimeout(10)
-                ->withOptions([
-                    // ponytail: no redirects — avoids SSRF via Location to private IPs; upgrade: re-validate each hop
-                    'allow_redirects' => false,
-                    'http_errors' => false,
-                ])
-                ->withHeaders(['Accept' => '*/*'])
-                ->get($url);
+            $fetched = SafeRemoteFetcher::get(
+                $url,
+                $maxBytes,
+                headers: ['Accept' => '*/*'],
+                timeoutSeconds: 30,
+            );
         } catch (\Throwable $exception) {
             throw ValidationException::withMessages([
-                'url' => ['Failed to download URL: '.$exception->getMessage()],
+                'url' => [__('Failed to download URL.')],
             ]);
         }
 
-        if ($response->status() >= 400) {
+        if ($fetched['status'] >= 400) {
             throw ValidationException::withMessages([
-                'url' => ['Remote server returned HTTP '.$response->status()],
+                'url' => [__('Remote download failed.')],
             ]);
         }
 
-        $contentLength = $response->header('Content-Length');
-
-        if (is_numeric($contentLength) && (int) $contentLength > $maxBytes) {
-            throw ValidationException::withMessages([
-                'url' => ['Remote file is too large (max 25 MB).'],
-            ]);
-        }
-
-        $body = $response->body();
+        $body = $fetched['body'];
 
         if ($body === '' || strlen($body) > $maxBytes) {
             throw ValidationException::withMessages([
-                'url' => [$body === '' ? 'Remote file is empty.' : 'Remote file is too large (max 25 MB).'],
+                'url' => [$body === '' ? __('Remote file is empty.') : __('Remote file is too large (max 25 MB).')],
             ]);
         }
 
-        $mime = $response->header('Content-Type') ?: 'application/octet-stream';
+        $mime = $fetched['content_type'] ?: 'application/octet-stream';
         $mime = strtolower(trim(explode(';', $mime)[0]));
 
         $pathName = parse_url($url, PHP_URL_PATH);
@@ -379,7 +375,7 @@ class FileController extends Controller
 
         if ($tmpPath === false) {
             throw ValidationException::withMessages([
-                'url' => ['Could not create a temporary file.'],
+                'url' => [__('Could not create a temporary file.')],
             ]);
         }
 
@@ -431,7 +427,7 @@ class FileController extends Controller
     {
         if (! $file->isFile()) {
             throw ValidationException::withMessages([
-                'file' => ['Only files can be replaced.'],
+                'file' => [__('Only files can be replaced.')],
             ]);
         }
 
@@ -532,7 +528,7 @@ class FileController extends Controller
     public function thumbnail(Request $request, File $file): StreamedResponse|Response
     {
         if (! $this->fileTransformService->isImage($file)) {
-            abort(422, 'Thumbnails are only available for image files.');
+            abort(422, __('Thumbnails are only available for image files.'));
         }
 
         $validated = $request->validate([
@@ -736,6 +732,22 @@ class FileController extends Controller
     }
 
     /**
+     * Queue a background job that permanently deletes everything in the trash.
+     * The requester gets a database notification when it finishes.
+     */
+    public function emptyTrash(Request $request): JsonResponse
+    {
+        $jobUuid = (string) Str::uuid();
+
+        EmptyFilesTrashJob::dispatch($request->user()->id, $jobUuid);
+
+        return response()->json([
+            'queued' => true,
+            'job_id' => $jobUuid,
+        ], 202);
+    }
+
+    /**
      * Attach a file to a polymorphic model with optional role and order.
      */
     public function attach(Request $request, File $file): Response
@@ -794,7 +806,7 @@ class FileController extends Controller
         ]);
 
         UploadSizeLimiter::assertWithinCap(
-            app(ProjectSettings::class)->filesMaxUploadBytes(),
+            app(ProjectSettingsService::class)->filesMaxUploadBytes(),
             (int) $validated['total_size'],
             'total_size',
         );
@@ -990,7 +1002,7 @@ class FileController extends Controller
         if ($expectedExtension !== null) {
             if ($uploadedExtension !== $expectedExtension) {
                 throw ValidationException::withMessages([
-                    'file' => ["Replacement must use the .{$expectedExtension} extension."],
+                    'file' => [__('Replacement must use the .:extension extension.', ['extension' => $expectedExtension])],
                 ]);
             }
 
@@ -1009,7 +1021,7 @@ class FileController extends Controller
 
         if ($expectedFamily !== '' && $expectedFamily !== $uploadedFamily) {
             throw ValidationException::withMessages([
-                'file' => ["Replacement must be a {$expectedFamily} file."],
+                'file' => [__('Replacement must be a :family file.', ['family' => $expectedFamily])],
             ]);
         }
     }

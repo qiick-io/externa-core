@@ -4,7 +4,7 @@ namespace App\Support\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use Illuminate\Support\Str;
 
 class BlocksFieldSchema
@@ -159,7 +159,7 @@ class BlocksFieldSchema
                     || $rawTranslatable === 1
                     || $rawTranslatable === '1'
                     || $rawTranslatable === 'true';
-                if ($fieldType !== null && ! $fieldType->supportsTranslatable()) {
+                if ($fieldType !== null && ! $fieldType->isTranslatableSupported()) {
                     $translatable = false;
                 }
 
@@ -204,7 +204,7 @@ class BlocksFieldSchema
             return $settings;
         }
 
-        $normalized = app(FieldConditionEvaluator::class)->normalizeSettings(
+        $normalized = app(FieldConditionEvaluatorService::class)->normalizeSettings(
             is_array($settings['conditions']) ? $settings['conditions'] : null,
         );
 

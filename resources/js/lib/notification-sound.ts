@@ -25,7 +25,7 @@ export function getNotificationSoundPrefs(): NotificationSoundPrefs {
     return { ...prefs };
 }
 
-export function isVisibleTab(): boolean {
+function isVisibleTab(): boolean {
     const win = browserWindow();
 
     if (!win) {
@@ -33,10 +33,6 @@ export function isVisibleTab(): boolean {
     }
 
     return win.document.visibilityState === 'visible';
-}
-
-export function isNotificationSoundUnlocked(): boolean {
-    return unlocked;
 }
 
 function ensureAudioContext(): AudioContext | null {

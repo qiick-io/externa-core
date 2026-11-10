@@ -9,7 +9,7 @@ use App\Models\ChatRead;
 use App\Models\CollectionItemChatMessage;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +26,7 @@ class ChatUnreadService
     private const VIEWING_TTL_SECONDS = 120;
 
     public function __construct(
-        private SettingsRepository $settings,
+        private SettingsRepositoryService $settings,
         private ChatService $chats,
     ) {}
 
@@ -293,7 +293,7 @@ class ChatUnreadService
     public function subscribedCollectionIds(User $user): array
     {
         $value = $this->settings->get(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             self::NOTIFY_GROUP,
             self::NOTIFY_KEY,
             $user->id,
@@ -356,13 +356,21 @@ class ChatUnreadService
     }
 
     /**
-     * Unread item-chat messages: mention, collection notify, or already posted in the thread.
+     * Unread item-chat messages: mention, collection notify, or already posted in the thread,
+     * only in collections the user can read (the hub list's collection scope), so the badge
+     * never counts a chat the list cannot show.
+     *
+     * ponytail: item-level read rules are checked in PHP by the list
+     * (`ChatService::filterReadableItemChats()`), not here; a user restricted on single items
+     * of a readable collection may still count those items' messages. Move that rule to SQL
+     * if it shows up.
      *
      * @return Builder<CollectionItemChatMessage>
      */
     private function collectionUnreadQuery(User $user): Builder
     {
         $notifyIds = $this->subscribedCollectionIds($user);
+        $scope = $this->chats->readableCollectionScope($user);
 
         return CollectionItemChatMessage::query()
             ->join('chats', 'chats.id', '=', 'chat_messages.chat_id')
@@ -372,6 +380,7 @@ class ChatUnreadService
             })
             ->where('chats.kind', Chat::KIND_ITEM)
             ->whereNull('chats.deleted_at')
+            ->when(! $scope['unrestricted'], fn (Builder $query) => $query->whereIn('chats.collection_id', $scope['ids']))
             ->where('chat_messages.user_id', '!=', $user->id)
             ->where($this->afterLastRead())
             ->where(function ($query) use ($user, $notifyIds): void {
@@ -431,7 +440,7 @@ class ChatUnreadService
     {
         $ids = [];
         $rows = Setting::query()
-            ->where('scope', SettingsRepository::SCOPE_USER)
+            ->where('scope', SettingsRepositoryService::SCOPE_USER)
             ->where('group', self::NOTIFY_GROUP)
             ->where('key', self::NOTIFY_KEY)
             ->whereNotNull('scope_id')

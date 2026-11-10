@@ -2,6 +2,7 @@ import { Asterisk, ChevronDown } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
@@ -45,14 +46,22 @@ import {
 import { LocalizedField } from '@/components/collections/localized-field';
 import { MapCoordinateInput } from '@/components/collections/map-coordinate-input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
@@ -92,21 +101,9 @@ import {
 } from '@/lib/item-field-raw-value';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import type { CollectionFieldRow } from '@/types';
+import type { CollectionFieldRow, FieldDef } from '@/types';
 
 const ITEM_FORM_ID = 'collection-item-form';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    sort_order?: number;
-    settings?: Record<string, unknown> | null;
-};
 
 type DefaultValue =
     | string
@@ -133,6 +130,8 @@ type FieldRenderContext = {
     maxBlocksDepth?: number;
     /** Whether this field has a validation error */
     hasError?: boolean;
+    /** DOM id of the linked FieldError for aria-describedby */
+    errorId?: string;
     markdownMode?: 'edit' | 'preview';
     onMarkdownModeChange?: (mode: 'edit' | 'preview') => void;
     showMarkdownModeToggle?: boolean;
@@ -266,11 +265,13 @@ function renderFieldControl(context: FieldRenderContext) {
         nestingDepth,
         maxBlocksDepth,
         hasError,
+        errorId,
         markdownMode,
         onMarkdownModeChange,
         showMarkdownModeToggle,
         onValueChange,
     } = context;
+    const errorDescribedBy = hasError && errorId ? errorId : undefined;
     const options = parseFieldOptions(field.settings).filter(
         (option) => option.value.trim() !== '',
     );
@@ -305,6 +306,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     placeholder={placeholder}
                     readOnly={readonly}
                     aria-invalid={hasError}
+                    aria-describedby={errorDescribedBy}
                 />
             );
         case 'slider':
@@ -318,17 +320,14 @@ function renderFieldControl(context: FieldRenderContext) {
             );
         case 'textarea':
             return (
-                <textarea
+                <Textarea
                     id={id}
                     name={name}
-                    className={cn(
-                        inputLike,
-                        'min-h-[120px] py-2',
-                        hasError &&
-                            'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
-                    )}
+                    // field-sizing-content grows with the text; `rows` sets the starting height.
+                    style={{
+                        minHeight: `calc(${textareaSettings.rows}lh + 1rem)`,
+                    }}
                     defaultValue={String(defaultValue ?? '')}
-                    rows={textareaSettings.rows}
                     placeholder={resolveTranslatedText(
                         textareaSettings.placeholder,
                         locales,
@@ -336,6 +335,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     )}
                     readOnly={readonly}
                     aria-invalid={hasError}
+                    aria-describedby={errorDescribedBy}
                 />
             );
         case 'wysiwyg':
@@ -537,6 +537,7 @@ function renderFieldControl(context: FieldRenderContext) {
                         maxLength={stringSettings.maxLength ?? undefined}
                         readOnly={readonly}
                         aria-invalid={hasError}
+                        aria-describedby={errorDescribedBy}
                     />
                 </InputWithIcons>
             );
@@ -645,23 +646,34 @@ function renderFieldControl(context: FieldRenderContext) {
                     placeholder={placeholder}
                     readOnly={readonly}
                     aria-invalid={hasError}
+                    aria-describedby={errorDescribedBy}
                 />
             );
     }
 }
 
 /**
- * Subtle amber asterisk for fields that differ in revision compare.
+ * Subtle warning-coloured asterisk for fields that differ in revision compare.
  */
 function DiffChangedMarker() {
+    const { t } = useTranslation();
+
     return (
-        <span
-            className="ml-1 inline-flex text-amber-500"
-            title="Changed"
-            aria-label="Changed"
-        >
-            <Asterisk className="size-3.5" strokeWidth={2.5} aria-hidden />
-        </span>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span
+                    className="ml-1 inline-flex text-warning-text"
+                    aria-label={t('a11y.changed')}
+                >
+                    <Asterisk
+                        className="size-3.5"
+                        strokeWidth={2.5}
+                        aria-hidden
+                    />
+                </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('a11y.changed')}</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -715,7 +727,7 @@ function TranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? <span className="text-destructive"> *</span> : null}
+            {required ? <RequiredMarker /> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -857,6 +869,7 @@ function TranslatableItemField({
                     relatedCollections,
                     defaultValue: getDefaultLocale(defaults, field.name, code),
                     hasError: !!errorMessage && code === fieldLocale,
+                    errorId: `data_${field.name}-error`,
                     markdownMode,
                     onMarkdownModeChange: setMarkdownMode,
                     showMarkdownModeToggle: false,
@@ -895,6 +908,7 @@ function TranslatableItemField({
             onTranslateFromLocale={translateFromLocale}
             aiTranslating={aiTranslating}
             errorMessage={errorMessage}
+            errorId={`data_${field.name}-error`}
             namePrefix={`data[${field.name}]`}
             locale={fieldLocale}
             onLocaleChange={setFieldLocale}
@@ -988,7 +1002,7 @@ function NonTranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? <span className="text-destructive"> *</span> : null}
+            {required ? <RequiredMarker /> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -1010,9 +1024,10 @@ function NonTranslatableItemField({
     };
 
     return (
-        <div
+        <Field
             key={remountKey}
-            className="space-y-2"
+            className="gap-2"
+            data-invalid={errorMessage ? true : undefined}
             onChange={(event) => {
                 onMarkDirty();
                 const target = event.target as
@@ -1030,13 +1045,13 @@ function NonTranslatableItemField({
             }}
             onInput={onMarkDirty}
         >
-            {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without actions */}
-            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+            {/* min-h-control matches the default Button/ToggleGroup so half-width siblings align with/without actions */}
+            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
                     {labelText ? (
-                        <Label htmlFor={`data_${field.name}`}>
+                        <FieldLabel htmlFor={`data_${field.name}`}>
                             {labelText}
-                        </Label>
+                        </FieldLabel>
                     ) : null}
                     {showFieldNameHeading ? (
                         <ItemFieldLabelMenu
@@ -1071,6 +1086,7 @@ function NonTranslatableItemField({
                 relatedCollections,
                 defaultValue: getDefaultScalar(defaults, field.name),
                 hasError: !!errorMessage,
+                errorId: `data_${field.name}-error`,
                 markdownMode,
                 onMarkdownModeChange: setMarkdownMode,
                 showMarkdownModeToggle: false,
@@ -1078,10 +1094,10 @@ function NonTranslatableItemField({
             })}
             {/* Always reserve note line below control so half-width siblings stay aligned */}
             <FieldNoteSlot note={note} />
-            {errorMessage ? (
-                <p className="text-sm text-destructive">{errorMessage}</p>
-            ) : null}
-        </div>
+            <FieldError id={`data_${field.name}-error`}>
+                {errorMessage}
+            </FieldError>
+        </Field>
     );
 }
 
@@ -1137,6 +1153,7 @@ export function DynamicItemFields({
     selectDiffFields?: ReadonlySet<string> | null;
     onToggleDiffField?: (fieldName: string) => void;
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
     const requestLeave = useRequestLeave();
@@ -1258,8 +1275,7 @@ export function DynamicItemFields({
         for (const [fieldName, value] of Object.entries(revisionApply.values)) {
             applyFieldValue(fieldName, value);
         }
-        // nonce is the apply trigger; applyFieldValue is intentionally unstable
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the nonce is the apply trigger; applyFieldValue is intentionally unstable
     }, [revisionApply?.nonce]);
 
     const undoFieldValue = (fieldName: string): void => {
@@ -1386,18 +1402,22 @@ export function DynamicItemFields({
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-medium">
                                 {displayName}
-                                {flags.required ? (
-                                    <span className="text-destructive"> *</span>
-                                ) : null}
+                                {flags.required ? <RequiredMarker /> : null}
                             </span>
                             {field.translatable && (
-                                <Badge variant="secondary">Translatable</Badge>
+                                <Badge variant="secondary">
+                                    {t('collections.translatable')}
+                                </Badge>
                             )}
                             {readonly && (
                                 <Badge variant="secondary">
                                     {aclReadonly && !flags.readonly
-                                        ? 'No write access'
-                                        : 'Readonly'}
+                                        ? t(
+                                              'collections.items.fields.noWriteAccess',
+                                          )
+                                        : t(
+                                              'collections.items.fields.readonly',
+                                          )}
                                 </Badge>
                             )}
                         </div>
@@ -1413,14 +1433,14 @@ export function DynamicItemFields({
                 <div data-diff={isHighlighted ? '1' : undefined}>
                     {canSelectDiff ? (
                         <label className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                            <input
-                                type="checkbox"
-                                className="size-3.5 rounded border"
+                            <Checkbox
                                 checked={selectDiffFields.has(field.name)}
-                                onChange={() => onToggleDiffField(field.name)}
+                                onCheckedChange={() =>
+                                    onToggleDiffField(field.name)
+                                }
                                 data-test={`diff-select-${field.name}`}
                             />
-                            Include in Apply
+                            {t('collections.items.fields.includeInApply')}
                         </label>
                     ) : null}
                     {inner}
@@ -1459,138 +1479,137 @@ export function DynamicItemFields({
         );
     };
 
-    const visibleGroups =
-        tabs.length === 0
-            ? groups
-            : groups.filter((group) => {
-                  const tabId = group.section?.tab_id ?? null;
+    const renderLegacyGroup = (
+        group: (typeof groups)[number],
+        index: number,
+    ): ReactNode => {
+        const section = group.section;
 
-                  if (activeTabId === null) {
-                      return true;
-                  }
+        if (!section || (section.id === 'unsectioned' && !layout)) {
+            return (
+                <Fragment key={`flat-${index}`}>
+                    {renderFieldGrid(group.fields)}
+                </Fragment>
+            );
+        }
 
-                  return tabId === activeTabId || tabId === null;
-              });
+        const title = resolveFormLayoutLabel(section.label, locales, 'Section');
+
+        if (!section.collapsible) {
+            return (
+                <section key={section.id} className="space-y-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground">
+                        {title}
+                    </h3>
+                    {renderFieldGrid(group.fields)}
+                </section>
+            );
+        }
+
+        return (
+            <Collapsible
+                key={section.id}
+                defaultOpen={!section.collapsed}
+                className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
+            >
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-semibold text-muted-foreground">
+                    {title}
+                    <ChevronDown className="size-4" />
+                </CollapsibleTrigger>
+                {/* forceMount: collapsed fields stay in the form and are saved. */}
+                <CollapsibleContent
+                    forceMount
+                    className="data-[state=closed]:hidden"
+                >
+                    {renderFieldGrid(group.fields)}
+                </CollapsibleContent>
+            </Collapsible>
+        );
+    };
 
     return (
         <ContentLocaleProvider locales={locales} defaultLocale={defaultLocale}>
             <div className="space-y-4">
-                {tabs.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 border-b pb-2">
-                        {tabs.map((tab) => {
-                            const label = resolveFormLayoutLabel(
-                                tab.label,
-                                locales,
-                                tab.id,
+                {fieldTree !== null ? (
+                    renderGroupFieldTree({
+                        tree: fieldTree,
+                        locales,
+                        renderField: renderOneField,
+                        renderFields: renderFieldGrid,
+                        checkHidden: (field) => {
+                            const flags = evaluateFieldFlags(
+                                field.settings,
+                                formValues,
                             );
-                            const isActive = activeTabId === tab.id;
+
+                            return flags.hidden;
+                        },
+                        renderGroupMenu: (field) => {
+                            if (forceReadonly || !canEditFieldSchema) {
+                                return null;
+                            }
 
                             return (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    className={cn(
-                                        'rounded-md px-3 py-1.5 text-sm',
-                                        isActive
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted text-muted-foreground',
-                                    )}
-                                    onClick={() => setActiveTabId(tab.id)}
-                                >
-                                    {label}
-                                </button>
+                                <ItemFieldLabelMenu
+                                    schemaOnly
+                                    canEditFieldSchema
+                                    menuAlign={
+                                        field.type === 'group_tabs'
+                                            ? 'end'
+                                            : 'start'
+                                    }
+                                    onEditField={() =>
+                                        setEditField(
+                                            field as CollectionFieldRow,
+                                        )
+                                    }
+                                />
                             );
-                        })}
-                    </div>
-                ) : null}
-
-                {fieldTree !== null
-                    ? renderGroupFieldTree({
-                          tree: fieldTree,
-                          locales,
-                          renderField: renderOneField,
-                          renderFields: renderFieldGrid,
-                          checkHidden: (field) => {
-                              const flags = evaluateFieldFlags(
-                                  field.settings,
-                                  formValues,
-                              );
-
-                              return flags.hidden;
-                          },
-                          renderGroupMenu: (field) => {
-                              if (forceReadonly || !canEditFieldSchema) {
-                                  return null;
-                              }
-
-                              return (
-                                  <ItemFieldLabelMenu
-                                      schemaOnly
-                                      canEditFieldSchema
-                                      menuAlign={
-                                          field.type === 'group_tabs'
-                                              ? 'end'
-                                              : 'start'
-                                      }
-                                      onEditField={() =>
-                                          setEditField(
-                                              field as CollectionFieldRow,
-                                          )
-                                      }
-                                  />
-                              );
-                          },
-                      })
-                    : visibleGroups.map((group, index) => {
-                          const section = group.section;
-
-                          if (
-                              !section ||
-                              (section.id === 'unsectioned' && !layout)
-                          ) {
-                              return (
-                                  <Fragment key={`flat-${index}`}>
-                                      {renderFieldGrid(group.fields)}
-                                  </Fragment>
-                              );
-                          }
-
-                          const title = resolveFormLayoutLabel(
-                              section.label,
-                              locales,
-                              'Section',
-                          );
-
-                          if (!section.collapsible) {
-                              return (
-                                  <section
-                                      key={section.id}
-                                      className="space-y-3"
-                                  >
-                                      <h3 className="text-sm font-medium">
-                                          {title}
-                                      </h3>
-                                      {renderFieldGrid(group.fields)}
-                                  </section>
-                              );
-                          }
-
-                          return (
-                              <Collapsible
-                                  key={section.id}
-                                  defaultOpen={!section.collapsed}
-                                  className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
-                              >
-                                  <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
-                                      {title}
-                                      <ChevronDown className="size-4" />
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent>
-                                      {renderFieldGrid(group.fields)}
-                                  </CollapsibleContent>
-                              </Collapsible>
-                          );
-                      })}
+                        },
+                    })
+                ) : tabs.length === 0 ? (
+                    groups.map(renderLegacyGroup)
+                ) : (
+                    <Tabs
+                        value={activeTabId ?? tabs[0].id}
+                        onValueChange={setActiveTabId}
+                        className="gap-4"
+                    >
+                        <TabsList variant="line">
+                            {tabs.map((tab) => (
+                                <TabsTrigger key={tab.id} value={tab.id}>
+                                    {resolveFormLayoutLabel(
+                                        tab.label,
+                                        locales,
+                                        tab.id,
+                                    )}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        {groups
+                            .filter(
+                                (group) =>
+                                    (group.section?.tab_id ?? null) === null,
+                            )
+                            .map(renderLegacyGroup)}
+                        {/* forceMount: off-tab fields stay in the form, so edits survive a tab switch and are saved. */}
+                        {tabs.map((tab) => (
+                            <TabsContent
+                                key={tab.id}
+                                value={tab.id}
+                                forceMount
+                                className="space-y-4 data-[state=inactive]:hidden"
+                            >
+                                {groups
+                                    .filter(
+                                        (group) =>
+                                            group.section?.tab_id === tab.id,
+                                    )
+                                    .map(renderLegacyGroup)}
+                            </TabsContent>
+                        ))}
+                    </Tabs>
+                )}
             </div>
 
             <Drawer

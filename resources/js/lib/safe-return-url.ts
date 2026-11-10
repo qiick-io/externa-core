@@ -2,9 +2,7 @@
  * Validate a `return` query value for same-origin admin list restore.
  * Only relative `/collections/...` paths (plus query) are accepted.
  */
-export function safeReturnUrl(
-    candidate: string | null | undefined,
-): string | null {
+function safeReturnUrl(candidate: string | null | undefined): string | null {
     if (!candidate || typeof candidate !== 'string') {
         return null;
     }

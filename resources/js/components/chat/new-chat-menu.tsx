@@ -3,10 +3,17 @@ import { Database, Plus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatUsersDrawer } from '@/components/chat/chat-users-drawer';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
 import {
+    Command,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
     Drawer,
-    DrawerBody,
     DrawerContent,
     DrawerHeader,
     DrawerTitle,
@@ -17,7 +24,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
 import { createChatThread, fetchChatItemPicker } from '@/lib/chat-hub-api';
 import type { ChatItemPickerGroup, ChatListMeta } from '@/lib/chat-hub-api';
 import { toast } from '@/lib/toast';
@@ -35,7 +48,7 @@ export function NewChatMenu({ canCreateDirect }: Props) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline" data-test="chat-new">
+                    <Button data-test="chat-new">
                         <Plus className="size-4" />
                         {t('chatHub.new')}
                     </Button>
@@ -178,64 +191,86 @@ function ItemsDrawer({
             <DrawerContent data-test="chat-new-items-drawer">
                 <DrawerHeader>
                     <DrawerTitle>{t('chatHub.collections')}</DrawerTitle>
-                    <Input
+                </DrawerHeader>
+                <Command
+                    shouldFilter={false}
+                    className="min-h-0 flex-1 rounded-none bg-transparent"
+                >
+                    <CommandInput
                         data-test="chat-item-picker-q"
                         value={q}
                         placeholder={t('chatHub.searchItems')}
-                        onChange={(event) => setQ(event.target.value)}
+                        aria-label={t('chatHub.searchItems')}
+                        onValueChange={setQ}
                     />
-                </DrawerHeader>
-                <DrawerBody>
-                    {loading ? (
-                        <p className="text-sm text-muted-foreground">
-                            {t('chatHub.loading')}
-                        </p>
-                    ) : null}
-                    {!loading && groups.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            {t('chatHub.emptyItems')}
-                        </p>
-                    ) : null}
-                    {groups.map((collection) => (
-                        <section key={collection.id} className="mb-2">
-                            <div className="sticky top-0 z-10 -mx-6 border-b bg-background px-6 py-2 text-xs font-medium text-muted-foreground">
-                                {collection.name}
+                    <CommandList
+                        label={t('chatHub.collections')}
+                        className="max-h-none flex-1 px-3 py-2"
+                    >
+                        {loading ? (
+                            <div className="flex flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
+                                {t('chatHub.loading')}
                             </div>
-                            <ul>
+                        ) : null}
+                        {!loading && groups.length === 0 ? (
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <Database />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        <EmptyStatus>
+                                            {t('chatHub.emptyItems')}
+                                        </EmptyStatus>
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                        ) : null}
+                        {groups.map((collection) => (
+                            <CommandGroup
+                                key={collection.id}
+                                heading={collection.name}
+                            >
                                 {collection.items.map((item) => (
-                                    <li key={item.id}>
-                                        <button
-                                            type="button"
-                                            data-test={`chat-item-row-${item.id}`}
-                                            disabled={creatingId !== null}
-                                            className="flex w-full rounded-md px-2 py-2 text-left text-sm hover:bg-muted disabled:opacity-50"
-                                            onClick={() =>
-                                                pickItem(collection.id, item.id)
-                                            }
-                                        >
-                                            {item.label}
-                                        </button>
-                                    </li>
+                                    <CommandItem
+                                        key={item.id}
+                                        value={`${collection.id}-${item.id}`}
+                                        data-test={`chat-item-row-${item.id}`}
+                                        disabled={creatingId !== null}
+                                        className="py-2"
+                                        onSelect={() =>
+                                            pickItem(collection.id, item.id)
+                                        }
+                                    >
+                                        {item.label}
+                                    </CommandItem>
                                 ))}
-                            </ul>
-                        </section>
-                    ))}
-                    {meta?.has_more ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="mt-3 w-full"
-                            disabled={loading || loadingMore}
-                            onClick={() =>
-                                loadPage((meta.current_page ?? 1) + 1, true, q)
-                            }
-                        >
-                            {loadingMore
-                                ? t('chatHub.loading')
-                                : t('chatHub.loadMore')}
-                        </Button>
-                    ) : null}
-                </DrawerBody>
+                            </CommandGroup>
+                        ))}
+                        {meta?.has_more ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="mt-3 w-full"
+                                disabled={loading || loadingMore}
+                                onClick={() =>
+                                    loadPage(
+                                        (meta.current_page ?? 1) + 1,
+                                        true,
+                                        q,
+                                    )
+                                }
+                            >
+                                {loadingMore ? <Spinner /> : null}
+                                {t('chatHub.loadMore')}
+                            </Button>
+                        ) : null}
+                    </CommandList>
+                </Command>
             </DrawerContent>
         </Drawer>
     );

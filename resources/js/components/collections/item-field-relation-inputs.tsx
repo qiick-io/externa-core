@@ -1,17 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseRelationFieldSettings } from '@/lib/collection-field-types';
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
+import type { FieldDef } from '@/types';
 
 type DefaultValue =
     | string
@@ -115,6 +109,7 @@ export function ManyToManyFieldInput({
     defaultValue: DefaultValue;
     readonly?: boolean;
 }) {
+    const { t } = useTranslation();
     const relationSettings = parseRelationFieldSettings(field.settings);
     const junctionFields = relationSettings.junctionFields;
     const optionsQuery = relationOptionsQuery(field);
@@ -160,8 +155,7 @@ export function ManyToManyFieldInput({
                 setInitialOptions(options);
             })
             .catch(() => undefined);
-        // ponytail: only refetch labels when ids change, not on meta edits
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch labels only when the selected ids change, not on meta edits
     }, [collectionId, optionsQuery, selectedIds.join(',')]);
 
     const onChangeIds = (nextIds: number[]): void => {
@@ -221,19 +215,22 @@ export function ManyToManyFieldInput({
                 fetchUrl={fetchUrl}
                 value={selectedIds}
                 disabled={readonly}
+                aria-label={field.name}
                 multiple
                 initialOptions={initialOptions}
                 onChange={onChangeIds}
                 placeholder={
                     relationSettings.displayField
-                        ? `Select by ${relationSettings.displayField}…`
-                        : 'Select related item…'
+                        ? t('collections.items.relation.selectBy', {
+                              field: relationSettings.displayField,
+                          })
+                        : t('collections.items.relation.selectRelated')
                 }
             />
             {junctionFields.length > 0 && links.length > 0 ? (
                 <div className="space-y-2 rounded-lg border p-3">
                     <p className="text-xs font-medium text-muted-foreground">
-                        Junction metadata
+                        {t('collections.items.relation.junctionMetadata')}
                     </p>
                     {links.map((link) => {
                         const label =
@@ -302,6 +299,7 @@ export function RelationFieldInput({
     multiple?: boolean;
     readonly?: boolean;
 }) {
+    const { t } = useTranslation();
     const relationSettings = parseRelationFieldSettings(field.settings);
     const optionsQuery = relationOptionsQuery(field);
     const fetchUrl = `/collections/${collectionId}/items/options?${optionsQuery}`;
@@ -375,13 +373,16 @@ export function RelationFieldInput({
                 fetchUrl={fetchUrl}
                 value={selectedIds}
                 disabled={readonly}
+                aria-label={field.name}
                 multiple={multiple}
                 initialOptions={initialOptions}
                 onChange={(next) => setSelectedIds(next)}
                 placeholder={
                     relationSettings.displayField
-                        ? `Select by ${relationSettings.displayField}…`
-                        : 'Select related item…'
+                        ? t('collections.items.relation.selectBy', {
+                              field: relationSettings.displayField,
+                          })
+                        : t('collections.items.relation.selectRelated')
                 }
             />
         </div>

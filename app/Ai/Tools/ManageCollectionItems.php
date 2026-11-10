@@ -2,36 +2,50 @@
 
 namespace App\Ai\Tools;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
+use App\Data\Collections\CollectionItemWriteData;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
+use App\Services\Collections\CollectionItemPublisherService;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
+use RuntimeException;
 use Stringable;
 
 /**
  * AI tool for listing and mutating items within a content collection.
  */
-class ManageCollectionItems implements Approvable, Tool
+class ManageCollectionItems implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use EnforcesAiCollectionPermissionsTrait;
     use LogsAiToolUseTrait;
     use RequiresDestructiveApprovalTrait;
+
+    /**
+     * @return list<string>
+     */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'publish', 'restore', 'bulk_update'];
+    }
 
     /**
      * @return list<string>
@@ -46,7 +60,7 @@ class ManageCollectionItems implements Approvable, Tool
      */
     public function description(): Stringable|string
     {
-        return 'List, get, create, update, soft-delete, restore, or force-delete items inside a collection. Pass field values as a JSON object in the data parameter.';
+        return 'List, get, create, update, publish (promote draft), soft-delete, restore, or force-delete items inside a collection. Pass field values as a JSON object in the data parameter.';
     }
 
     /**
@@ -55,6 +69,10 @@ class ManageCollectionItems implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {
@@ -62,13 +80,14 @@ class ManageCollectionItems implements Approvable, Tool
                 'get' => $this->getItem($request->integer('item_id')),
                 'create' => $this->createItem($request),
                 'update' => $this->updateItem($request),
+                'publish' => $this->publishItem($request->integer('item_id')),
                 'delete' => $this->deleteItem($request->integer('item_id')),
                 'restore' => $this->restoreItem($request->integer('item_id')),
                 'force_delete' => $this->forceDeleteItem($request->integer('item_id')),
                 'bulk_update' => $this->bulkUpdate($request),
                 'bulk_delete' => $this->bulkDelete($request),
                 'list_relation_options' => $this->listRelationOptions($request),
-                default => 'Error: Unknown action. Use list, get, create, update, delete, restore, force_delete, bulk_update, bulk_delete, or list_relation_options.',
+                default => 'Error: Unknown action. Use list, get, create, update, publish, delete, restore, force_delete, bulk_update, bulk_delete, or list_relation_options.',
             };
         });
     }
@@ -79,7 +98,7 @@ class ManageCollectionItems implements Approvable, Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'action' => $schema->string()->required()->description('list|get|create|update|delete|restore|force_delete|bulk_update|bulk_delete|list_relation_options'),
+            'action' => $schema->string()->required()->description('list|get|create|update|publish|delete|restore|force_delete|bulk_update|bulk_delete|list_relation_options'),
             'collection_id' => $schema->integer(),
             'item_id' => $schema->integer(),
             'field_id' => $schema->integer()->description('Relation field id for list_relation_options'),
@@ -101,12 +120,12 @@ class ManageCollectionItems implements Approvable, Tool
         $collectionId = $request->integer('collection_id');
         $collection = Collection::query()->find($collectionId);
 
-        if ($collection === null) {
+        if ($collection === null || ! $this->isAiCollectionReadable($collection)) {
             return 'Error: Collection not found.';
         }
 
         $limit = min(max($request->integer('limit', 25), 1), 100);
-        $assembler = app(CollectionItemValuesAssembler::class);
+        $assembler = app(CollectionItemValuesAssemblerService::class);
 
         $query = $collection->items()
             ->when($request->boolean('trashed'), fn ($query) => $query->onlyTrashed())
@@ -151,7 +170,7 @@ class ManageCollectionItems implements Approvable, Tool
         return json_encode([
             'id' => $item->id,
             'collection_id' => $item->collection_id,
-            'data' => $this->stripAiItemData($collection, app(CollectionItemValuesAssembler::class)->assemble($item)),
+            'data' => $this->stripAiItemData($collection, app(CollectionItemValuesAssemblerService::class)->assemble($item)),
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 
@@ -167,10 +186,6 @@ class ManageCollectionItems implements Approvable, Tool
             return 'Error: Collection not found.';
         }
 
-        if ($collection->is_singleton && $collection->items()->exists()) {
-            return 'Error: Singleton collection already has its content item. Use update instead.';
-        }
-
         $data = $this->decodeData($request);
 
         if (is_string($data)) {
@@ -181,9 +196,16 @@ class ManageCollectionItems implements Approvable, Tool
             return $error;
         }
 
-        $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true);
-        $item = $collection->items()->create([]);
-        app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+        try {
+            $item = app(CreateCollectionItemAction::class)->execute(new CollectionItemWriteData(
+                collection: $collection,
+                data: $data,
+                creating: true,
+            ));
+        } catch (ValidationException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
         $this->logAiMutation($item, 'create_item');
 
         return json_encode([
@@ -193,7 +215,7 @@ class ManageCollectionItems implements Approvable, Tool
                 'collection_id' => $item->collection_id,
                 'data' => $this->stripAiItemData(
                     $collection,
-                    app(CollectionItemValuesAssembler::class)->assemble($item->fresh()),
+                    app(CollectionItemValuesAssemblerService::class)->assemble($item),
                 ),
             ],
         ], JSON_PRETTY_PRINT) ?: '{}';
@@ -216,6 +238,10 @@ class ManageCollectionItems implements Approvable, Tool
             return 'Error: Item not found.';
         }
 
+        if ($error = $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Update)) {
+            return $error;
+        }
+
         if ($error = $this->guardAiItemWritable($collection, $item)) {
             return $error;
         }
@@ -230,7 +256,12 @@ class ManageCollectionItems implements Approvable, Tool
             return $error;
         }
 
-        $data = $this->patchItem($item, $incoming);
+        try {
+            $data = $this->patchItem($item, $incoming);
+        } catch (ValidationException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
         $this->logAiMutation($item, 'update_item');
 
         return json_encode([
@@ -240,6 +271,51 @@ class ManageCollectionItems implements Approvable, Tool
                 'collection_id' => $item->collection_id,
                 'data' => $this->stripAiItemData($collection, $data),
             ],
+        ], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    /**
+     * Promote draft values to published, with the same gates as `ItemController::publish`
+     * (collection Update, item_filter, versioning). Fires publish side effects (deploy hooks).
+     */
+    private function publishItem(int $itemId): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanEditCollections)) {
+            return $error;
+        }
+
+        $item = CollectionItem::query()->with('collection')->find($itemId);
+        $collection = $item?->collection;
+
+        if ($item === null || $collection === null) {
+            return 'Error: Item not found.';
+        }
+
+        if ($error = $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Update)) {
+            return $error;
+        }
+
+        if ($error = $this->guardAiItemWritable($collection, $item)) {
+            return $error;
+        }
+
+        if (! $collection->versioning) {
+            return 'Error: Collection versioning is disabled.';
+        }
+
+        try {
+            app(CollectionItemPublisherService::class)->promote($item, $collection);
+        } catch (RuntimeException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
+        $this->logAiMutation($item, 'publish_item');
+
+        return json_encode([
+            'ok' => true,
+            'item_id' => $item->id,
+            'collection_id' => $item->collection_id,
+            'published_at' => $item->fresh()?->published_at?->toIso8601String(),
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 
@@ -275,7 +351,11 @@ class ManageCollectionItems implements Approvable, Tool
             if ($this->guardAiItemWritable($collection, $item) !== null) {
                 continue;
             }
-            $this->patchItem($item->load('collection.fields'), $incoming);
+            try {
+                $this->patchItem($item->load('collection.fields'), $incoming);
+            } catch (ValidationException) {
+                continue;
+            }
             $this->logAiMutation($item, 'bulk_update_item');
             $updated++;
         }
@@ -449,10 +529,10 @@ class ManageCollectionItems implements Approvable, Tool
     private function patchItem(CollectionItem $item, array $incoming): array
     {
         $collection = $item->collection;
-        $assembler = app(CollectionItemValuesAssembler::class);
+        $assembler = app(CollectionItemValuesAssemblerService::class);
         $data = $assembler->assemble($item);
 
-        $incoming = app(FieldConditionEvaluator::class)->withoutReadonlyFields(
+        $incoming = app(FieldConditionEvaluatorService::class)->withoutReadonlyFields(
             $collection->fields,
             array_replace($data, $incoming),
             $incoming,
@@ -465,10 +545,17 @@ class ManageCollectionItems implements Approvable, Tool
                 : $value;
         }
 
-        $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, false);
-        app(CollectionItemValuesWriter::class)->sync($item->fresh(), $collection, $normalized);
+        $item = app(UpdateCollectionItemAction::class)->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
-        return $assembler->assemble($item->fresh());
+        return $assembler->assemble($item);
     }
 
     /**

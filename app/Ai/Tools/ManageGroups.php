@@ -6,6 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
+use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Models\UserGroup;
@@ -20,11 +21,19 @@ use Stringable;
 /**
  * AI tool for listing and mutating user groups and memberships.
  */
-class ManageGroups implements Approvable, Tool
+class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;
     use RequiresDestructiveApprovalTrait;
+
+    /**
+     * @return list<string>
+     */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'restore'];
+    }
 
     /**
      * @return list<string>
@@ -48,6 +57,10 @@ class ManageGroups implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {
@@ -308,7 +321,7 @@ class ManageGroups implements Approvable, Tool
 
         if (
             ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
-            && $superAdminGuard->includesSuperAdminGroup([$group->id])
+            && $superAdminGuard->hasSuperAdminGroup([$group->id])
         ) {
             return 'Error: Only a super-admin can change a group that grants super-admin.';
         }
@@ -326,7 +339,7 @@ class ManageGroups implements Approvable, Tool
 
         if (
             is_array($decoded)
-            && $superAdminGuard->includesSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
+            && $superAdminGuard->hasSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
             && ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
         ) {
             return 'Error: Only a super-admin can grant super-admin access.';

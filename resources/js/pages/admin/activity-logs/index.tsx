@@ -1,36 +1,36 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronDown, ChevronRight, Download } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { ChevronDown, Download, FileJson, FileSpreadsheet } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    DataTable,
+    dataTableExpandColumn,
+} from '@/components/admin/data-table';
+import { DataTableFacetedFilter } from '@/components/admin/data-table-faceted-filter';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
+import { TableCellLine } from '@/components/admin/table-cell-line';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
-import {
-    FilterSearch,
-    filterSelectClassName,
-} from '@/components/layout/page-header';
-import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
+import { FilterSearch } from '@/components/layout/page-header';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { seedActivityLogPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { cn } from '@/lib/utils';
+import activityLogsRoutes from '@/routes/activity-logs';
 import type {
     AdminActivityLogRow,
     AdminUserRow,
@@ -92,13 +92,12 @@ export default function AdminActivityLogsIndex({
     const [logName, setLogName] = useState(filters.log_name ?? '');
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
-    const [expandedIds, setExpandedIds] = useState<number[]>([]);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
             {
                 title: t('activityLog.title'),
-                href: adminRoutes.activityLogs.index(),
+                href: activityLogsRoutes.index.url(),
             },
         ],
         [t],
@@ -122,7 +121,7 @@ export default function AdminActivityLogsIndex({
                 overrides.date_to !== undefined ? overrides.date_to : dateTo;
 
             router.get(
-                adminRoutes.activityLogs.index({
+                activityLogsRoutes.index.url({
                     query: {
                         search: nextSearch || undefined,
                         user_ids:
@@ -133,18 +132,27 @@ export default function AdminActivityLogsIndex({
                         log_name: nextLogName || undefined,
                         date_from: nextDateFrom || undefined,
                         date_to: nextDateTo || undefined,
+                        per_page: listPerPageQuery(activityLogs.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [search, userIds, event, logName, dateFrom, dateTo],
+        [
+            search,
+            userIds,
+            event,
+            logName,
+            dateFrom,
+            dateTo,
+            activityLogs.per_page,
+        ],
     );
 
     const exportHref = useCallback(
         (format: 'csv' | 'json') =>
-            adminRoutes.activityLogs.export({
+            activityLogsRoutes.export.url({
                 query: {
                     format,
                     search: search || undefined,
@@ -159,27 +167,14 @@ export default function AdminActivityLogsIndex({
         [search, userIds, event, logName, dateFrom, dateTo],
     );
 
-    useEffect(() => {
-        // Only refetch when the user changes search. Mount / pagination remounts
-        // leave search === filters.search; visiting without `page` would reset to page 1.
-        if (search === (filters.search ?? '')) {
-            return;
-        }
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const toggleExpanded = (id: number): void => {
-        setExpandedIds((previous) =>
-            previous.includes(id)
-                ? previous.filter((value) => value !== id)
-                : [...previous, id],
-        );
-    };
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     const formatDate = (value: string): string =>
         new Date(value).toLocaleString();
@@ -221,324 +216,229 @@ export default function AdminActivityLogsIndex({
         return users.filter((user) => userIds.includes(user.id));
     }, [users, userIds]);
 
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={t('activityLog.title')} />
+    const columns: ColumnDef<AdminActivityLogRow>[] = [
+        dataTableExpandColumn<AdminActivityLogRow>({
+            expandLabel: t('activityLog.expand'),
+            collapseLabel: t('activityLog.collapse'),
+        }),
+        {
+            id: 'date',
+            header: t('activityLog.columns.date'),
+            meta: { cellClassName: 'text-sm whitespace-nowrap tabular-nums' },
+            cell: ({ row }) => formatDate(row.original.created_at),
+        },
+        {
+            id: 'user',
+            header: t('activityLog.columns.user'),
+            cell: ({ row }) =>
+                row.original.causer ? (
+                    <TableCellLine
+                        className="max-w-56 text-sm"
+                        primary={row.original.causer.name}
+                        secondary={row.original.causer.email}
+                    />
+                ) : (
+                    <span className="text-sm text-muted-foreground">
+                        {t('activityLog.system')}
+                    </span>
+                ),
+        },
+        {
+            id: 'action',
+            header: t('activityLog.columns.action'),
+            cell: ({ row }) => (
+                <Badge variant="secondary">
+                    {eventLabel(row.original.event)}
+                </Badge>
+            ),
+        },
+        {
+            id: 'description',
+            header: t('activityLog.columns.description'),
+            meta: { cellClassName: 'max-w-xs text-sm' },
+            cell: ({ row }) => (
+                <TruncatedText text={row.original.description || '—'} />
+            ),
+        },
+        {
+            id: 'subject',
+            header: t('activityLog.columns.subject'),
+            meta: { cellClassName: 'max-w-xs text-sm' },
+            cell: ({ row }) => (
+                <TruncatedText
+                    text={
+                        row.original.subject
+                            ? `${row.original.subject.type} ${row.original.subject.label}`
+                            : '—'
+                    }
+                />
+            ),
+        },
+        {
+            id: 'actions',
+            header: t('activityLog.columns.actions'),
+            meta: {
+                headerClassName: 'w-[1%] text-right',
+                cellClassName: 'text-right',
+            },
+            cell: ({ row }) => (
+                <AskAiButton
+                    prompt={seedActivityLogPrompt({
+                        id: row.original.id,
+                        description: row.original.description,
+                        event: row.original.event,
+                    })}
+                />
+            ),
+        },
+    ];
 
-            <PageLayout
-                description={t('activityLog.description')}
-                filters={
-                    <>
-                        <FilterSearch
-                            value={search}
-                            onChange={setSearch}
-                            placeholder={t('activityLog.searchPlaceholder')}
-                            className="max-w-[12rem] min-w-[8rem] flex-none"
-                        />
-                        <UserMultiSelect
-                            value={userIds}
-                            onChange={(next) => {
-                                setUserIds(next);
-                                visit({ user_ids: next });
-                            }}
-                            placeholder={t('activityLog.allUsers')}
-                            initialUsers={initialSelectedUsers}
-                            className={cn(
-                                filterSelectClassName,
-                                'h-auto min-h-9 max-w-[12rem] min-w-[8rem] shrink-0',
-                            )}
-                        />
-                        <select
-                            value={event}
-                            onChange={(changeEvent) => {
-                                setEvent(changeEvent.target.value);
-                                visit({
-                                    event:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className={cn(
-                                filterSelectClassName,
-                                'max-w-[10rem] min-w-[7rem] shrink-0',
-                            )}
-                            aria-label={t('activityLog.filterByAction')}
-                            title={
-                                event
-                                    ? eventLabel(event)
-                                    : t('activityLog.allActions')
-                            }
-                        >
-                            <option value="">
-                                {t('activityLog.allActions')}
-                            </option>
-                            {events.map((eventName) => (
-                                <option key={eventName} value={eventName}>
-                                    {eventLabel(eventName)}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={logName}
-                            onChange={(changeEvent) => {
-                                setLogName(changeEvent.target.value);
-                                visit({
-                                    log_name:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className={cn(
-                                filterSelectClassName,
-                                'max-w-[10rem] min-w-[7rem] shrink-0',
-                            )}
-                            aria-label={t('activityLog.filterByLog')}
-                            title={
-                                logName
-                                    ? logNameLabel(logName)
-                                    : t('activityLog.allLogs')
-                            }
-                        >
-                            <option value="">{t('activityLog.allLogs')}</option>
-                            {logNames.map((name) => (
-                                <option key={name} value={name}>
-                                    {logNameLabel(name)}
-                                </option>
-                            ))}
-                        </select>
-                        <Input
-                            type="date"
-                            value={dateFrom}
-                            onChange={(changeEvent) => {
-                                setDateFrom(changeEvent.target.value);
-                                visit({
-                                    date_from:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className="h-9 w-auto shrink-0"
-                            title={dateFrom || undefined}
-                            aria-label={t('activityLog.dateFrom')}
-                        />
-                        <Input
-                            type="date"
-                            value={dateTo}
-                            onChange={(changeEvent) => {
-                                setDateTo(changeEvent.target.value);
-                                visit({
-                                    date_to:
-                                        changeEvent.target.value || undefined,
-                                });
-                            }}
-                            className="h-9 w-auto shrink-0"
-                            aria-label={t('activityLog.dateTo')}
-                        />
-                    </>
-                }
-                filtersRight={
-                    <div className="flex shrink-0 items-center gap-2">
-                        <span className="hidden text-xs text-muted-foreground sm:inline">
+    return (
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline">
+                            <Download aria-hidden="true" />
+                            {t('common.export')}
+                            <ChevronDown aria-hidden="true" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-w-64">
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                             {t('activityLog.exportHint', {
                                 limit: exportRowLimit,
                             })}
-                        </span>
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={exportHref('csv')}>
-                                <Download className="size-4" />
-                                {t('activityLog.exportCsv')}
-                            </a>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
                             <a href={exportHref('json')}>
-                                <Download className="size-4" />
+                                <FileJson aria-hidden="true" />
                                 {t('activityLog.exportJson')}
                             </a>
-                        </Button>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <a href={exportHref('csv')}>
+                                <FileSpreadsheet aria-hidden="true" />
+                                {t('activityLog.exportCsv')}
+                            </a>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            }
+        >
+            <Head title={t('activityLog.title')} />
+
+            <PageLayout
+                filters={
+                    <div className="@container w-full min-w-0">
+                        <div
+                            data-testid="activity-log-filters"
+                            className="grid grid-cols-1 gap-2 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-5"
+                        >
+                            <FilterSearch
+                                value={search}
+                                onChange={setSearch}
+                                placeholder={t('activityLog.searchPlaceholder')}
+                                className="min-w-0 sm:max-w-none"
+                            />
+                            <UserMultiSelect
+                                value={userIds}
+                                onChange={(next) => {
+                                    setUserIds(next);
+                                    visit({ user_ids: next });
+                                }}
+                                placeholder={t('activityLog.allUsers')}
+                                aria-label={t('activityLog.columns.user')}
+                                initialUsers={initialSelectedUsers}
+                                className="h-auto min-h-control min-w-0"
+                            />
+                            <DataTableFacetedFilter
+                                title={t('activityLog.columns.action')}
+                                ariaLabel={t('activityLog.filterByAction')}
+                                isMultiple={false}
+                                className="w-full min-w-0"
+                                options={events.map((eventName) => ({
+                                    value: eventName,
+                                    label: eventLabel(eventName),
+                                }))}
+                                selectedValues={event ? [event] : []}
+                                onSelectedValuesChange={([nextEvent = '']) => {
+                                    setEvent(nextEvent);
+                                    visit({ event: nextEvent || undefined });
+                                }}
+                            />
+                            <DataTableFacetedFilter
+                                title={t('activityLog.logName')}
+                                ariaLabel={t('activityLog.filterByLog')}
+                                isMultiple={false}
+                                className="w-full min-w-0"
+                                options={logNames.map((name) => ({
+                                    value: name,
+                                    label: logNameLabel(name),
+                                }))}
+                                selectedValues={logName ? [logName] : []}
+                                onSelectedValuesChange={([
+                                    nextLogName = '',
+                                ]) => {
+                                    setLogName(nextLogName);
+                                    visit({
+                                        log_name: nextLogName || undefined,
+                                    });
+                                }}
+                            />
+                            <DateRangePicker
+                                dataTest="activity-log-date-range"
+                                value={{ from: dateFrom, to: dateTo }}
+                                onChange={(range) => {
+                                    setDateFrom(range.from);
+                                    setDateTo(range.to);
+                                    visit({
+                                        date_from: range.from,
+                                        date_to: range.to,
+                                    });
+                                }}
+                                placeholder={t('activityLog.anyDate')}
+                                clearLabel={t('activityLog.clearDates')}
+                                aria-label={t('activityLog.dateRange')}
+                            />
+                        </div>
                     </div>
                 }
             >
-                <TablePanel
-                    footer={
-                        activityLogs.last_page > 1 ? (
-                            <TablePagination links={activityLogs.links ?? []} />
-                        ) : undefined
+                <DataTable
+                    columns={columns}
+                    data={activityLogs.data ?? []}
+                    getRowId={(row) => String(row.id)}
+                    pagination={activityLogs}
+                    renderExpandedRow={(row) => (
+                        <div className="space-y-3 py-2">
+                            <div className="grid gap-2 text-sm sm:grid-cols-2">
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        {t('activityLog.logName')}:
+                                    </span>{' '}
+                                    {logNameLabel(row.log_name ?? 'default')}
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground">
+                                        {t('activityLog.ip')}:
+                                    </span>{' '}
+                                    {row.properties.ip ?? '—'}
+                                </div>
+                            </div>
+                            <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+                                {renderChanges(row)}
+                            </pre>
+                        </div>
+                    )}
+                    emptyState={
+                        <span className="text-muted-foreground">
+                            {t('activityLog.empty')}
+                        </span>
                     }
-                >
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-8" />
-                                <TableHead>
-                                    {t('activityLog.columns.date')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.user')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.action')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.description')}
-                                </TableHead>
-                                <TableHead>
-                                    {t('activityLog.columns.subject')}
-                                </TableHead>
-                                <TableHead className="w-[1%] text-right">
-                                    {t('activityLog.columns.actions')}
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {(activityLogs.data ?? []).length === 0 ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={7}
-                                        className="text-muted-foreground"
-                                    >
-                                        {t('activityLog.empty')}
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                (activityLogs.data ?? []).map((row) => {
-                                    const isExpanded = expandedIds.includes(
-                                        row.id,
-                                    );
-
-                                    return (
-                                        <Fragment key={row.id}>
-                                            <TableRow>
-                                                <TableCell>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            toggleExpanded(
-                                                                row.id,
-                                                            )
-                                                        }
-                                                        className="text-muted-foreground hover:text-foreground"
-                                                        aria-label={
-                                                            isExpanded
-                                                                ? t(
-                                                                      'activityLog.collapse',
-                                                                  )
-                                                                : t(
-                                                                      'activityLog.expand',
-                                                                  )
-                                                        }
-                                                    >
-                                                        {isExpanded ? (
-                                                            <ChevronDown className="size-4" />
-                                                        ) : (
-                                                            <ChevronRight className="size-4" />
-                                                        )}
-                                                    </button>
-                                                </TableCell>
-                                                <TableCell className="text-sm whitespace-nowrap">
-                                                    {formatDate(row.created_at)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {row.causer ? (
-                                                        <div className="text-sm">
-                                                            <div>
-                                                                {
-                                                                    row.causer
-                                                                        .name
-                                                                }
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground">
-                                                                {
-                                                                    row.causer
-                                                                        .email
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {t(
-                                                                'activityLog.system',
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary">
-                                                        {eventLabel(row.event)}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="max-w-xs text-sm">
-                                                    <TruncatedText
-                                                        text={
-                                                            row.description ||
-                                                            '—'
-                                                        }
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-sm">
-                                                    {row.subject ? (
-                                                        <>
-                                                            {row.subject.type}{' '}
-                                                            {row.subject.label}
-                                                        </>
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <AskAiButton
-                                                        prompt={seedActivityLogPrompt(
-                                                            {
-                                                                id: row.id,
-                                                                description:
-                                                                    row.description,
-                                                                event: row.event,
-                                                            },
-                                                        )}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                            {isExpanded ? (
-                                                <TableRow
-                                                    key={`${row.id}-details`}
-                                                >
-                                                    <TableCell colSpan={7}>
-                                                        <div className="space-y-3 py-2">
-                                                            <div className="grid gap-2 text-sm sm:grid-cols-2">
-                                                                <div>
-                                                                    <span className="text-muted-foreground">
-                                                                        {t(
-                                                                            'activityLog.logName',
-                                                                        )}
-                                                                        :
-                                                                    </span>{' '}
-                                                                    {logNameLabel(
-                                                                        row.log_name ??
-                                                                            'default',
-                                                                    )}
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-muted-foreground">
-                                                                        IP:
-                                                                    </span>{' '}
-                                                                    {row
-                                                                        .properties
-                                                                        .ip ??
-                                                                        '—'}
-                                                                </div>
-                                                            </div>
-                                                            <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
-                                                                {renderChanges(
-                                                                    row,
-                                                                )}
-                                                            </pre>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ) : null}
-                                        </Fragment>
-                                    );
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </TablePanel>
+                />
             </PageLayout>
         </AppLayout>
     );

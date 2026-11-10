@@ -1,6 +1,8 @@
 <?php
 
 use App\Ai\Agents\AppAssistant;
+use App\Ai\Tools\ImportCollectionCsv;
+use App\Ai\Tools\ImportRemoteJson;
 use App\Ai\Tools\ManageAiSyncSources;
 use App\Ai\Tools\ManageCollectionItems;
 use App\Ai\Tools\ManageCollections;
@@ -192,19 +194,32 @@ test('upgrade migration is a no-op on the fresh 1.0 schema and reversible', func
         ->and(json_decode($row->tool_results, true)[0]['result'])->toBe('{"ok":true}');
 });
 
-test('destructive tool actions require approval while reads run straight through', function (Approvable $tool, string $destructive, string $safe) {
-    expect($tool->shouldRequestApproval(new Request(['action' => $destructive])))->toBeInstanceOf(Approval::class)
-        ->and($tool->shouldRequestApproval(new Request(['action' => $destructive]))->reason)->toContain($destructive)
+test('write and destructive tool actions require approval while reads run straight through', function (Approvable $tool, string $mutating, string $safe) {
+    expect($tool->shouldRequestApproval(new Request(['action' => $mutating])))->toBeInstanceOf(Approval::class)
+        ->and($tool->shouldRequestApproval(new Request(['action' => $mutating]))->reason)->toContain($mutating)
         ->and($tool->shouldRequestApproval(new Request(['action' => $safe])))->toBeNull();
 })->with([
     'collections delete' => [fn () => new ManageCollections, 'delete', 'list'],
-    'collections delete_field' => [fn () => new ManageCollections, 'delete_field', 'create_field'],
+    'collections create_field' => [fn () => new ManageCollections, 'create_field', 'list'],
     'items bulk_delete' => [fn () => new ManageCollectionItems, 'bulk_delete', 'list'],
-    'files force_delete' => [fn () => new ManageFiles, 'force_delete', 'move'],
-    'users delete' => [fn () => new ManageUsers, 'delete', 'restore'],
+    'items create' => [fn () => new ManageCollectionItems, 'create', 'get'],
+    'files force_delete' => [fn () => new ManageFiles, 'force_delete', 'list'],
+    'files move' => [fn () => new ManageFiles, 'move', 'search'],
+    'users delete' => [fn () => new ManageUsers, 'delete', 'list'],
+    'users restore' => [fn () => new ManageUsers, 'restore', 'get'],
     'roles delete' => [fn () => new ManageRoles, 'delete', 'list_permissions'],
-    'groups force_delete' => [fn () => new ManageGroups, 'force_delete', 'update'],
+    'roles create' => [fn () => new ManageRoles, 'create', 'list'],
+    'groups force_delete' => [fn () => new ManageGroups, 'force_delete', 'list'],
+    'groups update' => [fn () => new ManageGroups, 'update', 'get'],
     'sync sources delete' => [fn () => new ManageAiSyncSources, 'delete', 'list'],
+    'sync sources create' => [fn () => new ManageAiSyncSources, 'create', 'list'],
+]);
+
+test('import write tools always require approval', function (Approvable $tool) {
+    expect($tool->shouldRequestApproval(new Request([])))->toBeInstanceOf(Approval::class);
+})->with([
+    'csv' => [fn () => new ImportCollectionCsv],
+    'remote' => [fn () => new ImportRemoteJson],
 ]);
 
 test('rollback last ai turn always requires approval', function () {
@@ -213,6 +228,11 @@ test('rollback last ai turn always requires approval', function () {
 });
 
 test('destructive tool call pauses the chat stream and exposes pending approvals', function () {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => ['ManageFiles'],
+    ]);
+
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         PermissionEnum::CanShowFiles->value,
@@ -224,7 +244,6 @@ test('destructive tool call pauses the chat stream and exposes pending approvals
         'path' => 'files/keep-me.txt',
         'mime_type' => 'text/plain',
         'size' => 4,
-        'created_by' => $user->id,
     ]);
 
     AppAssistant::fake([
@@ -256,7 +275,7 @@ test('destructive tool call pauses the chat stream and exposes pending approvals
         ->assertOk()
         ->assertJsonPath('messages.1.pending_approvals.0.id', 'call_delete')
         ->assertJsonPath('messages.1.pending_approvals.0.tool', 'ManageFiles')
-        ->assertJsonPath('messages.1.content', 'Waiting for your approval to run ManageFiles.');
+        ->assertJsonPath('messages.1.content', 'Waiting for your approval.');
 
     $this->get(route('ai.show', $conversation->id))
         ->assertOk()

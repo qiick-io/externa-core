@@ -2,245 +2,167 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Admin\JobMonitorController;
-use App\Http\Controllers\Ai\AiConversationController;
-use App\Http\Middleware\ConfigurePublicApiCors;
-use App\Http\Middleware\EnforcePublicApiOrigin;
-use App\Http\Middleware\EnsureCanManageFiles;
-use App\Http\Middleware\EnsureSidebarModuleEnabled;
-use App\Http\Middleware\EnsureTwoFactorIsEnabled;
-use App\Http\Middleware\EnsureUserHasPermission;
-use App\Http\Middleware\HandleAppearance;
-use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\ResolveApiAccess;
-use App\Http\Middleware\SetLocale;
-use App\Services\Ai\EmbeddingSimilarity;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\CollectionPermissionRules;
-use App\Services\Api\CollectionPermissionSync;
-use App\Services\Api\FileFieldExpander;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\FilePermissionSync;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Api\RelationIncludeHydrator;
-use App\Services\Auth\OidcSocialiteFactory;
-use App\Services\Auth\OidcUserResolver;
-use App\Services\Authorization\EffectivePermissionResolver;
-use App\Services\Chat\ChatParticipantSync;
-use App\Services\Collections\CollectionFieldRenamer;
-use App\Services\Collections\CollectionFormLayoutNormalizer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
-use App\Services\Collections\CollectionItemPublisher;
-use App\Services\Collections\CollectionItemRevisionPruner;
-use App\Services\Collections\CollectionItemRevisionRecorder;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\CollectionListColumnsNormalizer;
-use App\Services\Collections\CollectionListDisplayEnricher;
-use App\Services\Collections\FieldConditionEvaluator;
-use App\Services\Collections\FieldValidationRuleEvaluator;
-use App\Services\Collections\LivePreviewToken;
-use App\Services\Collections\LivePreviewUrlBuilder;
-use App\Services\Collections\PackFieldCreator;
-use App\Services\Collections\WysiwygHtmlSanitizer;
-use App\Services\Dashboard\DashboardHealthMetrics;
-use App\Services\Files\FileWhereUsedScanner;
-use App\Services\GitExport\GitExportDispatcher;
-use App\Services\GitExport\GitExportDocumentBuilder;
-use App\Services\GitExport\GitExportRepository;
-use App\Services\Notifiers\OutboundNotifierContextBuilder;
-use App\Services\Notifiers\OutboundNotifierFanout;
-use App\Services\Notifiers\OutboundNotifierMessageFormatter;
-use App\Services\Search\MeilisearchClient;
-use App\Services\Search\MeilisearchDocumentBuilder;
-use App\Services\Search\MeilisearchSyncDispatcher;
-use App\Services\Settings\ProjectAppearance;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Settings\UserNotificationPreferences;
-use App\Services\Webhooks\OutboundWebhookCatalog;
-use App\Services\Webhooks\OutboundWebhookDeliveryLog;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+/**
+ * qiick naming and architecture guardrails, identical in every qiick repo.
+ *
+ * Generated from qiick-io/app-ui `standards/php/NamingArchitectureTest.php` by
+ * `scripts/sync-standards.mjs`; CI fails when this copy differs. Do not edit it here:
+ *
+ * - framework / package scaffolding a rule must skip goes in `naming-architecture.php`
+ *   next to this file (the repo's own list, with a reason per entry);
+ * - repo-specific rules go in another test file in `tests/Arch/`.
+ *
+ * The rules are the "Role suffixes" and "Architecture" sections of the qiick code
+ * standard. A namespace the repo does not have passes trivially.
+ */
 
 /**
- * Codice Perfetto naming + architecture guardrails (issue #260).
- *
- * Scaffolding exemptions keep Laravel / Fortify / starter-kit names untouched.
- * Legacy App\Services classes without a Service suffix and pre-existing custom
- * middleware without a Middleware suffix are ignored so new classes must comply
- * while #260 stays a mechanical rename (no Service/Middleware mass rename).
- *
- * declare(strict_types=1) across App\ is deferred until the PHP baseline is clean;
- * new and touched files must still declare it.
+ * @var array{
+ *     namespace: string,
+ *     ignoring?: array<string, list<string>>,
+ *     suffixes?: array<string, string>,
+ * } $namingArchitecture
  */
+$namingArchitecture = require __DIR__.'/naming-architecture.php';
+$rootNamespace = $namingArchitecture['namespace'];
+$ignoredBy = static fn (string $rule): array => $namingArchitecture['ignoring'][$rule] ?? [];
+
+/** Sub-namespace => role suffix every class in it must end with. */
+$classSuffixes = [
+    'Actions' => 'Action',
+    'Builders' => 'Builder',
+    'Console\Commands' => 'Command',
+    'Data' => 'Data',
+    'Events' => 'Event',
+    'Exceptions' => 'Exception',
+    'Http\Controllers' => 'Controller',
+    'Http\Middleware' => 'Middleware',
+    'Http\Requests' => 'Request',
+    'Http\Resources' => 'Resource',
+    'Http\Responses' => 'Response',
+    'Jobs' => 'Job',
+    'Listeners' => 'Listener',
+    'Notifications' => 'Notification',
+    'Observers' => 'Observer',
+    'Policies' => 'Policy',
+    'Rules' => 'Rule',
+    'Services' => 'Service',
+    ...($namingArchitecture['suffixes'] ?? []),
+];
+
+arch('strict types')
+    ->expect($rootNamespace)
+    ->toUseStrictTypes()
+    ->ignoring($ignoredBy('strict types'));
+
 arch('no debugging helpers')
     ->expect(['dd', 'dump', 'ray', 'var_dump'])
     ->not->toBeUsed();
 
-arch('env helper is not used outside config')
+arch('env() only in config')
     ->expect('env')
     ->not->toBeUsed()
-    ->ignoring('Config');
+    ->ignoring(['Config', ...$ignoredBy('env')]);
 
-arch('controllers do not use the DB facade directly')
-    ->expect('App\Http\Controllers')
-    ->not->toUse('Illuminate\Support\Facades\DB')
-    ->ignoring([
-        AiConversationController::class,
-        JobMonitorController::class,
-    ]);
+arch('controllers do not use the DB facade')
+    ->expect("{$rootNamespace}\\Http\\Controllers")
+    ->not->toUse('Illuminate\Support\Facades\DB');
 
-arch('Models use bare domain nouns without a Model suffix')
-    ->expect('App\Models')
+arch('models use bare domain nouns')
+    ->expect("{$rootNamespace}\\Models")
     ->classes()
     ->not->toHaveSuffix('Model');
 
-arch('data transfer objects are readonly and suffixed')
-    ->expect('App\Data')
+arch('data objects are readonly')
+    ->expect("{$rootNamespace}\\Data")
     ->classes()
     ->toBeReadonly()
-    ->toHaveSuffix('Data');
+    ->ignoring($ignoredBy('Data'));
 
-arch('custom Actions have an Action suffix')
-    ->expect('App\Actions')
-    ->classes()
-    ->toHaveSuffix('Action')
-    ->ignoring('App\Actions\Fortify');
+foreach ($classSuffixes as $subNamespace => $suffix) {
+    // Fortify's published actions keep their upstream names in every Laravel app.
+    $scaffolding = $subNamespace === 'Actions' ? ["{$rootNamespace}\\Actions\\Fortify"] : [];
 
-arch('Services end with Service')
-    ->expect('App\Services')
-    ->classes()
-    ->toHaveSuffix('Service')
-    ->ignoring([
-        EmbeddingSimilarity::class,
-        CollectionPermissionEnforcer::class,
-        CollectionPermissionGuard::class,
-        CollectionPermissionRules::class,
-        CollectionPermissionSync::class,
-        FileFieldExpander::class,
-        FilePermissionGuard::class,
-        FilePermissionSync::class,
-        PublicApiResponseCache::class,
-        RelationIncludeHydrator::class,
-        OidcSocialiteFactory::class,
-        OidcUserResolver::class,
-        EffectivePermissionResolver::class,
-        ChatParticipantSync::class,
-        CollectionFieldRenamer::class,
-        CollectionFormLayoutNormalizer::class,
-        CollectionItemDataNormalizer::class,
-        CollectionItemDataRuleBuilder::class,
-        CollectionItemPublisher::class,
-        CollectionItemRevisionPruner::class,
-        CollectionItemRevisionRecorder::class,
-        CollectionItemValuesAssembler::class,
-        CollectionItemValuesWriter::class,
-        CollectionListColumnsNormalizer::class,
-        CollectionListDisplayEnricher::class,
-        FieldConditionEvaluator::class,
-        FieldValidationRuleEvaluator::class,
-        LivePreviewToken::class,
-        LivePreviewUrlBuilder::class,
-        PackFieldCreator::class,
-        WysiwygHtmlSanitizer::class,
-        DashboardHealthMetrics::class,
-        FileWhereUsedScanner::class,
-        GitExportDispatcher::class,
-        GitExportDocumentBuilder::class,
-        GitExportRepository::class,
-        OutboundNotifierContextBuilder::class,
-        OutboundNotifierFanout::class,
-        OutboundNotifierMessageFormatter::class,
-        MeilisearchClient::class,
-        MeilisearchDocumentBuilder::class,
-        MeilisearchSyncDispatcher::class,
-        ProjectAppearance::class,
-        ProjectSettings::class,
-        SettingsRepository::class,
-        UserNotificationPreferences::class,
-        OutboundWebhookCatalog::class,
-        OutboundWebhookDeliveryLog::class,
-        OutboundWebhookDispatcher::class,
-    ]);
-
-arch('Jobs end with Job')
-    ->expect('App\Jobs')
-    ->classes()
-    ->toHaveSuffix('Job');
-
-arch('Console Commands end with Command')
-    ->expect('App\Console\Commands')
-    ->classes()
-    ->toHaveSuffix('Command');
-
-arch('Events end with Event')
-    ->expect('App\Events')
-    ->classes()
-    ->toHaveSuffix('Event');
+    arch("{$subNamespace} end with {$suffix}")
+        ->expect("{$rootNamespace}\\{$subNamespace}")
+        ->classes()
+        ->toHaveSuffix($suffix)
+        ->ignoring([...$scaffolding, ...$ignoredBy($subNamespace)]);
+}
 
 arch('Enums end with Enum')
-    ->expect('App\Enums')
-    ->classes()
-    ->toHaveSuffix('Enum');
+    ->expect("{$rootNamespace}\\Enums")
+    ->enums()
+    ->toHaveSuffix('Enum')
+    ->ignoring($ignoredBy('Enums'));
 
-arch('Controllers end with Controller')
-    ->expect('App\Http\Controllers')
-    ->classes()
-    ->toHaveSuffix('Controller');
+arch('Contracts are interfaces ending with Contract')
+    ->expect("{$rootNamespace}\\Contracts")
+    ->toBeInterfaces()
+    ->toHaveSuffix('Contract')
+    ->ignoring($ignoredBy('Contracts'));
 
-arch('Form Requests end with Request')
-    ->expect('App\Http\Requests')
-    ->classes()
-    ->toHaveSuffix('Request');
-
-arch('API Resources end with Resource')
-    ->expect('App\Http\Resources')
-    ->classes()
-    ->toHaveSuffix('Resource');
-
-arch('HTTP Responses end with Response')
-    ->expect('App\Http\Responses')
-    ->classes()
-    ->toHaveSuffix('Response');
-
-arch('Notifications end with Notification')
-    ->expect('App\Notifications')
-    ->classes()
-    ->toHaveSuffix('Notification');
-
-arch('Policies end with Policy')
-    ->expect('App\Policies')
-    ->classes()
-    ->toHaveSuffix('Policy');
-
-arch('Middleware end with Middleware')
-    ->expect('App\Http\Middleware')
-    ->classes()
-    ->toHaveSuffix('Middleware')
-    ->ignoring([
-        // Starter-kit scaffolding (never rename).
-        HandleAppearance::class,
-        HandleInertiaRequests::class,
-        // Pre-#260 custom middleware; new middleware must use the Middleware suffix.
-        ConfigurePublicApiCors::class,
-        EnforcePublicApiOrigin::class,
-        EnsureCanManageFiles::class,
-        EnsureSidebarModuleEnabled::class,
-        EnsureTwoFactorIsEnabled::class,
-        EnsureUserHasPermission::class,
-        ResolveApiAccess::class,
-        SetLocale::class,
-    ]);
-
-arch('custom Traits end with Trait')
-    ->expect('App')
+arch('traits end with Trait')
+    ->expect($rootNamespace)
     ->traits()
     ->toHaveSuffix('Trait')
-    ->ignoring('App\Concerns');
+    ->ignoring($ignoredBy('traits'));
 
-arch('Builders end with Builder')
-    ->expect('App\Builders')
-    ->classes()
-    ->toHaveSuffix('Builder');
+/**
+ * Thin controllers (code standard, "Architecture", rule 1): at most five public
+ * methods of their own per controller. Controllers that already have more are
+ * listed in `naming-architecture.php` under `controllerPublicMethods` with their
+ * current count, a ratchet: the count may not grow, and an entry fails once the
+ * controller shrinks, so it is lowered or removed and cannot grow back.
+ */
+test('controllers stay thin', function () use ($namingArchitecture, $rootNamespace): void {
+    $maximumPublicMethods = 5;
+    /** @var array<class-string, int> $allowedPublicMethodsByController */
+    $allowedPublicMethodsByController = $namingArchitecture['controllerPublicMethods'] ?? [];
+    /** @var array<string, list<string>> $sourceDirectoriesByNamespace */
+    $sourceDirectoriesByNamespace = require dirname(__DIR__, 2).'/vendor/composer/autoload_psr4.php';
+    $violations = [];
+
+    foreach ($sourceDirectoriesByNamespace[$rootNamespace.'\\'] ?? [] as $sourceDirectory) {
+        $controllersDirectory = $sourceDirectory.'/Http/Controllers';
+
+        if (! is_dir($controllersDirectory)) {
+            continue;
+        }
+
+        $controllerFiles = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($controllersDirectory, FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($controllerFiles as $controllerFile) {
+            if ($controllerFile->getExtension() !== 'php') {
+                continue;
+            }
+
+            $relativeClassPath = substr($controllerFile->getPathname(), strlen($sourceDirectory) + 1, -4);
+            $controllerClass = $rootNamespace.'\\'.str_replace('/', '\\', $relativeClassPath);
+
+            if (! class_exists($controllerClass) || (new ReflectionClass($controllerClass))->isAbstract()) {
+                continue;
+            }
+
+            $publicMethodCount = count(array_filter(
+                (new ReflectionClass($controllerClass))->getMethods(ReflectionMethod::IS_PUBLIC),
+                static fn (ReflectionMethod $method): bool => $method->getDeclaringClass()->getName() === $controllerClass
+                    && ! $method->isConstructor()
+                    && ! $method->isStatic(),
+            ));
+            $allowedPublicMethods = $allowedPublicMethodsByController[$controllerClass] ?? $maximumPublicMethods;
+
+            if ($publicMethodCount > $allowedPublicMethods) {
+                $violations[] = "{$controllerClass} has {$publicMethodCount} public methods (allowed {$allowedPublicMethods}): split it, or move the logic into Actions / Services. Existing debt only, when adopting this rule: '{$controllerClass}' => {$publicMethodCount},";
+            } elseif (isset($allowedPublicMethodsByController[$controllerClass]) && $publicMethodCount < $allowedPublicMethods) {
+                $violations[] = $publicMethodCount <= $maximumPublicMethods
+                    ? "{$controllerClass} is thin now: remove it from controllerPublicMethods."
+                    : "{$controllerClass} shrank to {$publicMethodCount}: set '{$controllerClass}' => {$publicMethodCount} in controllerPublicMethods.";
+            }
+        }
+    }
+
+    expect($violations)->toBe([], implode("\n", $violations));
+});

@@ -3,10 +3,15 @@ import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
 import { KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldSeparator,
+} from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import { confirm, confirmOptions } from '@/routes/passkey';
@@ -68,23 +73,35 @@ export default function ConfirmPassword({
         >
             <Head title={t('auth.confirmPassword.head')} />
 
-            <Form {...store.form()} resetOnSuccess={['password']}>
+            <Form {...store.form()} resetOnSuccess={['password']} noValidate>
                 {({ processing, errors }) => (
-                    <div className="space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">
+                    <FieldGroup className="gap-6">
+                        <Field
+                            data-invalid={errors.password ? true : undefined}
+                        >
+                            <FieldLabel htmlFor="password">
                                 {t('common.password')}
-                            </Label>
+                            </FieldLabel>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 placeholder={t('common.password')}
                                 autoComplete="current-password"
+                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
+                                aria-invalid={
+                                    errors.password ? true : undefined
+                                }
+                                aria-describedby={
+                                    errors.password
+                                        ? 'password-error'
+                                        : undefined
+                                }
                             />
-
-                            <InputError message={errors.password} />
-                        </div>
+                            <FieldError id="password-error">
+                                {errors.password}
+                            </FieldError>
+                        </Field>
 
                         <div className="flex items-center">
                             <Button
@@ -96,22 +113,15 @@ export default function ConfirmPassword({
                                 {t('auth.confirmPassword.submit')}
                             </Button>
                         </div>
-                    </div>
+                    </FieldGroup>
                 )}
             </Form>
 
             {showPasskeyConfirm && (
                 <div className="mt-6 flex flex-col gap-3">
-                    <div className="relative py-1">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                                {t('auth.confirmPassword.orConfirmWithPasskey')}
-                            </span>
-                        </div>
-                    </div>
+                    <FieldSeparator className="my-0">
+                        {t('auth.confirmPassword.orConfirmWithPasskey')}
+                    </FieldSeparator>
                     <Button
                         type="button"
                         variant="outline"
@@ -124,7 +134,9 @@ export default function ConfirmPassword({
                         {verifyingPasskey ? <Spinner /> : <KeyRound />}
                         {t('auth.confirmPassword.passkey')}
                     </Button>
-                    <InputError message={passkeyErrorMessage} />
+                    <FieldError id="passkey-confirm-error">
+                        {passkeyErrorMessage}
+                    </FieldError>
                 </div>
             )}
         </AuthLayout>

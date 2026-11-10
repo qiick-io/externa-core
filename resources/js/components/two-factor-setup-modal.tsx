@@ -4,7 +4,6 @@ import { Check, Copy, ScanLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AlertError from '@/components/alert-error';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,6 +12,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldError, FieldSeparator } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     InputOTP,
     InputOTPGroup,
@@ -27,7 +33,7 @@ import { confirm } from '@/routes/two-factor';
 function GridScanIcon() {
     return (
         <div className="mb-3 rounded-full border border-border bg-card p-0.5 shadow-sm">
-            <div className="relative overflow-hidden rounded-full border border-border bg-muted p-2.5">
+            <div className="relative overflow-hidden rounded-full border border-border bg-muted p-3">
                 <div className="absolute inset-0 grid grid-cols-5 opacity-50">
                     {Array.from({ length: 5 }, (_, i) => (
                         <div
@@ -78,7 +84,7 @@ function TwoFactorSetupStep({
                 <>
                     <div className="mx-auto flex max-w-md overflow-hidden">
                         <div className="mx-auto aspect-square w-64 rounded-lg border border-border">
-                            <div className="z-10 flex h-full w-full items-center justify-center p-5">
+                            <div className="z-10 flex h-full w-full items-center justify-center p-6">
                                 {qrCodeSvg ? (
                                     <div
                                         className="aspect-square w-full rounded-lg bg-white p-2 [&_svg]:size-full"
@@ -99,42 +105,45 @@ function TwoFactorSetupStep({
                         </div>
                     </div>
 
-                    <div className="flex w-full space-x-5">
+                    <div className="flex w-full space-x-6">
                         <Button className="w-full" onClick={onNextStep}>
                             {buttonText}
                         </Button>
                     </div>
 
-                    <div className="relative flex w-full items-center justify-center">
-                        <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
-                        <span className="relative bg-card px-2 py-1">
-                            {t('settings.twoFactor.orEnterManually')}
-                        </span>
-                    </div>
+                    <FieldSeparator className="my-0 w-full">
+                        {t('settings.twoFactor.orEnterManually')}
+                    </FieldSeparator>
 
                     <div className="flex w-full space-x-2">
-                        <div className="flex w-full items-stretch overflow-hidden rounded-xl border border-border">
-                            {!manualSetupKey ? (
-                                <div className="flex h-full w-full items-center justify-center bg-muted p-3">
-                                    <Spinner />
-                                </div>
-                            ) : (
-                                <>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={manualSetupKey}
-                                        className="h-full w-full bg-background p-3 text-foreground outline-none"
-                                    />
-                                    <button
+                        {!manualSetupKey ? (
+                            <div className="flex h-control w-full items-center justify-center rounded-md border bg-muted">
+                                <Spinner />
+                            </div>
+                        ) : (
+                            <InputGroup className="dark:bg-transparent">
+                                <InputGroupInput
+                                    readOnly
+                                    value={manualSetupKey}
+                                    aria-label={t(
+                                        'settings.twoFactor.setupKey',
+                                    )}
+                                />
+                                <InputGroupAddon align="inline-end">
+                                    <InputGroupButton
+                                        size="icon-xs"
+                                        aria-label={
+                                            copiedText === manualSetupKey
+                                                ? t('common.copied')
+                                                : t('common.copy')
+                                        }
                                         onClick={() => copy(manualSetupKey)}
-                                        className="border-l border-border px-3 hover:bg-muted"
                                     >
-                                        <IconComponent className="w-4" />
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                                        <IconComponent />
+                                    </InputGroupButton>
+                                </InputGroupAddon>
+                            </InputGroup>
+                        )}
                     </div>
                 </>
             ) : null}
@@ -170,6 +179,7 @@ function TwoFactorVerificationStep({
             onError={() => setCode('')}
             resetOnError
             resetOnSuccess
+            noValidate
         >
             {({
                 processing,
@@ -195,7 +205,10 @@ function TwoFactorVerificationStep({
                                 <AlertError errors={[codeError]} />
                             ) : null}
 
-                            <div className="flex w-full flex-col items-center space-y-3 py-2">
+                            <Field
+                                className="flex w-full flex-col items-center space-y-3 py-2"
+                                data-invalid={codeError ? true : undefined}
+                            >
                                 <InputOTP
                                     id="otp"
                                     name="code"
@@ -204,7 +217,14 @@ function TwoFactorVerificationStep({
                                     onChange={setCode}
                                     disabled={processing}
                                     pattern={REGEXP_ONLY_DIGITS}
+                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
+                                    aria-invalid={codeError ? true : undefined}
+                                    aria-describedby={
+                                        codeError
+                                            ? 'two-factor-code-error'
+                                            : undefined
+                                    }
                                 >
                                     <InputOTPGroup>
                                         {Array.from(
@@ -218,10 +238,12 @@ function TwoFactorVerificationStep({
                                         )}
                                     </InputOTPGroup>
                                 </InputOTP>
-                                <InputError message={codeError} />
-                            </div>
+                                <FieldError id="two-factor-code-error">
+                                    {codeError}
+                                </FieldError>
+                            </Field>
 
-                            <div className="flex w-full space-x-5">
+                            <div className="flex w-full space-x-6">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -359,7 +381,7 @@ export default function TwoFactorSetupModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col items-center space-y-5">
+                <div className="flex flex-col items-center space-y-6">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
                             onClose={handleClose}

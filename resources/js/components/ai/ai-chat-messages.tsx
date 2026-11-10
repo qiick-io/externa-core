@@ -1,21 +1,61 @@
-import { Paperclip, RefreshCw } from 'lucide-react';
-import type { ReactNode } from 'react';
+import {
+    Check,
+    Copy,
+    FileDown,
+    Paperclip,
+    Pencil,
+    RefreshCw,
+    Volume2,
+} from 'lucide-react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    AiAnswerParts,
+    AiAnswerSources,
+    AiAnswerUsage,
+} from '@/components/ai/ai-answer-parts';
+import type { AiAnswerTextRenderer } from '@/components/ai/ai-answer-parts';
 import { AiFileCards } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
-import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
-import { AssistantMessageActions } from '@/components/ai/assistant-message-actions';
-import { ThinkingDots } from '@/components/ai/thinking-dots';
-import { UserMessageActions } from '@/components/ai/user-message-actions';
+import { Confirmation } from '@/components/ai-elements/confirmation';
+import {
+    MessageAction,
+    MessageActions,
+} from '@/components/ai-elements/message';
+import { Shimmer } from '@/components/ai-elements/shimmer';
+import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
+import {
+    Attachment,
+    AttachmentContent,
+    AttachmentGroup,
+    AttachmentMedia,
+    AttachmentTitle,
+} from '@/components/ui/attachment';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
+import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker';
 import {
     Message,
     MessageContent,
     MessageFooter,
+    MessageHeader,
 } from '@/components/ui/message';
+import { MessageScrollerItem } from '@/components/ui/message-scroller';
+import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
+import { useAiAvailability } from '@/hooks/use-ai-availability';
 import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
+import {
+    exportTextAsPdf,
+    isDestructiveApproval,
+    speakText,
+} from '@/lib/ai-chat';
+import type { AiMessagePart, AiSource, AiUsage } from '@/lib/ai-message-parts';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
-import { cn } from '@/lib/utils';
+import { describeAssistantToolCall } from '@/lib/ai-tool-call-descriptions';
+import { copyTextToClipboard } from '@/lib/clipboard';
+import { announce } from '@/lib/live-announcer';
+import { toast } from '@/lib/toast';
 
 export type AiChatMessageView = {
     id: string;
@@ -27,13 +67,16 @@ export type AiChatMessageView = {
     toolNames?: string[];
     tool_calls?: Array<{ name?: string; function?: { name?: string } }>;
     pending_approvals?: AiPendingApproval[];
+    parts?: AiMessagePart[];
+    sources?: AiSource[];
+    usage?: AiUsage | null;
+    model?: string | null;
 };
 
 type AiChatMessagesProps = {
     messages: AiChatMessageView[];
     isStreaming: boolean;
     actionsDisabled?: boolean;
-    emptyState?: ReactNode;
     editingMessageId: string | null;
     editingDraft: string;
     onEditingDraftChange: (value: string) => void;
@@ -48,14 +91,26 @@ type AiChatMessagesProps = {
     onResolveApprovals?: (messageId: string, approved: boolean) => void;
 };
 
+const COPY_FEEDBACK_MS = 2000;
+
+/** Streamdown and shiki load with the first answer, not with every page. */
+const MessageResponse = lazy(() =>
+    import('@/components/ai-elements/message-response').then((module) => ({
+        default: module.MessageResponse,
+    })),
+);
+
 /**
- * Shared AI chat message list (bubbles + action toolbar) for page and FAB drawer.
+ * Shared AI chat message list for the Assistant page and panel, on shadcn
+ * `message` / `bubble` slots and AI Elements parts (presentation only:
+ * Externa streams its own SSE). Render it inside `ChatMessageScroller`: every
+ * message is a scroller item, and the user's prompts are scroll anchors (a new
+ * prompt scrolls to the top while the answer streams below it).
  */
 export function AiChatMessages({
     messages,
     isStreaming,
     actionsDisabled = false,
-    emptyState,
     editingMessageId,
     editingDraft,
     onEditingDraftChange,
@@ -66,302 +121,550 @@ export function AiChatMessages({
     onSuggestedAction,
     onResolveApprovals,
 }: AiChatMessagesProps) {
+    const { t } = useTranslation();
+    const wasStreamingRef = useRef(false);
+    const announcedMessageIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        const wasStreaming = wasStreamingRef.current;
+        wasStreamingRef.current = isStreaming;
+
+        if (!wasStreaming || isStreaming) {
+            return;
+        }
+
+        const lastAssistant = [...messages]
+            .reverse()
+            .find(
+                (message) =>
+                    message.role !== 'user' &&
+                    message.content.trim() !== '' &&
+                    !message.isError,
+            );
+
+        if (
+            !lastAssistant ||
+            announcedMessageIdRef.current === lastAssistant.id
+        ) {
+            return;
+        }
+
+        announcedMessageIdRef.current = lastAssistant.id;
+        const preview = lastAssistant.content.trim().slice(0, 160);
+        announce(
+            t('a11y.aiAnswerReady', {
+                preview:
+                    preview.length < lastAssistant.content.trim().length
+                        ? `${preview}…`
+                        : preview,
+            }),
+            { politeness: 'polite' },
+        );
+    }, [isStreaming, messages, t]);
+
     if (messages.length === 0) {
-        return <>{emptyState}</>;
+        return null;
     }
+
+    const actionsLocked = actionsDisabled || isStreaming;
 
     return (
         <>
-            {messages.map((message) => {
+            {messages.map((message, index) => {
                 const isUser = message.role === 'user';
-                const isEditing = editingMessageId === message.id;
-                const isEmptyAssistant =
-                    !isUser && message.content.trim() === '';
-                const isLastMessage =
-                    message.id === messages[messages.length - 1]?.id;
-                const showThinking =
-                    isEmptyAssistant &&
-                    isStreaming &&
-                    isLastMessage &&
-                    !message.isError;
-                const actionsLocked = actionsDisabled || isStreaming;
+                const isLastMessage = index === messages.length - 1;
 
                 return (
-                    <Message key={message.id} align={isUser ? 'end' : 'start'}>
-                        <MessageContent>
-                            <Bubble
-                                variant={
-                                    message.isError
-                                        ? 'destructive'
-                                        : isUser
-                                          ? 'muted'
-                                          : 'ghost'
+                    // Index keys keep the DOM rows when a reload swaps local ids for
+                    // server ids, so the scroller does not treat them as new prompts.
+                    <MessageScrollerItem
+                        key={index}
+                        messageId={message.id}
+                        scrollAnchor={isUser}
+                    >
+                        {isUser ? (
+                            <UserMessage
+                                message={message}
+                                isEditing={editingMessageId === message.id}
+                                editingDraft={editingDraft}
+                                actionsLocked={actionsLocked}
+                                onEditingDraftChange={onEditingDraftChange}
+                                onCancelEdit={onCancelEdit}
+                                onStartEdit={() => onStartEdit(message)}
+                                onResendEdited={() =>
+                                    onResendEdited(message.id)
                                 }
-                                align={isUser ? 'end' : 'start'}
-                            >
-                                <BubbleContent
-                                    className={cn(
-                                        isUser
-                                            ? 'text-foreground'
-                                            : 'w-full max-w-full',
-                                        isUser && !isEditing
-                                            ? 'whitespace-pre-wrap'
-                                            : null,
-                                        !isUser && !message.isError
-                                            ? 'whitespace-pre-wrap'
-                                            : null,
-                                    )}
-                                >
-                                    {isEditing ? (
-                                        <div className="flex min-w-[16rem] flex-col gap-2">
-                                            <textarea
-                                                value={editingDraft}
-                                                onChange={(event) =>
-                                                    onEditingDraftChange(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                rows={3}
-                                                className="w-full resize-y rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                            />
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={onCancelEdit}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        onResendEdited(
-                                                            message.id,
-                                                        )
-                                                    }
-                                                >
-                                                    Send again
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : showThinking ? (
-                                        <ThinkingDots />
-                                    ) : isUser ? (
-                                        <div className="flex flex-col gap-2">
-                                            {(message.attachments?.length ??
-                                                0) > 0 ? (
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {message.attachments?.map(
-                                                        (attachment) => (
-                                                            <span
-                                                                key={
-                                                                    attachment.id ??
-                                                                    attachment.name
-                                                                }
-                                                                className="inline-flex items-center gap-1 rounded-md bg-foreground/15 px-2 py-0.5 text-xs"
-                                                            >
-                                                                <Paperclip className="size-3" />
-                                                                {
-                                                                    attachment.name
-                                                                }
-                                                            </span>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            ) : null}
-                                            <div className="whitespace-pre-wrap">
-                                                {message.content}
-                                            </div>
-                                        </div>
-                                    ) : message.isError ? (
-                                        <div className="flex flex-col gap-2">
-                                            <div className="text-sm whitespace-pre-wrap">
-                                                {message.content}
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="secondary"
-                                                className="w-fit"
-                                                disabled={actionsLocked}
-                                                onClick={() =>
-                                                    onRegenerate(message.id, {
-                                                        asRetry: true,
-                                                    })
-                                                }
-                                            >
-                                                <RefreshCw className="size-3.5" />
-                                                Riprova
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col gap-3">
-                                            <AssistantMarkdown
-                                                content={message.content}
-                                            />
-                                            {message.fileCards &&
-                                            message.fileCards.length > 0 ? (
-                                                <AiFileCards
-                                                    files={message.fileCards}
-                                                />
-                                            ) : null}
-                                            {onResolveApprovals &&
-                                            isLastMessage &&
-                                            (message.pending_approvals
-                                                ?.length ?? 0) > 0 ? (
-                                                <div className="flex flex-col gap-2 rounded-md border border-border p-3 whitespace-normal">
-                                                    <ul className="flex flex-col gap-1 text-xs">
-                                                        {message.pending_approvals?.map(
-                                                            (approval) => (
-                                                                <li
-                                                                    key={
-                                                                        approval.id
-                                                                    }
-                                                                    className="break-all text-muted-foreground"
-                                                                >
-                                                                    <span className="font-medium text-foreground">
-                                                                        {
-                                                                            approval.tool
-                                                                        }
-                                                                    </span>{' '}
-                                                                    <code>
-                                                                        {JSON.stringify(
-                                                                            approval.arguments ??
-                                                                                {},
-                                                                        )}
-                                                                    </code>
-                                                                    {approval.reason
-                                                                        ? ` — ${approval.reason}`
-                                                                        : null}
-                                                                </li>
-                                                            ),
-                                                        )}
-                                                    </ul>
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            disabled={
-                                                                actionsLocked
-                                                            }
-                                                            onClick={() =>
-                                                                onResolveApprovals(
-                                                                    message.id,
-                                                                    true,
-                                                                )
-                                                            }
-                                                        >
-                                                            Approve
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="outline"
-                                                            disabled={
-                                                                actionsLocked
-                                                            }
-                                                            onClick={() =>
-                                                                onResolveApprovals(
-                                                                    message.id,
-                                                                    false,
-                                                                )
-                                                            }
-                                                        >
-                                                            Reject
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ) : null}
-                                            {isLastMessage && onSuggestedAction
-                                                ? (() => {
-                                                      const toolNames =
-                                                          message.toolNames ??
-                                                          message.tool_calls
-                                                              ?.map(
-                                                                  (toolCall) =>
-                                                                      toolCall.name ??
-                                                                      toolCall
-                                                                          .function
-                                                                          ?.name,
-                                                              )
-                                                              .filter(
-                                                                  (
-                                                                      name,
-                                                                  ): name is string =>
-                                                                      Boolean(
-                                                                          name,
-                                                                      ),
-                                                              ) ??
-                                                          [];
-                                                      const actions =
-                                                          suggestedActionsForTools(
-                                                              toolNames,
-                                                          );
-
-                                                      return actions.length >
-                                                          0 ? (
-                                                          <div className="flex flex-wrap gap-2">
-                                                              {actions.map(
-                                                                  (action) => (
-                                                                      <Button
-                                                                          key={
-                                                                              action.label
-                                                                          }
-                                                                          type="button"
-                                                                          size="sm"
-                                                                          variant="outline"
-                                                                          className="h-7 rounded-full text-xs"
-                                                                          onClick={() =>
-                                                                              onSuggestedAction(
-                                                                                  action.prompt,
-                                                                              )
-                                                                          }
-                                                                      >
-                                                                          {
-                                                                              action.label
-                                                                          }
-                                                                      </Button>
-                                                                  ),
-                                                              )}
-                                                          </div>
-                                                      ) : null;
-                                                  })()
-                                                : null}
-                                        </div>
-                                    )}
-                                </BubbleContent>
-                            </Bubble>
-
-                            {isUser && !isEditing ? (
-                                <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
-                                    <UserMessageActions
-                                        content={message.content}
-                                        disabled={actionsLocked}
-                                        onEdit={() => onStartEdit(message)}
-                                    />
-                                </MessageFooter>
-                            ) : null}
-
-                            {!isUser &&
-                            !isEmptyAssistant &&
-                            !message.isError ? (
-                                <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
-                                    <AssistantMessageActions
-                                        content={message.content}
-                                        disabled={actionsLocked}
-                                        onRegenerate={() =>
-                                            onRegenerate(message.id)
-                                        }
-                                    />
-                                </MessageFooter>
-                            ) : null}
-                        </MessageContent>
-                    </Message>
+                            />
+                        ) : (
+                            <AssistantMessage
+                                message={message}
+                                isLastMessage={isLastMessage}
+                                isStreaming={isStreaming && isLastMessage}
+                                actionsLocked={actionsLocked}
+                                onRegenerate={(options) =>
+                                    onRegenerate(message.id, options)
+                                }
+                                onSuggestedAction={onSuggestedAction}
+                                onResolveApprovals={
+                                    onResolveApprovals
+                                        ? (approved) =>
+                                              onResolveApprovals(
+                                                  message.id,
+                                                  approved,
+                                              )
+                                        : undefined
+                                }
+                            />
+                        )}
+                    </MessageScrollerItem>
                 );
             })}
         </>
+    );
+}
+
+/** Copy with a check mark for two seconds; a toast only when copying fails. */
+function CopyAction({
+    content,
+    disabled,
+}: {
+    content: string;
+    disabled: boolean;
+}) {
+    const { t } = useTranslation();
+    const [isCopied, setIsCopied] = useState(false);
+    const resetTimerRef = useRef<number | null>(null);
+
+    useEffect(
+        () => () => {
+            if (resetTimerRef.current !== null) {
+                window.clearTimeout(resetTimerRef.current);
+            }
+        },
+        [],
+    );
+
+    const handleCopy = async (): Promise<void> => {
+        if (!(await copyTextToClipboard(content))) {
+            toast.error(t('ai.copyFailed'));
+
+            return;
+        }
+
+        setIsCopied(true);
+
+        if (resetTimerRef.current !== null) {
+            window.clearTimeout(resetTimerRef.current);
+        }
+
+        resetTimerRef.current = window.setTimeout(
+            () => setIsCopied(false),
+            COPY_FEEDBACK_MS,
+        );
+    };
+
+    return (
+        <MessageAction
+            tooltip={isCopied ? t('ai.actions.copied') : t('ai.actions.copy')}
+            className="text-muted-foreground"
+            disabled={disabled || content.trim() === ''}
+            onClick={() => void handleCopy()}
+        >
+            {isCopied ? <Check aria-hidden /> : <Copy aria-hidden />}
+        </MessageAction>
+    );
+}
+
+function UserMessage({
+    message,
+    isEditing,
+    editingDraft,
+    actionsLocked,
+    onEditingDraftChange,
+    onCancelEdit,
+    onStartEdit,
+    onResendEdited,
+}: {
+    message: AiChatMessageView;
+    isEditing: boolean;
+    editingDraft: string;
+    actionsLocked: boolean;
+    onEditingDraftChange: (value: string) => void;
+    onCancelEdit: () => void;
+    onStartEdit: () => void;
+    onResendEdited: () => void;
+}) {
+    const { t } = useTranslation();
+    const attachments = message.attachments ?? [];
+
+    return (
+        <Message align="end">
+            <MessageContent>
+                {attachments.length > 0 && !isEditing ? (
+                    <MessageHeader>
+                        <AttachmentGroup>
+                            {attachments.map((attachment) => (
+                                <Attachment
+                                    key={attachment.id ?? attachment.name}
+                                    size="xs"
+                                >
+                                    <AttachmentMedia>
+                                        <Paperclip />
+                                    </AttachmentMedia>
+                                    <AttachmentContent>
+                                        <AttachmentTitle>
+                                            {attachment.name}
+                                        </AttachmentTitle>
+                                    </AttachmentContent>
+                                </Attachment>
+                            ))}
+                        </AttachmentGroup>
+                    </MessageHeader>
+                ) : null}
+                <Bubble variant="muted" align="end">
+                    <BubbleContent className="text-foreground">
+                        {isEditing ? (
+                            <div className="flex min-w-[16rem] flex-col gap-2">
+                                <Textarea
+                                    value={editingDraft}
+                                    rows={3}
+                                    aria-label={t('ai.messageAria')}
+                                    className="bg-background"
+                                    onChange={(event) =>
+                                        onEditingDraftChange(event.target.value)
+                                    }
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={onCancelEdit}
+                                    >
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={onResendEdited}
+                                    >
+                                        {t('ai.sendAgain')}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="whitespace-pre-wrap">
+                                {message.content}
+                            </div>
+                        )}
+                    </BubbleContent>
+                </Bubble>
+                {!isEditing ? (
+                    <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
+                        <MessageActions>
+                            <MessageAction
+                                tooltip={t('ai.actions.edit')}
+                                className="text-muted-foreground"
+                                disabled={actionsLocked}
+                                onClick={onStartEdit}
+                            >
+                                <Pencil aria-hidden />
+                            </MessageAction>
+                            <CopyAction
+                                content={message.content}
+                                disabled={actionsLocked}
+                            />
+                        </MessageActions>
+                    </MessageFooter>
+                ) : null}
+            </MessageContent>
+        </Message>
+    );
+}
+
+function AssistantMessage({
+    message,
+    isLastMessage,
+    isStreaming,
+    actionsLocked,
+    onRegenerate,
+    onSuggestedAction,
+    onResolveApprovals,
+}: {
+    message: AiChatMessageView;
+    isLastMessage: boolean;
+    /** This message is the answer being streamed. */
+    isStreaming: boolean;
+    actionsLocked: boolean;
+    onRegenerate: (options?: { asRetry?: boolean }) => void;
+    onSuggestedAction?: (prompt: string) => void;
+    onResolveApprovals?: (approved: boolean) => void;
+}) {
+    const { t } = useTranslation();
+    const isEmpty = message.content.trim() === '';
+    const hasParts = (message.parts?.length ?? 0) > 0;
+
+    if (isEmpty && !hasParts && isStreaming && !message.isError) {
+        return (
+            <Message align="start">
+                <Marker role="status">
+                    <MarkerIcon>
+                        <Spinner />
+                    </MarkerIcon>
+                    <MarkerContent>
+                        <Shimmer>{t('ai.thinking')}</Shimmer>
+                    </MarkerContent>
+                </Marker>
+            </Message>
+        );
+    }
+
+    if (message.isError) {
+        return (
+            <Message align="start">
+                <MessageContent>
+                    <Bubble variant="destructive" align="start">
+                        <BubbleContent className="w-full max-w-full">
+                            <div className="flex flex-col gap-2">
+                                <div className="text-sm whitespace-pre-wrap">
+                                    {message.content}
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="w-fit"
+                                    disabled={actionsLocked}
+                                    onClick={() =>
+                                        onRegenerate({ asRetry: true })
+                                    }
+                                >
+                                    <RefreshCw className="size-3.5" />
+                                    {t('ai.retry')}
+                                </Button>
+                            </div>
+                        </BubbleContent>
+                    </Bubble>
+                </MessageContent>
+            </Message>
+        );
+    }
+
+    const pendingApprovals = message.pending_approvals ?? [];
+    const showApprovals = Boolean(
+        onResolveApprovals && isLastMessage && pendingApprovals.length > 0,
+    );
+    const toolNames =
+        message.toolNames ??
+        message.tool_calls
+            ?.map((toolCall) => toolCall.name ?? toolCall.function?.name)
+            .filter((name): name is string => Boolean(name)) ??
+        [];
+    // A turn waiting for approval offers no follow-ups: the only next step is
+    // Reject or Approve, and the suggestions describe what the call has done.
+    const suggestions =
+        isLastMessage && onSuggestedAction && !showApprovals
+            ? suggestedActionsForTools(toolNames)
+            : [];
+
+    return (
+        <Message align="start">
+            <MessageContent>
+                <Bubble variant="ghost" align="start">
+                    <BubbleContent className="flex w-full max-w-full flex-col gap-3">
+                        <AiAnswerParts
+                            parts={message.parts ?? []}
+                            content={message.content}
+                            isStreaming={isStreaming}
+                            hidePendingApprovals={showApprovals}
+                            renderText={renderAnswerText}
+                            describeToolCall={describeAssistantToolCall}
+                        />
+                        <AiAnswerSources sources={message.sources ?? []} />
+                        {message.fileCards && message.fileCards.length > 0 ? (
+                            <AiFileCards files={message.fileCards} />
+                        ) : null}
+                        {showApprovals && onResolveApprovals ? (
+                            <ToolApprovals
+                                approvals={pendingApprovals}
+                                disabled={actionsLocked}
+                                onResolve={onResolveApprovals}
+                            />
+                        ) : null}
+                        {suggestions.length > 0 && onSuggestedAction ? (
+                            <Suggestions>
+                                {suggestions.map((action) => (
+                                    <Suggestion
+                                        key={action.id}
+                                        suggestion={action.prompt}
+                                        onClick={onSuggestedAction}
+                                    >
+                                        {t(`ai.suggestedActions.${action.id}`, {
+                                            defaultValue: action.label,
+                                        })}
+                                    </Suggestion>
+                                ))}
+                            </Suggestions>
+                        ) : null}
+                    </BubbleContent>
+                </Bubble>
+                {!isEmpty ? (
+                    <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
+                        <AssistantActions
+                            content={message.content}
+                            disabled={actionsLocked}
+                            onRegenerate={() => onRegenerate()}
+                        />
+                        <AssistantUsage usage={message.usage} />
+                    </MessageFooter>
+                ) : null}
+            </MessageContent>
+        </Message>
+    );
+}
+
+/**
+ * Markdown for an answer's text and reasoning parts (Streamdown, loaded
+ * lazily): animated while that text still streams, static otherwise. The
+ * plain text shows until the renderer has loaded.
+ */
+const renderAnswerText: AiAnswerTextRenderer = (text, { isLive }) => (
+    <Suspense fallback={<div className="whitespace-pre-wrap">{text}</div>}>
+        <MessageResponse
+            mode={isLive ? 'streaming' : 'static'}
+            isAnimating={isLive}
+        >
+            {text}
+        </MessageResponse>
+    </Suspense>
+);
+
+/** Token usage of the turn against the provider's context window. */
+function AssistantUsage({ usage }: { usage: AiUsage | null | undefined }) {
+    const { status } = useAiAvailability();
+
+    return (
+        <AiAnswerUsage
+            usage={usage}
+            maxTokens={status.context_window ?? null}
+        />
+    );
+}
+
+function AssistantActions({
+    content,
+    disabled,
+    onRegenerate,
+}: {
+    content: string;
+    disabled: boolean;
+    onRegenerate: () => void;
+}) {
+    const { t } = useTranslation();
+
+    const handleSpeak = (): void => {
+        try {
+            speakText(content);
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('ai.speechUnavailable'),
+            );
+        }
+    };
+
+    const handleExportPdf = (): void => {
+        try {
+            exportTextAsPdf(t('ai.assistantMessagePdfTitle'), content);
+        } catch (error) {
+            toast.error(
+                error instanceof Error ? error.message : t('ai.pdfFailed'),
+            );
+        }
+    };
+
+    return (
+        <MessageActions className="gap-0.5">
+            <CopyAction content={content} disabled={disabled} />
+            <MessageAction
+                tooltip={t('ai.regenerate')}
+                className="text-muted-foreground"
+                disabled={disabled}
+                onClick={onRegenerate}
+            >
+                <RefreshCw aria-hidden />
+            </MessageAction>
+            <MessageAction
+                tooltip={t('ai.exportPdf')}
+                className="text-muted-foreground"
+                disabled={disabled}
+                onClick={handleExportPdf}
+            >
+                <FileDown aria-hidden />
+            </MessageAction>
+            <MessageAction
+                tooltip={t('ai.readAloud')}
+                className="text-muted-foreground"
+                disabled={disabled}
+                onClick={handleSpeak}
+            >
+                <Volume2 aria-hidden />
+            </MessageAction>
+        </MessageActions>
+    );
+}
+
+/**
+ * A turn paused for tool approval, as one AI Elements `Confirmation` (on
+ * `Item`): the sentence the call's line will show and the record it touches
+ * (several calls: the question, with their sentences listed). Approve is red
+ * only when a call deletes data, and the hint then says so; the server's own
+ * reason text is never shown. The server resumes the calls together, so
+ * Reject / Approve answer all of them.
+ */
+function ToolApprovals({
+    approvals,
+    disabled,
+    onResolve,
+}: {
+    approvals: AiPendingApproval[];
+    disabled: boolean;
+    onResolve: (approved: boolean) => void;
+}) {
+    const { t } = useTranslation();
+    const sentences = approvals.map((approval) => {
+        const call = describeAssistantToolCall(
+            {
+                name: approval.tool,
+                input: approval.arguments ?? {},
+                state: 'approval-requested',
+            },
+            t,
+        );
+
+        return call.description
+            ? `${call.title}: ${call.description}`
+            : call.title;
+    });
+    const isDestructive = approvals.some(isDestructiveApproval);
+    const hint = t(
+        isDestructive ? 'ai.approval.destructiveHint' : 'ai.approval.hint',
+    );
+
+    return (
+        <Confirmation
+            title={
+                sentences.length === 1
+                    ? sentences[0]
+                    : t('ai.approval.question')
+            }
+            description={
+                sentences.length === 1
+                    ? hint
+                    : `${sentences.join('; ')}. ${hint}`
+            }
+            disabled={disabled}
+            isDestructive={isDestructive}
+            onApprove={() => onResolve(true)}
+            onDeny={() => onResolve(false)}
+        />
     );
 }

@@ -8,7 +8,24 @@ use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => [
+            'ManageCollections',
+            'ManageCollectionItems',
+            'ImportCollectionCsv',
+            'ImportRemoteJson',
+            'ManageAiSyncSources',
+            'RollbackLastAiTurn',
+            'ManageFiles',
+            'ManageUsers',
+            'ManageRoles',
+            'ManageGroups',
+            'ExtractPdfText',
+        ],
+    ]);
     $this->seed(PermissionSeeder::class);
+    $this->withoutVite();
 });
 
 test('super-permission user can open ai page collections and trashed filter', function () {

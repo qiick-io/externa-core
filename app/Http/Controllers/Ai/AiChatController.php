@@ -9,6 +9,7 @@ use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\AiChatAttachment;
 use App\Models\User;
+use App\Services\Ai\AiConversationContextService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 use Laravel\Ai\Approvals\Decisions;
@@ -61,6 +62,12 @@ class AiChatController extends Controller
             'conversation_id' => [$isResume ? 'required' : 'nullable', 'string', 'uuid'],
             'attachment_ids' => ['nullable', 'array', 'max:5'],
             'attachment_ids.*' => ['uuid'],
+            'context_item_ids' => ['nullable', 'array', 'max:'.AiConversationContextService::MAX_ITEMS],
+            'context_item_ids.*' => ['integer', 'min:1'],
+            'context_file_ids' => ['nullable', 'array', 'max:'.AiConversationContextService::MAX_FILES],
+            'context_file_ids.*' => ['integer', 'min:1'],
+            'context_prompt_ids' => ['nullable', 'array', 'max:'.AiConversationContextService::MAX_PROMPTS],
+            'context_prompt_ids.*' => ['integer', 'min:1'],
             'approvals' => ['nullable', 'array', 'max:20'],
             'approvals.*.id' => ['required', 'string', 'max:255'],
             'approvals.*.approved' => ['required', 'boolean'],
@@ -91,8 +98,17 @@ class AiChatController extends Controller
 
         $attachments = $this->resolveAttachments($user, $validated['attachment_ids'] ?? []);
 
+        $context = app(AiConversationContextService::class)->resolveForSend(
+            $user,
+            $request,
+            array_map('intval', $validated['context_item_ids'] ?? []),
+            array_map('intval', $validated['context_file_ids'] ?? []),
+            array_map('intval', $validated['context_prompt_ids'] ?? []),
+        );
+
         $displayMessage = $validated['message'];
-        $prompt = $this->promptWithAttachmentContext($displayMessage, $attachments);
+        $prompt = $this->promptWithAttachmentContext($displayMessage, $attachments)
+            .$context['prompt_suffix'];
         $providerAttachments = $this->providerAttachments();
 
         AiActivityLogger::prompt($user, $displayMessage, $conversationId);
@@ -105,16 +121,18 @@ class AiChatController extends Controller
             $agent->forUser($user);
         }
 
-        $displayAttachmentMeta = $attachments
-            ->map(fn (AiChatAttachment $attachment): array => [
-                'type' => 'ai-chat-file',
-                'id' => $attachment->id,
-                'name' => $attachment->original_name,
-                'mime' => $attachment->mime_type,
-                'size' => $attachment->size,
-            ])
-            ->values()
-            ->all();
+        $displayAttachmentMeta = array_values([
+            ...$attachments
+                ->map(fn (AiChatAttachment $attachment): array => [
+                    'type' => 'ai-chat-file',
+                    'id' => $attachment->id,
+                    'name' => $attachment->original_name,
+                    'mime' => $attachment->mime_type,
+                    'size' => $attachment->size,
+                ])
+                ->all(),
+            ...$context['display'],
+        ]);
 
         $stream = $agent
             ->stream($prompt, $providerAttachments)
@@ -207,7 +225,7 @@ class AiChatController extends Controller
         if ($response->hasPendingApprovals()) {
             return $text !== ''
                 ? $text
-                : AiToolTurnSummary::awaitingApproval($response->pendingApprovals->map->toArray()->all());
+                : AiToolTurnSummary::awaitingApproval();
         }
 
         if ($text === '' && $response->toolResults->isNotEmpty()) {

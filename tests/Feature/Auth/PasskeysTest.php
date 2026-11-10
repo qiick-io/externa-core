@@ -3,7 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Responses\PasskeyLoginResponse;
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Auth\HomePath;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
@@ -148,8 +148,8 @@ test('users with only a passkey satisfy two factor required', function () {
     $this->skipUnlessFortifyFeature(Features::twoFactorAuthentication());
     $this->skipUnlessFortifyFeature(Features::passkeys());
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -177,8 +177,8 @@ test('security page hides enforced banner when user has a passkey', function () 
     ]);
     Features::passkeys(['confirmPassword' => true]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -196,7 +196,7 @@ test('security page hides enforced banner when user has a passkey', function () 
         ->get(route('security.edit'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('twoFactorRequired', true)
+            ->where('isTwoFactorRequired', true)
             ->where('twoFactorEnabled', false)
             ->where('twoFactorEnforcedForUser', false)
             ->has('passkeys', 1)
@@ -209,8 +209,8 @@ test('passkey management routes stay reachable when two factor is required', fun
 
     Features::passkeys(['confirmPassword' => true]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Ai\CollectionImportWebhookController;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -40,8 +41,8 @@ class CollectionImportWebhookRequest extends FormRequest
     }
 
     /**
-     * Timing-safe HMAC check over the raw body. Never logs the secret.
-     * Accepts the current token, or a non-expired previous token during grace.
+     * Timing-safe HMAC over `"{timestamp}.{rawBody}"`, skew + replay checks.
+     * Never logs the secret. Accepts current token, or previous during grace.
      */
     private function verifyWebhookSignature(): void
     {
@@ -50,26 +51,55 @@ class CollectionImportWebhookRequest extends FormRequest
         if ($tokens === []) {
             abort(
                 Response::HTTP_UNAUTHORIZED,
-                'Webhook signing is not configured.',
+                __('Webhook signing is not configured.'),
+            );
+        }
+
+        $timestamp = (string) $this->header('X-AI-Webhook-Timestamp', '');
+        if ($timestamp === '' || ! ctype_digit($timestamp)) {
+            abort(
+                Response::HTTP_UNAUTHORIZED,
+                __('Webhook timestamp missing or invalid.'),
+            );
+        }
+
+        $skew = abs(now()->getTimestamp() - (int) $timestamp);
+        if ($skew > CollectionImportWebhookController::TIMESTAMP_TOLERANCE_SECONDS) {
+            abort(
+                Response::HTTP_UNAUTHORIZED,
+                __('Webhook timestamp outside allowed skew.'),
             );
         }
 
         $providedSignature = (string) $this->header('X-AI-Webhook-Signature', '');
         $rawBody = $this->getContent();
 
+        $matched = false;
         foreach ($tokens as $token) {
             if (hash_equals(
-                CollectionImportWebhookController::sign($rawBody, $token),
+                CollectionImportWebhookController::sign($rawBody, $token, $timestamp),
                 $providedSignature,
             )) {
-                return;
+                $matched = true;
+                break;
             }
         }
 
-        abort(
-            Response::HTTP_UNAUTHORIZED,
-            'Invalid webhook signature.',
-        );
+        if (! $matched) {
+            abort(
+                Response::HTTP_UNAUTHORIZED,
+                __('Invalid webhook signature.'),
+            );
+        }
+
+        // Cache signature as nonce for the skew window (reject replays).
+        $nonceKey = 'ai-webhook-nonce:'.hash('sha256', $providedSignature);
+        if (! Cache::add($nonceKey, true, CollectionImportWebhookController::TIMESTAMP_TOLERANCE_SECONDS)) {
+            abort(
+                Response::HTTP_UNAUTHORIZED,
+                __('Webhook replay detected.'),
+            );
+        }
     }
 
     /**

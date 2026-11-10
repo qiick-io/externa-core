@@ -1,8 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
@@ -12,11 +12,17 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import adminRoutes from '@/lib/admin-routes';
 import { STRING_LIMITS } from '@/lib/string-limits';
+import groups from '@/routes/groups';
 import type { AdminGroupRow } from '@/types/admin';
 
 const EMPTY_GROUP_FORM = {
@@ -47,6 +53,7 @@ export function GroupFormDrawer({
     onCancel,
     onSuccess,
 }: GroupFormDrawerProps) {
+    const { t } = useTranslation();
     const form = useForm({ ...EMPTY_GROUP_FORM });
 
     useRegisterUnsavedChanges({
@@ -80,7 +87,7 @@ export function GroupFormDrawer({
             form.reset();
             form.clearErrors();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the drawer opens or the edited group changes; Inertia useForm identity changes every render
     }, [editing, open]);
 
     const submit = (): void => {
@@ -93,28 +100,26 @@ export function GroupFormDrawer({
         };
 
         if (editing) {
-            form.put(adminRoutes.groups.update(editing.id), opts);
+            form.put(groups.update.url(editing.id), opts);
         } else {
-            form.post(adminRoutes.groups.store(), opts);
+            form.post(groups.store.url(), opts);
         }
     };
 
-    const title = editing ? 'Edit group' : 'New group';
+    const title = editing ? t('groups.form.editTitle') : t('groups.newGroup');
 
     return (
         <DrawerContent>
             <DrawerHeader>
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription>
-                    Attach Spatie roles to this group so members inherit admin
-                    permissions and any collection/file ACL tied to those roles.
-                    Prefer groups for large memberships instead of assigning
-                    roles user-by-user.
+                    {t('groups.form.description')}
                 </DrawerDescription>
             </DrawerHeader>
 
             <form
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
+                noValidate
                 onSubmit={(e) => {
                     e.preventDefault();
 
@@ -123,65 +128,110 @@ export function GroupFormDrawer({
                     }
                 }}
             >
-                <DrawerBody className="flex flex-col gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="group_name">Name</Label>
-                        <Input
-                            id="group_name"
-                            value={form.data.name}
-                            onChange={(e) =>
-                                form.setData('name', e.target.value)
-                            }
-                            required
-                            maxLength={STRING_LIMITS.NAME}
-                            disabled={readOnly}
-                        />
-                        <InputError message={form.errors.name} />
-                    </div>
+                <DrawerBody>
+                    <FieldGroup className="gap-4">
+                        <Field
+                            data-invalid={form.errors.name ? true : undefined}
+                        >
+                            <FieldLabel htmlFor="group_name">
+                                {t('groups.columns.name')}
+                            </FieldLabel>
+                            <Input
+                                id="group_name"
+                                value={form.data.name}
+                                onChange={(e) =>
+                                    form.setData('name', e.target.value)
+                                }
+                                required
+                                maxLength={STRING_LIMITS.NAME}
+                                disabled={readOnly}
+                                aria-invalid={
+                                    form.errors.name ? true : undefined
+                                }
+                                aria-describedby={
+                                    form.errors.name
+                                        ? 'group-name-error'
+                                        : undefined
+                                }
+                            />
+                            <FieldError id="group-name-error">
+                                {form.errors.name}
+                            </FieldError>
+                        </Field>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="group_description">Description</Label>
-                        <Input
-                            id="group_description"
-                            value={form.data.description}
-                            onChange={(e) =>
-                                form.setData('description', e.target.value)
+                        <Field
+                            data-invalid={
+                                form.errors.description ? true : undefined
                             }
-                            maxLength={STRING_LIMITS.DESCRIPTION}
-                            disabled={readOnly}
-                        />
-                        <InputError message={form.errors.description} />
-                    </div>
+                        >
+                            <FieldLabel htmlFor="group_description">
+                                {t('groups.form.descriptionLabel')}
+                            </FieldLabel>
+                            <Input
+                                id="group_description"
+                                value={form.data.description}
+                                onChange={(e) =>
+                                    form.setData('description', e.target.value)
+                                }
+                                maxLength={STRING_LIMITS.DESCRIPTION}
+                                disabled={readOnly}
+                                aria-invalid={
+                                    form.errors.description ? true : undefined
+                                }
+                                aria-describedby={
+                                    form.errors.description
+                                        ? 'group-description-error'
+                                        : undefined
+                                }
+                            />
+                            <FieldError id="group-description-error">
+                                {form.errors.description}
+                            </FieldError>
+                        </Field>
 
-                    <div className="grid gap-2">
-                        <Label>Roles</Label>
-                        <RoleMultiSelect
-                            value={form.data.role_ids}
-                            onChange={(role_ids) =>
-                                form.setData('role_ids', role_ids)
+                        <Field
+                            data-invalid={
+                                form.errors.role_ids ? true : undefined
                             }
-                            initialRoles={editing?.roles}
-                            disabled={readOnly}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Members inherit these roles’ Spatie permissions and
-                            collection/file access matrices.
-                        </p>
-                        <InputError message={form.errors.role_ids} />
-                    </div>
+                        >
+                            <FieldLabel>{t('groups.columns.roles')}</FieldLabel>
+                            <RoleMultiSelect
+                                value={form.data.role_ids}
+                                onChange={(role_ids) =>
+                                    form.setData('role_ids', role_ids)
+                                }
+                                initialRoles={editing?.roles}
+                                disabled={readOnly}
+                                aria-label={t('groups.columns.roles')}
+                            />
+                            <FieldDescription id="group-role-ids-hint">
+                                {t('groups.form.rolesHint')}
+                            </FieldDescription>
+                            <FieldError id="group-role-ids-error">
+                                {form.errors.role_ids}
+                            </FieldError>
+                        </Field>
 
-                    <div className="grid gap-2">
-                        <Label>Users</Label>
-                        <UserMultiSelect
-                            value={form.data.user_ids}
-                            onChange={(user_ids) =>
-                                form.setData('user_ids', user_ids)
+                        <Field
+                            data-invalid={
+                                form.errors.user_ids ? true : undefined
                             }
-                            initialUsers={editing?.users}
-                            disabled={readOnly}
-                        />
-                        <InputError message={form.errors.user_ids} />
-                    </div>
+                        >
+                            <FieldLabel>{t('groups.form.users')}</FieldLabel>
+                            <UserMultiSelect
+                                value={form.data.user_ids}
+                                onChange={(user_ids) =>
+                                    form.setData('user_ids', user_ids)
+                                }
+                                initialUsers={editing?.users}
+                                disabled={readOnly}
+                                aria-label={t('groups.form.users')}
+                            />
+                            <FieldError id="group-user-ids-error">
+                                {form.errors.user_ids}
+                            </FieldError>
+                        </Field>
+                    </FieldGroup>
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">
@@ -190,11 +240,13 @@ export function GroupFormDrawer({
                         variant="outline"
                         onClick={() => onCancel?.()}
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     {!readOnly && (
                         <Button type="submit" disabled={form.processing}>
-                            {editing ? 'Save' : 'Create'}
+                            {editing
+                                ? t('common.save')
+                                : t('groups.form.create')}
                         </Button>
                     )}
                 </DrawerFooter>

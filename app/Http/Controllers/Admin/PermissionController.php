@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePermissionRequest;
 use App\Http\Requests\Admin\UpdatePermissionRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Resources\Admin\PermissionResource;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ use Spatie\Permission\PermissionRegistrar;
 class PermissionController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
 
     /**
      * List synced permissions with pagination.
@@ -32,7 +34,7 @@ class PermissionController extends Controller
 
         $permissions = Permission::query()
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 15))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         return Inertia::render('admin/permissions/index', [

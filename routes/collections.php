@@ -281,6 +281,14 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.update');
 
+        Route::get('collections/{collection}/fields/{field}/convert-targets', [FieldController::class, 'convertTargets'])
+            ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+            ->name('collections.fields.convert-targets');
+
+        Route::post('collections/{collection}/fields/{field}/convert', [FieldController::class, 'convert'])
+            ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+            ->name('collections.fields.convert');
+
         Route::delete('collections/{collection}/fields/{field}', [FieldController::class, 'destroy'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.destroy');

@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
@@ -39,6 +40,7 @@ import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-a
 import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
 import type { RevisionSnapshot } from '@/components/collections/item-revision-compare-modal';
 import { ItemRevisionsDrawer } from '@/components/collections/item-revisions-drawer';
+import { ShortcutKeys } from '@/components/collections/shortcut-keys';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FilterSearch } from '@/components/layout/page-header';
 import {
@@ -46,8 +48,13 @@ import {
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
+import type { TablePaginationLink } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    ButtonGroup,
+    ButtonGroupSeparator,
+} from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -79,12 +86,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollection } from '@/hooks/use-collection';
-import { formatUserDisplayName } from '@/hooks/use-initials';
 import { useItemPresence } from '@/hooks/use-item-presence';
 import {
     useRegisterUnsavedChanges,
@@ -94,6 +101,8 @@ import AppLayout from '@/layouts/app-layout';
 import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
+import { formatUserDisplayName } from '@/lib/format';
+import { toDatetimeLocalValue } from '@/lib/format';
 import {
     applyItemDraftToForm,
     clearItemDraft,
@@ -118,16 +127,62 @@ type FieldGrant = { read: boolean; create: boolean; update: boolean };
 
 type ItemSaveAction = 'stay' | 'create_new' | 'copy';
 
-function itemSaveShortcut(shift: boolean): string {
+type ItemView = 'fields' | 'activity';
+
+/** Query param that keeps the item's activity view across pagination and history (#465). */
+const ITEM_VIEW_PARAM = 'view';
+
+/**
+ * Read the item view from the page URL (`?view=activity`); anything else is the edit view.
+ * @param {string} pageUrl - Inertia page URL (path + query).
+ * @returns {ItemView}
+ */
+function readItemViewParam(pageUrl: string): ItemView {
+    const queryIndex = pageUrl.indexOf('?');
+
+    if (queryIndex === -1) {
+        return 'fields';
+    }
+
+    return new URLSearchParams(pageUrl.slice(queryIndex + 1)).get(
+        ITEM_VIEW_PARAM,
+    ) === 'activity'
+        ? 'activity'
+        : 'fields';
+}
+
+/**
+ * Pin activity pagination links to the activity view. The server builds them
+ * on first load, before a client-side switch to `?view=activity`.
+ * @param {TablePaginationLink[]} links - Laravel paginator links.
+ * @returns {TablePaginationLink[]}
+ */
+function withActivityViewParam(
+    links: TablePaginationLink[],
+): TablePaginationLink[] {
+    return links.map((link) => {
+        if (link.url === null) {
+            return link;
+        }
+
+        const linkUrl = new URL(link.url, window.location.origin);
+        linkUrl.searchParams.set(ITEM_VIEW_PARAM, 'activity');
+
+        return { ...link, url: `${linkUrl.pathname}${linkUrl.search}` };
+    });
+}
+
+/** Keys of the save shortcut, one entry per key cap. */
+function itemSaveShortcut(shift: boolean): string[] {
     const isMac =
         typeof navigator !== 'undefined' &&
         /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
     if (isMac) {
-        return shift ? '⌘⇧S' : '⌘S';
+        return shift ? ['⌘', '⇧', 'S'] : ['⌘', 'S'];
     }
 
-    return shift ? 'Ctrl+Shift+S' : 'Ctrl+S';
+    return shift ? ['Ctrl', 'Shift', 'S'] : ['Ctrl', 'S'];
 }
 
 function setItemSaveAction(action: ItemSaveAction): HTMLFormElement | null {
@@ -170,22 +225,6 @@ type ItemPayload = {
  * Create or edit a collection item.
  * @returns {JSX.Element}
  */
-
-function toDatetimeLocalValue(iso: string | null | undefined): string {
-    if (!iso) {
-        return '';
-    }
-
-    const date = new Date(iso);
-
-    if (Number.isNaN(date.getTime())) {
-        return '';
-    }
-
-    const pad = (n: number) => String(n).padStart(2, '0');
-
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function fromDatetimeLocalValue(local: string): string {
     const date = new Date(local);
@@ -231,6 +270,33 @@ export default function ItemsForm({
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
         : null;
+    const activeTab: ItemView =
+        !isNew && item !== null ? readItemViewParam(page.url) : 'fields';
+
+    /**
+     * Switch between the edit and activity views through the `view` query
+     * param, so activity pagination (its links keep the query string) and
+     * back/forward stay on the chosen view. Client-side push, no request.
+     */
+    const selectItemView = useCallback(
+        (view: ItemView) => {
+            const nextUrl = new URL(page.url, window.location.origin);
+
+            if (view === 'activity') {
+                nextUrl.searchParams.set(ITEM_VIEW_PARAM, 'activity');
+            } else {
+                nextUrl.searchParams.delete(ITEM_VIEW_PARAM);
+                nextUrl.searchParams.delete('page');
+            }
+
+            router.push({
+                url: `${nextUrl.pathname}${nextUrl.search}`,
+                preserveState: true,
+                preserveScroll: true,
+            });
+        },
+        [page.url],
+    );
     const listHref = useMemo(() => {
         const fromReturn = readReturnParam(page.url);
 
@@ -263,7 +329,6 @@ export default function ItemsForm({
     const [draftBanner, setDraftBanner] = useState(
         () => initialDraft !== null && Object.keys(initialDraft).length > 0,
     );
-    const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const [revisionsOpen, setRevisionsOpen] = useState(false);
@@ -303,8 +368,9 @@ export default function ItemsForm({
     const versioningEnabled = Boolean(collection.versioning);
     const approvalsRequired = Boolean(collection.approvals_required);
     const approvalStatus = item?.approval_status ?? 'draft';
+    // A new item has no published version yet; treating it as one made the create form read-only.
     const viewingPublished =
-        versioningEnabled && contentVersion === 'published';
+        versioningEnabled && !isNew && contentVersion === 'published';
     const hasServerDraft = Boolean(item?.has_draft);
     // ponytail: treat any set publish_at as Scheduled; due rows clear via scheduler
     const isScheduled = Boolean(item?.publish_at);
@@ -765,11 +831,11 @@ export default function ItemsForm({
 
     const lastCrumb: BreadcrumbItem = isNew
         ? {
-              title: 'New item',
+              title: t('collections.items.list.newItem'),
               href: collections.items.new.url(collection.id),
           }
         : {
-              title: `Item #${item!.id}`,
+              title: t('nav.itemNumber', { id: item!.id }),
               href: collections.items.show.url({
                   collection: collection.id,
                   item: item!.id,
@@ -779,7 +845,7 @@ export default function ItemsForm({
     const breadcrumbs: BreadcrumbItem[] = [
         ...collectionBreadcrumbs,
         {
-            title: 'Items',
+            title: t('nav.items'),
             href: listHref,
         },
         lastCrumb,
@@ -835,9 +901,9 @@ export default function ItemsForm({
                         >
                             <MessageCircle className="size-4" />
                             {chatCount > 0 ? (
-                                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                                <Badge className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full px-1 tabular-nums">
                                     {chatCount > 9 ? '9+' : chatCount}
-                                </span>
+                                </Badge>
                             ) : null}
                         </HeaderIconButton>
                     )}
@@ -886,14 +952,10 @@ export default function ItemsForm({
                         className="flex items-center gap-2"
                     />
                     {hasFields && !formReadonly && (
-                        <div
-                            className="flex items-stretch"
-                            data-test="item-save-split"
-                        >
+                        <ButtonGroup data-test="item-save-split">
                             <Button
                                 type="submit"
                                 form={COLLECTION_ITEM_FORM_ID}
-                                className="h-9 rounded-r-none"
                                 onClick={() => setItemSaveAction('stay')}
                             >
                                 <Save className="size-4" />
@@ -904,11 +966,12 @@ export default function ItemsForm({
                                       ? t('collections.itemSave.saveDraft')
                                       : t('collections.itemSave.save')}
                             </Button>
+                            <ButtonGroupSeparator className="bg-primary-foreground/25" />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
-                                        className="h-9 rounded-l-none border-l border-primary-foreground/25 px-2"
+                                        size="icon"
                                         aria-label={t(
                                             'collections.itemSave.more',
                                         )}
@@ -924,7 +987,9 @@ export default function ItemsForm({
                                         <Check className="size-4" />
                                         {t('collections.itemSave.stay')}
                                         <DropdownMenuShortcut>
-                                            {itemSaveShortcut(false)}
+                                            <ShortcutKeys
+                                                keys={itemSaveShortcut(false)}
+                                            />
                                         </DropdownMenuShortcut>
                                     </DropdownMenuItem>
                                     {showCreateNew ? (
@@ -938,7 +1003,11 @@ export default function ItemsForm({
                                                 'collections.itemSave.createNew',
                                             )}
                                             <DropdownMenuShortcut>
-                                                {itemSaveShortcut(true)}
+                                                <ShortcutKeys
+                                                    keys={itemSaveShortcut(
+                                                        true,
+                                                    )}
+                                                />
                                             </DropdownMenuShortcut>
                                         </DropdownMenuItem>
                                     ) : null}
@@ -959,7 +1028,7 @@ export default function ItemsForm({
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </div>
+                        </ButtonGroup>
                     )}
                 </>
             }
@@ -968,16 +1037,22 @@ export default function ItemsForm({
 
             <PageLayout
                 filters={
-                    activeTab === 'fields' && hasFields ? (
+                    hasFields ? (
+                        // Activity view keeps the slot (invisible, out of the tab order) so the sub-header controls don't move (#465).
                         <FilterSearch
                             value={fieldSearch}
                             onChange={setFieldSearch}
-                            placeholder="Search fields…"
+                            placeholder={t('collections.searchFields')}
+                            className={
+                                activeTab === 'activity'
+                                    ? 'invisible'
+                                    : undefined
+                            }
                         />
                     ) : undefined
                 }
                 filtersRight={
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                         {!isNew && item !== null && versioningEnabled && (
                             <>
                                 {/* Status on published view only — on draft, select label carries it. */}
@@ -1035,8 +1110,7 @@ export default function ItemsForm({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="h-9 w-auto min-w-0 gap-1 px-2.5 text-xs"
+                                        className="w-auto min-w-0"
                                         data-test="content-version-select"
                                     >
                                         <SelectValue />
@@ -1069,9 +1143,7 @@ export default function ItemsForm({
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
-                                        size="sm"
                                         variant="outline"
-                                        className="h-9 gap-1 px-2.5 text-xs"
                                         data-test="item-version-actions"
                                     >
                                         <ListChecks className="size-4" />
@@ -1194,13 +1266,6 @@ export default function ItemsForm({
                                                 ? 'items-start'
                                                 : undefined
                                         }
-                                        title={
-                                            publishBlockedByApproval
-                                                ? t(
-                                                      'collections.itemToolbar.approveBeforePublish',
-                                                  )
-                                                : undefined
-                                        }
                                         data-test="publish-item"
                                         onClick={() => {
                                             if (publishBlockedByApproval) {
@@ -1256,8 +1321,7 @@ export default function ItemsForm({
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="default"
-                                        className="h-9 min-h-9 gap-1.5 px-2"
+                                        className="px-3"
                                         data-test="item-form-locale"
                                         data-locale={globalLocale}
                                     >
@@ -1347,29 +1411,25 @@ export default function ItemsForm({
                             <ToggleGroup
                                 type="single"
                                 variant="outline"
-                                size="default"
                                 value={activeTab}
-                                className="h-9"
                                 onValueChange={(value) => {
                                     if (
                                         value === 'fields' ||
                                         value === 'activity'
                                     ) {
-                                        setActiveTab(value);
+                                        selectItemView(value);
                                     }
                                 }}
                             >
                                 <ToggleGroupItem
                                     value="fields"
-                                    aria-label="Fields"
-                                    className="h-9 px-2.5"
+                                    aria-label={t('a11y.fieldsPanel')}
                                 >
                                     <ScrollText className="size-4" />
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="activity"
-                                    aria-label="Activity"
-                                    className="h-9 px-2.5"
+                                    aria-label={t('a11y.activityPanel')}
                                 >
                                     <History className="size-4" />
                                 </ToggleGroupItem>
@@ -1381,13 +1441,12 @@ export default function ItemsForm({
             >
                 {draftBanner && (
                     <div
-                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
                         data-test="item-draft-banner"
                     >
-                        <span>Restored unsaved browser draft.</span>
+                        <span>{t('collections.items.form.draftRestored')}</span>
                         <Button
                             type="button"
-                            size="sm"
                             variant="outline"
                             data-test="discard-item-draft"
                             onClick={() => {
@@ -1397,14 +1456,14 @@ export default function ItemsForm({
                                 setFormKey((key) => key + 1);
                             }}
                         >
-                            Discard browser draft
+                            {t('collections.items.form.discardDraft')}
                         </Button>
                     </div>
                 )}
 
                 {!isNew && item !== null && remoteStale ? (
                     <div
-                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
                         data-test="item-stale-banner"
                     >
                         <span>
@@ -1412,7 +1471,6 @@ export default function ItemsForm({
                         </span>
                         <Button
                             type="button"
-                            size="sm"
                             variant="outline"
                             data-test="item-stale-reload"
                             onClick={() => router.reload()}
@@ -1428,7 +1486,7 @@ export default function ItemsForm({
                 canEditItem &&
                 item.schedule_error ? (
                     <div
-                        className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+                        className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-3 text-sm text-destructive"
                         data-test="item-schedule-failure"
                         role="alert"
                     >
@@ -1451,9 +1509,10 @@ export default function ItemsForm({
                 {!isNew &&
                     item !== null &&
                     versioningEnabled &&
-                    canEditItem && (
+                    canEditItem &&
+                    activeTab === 'fields' && (
                         <div
-                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-2.5 text-sm dark:border-sidebar-border"
+                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-3 text-sm dark:border-sidebar-border"
                             data-test="item-schedule-panel"
                         >
                             {viewingPublished ? (
@@ -1480,7 +1539,7 @@ export default function ItemsForm({
                                         />
                                     ) : (
                                         <span
-                                            className="flex h-9 min-w-[12.5rem] items-center text-sm text-muted-foreground"
+                                            className="flex h-control min-w-[12.5rem] items-center text-sm text-muted-foreground"
                                             data-test="schedule-already-published"
                                         >
                                             {t(
@@ -1527,9 +1586,7 @@ export default function ItemsForm({
                             </label>
                             <Button
                                 type="button"
-                                size="sm"
                                 variant="secondary"
-                                className="text-xs"
                                 disabled={scheduling}
                                 data-test="schedule-save"
                                 onClick={() => {
@@ -1567,9 +1624,7 @@ export default function ItemsForm({
                                 : item.publish_at || item.unpublish_at) && (
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
-                                    className="text-xs"
                                     disabled={scheduling}
                                     data-test="schedule-clear"
                                     onClick={() => {
@@ -1591,16 +1646,24 @@ export default function ItemsForm({
                     )}
 
                 {!hasFields && (
-                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
-                        No fields yet.{' '}
-                        <Link
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={FieldController.index.url(collection.id)}
-                        >
-                            Add fields
-                        </Link>{' '}
-                        before entering content.
-                    </p>
+                    <PageEmptyState
+                        icon={Rows3}
+                        title={t('emptyState.fields.title')}
+                        description={t('emptyState.fields.description')}
+                        action={
+                            <Button asChild>
+                                <Link
+                                    href={FieldController.index.url(
+                                        collection.id,
+                                    )}
+                                >
+                                    {t('emptyState.fields.cta')}
+                                </Link>
+                            </Button>
+                        }
+                        docsHref="https://docs.externa.qiick.io"
+                        docsLabel={t('common.learnMore')}
+                    />
                 )}
 
                 {hasFields && (
@@ -1743,7 +1806,7 @@ export default function ItemsForm({
                                                 />
                                                 {formReadonly ? (
                                                     <p
-                                                        className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                                                        className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
                                                         data-test={
                                                             presence.lockedByOther
                                                                 ? 'item-soft-lock-banner'
@@ -1801,7 +1864,9 @@ export default function ItemsForm({
                                             <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Created by
+                                                        {t(
+                                                            'collections.columnPicker.createdBy',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.user_created
@@ -1810,7 +1875,9 @@ export default function ItemsForm({
                                                 </div>
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Updated by
+                                                        {t(
+                                                            'collections.columnPicker.updatedBy',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.user_updated
@@ -1819,7 +1886,9 @@ export default function ItemsForm({
                                                 </div>
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Created at
+                                                        {t(
+                                                            'collections.columnPicker.createdAt',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.created_at
@@ -1831,7 +1900,9 @@ export default function ItemsForm({
                                                 </div>
                                                 <div>
                                                     <dt className="font-medium text-foreground">
-                                                        Updated at
+                                                        {t(
+                                                            'collections.columnPicker.updatedAt',
+                                                        )}
                                                     </dt>
                                                     <dd>
                                                         {item.updated_at
@@ -1848,10 +1919,10 @@ export default function ItemsForm({
                                                 activityLogs &&
                                                 activityLogs.last_page > 1 ? (
                                                     <TablePagination
-                                                        links={
+                                                        links={withActivityViewParam(
                                                             activityLogs.links ??
-                                                            []
-                                                        }
+                                                                [],
+                                                        )}
                                                     />
                                                 ) : undefined
                                             }
@@ -1860,16 +1931,24 @@ export default function ItemsForm({
                                                 <TableHeader>
                                                     <TableRow>
                                                         <TableHead>
-                                                            Date
+                                                            {t(
+                                                                'activityLog.columns.date',
+                                                            )}
                                                         </TableHead>
                                                         <TableHead>
-                                                            User
+                                                            {t(
+                                                                'activityLog.columns.user',
+                                                            )}
                                                         </TableHead>
                                                         <TableHead>
-                                                            Action
+                                                            {t(
+                                                                'activityLog.columns.action',
+                                                            )}
                                                         </TableHead>
                                                         <TableHead>
-                                                            Description
+                                                            {t(
+                                                                'activityLog.columns.description',
+                                                            )}
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
@@ -1882,8 +1961,9 @@ export default function ItemsForm({
                                                                 colSpan={4}
                                                                 className="text-muted-foreground"
                                                             >
-                                                                No activity
-                                                                recorded yet.
+                                                                {t(
+                                                                    'collections.items.form.noActivity',
+                                                                )}
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : (
@@ -1894,7 +1974,7 @@ export default function ItemsForm({
                                                             <TableRow
                                                                 key={row.id}
                                                             >
-                                                                <TableCell className="text-sm whitespace-nowrap">
+                                                                <TableCell className="text-sm whitespace-nowrap tabular-nums">
                                                                     {row.created_at
                                                                         ? new Date(
                                                                               row.created_at,
@@ -1921,7 +2001,9 @@ export default function ItemsForm({
                                                                         </div>
                                                                     ) : (
                                                                         <span className="text-sm text-muted-foreground">
-                                                                            System
+                                                                            {t(
+                                                                                'activityLog.system',
+                                                                            )}
                                                                         </span>
                                                                     )}
                                                                 </TableCell>
@@ -2007,8 +2089,10 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={deleteOpen}
                     onOpenChange={setDeleteOpen}
-                    title="Delete item?"
-                    description="This item will be soft-deleted and removed from the active list."
+                    title={t('itemConfirm.deleteTitle', {
+                        name: `#${item.id}`,
+                    })}
+                    description={t('itemConfirm.deleteDescription')}
                     confirming={deleting}
                     onConfirm={() => {
                         setDeleting(true);
@@ -2030,31 +2114,36 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={rejectOpen}
                     onOpenChange={setRejectOpen}
-                    title="Reject draft?"
+                    title={t('itemConfirm.rejectDraftTitle', {
+                        name: `#${item.id}`,
+                    })}
                     description={
                         <div className="grid gap-2 pt-1 text-left">
                             <p className="text-sm text-muted-foreground">
-                                Explain what the editor should fix before
-                                resubmitting.
+                                {t('collections.items.form.rejectHint')}
                             </p>
-                            <textarea
-                                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            <Textarea
+                                className="min-h-24"
                                 value={rejectNote}
                                 onChange={(event) =>
                                     setRejectNote(event.target.value)
                                 }
                                 data-test="rejection-note"
-                                placeholder="Rejection note"
+                                placeholder={t(
+                                    'collections.items.form.rejectionNote',
+                                )}
                             />
                             {item.rejection_note &&
                             approvalStatus === 'rejected' ? (
                                 <p className="text-xs text-muted-foreground">
-                                    Previous note: {item.rejection_note}
+                                    {t('collections.items.form.previousNote', {
+                                        note: item.rejection_note,
+                                    })}
                                 </p>
                             ) : null}
                         </div>
                     }
-                    confirmLabel="Reject"
+                    confirmLabel={t('collections.itemToolbar.reject')}
                     confirming={rejecting}
                     onConfirm={() => {
                         if (rejectNote.trim() === '') {
@@ -2083,9 +2172,11 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={publishOpen}
                     onOpenChange={setPublishOpen}
-                    title="Publish draft?"
-                    description="Promote unpublished draft into published values. Draft workspace will clear."
-                    confirmLabel="Publish"
+                    title={t('itemConfirm.publishDraftTitle', {
+                        name: `#${item.id}`,
+                    })}
+                    description={t('itemConfirm.publishDraftDescription')}
+                    confirmLabel={t('collections.itemToolbar.publish')}
                     confirming={publishing}
                     onConfirm={() => {
                         setPublishing(true);
@@ -2110,9 +2201,11 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={discardDraftOpen}
                     onOpenChange={setDiscardDraftOpen}
-                    title="Discard draft?"
-                    description="Drop unpublished draft. Published values stay unchanged."
-                    confirmLabel="Discard draft"
+                    title={t('itemConfirm.discardDraftTitle', {
+                        name: `#${item.id}`,
+                    })}
+                    description={t('itemConfirm.discardDraftDescription')}
+                    confirmLabel={t('collections.itemToolbar.discardDraft')}
                     confirming={discardingDraft}
                     onConfirm={() => {
                         setDiscardingDraft(true);

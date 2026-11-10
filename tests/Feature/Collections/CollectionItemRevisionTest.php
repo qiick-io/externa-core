@@ -9,10 +9,10 @@ use App\Models\CollectionItemRevision;
 use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
@@ -32,8 +32,8 @@ test('item sync records a revision and restore rewrites data', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'v1'], true));
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'v2'], false));
@@ -57,7 +57,7 @@ test('item sync records a revision and restore rewrites data', function () {
     $this->post(route('collections.items.revisions.restore', [$collection, $item, $first]))
         ->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['title'])->toBe('v1');
 });
 
@@ -145,8 +145,8 @@ test('content versioning saves draft and publish promotes', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $this->put(route('collections.items.update', [$collection, $item]), [
@@ -156,14 +156,14 @@ test('content versioning saves draft and publish promotes', function () {
 
     $item->refresh();
     expect($item->draft_data['title'] ?? null)->toBe('staging');
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('live');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('live');
 
     $this->post(route('collections.items.publish', [$collection, $item]))
         ->assertRedirect();
 
     $item->refresh();
     expect($item->draft_data)->toBeNull();
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('staging');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('staging');
 });
 
 test('hard restore clears draft when versioning is enabled', function () {
@@ -178,8 +178,8 @@ test('hard restore clears draft when versioning is enabled', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'v1'], true));
     $writer->sync($item->fresh(), $collection, $normalizer->normalize($collection, ['title' => 'v2'], false));
 
@@ -193,7 +193,7 @@ test('hard restore clears draft when versioning is enabled', function () {
 
     $item->refresh();
     expect($item->draft_data)->toBeNull();
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('v1');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('v1');
 });
 
 test('show-only users can list revisions but cannot restore', function () {
@@ -261,15 +261,15 @@ test('restore is blocked when field ACL denies update', function () {
         'allowed' => true,
         'rules' => null,
     ]);
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 
     $user = User::factory()->create();
     $user->syncRoles([$role]);
     $this->actingAs($user);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'now',
         'secret' => 'live',
@@ -285,7 +285,7 @@ test('restore is blocked when field ACL denies update', function () {
     $this->post(route('collections.items.revisions.restore', [$collection, $item, $revision]))
         ->assertSessionHasErrors('data');
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['title'])->toBe('now')
         ->and($assembled['secret'])->toBe('live');
 });
@@ -302,8 +302,8 @@ test('discard draft clears draft_data and leaves published values', function () 
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $item->draft_data = ['title' => 'staging'];
@@ -314,7 +314,7 @@ test('discard draft clears draft_data and leaves published values', function () 
 
     $item->refresh();
     expect($item->draft_data)->toBeNull();
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('live');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('live');
 });
 
 test('discard draft requires edit permission and versioning', function () {
@@ -388,8 +388,8 @@ test('publish records revision meta source publish', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $item->draft_data = ['title' => 'staging'];

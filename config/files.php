@@ -8,8 +8,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Disk used for CMS/user file uploads (file manager, public files API).
-    | Use `assets` (local under storage/app/public/assets) or `s3` (S3/MinIO/R2).
-    | Prepared zip archives stay on the local ephemeral volume (see zip_*).
+    | Use `assets` (local under storage/app/public/assets), `s3` (S3/MinIO/R2),
+    | `gcs` (Google Cloud Storage), or `azure` (Azure Blob). Prepared zip
+    | archives stay on the local ephemeral volume (see zip_*).
     |
     */
 

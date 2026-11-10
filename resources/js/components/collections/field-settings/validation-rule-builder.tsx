@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { FIELD_VALIDATION_OPERATORS } from '@/lib/collection-field-types';
 import type {
     FieldValidationRule,
@@ -17,8 +19,6 @@ type ValidationRuleBuilderProps = {
 
 /**
  * UI for assembling collection field validation rules.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
  */
 export function ValidationRuleBuilder({
     rules,
@@ -26,8 +26,10 @@ export function ValidationRuleBuilder({
     onRulesChange,
     onValidationMessageChange,
 }: ValidationRuleBuilderProps) {
+    const { t } = useTranslation();
+
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <div className="space-y-3">
                 {rules.map((rule, index) => {
                     const meta = FIELD_VALIDATION_OPERATORS.find(
@@ -39,11 +41,15 @@ export function ValidationRuleBuilder({
                             key={index}
                             className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_auto]"
                         >
-                            <div className="grid gap-2">
-                                <Label htmlFor={`validation_operator_${index}`}>
-                                    Operator
-                                </Label>
-                                <select
+                            <Field>
+                                <FieldLabel
+                                    htmlFor={`validation_operator_${index}`}
+                                >
+                                    {t(
+                                        'collections.fieldSettings.rules.operator',
+                                    )}
+                                </FieldLabel>
+                                <NativeSelect
                                     id={`validation_operator_${index}`}
                                     value={rule.operator}
                                     onChange={(event) => {
@@ -53,7 +59,7 @@ export function ValidationRuleBuilder({
                                         next[index] = { operator };
                                         onRulesChange(next);
                                     }}
-                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                                    className="w-full"
                                 >
                                     {FIELD_VALIDATION_OPERATORS.map(
                                         (option) => (
@@ -61,19 +67,27 @@ export function ValidationRuleBuilder({
                                                 key={option.value}
                                                 value={option.value}
                                             >
-                                                {option.label}
+                                                {t(
+                                                    `collections.fieldSettings.rules.operators.${option.value}`,
+                                                    {
+                                                        defaultValue:
+                                                            option.label,
+                                                    },
+                                                )}
                                             </option>
                                         ),
                                     )}
-                                </select>
-                            </div>
+                                </NativeSelect>
+                            </Field>
                             {meta?.needsValue ? (
-                                <div className="grid gap-2">
-                                    <Label
+                                <Field>
+                                    <FieldLabel
                                         htmlFor={`validation_value_${index}`}
                                     >
-                                        Value
-                                    </Label>
+                                        {t(
+                                            'collections.fieldSettings.rules.value',
+                                        )}
+                                    </FieldLabel>
                                     <Input
                                         id={`validation_value_${index}`}
                                         value={
@@ -90,7 +104,7 @@ export function ValidationRuleBuilder({
                                             onRulesChange(next);
                                         }}
                                     />
-                                </div>
+                                </Field>
                             ) : (
                                 <div />
                             )}
@@ -99,7 +113,7 @@ export function ValidationRuleBuilder({
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    aria-label="Remove rule"
+                                    aria-label={t('a11y.removeRule')}
                                     onClick={() =>
                                         onRulesChange(
                                             rules.filter(
@@ -120,7 +134,6 @@ export function ValidationRuleBuilder({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() =>
                     onRulesChange([
                         ...rules,
@@ -128,13 +141,15 @@ export function ValidationRuleBuilder({
                     ])
                 }
             >
-                Add rule
+                {t('collections.fieldSettings.rules.addRule')}
             </Button>
 
             <TranslatedInput
                 idPrefix="validation_message"
-                label="Validation message"
-                description="Optional custom error shown when a rule fails."
+                label={t('collections.fieldSettings.validation.message')}
+                description={t(
+                    'collections.fieldSettings.validation.messageHint',
+                )}
                 value={validationMessage}
                 onChange={onValidationMessageChange}
             />

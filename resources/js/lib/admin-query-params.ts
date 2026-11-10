@@ -20,24 +20,12 @@ export function getQueryParam(pageUrl: string, key: string): string | null {
     return new URLSearchParams(pageUrl.slice(qIndex + 1)).get(key);
 }
 
-/**
- * Replace (or remove) a query param without losing other params.
- * Prefer history.replaceState (see replaceQueryParams).
- */
-export function replaceQueryParam(
-    pageUrl: string,
-    key: string,
-    value: string | null,
-): void {
-    replaceQueryParams(pageUrl, { [key]: value });
-}
-
 /** Set/clear multiple query params without a network round-trip.
  * Drawer/file deep-links only need a shareable URL; an Inertia `router.get`
  * here races open multi-select `fetch()` calls (browser connection limit) and
  * leaves pickers stuck on Loading….
  */
-export function replaceQueryParams(
+function replaceQueryParams(
     pageUrl: string,
     updates: Record<string, string | null>,
 ): void {

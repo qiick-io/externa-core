@@ -1,15 +1,15 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DataTable } from '@/components/admin/data-table';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
+import { PageLayout } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -20,22 +20,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { edit as editProfile } from '@/routes/profile';
+import rolesRoutes from '@/routes/roles';
 import type { AdminRoleRow, BreadcrumbItem, Paginated } from '@/types';
 
 /**
@@ -79,7 +71,7 @@ export default function AdminRolesIndex({
             },
             {
                 title: t('settings.layout.roles'),
-                href: adminRoutes.roles.index(),
+                href: rolesRoutes.index.url(),
             },
         ],
         [t],
@@ -113,7 +105,7 @@ export default function AdminRolesIndex({
         setDuplicateError(null);
 
         router.post(
-            adminRoutes.roles.duplicate(duplicateRoleId),
+            rolesRoutes.duplicate.url(duplicateRoleId),
             { name: trimmed },
             {
                 preserveScroll: true,
@@ -133,13 +125,94 @@ export default function AdminRolesIndex({
         );
     };
 
+    const columns: ColumnDef<AdminRoleRow>[] = [
+        {
+            id: 'name',
+            header: t('roles.columns.name'),
+            meta: { cellClassName: 'font-medium' },
+            cell: ({ row }) => (
+                <span className="inline-flex items-center gap-2">
+                    {row.original.name}
+                    {row.original.is_system && (
+                        <Badge variant="muted">{t('roles.systemBadge')}</Badge>
+                    )}
+                </span>
+            ),
+        },
+        {
+            id: 'permissions',
+            header: t('roles.columns.permissions'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right text-muted-foreground tabular-nums',
+            },
+            cell: ({ row }) => row.original.permissions_count ?? '—',
+        },
+        {
+            id: 'actions',
+            header: t('roles.columns.actions'),
+            meta: {
+                headerClassName: 'text-right',
+                cellClassName: 'text-right',
+            },
+            cell: ({ row }) => {
+                const role = row.original;
+
+                return (
+                    <ButtonGroup
+                        aria-label={t('roles.columns.actions')}
+                        className="ml-auto"
+                    >
+                        {can(PermissionEnum.CanEditRoles) && (
+                            <HeaderIconButton
+                                variant="outline"
+                                size="icon-sm"
+                                label={t('roles.actions.edit')}
+                                asChild
+                            >
+                                <Link href={rolesRoutes.edit.url(role.id)}>
+                                    <Pencil className="size-3.5" />
+                                </Link>
+                            </HeaderIconButton>
+                        )}
+                        {canDuplicateRole(role) && (
+                            <HeaderIconButton
+                                type="button"
+                                variant="outline"
+                                size="icon-sm"
+                                label={t('roles.actions.duplicate')}
+                                onClick={() => openDuplicateDialog(role)}
+                            >
+                                <Copy className="size-3.5" />
+                            </HeaderIconButton>
+                        )}
+                        {can(PermissionEnum.CanDeleteRoles) &&
+                            !role.is_system &&
+                            role.name !== 'super-admin' && (
+                                <HeaderIconButton
+                                    type="button"
+                                    variant="outline"
+                                    size="icon-sm"
+                                    className="text-destructive hover:text-destructive"
+                                    label={t('roles.actions.delete')}
+                                    onClick={() => setPendingRoleId(role.id)}
+                                >
+                                    <Trash2 className="size-3.5" />
+                                </HeaderIconButton>
+                            )}
+                    </ButtonGroup>
+                );
+            },
+        },
+    ];
+
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
             headerActions={
                 can(PermissionEnum.CanCreateRoles) ? (
                     <Button asChild>
-                        <Link href={adminRoutes.roles.create()}>
+                        <Link href={rolesRoutes.create.url()}>
                             <Plus className="mr-1 size-4" />
                             {t('roles.actions.newRole')}
                         </Link>
@@ -151,127 +224,17 @@ export default function AdminRolesIndex({
 
             <SettingsLayout wide>
                 <PageLayout className="p-0">
-                    <TablePanel
-                        footer={
-                            roles.last_page > 1 ? (
-                                <TablePagination links={roles.links ?? []} />
-                            ) : undefined
+                    <DataTable
+                        columns={columns}
+                        data={rows}
+                        getRowId={(role) => String(role.id)}
+                        pagination={roles}
+                        emptyState={
+                            <span className="text-muted-foreground">
+                                {t('roles.empty')}
+                            </span>
                         }
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>
-                                        {t('roles.columns.name')}
-                                    </TableHead>
-                                    <TableHead>
-                                        {t('roles.columns.permissions')}
-                                    </TableHead>
-                                    <TableHead className="text-right">
-                                        {t('roles.columns.actions')}
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {rows.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={3}
-                                            className="text-muted-foreground"
-                                        >
-                                            {t('roles.empty')}
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    rows.map((role) => (
-                                        <TableRow key={role.id}>
-                                            <TableCell className="font-medium">
-                                                <span className="inline-flex items-center gap-2">
-                                                    {role.name}
-                                                    {role.is_system && (
-                                                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                                                            {t(
-                                                                'roles.systemBadge',
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {role.permissions_count ?? '—'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="inline-flex items-center justify-end gap-1">
-                                                    {can(
-                                                        PermissionEnum.CanEditRoles,
-                                                    ) && (
-                                                        <HeaderIconButton
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="size-8"
-                                                            label={t(
-                                                                'roles.actions.edit',
-                                                            )}
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={adminRoutes.roles.edit(
-                                                                    role.id,
-                                                                )}
-                                                            >
-                                                                <Pencil className="size-3.5" />
-                                                            </Link>
-                                                        </HeaderIconButton>
-                                                    )}
-                                                    {canDuplicateRole(role) && (
-                                                        <HeaderIconButton
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="size-8"
-                                                            label={t(
-                                                                'roles.actions.duplicate',
-                                                            )}
-                                                            onClick={() =>
-                                                                openDuplicateDialog(
-                                                                    role,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Copy className="size-3.5" />
-                                                        </HeaderIconButton>
-                                                    )}
-                                                    {can(
-                                                        PermissionEnum.CanDeleteRoles,
-                                                    ) &&
-                                                        !role.is_system &&
-                                                        role.name !==
-                                                            'super-admin' && (
-                                                            <HeaderIconButton
-                                                                type="button"
-                                                                variant="destructive"
-                                                                size="icon"
-                                                                className="size-8"
-                                                                label={t(
-                                                                    'roles.actions.delete',
-                                                                )}
-                                                                onClick={() =>
-                                                                    setPendingRoleId(
-                                                                        role.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Trash2 className="size-3.5" />
-                                                            </HeaderIconButton>
-                                                        )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TablePanel>
+                    />
                 </PageLayout>
             </SettingsLayout>
 
@@ -282,14 +245,12 @@ export default function AdminRolesIndex({
                         setPendingRoleId(null);
                     }
                 }}
-                title={t('roles.deleteTitle')}
-                description={
+                title={
                     pendingRole
-                        ? t('roles.deleteDescription', {
-                              name: pendingRole.name,
-                          })
+                        ? t('roles.deleteTitle', { name: pendingRole.name })
                         : t('roles.deleteFallback')
                 }
+                description={t('roles.deleteDescription')}
                 confirming={deleting}
                 onConfirm={() => {
                     if (pendingRoleId === null) {
@@ -297,7 +258,7 @@ export default function AdminRolesIndex({
                     }
 
                     setDeleting(true);
-                    router.delete(adminRoutes.roles.destroy(pendingRoleId), {
+                    router.delete(rolesRoutes.destroy.url(pendingRoleId), {
                         preserveScroll: true,
                         onFinish: () => setDeleting(false),
                         onSuccess: () => setPendingRoleId(null),
@@ -335,6 +296,7 @@ export default function AdminRolesIndex({
                         <Input
                             id="role-duplicate-name"
                             value={duplicateName}
+                            // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                             autoFocus
                             disabled={duplicating}
                             onChange={(event) =>

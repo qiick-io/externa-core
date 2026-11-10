@@ -1,6 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
 import {
     parseFilesFieldSettings,
     parseImageFieldSettings,
@@ -44,30 +54,42 @@ export function RelationalSettings({
     allowedCollectionIds,
     onAllowedCollectionIdsChange,
 }: RelationalSettingsProps) {
+    const { t } = useTranslation();
+
     if (fieldType === 'image') {
         const imageSettings = parseImageFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="image_allow_multiple"
-                    label="Allow multiple images"
-                    description="Let editors upload more than one image in this field."
+                    label={t(
+                        'collections.fieldSettings.relational.allowMultipleImages',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.relational.allowMultipleImagesHint',
+                    )}
                     checked={allowMultipleImages}
                     onCheckedChange={onAllowMultipleImagesChange}
                 />
-                <div className="grid gap-2">
-                    <Label>Allowed MIME types (comma-separated)</Label>
+                <Field>
+                    <FieldLabel>
+                        {t(
+                            'collections.fieldSettings.relational.allowedMimeTypes',
+                        )}
+                    </FieldLabel>
                     <Input
                         name="settings[allowed_mime_types]"
                         defaultValue={imageSettings.allowedMimeTypes.join(', ')}
                     />
-                </div>
+                </Field>
                 <SettingCheckbox
                     id="image_crop_to_fit"
                     name="settings[crop_to_fit]"
-                    label="Crop to fit"
-                    description="Crop uploaded images to fit the configured aspect ratio."
+                    label={t('collections.fieldSettings.relational.cropToFit')}
+                    description={t(
+                        'collections.fieldSettings.relational.cropToFitHint',
+                    )}
                     defaultChecked={imageSettings.cropToFit}
                 />
             </div>
@@ -78,21 +100,29 @@ export function RelationalSettings({
         const filesSettings = parseFilesFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="files_allow_multiple"
-                    label="Allow multiple files"
-                    description="Let editors attach more than one file in this field."
+                    label={t(
+                        'collections.fieldSettings.relational.allowMultipleFiles',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.relational.allowMultipleFilesHint',
+                    )}
                     checked={allowMultipleFiles}
                     onCheckedChange={onAllowMultipleFilesChange}
                 />
-                <div className="grid gap-2">
-                    <Label>Allowed MIME types (comma-separated)</Label>
+                <Field>
+                    <FieldLabel>
+                        {t(
+                            'collections.fieldSettings.relational.allowedMimeTypes',
+                        )}
+                    </FieldLabel>
                     <Input
                         name="settings[allowed_mime_types]"
                         defaultValue={filesSettings.allowedMimeTypes.join(', ')}
                     />
-                </div>
+                </Field>
             </div>
         );
     }
@@ -102,24 +132,29 @@ export function RelationalSettings({
 
         return (
             <div className="space-y-4">
-                <div>
-                    <Label>Allowed collections</Label>
-                    <div className="mt-2 space-y-2">
+                <FieldSet className="gap-3">
+                    <FieldLegend variant="label" className="mb-0">
+                        {t(
+                            'collections.fieldSettings.relational.allowedCollections',
+                        )}
+                    </FieldLegend>
+                    <div className="space-y-2">
                         {relatedCollections.map((relatedCollection) => {
                             const checked = allowedCollectionIds.includes(
                                 relatedCollection.id,
                             );
+                            const checkboxId = `m2a_allowed_collection_${relatedCollection.id}`;
 
                             return (
-                                <label
+                                <Field
                                     key={relatedCollection.id}
-                                    className="flex items-center gap-2 text-sm"
+                                    orientation="horizontal"
                                 >
-                                    <input
-                                        type="checkbox"
+                                    <Checkbox
+                                        id={checkboxId}
                                         checked={checked}
-                                        onChange={(event) => {
-                                            if (event.target.checked) {
+                                        onCheckedChange={(isChecked) => {
+                                            if (isChecked === true) {
                                                 onAllowedCollectionIdsChange([
                                                     ...allowedCollectionIds,
                                                     relatedCollection.id,
@@ -136,19 +171,27 @@ export function RelationalSettings({
                                                 ),
                                             );
                                         }}
-                                        className="size-4 rounded border"
                                     />
-                                    {relatedCollection.name}
-                                </label>
+                                    <FieldLabel
+                                        htmlFor={checkboxId}
+                                        className="font-normal"
+                                    >
+                                        {relatedCollection.name}
+                                    </FieldLabel>
+                                </Field>
                             );
                         })}
                     </div>
-                </div>
+                </FieldSet>
                 <SettingCheckbox
                     id="m2a_allow_duplicates"
                     name="settings[allow_duplicates]"
-                    label="Allow duplicate blocks"
-                    description="Allow adding the same collection block more than once."
+                    label={t(
+                        'collections.fieldSettings.relational.allowDuplicateBlocks',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.relational.allowDuplicateBlocksHint',
+                    )}
                     defaultChecked={m2aSettings.allowDuplicates}
                 />
             </div>
@@ -165,19 +208,25 @@ export function RelationalSettings({
         return (
             <div className="space-y-4">
                 <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="grid gap-2.5">
-                        <Label htmlFor="related_collection_id">
-                            Related collection
-                        </Label>
-                        <select
+                    <Field>
+                        <FieldLabel htmlFor="related_collection_id">
+                            {t(
+                                'collections.fieldSettings.relational.relatedCollection',
+                            )}
+                        </FieldLabel>
+                        <NativeSelect
                             id="related_collection_id"
                             value={relatedCollectionId}
                             onChange={(event) =>
                                 onRelatedCollectionIdChange(event.target.value)
                             }
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
-                            <option value="">Select a collection…</option>
+                            <option value="">
+                                {t(
+                                    'collections.fieldSettings.relational.selectCollection',
+                                )}
+                            </option>
                             {relatedCollections.map((relatedCollection) => (
                                 <option
                                     key={relatedCollection.id}
@@ -186,10 +235,14 @@ export function RelationalSettings({
                                     {relatedCollection.name}
                                 </option>
                             ))}
-                        </select>
-                    </div>
-                    <div className="grid gap-2.5">
-                        <Label htmlFor="display_field">Display field</Label>
+                        </NativeSelect>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="display_field">
+                            {t(
+                                'collections.fieldSettings.relational.displayField',
+                            )}
+                        </FieldLabel>
                         <Input
                             id="display_field"
                             value={displayField}
@@ -198,74 +251,101 @@ export function RelationalSettings({
                             }
                             placeholder="title"
                         />
-                    </div>
+                    </Field>
                 </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="display_template">Display template</Label>
+                <Field>
+                    <FieldLabel htmlFor="display_template">
+                        {t(
+                            'collections.fieldSettings.relational.displayTemplate',
+                        )}
+                    </FieldLabel>
                     <Input
                         id="display_template"
                         name="settings[display_template]"
                         defaultValue={relationSettings.displayTemplate}
                         placeholder="{{title}} — #{{id}}"
                     />
-                    <p className="text-xs text-muted-foreground">
-                        Optional. Use {'{{field_name}}'} placeholders; falls
-                        back to display field when empty.
-                    </p>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="relation_filter">Filter (JSON)</Label>
-                    <textarea
+                    <FieldDescription>
+                        {t(
+                            'collections.fieldSettings.relational.displayTemplateHint',
+                            {
+                                placeholder: '{{field_name}}',
+                            },
+                        )}
+                    </FieldDescription>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="relation_filter">
+                        {t('collections.fieldSettings.relational.filterJson')}
+                    </FieldLabel>
+                    <Textarea
                         id="relation_filter"
                         name="settings[filter]"
-                        className="min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
+                        className="min-h-18 font-mono"
                         defaultValue={relationSettings.filterJson}
                         placeholder='{"status": "published"}'
                     />
-                    <p className="text-xs text-muted-foreground">
-                        Optional. Exact-match filter on related collection field
-                        values (field name → expected value).
-                    </p>
-                </div>
+                    <FieldDescription>
+                        {t(
+                            'collections.fieldSettings.relational.filterJsonHint',
+                        )}
+                    </FieldDescription>
+                </Field>
                 {fieldType === 'one_to_many' ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor="relation_layout">Layout</Label>
-                        <select
+                    <Field>
+                        <FieldLabel htmlFor="relation_layout">
+                            {t('collections.fieldSettings.relational.layout')}
+                        </FieldLabel>
+                        <NativeSelect
                             id="relation_layout"
                             name="settings[layout]"
                             defaultValue={relationSettings.layout}
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
-                            <option value="list">List</option>
-                            <option value="table">Table</option>
-                        </select>
-                    </div>
+                            <option value="list">
+                                {t(
+                                    'collections.fieldSettings.relational.layoutList',
+                                )}
+                            </option>
+                            <option value="table">
+                                {t(
+                                    'collections.fieldSettings.relational.layoutTable',
+                                )}
+                            </option>
+                        </NativeSelect>
+                    </Field>
                 ) : null}
                 <SettingCheckbox
                     id="relation_allow_duplicates"
                     name="settings[allow_duplicates]"
-                    label="Allow duplicate links"
-                    description="Allow linking the same related item more than once."
+                    label={t(
+                        'collections.fieldSettings.relational.allowDuplicateLinks',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.relational.allowDuplicateLinksHint',
+                    )}
                     defaultChecked={relationSettings.allowDuplicates}
                 />
                 {fieldType === 'many_to_many' ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor="junction_fields">
-                            Junction fields (JSON)
-                        </Label>
-                        <textarea
+                    <Field>
+                        <FieldLabel htmlFor="junction_fields">
+                            {t(
+                                'collections.fieldSettings.relational.junctionFields',
+                            )}
+                        </FieldLabel>
+                        <Textarea
                             id="junction_fields"
                             name="settings[junction_fields]"
-                            className="min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
+                            className="min-h-22 font-mono"
                             defaultValue={relationSettings.junctionFieldsJson}
                             placeholder='[{"name":"sort","type":"number"}]'
                         />
-                        <p className="text-xs text-muted-foreground">
-                            Optional mini-schema for per-link metadata. Item
-                            forms show these fields next to each related item.
-                            Types: string, number, boolean.
-                        </p>
-                    </div>
+                        <FieldDescription>
+                            {t(
+                                'collections.fieldSettings.relational.junctionFieldsHint',
+                            )}
+                        </FieldDescription>
+                    </Field>
                 ) : null}
             </div>
         );

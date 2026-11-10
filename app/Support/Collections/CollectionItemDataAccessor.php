@@ -3,7 +3,7 @@
 namespace App\Support\Collections;
 
 use App\Models\CollectionItem;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 
 /**
  * Read helpers for assembled collection item data with locale fallbacks.
@@ -12,7 +12,7 @@ class CollectionItemDataAccessor
 {
     public function __construct(
         private CollectionLocaleResolver $localeResolver,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
     ) {}
 
     /**

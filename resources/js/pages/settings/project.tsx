@@ -1,16 +1,20 @@
 import { Form, Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useMemo } from 'react';
+import type {} from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editProject } from '@/routes/project';
@@ -47,22 +51,8 @@ function buildFormState(project: GeneralProjectSettings) {
 export default function ProjectSettingsPage({ project }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(() => buildFormState(project), [project]);
-    const [form, setFormState] = useState(initialForm);
-    const [isDirty, setIsDirty] = useState(false);
-
-    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
-        setIsDirty(true);
-        setFormState(action);
-    };
-
-    useRegisterUnsavedChanges({
-        scope: 'page',
-        isDirty,
-        onDiscard: () => {
-            setFormState(initialForm);
-            setIsDirty(false);
-        },
-    });
+    const { form, setForm, isDirty, markSaved } =
+        useSettingsFormState(initialForm);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -81,8 +71,9 @@ export default function ProjectSettingsPage({ project }: Props) {
                 <Form
                     {...ProjectSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
-                    onSuccess={() => setIsDirty(false)}
+                    className="space-y-12"
+                    onSuccess={markSaved}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -95,61 +86,110 @@ export default function ProjectSettingsPage({ project }: Props) {
                                     )}
                                 />
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">
-                                        {t('settings.project.name')}
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        name="name"
-                                        value={form.name}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                name: event.target.value,
-                                            }))
+                                <FieldGroup className="gap-6">
+                                    <Field
+                                        data-invalid={
+                                            errors.name ? true : undefined
                                         }
-                                    />
-                                    <InputError message={errors.name} />
-                                </div>
+                                    >
+                                        <FieldLabel htmlFor="name">
+                                            {t('settings.project.name')}
+                                        </FieldLabel>
+                                        <Input
+                                            id="name"
+                                            name="name"
+                                            value={form.name}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    name: event.target.value,
+                                                }))
+                                            }
+                                            aria-invalid={
+                                                errors.name ? true : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.name
+                                                    ? 'project-name-error'
+                                                    : undefined
+                                            }
+                                        />
+                                        <FieldError id="project-name-error">
+                                            {errors.name}
+                                        </FieldError>
+                                    </Field>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="description">
-                                        {t('settings.project.description')}
-                                    </Label>
-                                    <Textarea
-                                        id="description"
-                                        name="description"
-                                        value={form.description}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                description: event.target.value,
-                                            }))
+                                    <Field
+                                        data-invalid={
+                                            errors.description
+                                                ? true
+                                                : undefined
                                         }
-                                    />
-                                    <InputError message={errors.description} />
-                                </div>
+                                    >
+                                        <FieldLabel htmlFor="description">
+                                            {t('settings.project.description')}
+                                        </FieldLabel>
+                                        <Textarea
+                                            id="description"
+                                            name="description"
+                                            value={form.description}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    description:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            aria-invalid={
+                                                errors.description
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.description
+                                                    ? 'project-description-error'
+                                                    : undefined
+                                            }
+                                        />
+                                        <FieldError id="project-description-error">
+                                            {errors.description}
+                                        </FieldError>
+                                    </Field>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="url">
-                                        {t('settings.project.url')}
-                                    </Label>
-                                    <Input
-                                        id="url"
-                                        name="url"
-                                        type="url"
-                                        value={form.url}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                url: event.target.value,
-                                            }))
+                                    <Field
+                                        data-invalid={
+                                            errors.url ? true : undefined
                                         }
-                                        placeholder="https://example.com"
-                                    />
-                                    <InputError message={errors.url} />
-                                </div>
+                                    >
+                                        <FieldLabel htmlFor="url">
+                                            {t('settings.project.url')}
+                                        </FieldLabel>
+                                        <Input
+                                            id="url"
+                                            name="url"
+                                            type="url"
+                                            value={form.url}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    url: event.target.value,
+                                                }))
+                                            }
+                                            placeholder="https://example.com"
+                                            aria-invalid={
+                                                errors.url ? true : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.url
+                                                    ? 'project-url-error'
+                                                    : undefined
+                                            }
+                                        />
+                                        <FieldError id="project-url-error">
+                                            {errors.url}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                             </div>
 
                             <Separator />
@@ -163,43 +203,70 @@ export default function ProjectSettingsPage({ project }: Props) {
                                     )}
                                 />
 
-                                {(
-                                    [
+                                <FieldGroup className="gap-6">
+                                    {(
                                         [
-                                            'report_issue_url',
-                                            t(
-                                                'settings.project.reportIssueUrl',
-                                            ),
-                                        ],
-                                        [
-                                            'report_bug_url',
-                                            t('settings.project.reportBugUrl'),
-                                        ],
-                                        [
-                                            'report_error_url',
-                                            t(
-                                                'settings.project.reportErrorUrl',
-                                            ),
-                                        ],
-                                    ] as const
-                                ).map(([field, label]) => (
-                                    <div key={field} className="grid gap-2">
-                                        <Label htmlFor={field}>{label}</Label>
-                                        <Input
-                                            id={field}
-                                            name={field}
-                                            type="url"
-                                            value={form[field]}
-                                            onChange={(event) =>
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    [field]: event.target.value,
-                                                }))
+                                            [
+                                                'report_issue_url',
+                                                t(
+                                                    'settings.project.reportIssueUrl',
+                                                ),
+                                                'project-report-issue-url-error',
+                                            ],
+                                            [
+                                                'report_bug_url',
+                                                t(
+                                                    'settings.project.reportBugUrl',
+                                                ),
+                                                'project-report-bug-url-error',
+                                            ],
+                                            [
+                                                'report_error_url',
+                                                t(
+                                                    'settings.project.reportErrorUrl',
+                                                ),
+                                                'project-report-error-url-error',
+                                            ],
+                                        ] as const
+                                    ).map(([field, label, errorId]) => (
+                                        <Field
+                                            key={field}
+                                            data-invalid={
+                                                errors[field] ? true : undefined
                                             }
-                                        />
-                                        <InputError message={errors[field]} />
-                                    </div>
-                                ))}
+                                        >
+                                            <FieldLabel htmlFor={field}>
+                                                {label}
+                                            </FieldLabel>
+                                            <Input
+                                                id={field}
+                                                name={field}
+                                                type="url"
+                                                value={form[field]}
+                                                onChange={(event) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        [field]:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors[field]
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors[field]
+                                                        ? errorId
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldError id={errorId}>
+                                                {errors[field]}
+                                            </FieldError>
+                                        </Field>
+                                    ))}
+                                </FieldGroup>
                             </div>
 
                             <SettingsFormActions

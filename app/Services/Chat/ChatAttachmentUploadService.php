@@ -6,7 +6,7 @@ use App\Models\ChatAttachmentUpload;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
 use App\Services\FileTransformService;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Support\Uploads\SafeUploadMime;
 use App\Support\Uploads\UploadSizeLimiter;
@@ -27,7 +27,7 @@ class ChatAttachmentUploadService
     public const PREVIEW_MAX_EDGE = 1200;
 
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
+        private readonly ProjectSettingsService $projectSettings,
         private readonly FileTransformService $transforms,
     ) {}
 
@@ -92,7 +92,7 @@ class ChatAttachmentUploadService
         $extension = SafeUploadMime::extensionOf($fileName);
         if ($extension === '' || ! isset(SafeUploadMime::CHAT_EXTENSION_MIMES[$extension])) {
             throw ValidationException::withMessages([
-                'file_name' => ['This file type is not allowed.'],
+                'file_name' => [__('This file type is not allowed.')],
             ]);
         }
         ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
@@ -287,7 +287,9 @@ class ChatAttachmentUploadService
 
         try {
             $encoded = $this->transforms->encodePreviewFromBinary($contents, self::PREVIEW_MAX_EDGE);
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return null;
         }
 

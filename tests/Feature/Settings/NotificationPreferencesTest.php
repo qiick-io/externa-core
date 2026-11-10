@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Settings\UserNotificationPreferences;
+use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Settings\UserNotificationPreferencesService;
 
 test('profile page includes notification sound preferences', function () {
     $user = User::factory()->create();
@@ -27,18 +27,18 @@ test('user can enable notification sound preferences', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('profile.edit'));
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
 
     expect($repository->get(
-        SettingsRepository::SCOPE_USER,
-        UserNotificationPreferences::GROUP,
-        UserNotificationPreferences::KEY_SOUND_CHAT,
+        SettingsRepositoryService::SCOPE_USER,
+        UserNotificationPreferencesService::GROUP,
+        UserNotificationPreferencesService::KEY_SOUND_CHAT,
         $user->id,
     ))->toBeTrue()
         ->and($repository->get(
-            SettingsRepository::SCOPE_USER,
-            UserNotificationPreferences::GROUP,
-            UserNotificationPreferences::KEY_SOUND_NOTIFICATIONS,
+            SettingsRepositoryService::SCOPE_USER,
+            UserNotificationPreferencesService::GROUP,
+            UserNotificationPreferencesService::KEY_SOUND_NOTIFICATIONS,
             $user->id,
         ))->toBeTrue();
 });
@@ -46,7 +46,7 @@ test('user can enable notification sound preferences', function () {
 test('notification sound preferences default to off', function () {
     $user = User::factory()->create();
 
-    $shared = app(UserNotificationPreferences::class)->shared($user);
+    $shared = app(UserNotificationPreferencesService::class)->shared($user);
 
     expect($shared)->toBe([
         'sound_chat_enabled' => false,

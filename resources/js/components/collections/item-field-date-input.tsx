@@ -1,5 +1,6 @@
 import { CalendarIcon, ClockIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
     toDateInputValue,
@@ -272,7 +273,6 @@ export function DatetimeLocalPicker({
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
                             className="w-full"
                             disabled={disabled}
                             onClick={() => {
@@ -306,6 +306,7 @@ export function DateFieldInput({
     readonly: boolean;
     hasError?: boolean;
 }) {
+    const { t } = useTranslation();
     const [wire, setWire] = useState(() =>
         initialWire(mode, defaultValue, includeSeconds),
     );
@@ -331,7 +332,7 @@ export function DateFieldInput({
 
     if (mode === 'time') {
         return (
-            <div className="relative">
+            <div className="relative w-full">
                 <Input
                     id={id}
                     type="time"
@@ -349,7 +350,7 @@ export function DateFieldInput({
     }
 
     return (
-        <div>
+        <div className="w-full">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
@@ -362,14 +363,16 @@ export function DateFieldInput({
                             fieldControlHeight,
                             'w-full justify-between font-normal',
                             !selected && 'text-muted-foreground',
+                            readonly &&
+                                'disabled:cursor-default disabled:bg-muted/50 disabled:opacity-100',
                         )}
                     >
                         <span className="truncate">
                             {selected
                                 ? formatDisplay(selected, mode, includeSeconds)
                                 : mode === 'date'
-                                  ? 'Pick a date'
-                                  : 'Pick date & time'}
+                                  ? t('collections.items.date.pickDate')
+                                  : t('collections.items.date.pickDateTime')}
                         </span>
                         <CalendarIcon className="size-4 shrink-0 opacity-50" />
                     </Button>
@@ -448,7 +451,6 @@ export function DateFieldInput({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="sm"
                                 className="w-full"
                                 disabled={readonly}
                                 onClick={() => {
@@ -456,7 +458,7 @@ export function DateFieldInput({
                                     setOpen(false);
                                 }}
                             >
-                                Clear
+                                {t('common.clear')}
                             </Button>
                         </div>
                     ) : null}

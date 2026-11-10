@@ -2,8 +2,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import type {
     FieldConditionOperator,
@@ -17,18 +18,51 @@ type FieldConditionsSettingsProps = {
     onChange: (next: FieldConditions | null) => void;
 };
 
-const OPERATORS: { value: FieldConditionOperator; label: string }[] = [
-    { value: 'equals', label: 'Equals' },
-    { value: 'not_equals', label: 'Not equals' },
-    { value: 'contains', label: 'Contains' },
-    { value: 'empty', label: 'Is empty' },
-    { value: 'not_empty', label: 'Is not empty' },
-    { value: 'gt', label: 'Greater than' },
-    { value: 'gte', label: 'Greater or equal' },
-    { value: 'lt', label: 'Less than' },
-    { value: 'lte', label: 'Less or equal' },
-    { value: 'in', label: 'In list' },
-    { value: 'not_in', label: 'Not in list' },
+const OPERATORS: { value: FieldConditionOperator; labelKey: string }[] = [
+    {
+        value: 'equals',
+        labelKey: 'collections.fieldSettings.conditions.operators.equals',
+    },
+    {
+        value: 'not_equals',
+        labelKey: 'collections.fieldSettings.conditions.operators.notEquals',
+    },
+    {
+        value: 'contains',
+        labelKey: 'collections.fieldSettings.conditions.operators.contains',
+    },
+    {
+        value: 'empty',
+        labelKey: 'collections.fieldSettings.conditions.operators.empty',
+    },
+    {
+        value: 'not_empty',
+        labelKey: 'collections.fieldSettings.conditions.operators.notEmpty',
+    },
+    {
+        value: 'gt',
+        labelKey: 'collections.fieldSettings.conditions.operators.gt',
+    },
+    {
+        value: 'gte',
+        labelKey: 'collections.fieldSettings.conditions.operators.gte',
+    },
+    {
+        value: 'lt',
+        labelKey: 'collections.fieldSettings.conditions.operators.lt',
+    },
+    {
+        value: 'lte',
+        labelKey: 'collections.fieldSettings.conditions.operators.lte',
+    },
+    {
+        value: 'in',
+        labelKey: 'collections.fieldSettings.conditions.operators.in',
+    },
+    {
+        value: 'not_in',
+        labelKey: 'collections.fieldSettings.conditions.operators.notIn',
+    },
 ];
 
 const VALUELESS: FieldConditionOperator[] = ['empty', 'not_empty'];
@@ -55,12 +89,10 @@ export function FieldConditionsSettings({
         return (
             <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                    Optionally show, lock, or require this field based on other
-                    field values (AND or OR).
+                    {t('collections.fieldSettings.conditions.intro')}
                 </p>
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() =>
                         onChange({
@@ -76,24 +108,25 @@ export function FieldConditionsSettings({
                     }
                 >
                     <Plus className="size-4" />
-                    Add conditions
+                    {t('collections.fieldSettings.conditions.addConditions')}
                 </Button>
             </div>
         );
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <p className="text-sm text-muted-foreground">
-                When rules match, apply the flags below. Flat AND / OR only — no
-                nested groups.
+                {t('collections.fieldSettings.conditions.hint')}
             </p>
 
-            <div className="grid gap-1 sm:max-w-xs">
-                <Label htmlFor="condition_logic">Match</Label>
-                <select
+            <Field className="sm:max-w-xs">
+                <FieldLabel htmlFor="condition_logic">
+                    {t('collections.fieldSettings.conditions.match')}
+                </FieldLabel>
+                <NativeSelect
                     id="condition_logic"
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    className="w-full"
                     value={conditions.logic}
                     onChange={(event) =>
                         onChange({
@@ -102,10 +135,14 @@ export function FieldConditionsSettings({
                         })
                     }
                 >
-                    <option value="and">All rules (AND)</option>
-                    <option value="or">Any rule (OR)</option>
-                </select>
-            </div>
+                    <option value="and">
+                        {t('collections.fieldSettings.conditions.matchAll')}
+                    </option>
+                    <option value="or">
+                        {t('collections.fieldSettings.conditions.matchAny')}
+                    </option>
+                </NativeSelect>
+            </Field>
 
             <div className="space-y-3">
                 {conditions.rules.map((rule, index) => (
@@ -113,10 +150,14 @@ export function FieldConditionsSettings({
                         key={index}
                         className="grid gap-2 rounded-lg border border-dashed p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
                     >
-                        <div className="grid gap-1">
-                            <Label>Field</Label>
-                            <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        <Field>
+                            <FieldLabel>
+                                {t(
+                                    'collections.fieldSettings.conditions.field',
+                                )}
+                            </FieldLabel>
+                            <NativeSelect
+                                className="w-full"
                                 value={rule.field}
                                 onChange={(event) => {
                                     const rules = conditions.rules.map(
@@ -131,18 +172,24 @@ export function FieldConditionsSettings({
                                     onChange({ ...conditions, rules });
                                 }}
                             >
-                                <option value="">Select field…</option>
+                                <option value="">
+                                    {t(
+                                        'collections.fieldSettings.conditions.selectField',
+                                    )}
+                                </option>
                                 {siblingFieldNames.map((name) => (
                                     <option key={name} value={name}>
                                         {name}
                                     </option>
                                 ))}
-                            </select>
-                        </div>
-                        <div className="grid gap-1">
-                            <Label>Operator</Label>
-                            <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            </NativeSelect>
+                        </Field>
+                        <Field>
+                            <FieldLabel>
+                                {t('collections.fieldSettings.rules.operator')}
+                            </FieldLabel>
+                            <NativeSelect
+                                className="w-full"
                                 value={rule.operator}
                                 onChange={(event) => {
                                     const operator = event.target
@@ -169,21 +216,25 @@ export function FieldConditionsSettings({
                                         key={operator.value}
                                         value={operator.value}
                                     >
-                                        {operator.label}
+                                        {t(operator.labelKey)}
                                     </option>
                                 ))}
-                            </select>
-                        </div>
+                            </NativeSelect>
+                        </Field>
                         {VALUELESS.includes(rule.operator) ? (
                             <div />
                         ) : (
-                            <div className="grid gap-1">
-                                <Label>
+                            <Field>
+                                <FieldLabel>
                                     {rule.operator === 'in' ||
                                     rule.operator === 'not_in'
-                                        ? 'Values (comma-separated)'
-                                        : 'Value'}
-                                </Label>
+                                        ? t(
+                                              'collections.fieldSettings.conditions.valuesCommaSeparated',
+                                          )
+                                        : t(
+                                              'collections.fieldSettings.rules.value',
+                                          )}
+                                </FieldLabel>
                                 <Input
                                     value={String(rule.value ?? '')}
                                     placeholder={
@@ -206,7 +257,7 @@ export function FieldConditionsSettings({
                                         onChange({ ...conditions, rules });
                                     }}
                                 />
-                            </div>
+                            </Field>
                         )}
                         <Button
                             type="button"
@@ -232,7 +283,6 @@ export function FieldConditionsSettings({
 
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() =>
                         onChange({
@@ -249,15 +299,19 @@ export function FieldConditionsSettings({
                     }
                 >
                     <Plus className="size-4" />
-                    Add rule
+                    {t('collections.fieldSettings.rules.addRule')}
                 </Button>
             </div>
 
             <div className="space-y-3">
                 <SettingCheckbox
                     id="condition_hidden"
-                    label="Hide when matched"
-                    description="Hide this field in the item form when the rules match."
+                    label={t(
+                        'collections.fieldSettings.conditions.hideWhenMatched',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.conditions.hideWhenMatchedHint',
+                    )}
                     checked={conditions.hidden === true}
                     onCheckedChange={(checked) => {
                         if (checked) {
@@ -273,8 +327,12 @@ export function FieldConditionsSettings({
                 />
                 <SettingCheckbox
                     id="condition_show"
-                    label="Show when matched"
-                    description="Hide by default; show this field only when the rules match."
+                    label={t(
+                        'collections.fieldSettings.conditions.showWhenMatched',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.conditions.showWhenMatchedHint',
+                    )}
                     checked={conditions.hidden === false}
                     onCheckedChange={(checked) => {
                         if (checked) {
@@ -290,8 +348,12 @@ export function FieldConditionsSettings({
                 />
                 <SettingCheckbox
                     id="condition_readonly"
-                    label="Readonly when matched"
-                    description="Lock the field when the rules match."
+                    label={t(
+                        'collections.fieldSettings.conditions.readonlyWhenMatched',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.conditions.readonlyWhenMatchedHint',
+                    )}
                     checked={conditions.readonly === true}
                     onCheckedChange={(checked) =>
                         onChange({
@@ -302,8 +364,12 @@ export function FieldConditionsSettings({
                 />
                 <SettingCheckbox
                     id="condition_required"
-                    label="Required when matched"
-                    description="Require a value when the rules match (enforced server-side)."
+                    label={t(
+                        'collections.fieldSettings.conditions.requiredWhenMatched',
+                    )}
+                    description={t(
+                        'collections.fieldSettings.conditions.requiredWhenMatchedHint',
+                    )}
                     checked={conditions.required === true}
                     onCheckedChange={(checked) =>
                         onChange({
@@ -316,11 +382,10 @@ export function FieldConditionsSettings({
 
             <Button
                 type="button"
-                size="sm"
                 variant="ghost"
                 onClick={() => onChange(null)}
             >
-                Remove conditions
+                {t('collections.fieldSettings.conditions.removeConditions')}
             </Button>
         </div>
     );

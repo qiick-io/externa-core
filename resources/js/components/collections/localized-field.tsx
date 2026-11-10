@@ -1,5 +1,6 @@
 import { Copy, Languages, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
@@ -14,8 +15,13 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
@@ -50,6 +56,8 @@ export type LocalizedFieldProps = {
     onTranslateFromLocale?: (fromLocale: string) => void | Promise<void>;
     aiTranslating?: boolean;
     errorMessage?: string;
+    /** Stable id for FieldError / aria-describedby */
+    errorId?: string;
     /** Extra controls on the title row (right, beside locale) — e.g. markdown edit/preview. */
     headerActions?: ReactNode;
     /** Controls beside the label (left) — e.g. field value caret menu. */
@@ -102,10 +110,12 @@ export function LocalizedField({
     onTranslateFromLocale,
     aiTranslating = false,
     errorMessage,
+    errorId = 'localized-field-error',
     headerActions,
     labelAddon,
 }: LocalizedFieldProps) {
     const { t } = useTranslation();
+    const generatedId = useId();
     const localeEntries = normalizeLocales(localesProp);
     const localeCodes = localeEntries.map((entry) => entry.code);
     const shared = useContentLocale(localeCodes);
@@ -115,6 +125,9 @@ export function LocalizedField({
         (localeCodes.includes(shared.locale)
             ? shared.locale
             : (localeCodes[0] ?? 'en'));
+    const controlId = idPrefix
+        ? `${idPrefix}_${locale}`
+        : `${generatedId}_${locale}`;
 
     const setLocale = (next: string): void => {
         onLocaleChange?.(next);
@@ -259,11 +272,18 @@ export function LocalizedField({
         otherLocales.length > 0;
 
     return (
-        <div className={cn('space-y-2', className)}>
-            {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without headerActions */}
-            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+        <Field
+            className={cn('gap-2', className)}
+            data-invalid={errorMessage ? true : undefined}
+        >
+            {/* min-h-control matches the default Button/ToggleGroup so half-width siblings align with/without headerActions */}
+            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
-                    {label ? <Label>{label}</Label> : null}
+                    {label ? (
+                        <FieldLabel htmlFor={children ? undefined : controlId}>
+                            {label}
+                        </FieldLabel>
+                    ) : null}
                     {labelAddon}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -274,7 +294,6 @@ export function LocalizedField({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     className="gap-2"
                                     disabled={disabled}
                                     data-test="localized-field-locale"
@@ -382,7 +401,7 @@ export function LocalizedField({
                                                     className="gap-2"
                                                     disabled={aiTranslating}
                                                 >
-                                                    <Sparkles className="size-3.5" />
+                                                    <Sparkles className="size-3.5 text-ai" />
                                                     {aiTranslating
                                                         ? t(
                                                               'collections.localized.translateWithAiBusy',
@@ -434,7 +453,7 @@ export function LocalizedField({
                                                     }}
                                                     className="gap-2"
                                                 >
-                                                    <Sparkles className="size-3.5" />
+                                                    <Sparkles className="size-3.5 text-ai" />
                                                     {aiTranslating
                                                         ? t(
                                                               'collections.localized.translateWithAiBusy',
@@ -493,6 +512,7 @@ export function LocalizedField({
 
             <div
                 className={cn(aiTranslating && 'ai-field-translating')}
+                lang={locale.replace('_', '-')}
                 aria-busy={aiTranslating || undefined}
                 data-ai-translating={aiTranslating ? 'true' : undefined}
             >
@@ -504,37 +524,37 @@ export function LocalizedField({
                     })
                 ) : inputType === 'textarea' ? (
                     <Textarea
-                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        id={controlId}
                         value={currentValue}
                         onChange={(event) => setValue(event.target.value)}
                         placeholder={placeholder}
                         disabled={disabled || aiTranslating}
                         aria-invalid={!!errorMessage}
+                        aria-describedby={errorMessage ? errorId : undefined}
                     />
                 ) : (
                     <Input
-                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        id={controlId}
                         value={currentValue}
                         onChange={(event) => setValue(event.target.value)}
                         placeholder={placeholder}
                         disabled={disabled || aiTranslating}
                         aria-invalid={!!errorMessage}
+                        aria-describedby={errorMessage ? errorId : undefined}
                     />
                 )}
             </div>
 
             {reserveDescriptionSpace || description ? (
-                <p
-                    className="min-h-5 text-sm text-muted-foreground"
+                <FieldDescription
+                    className="min-h-5"
                     aria-hidden={!description}
                 >
                     {description || '\u00A0'}
-                </p>
+                </FieldDescription>
             ) : null}
 
-            {errorMessage && (
-                <p className="text-sm text-destructive">{errorMessage}</p>
-            )}
-        </div>
+            <FieldError id={errorId}>{errorMessage}</FieldError>
+        </Field>
     );
 }

@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} selected",
         "save": "Save",
         "saved": "Saved",
         "cancel": "Cancel",
@@ -15,7 +16,107 @@
         "lastName": "Last name",
         "hide": "Hide",
         "view": "View",
-        "export": "Export"
+        "export": "Export",
+        "clearFilters": "Clear filters",
+        "learnMore": "Learn more",
+        "restore": "Restore",
+        "deletePermanently": "Delete permanently",
+        "created": "Created",
+        "updated": "Updated",
+        "search": "Search",
+        "rowsPerPage": "Rows per page",
+        "online": "Online",
+        "offline": "Offline",
+        "sortAscending": "Sort ascending",
+        "sortDescending": "Sort descending",
+        "active": "Active",
+        "name": "Name",
+        "pageRange": "{{from}}–{{to}} of {{total}}",
+        "perPageOption": "{{count}} / page",
+        "noResults": "No results.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "loading": "Loading…",
+        "loadMore": "Load more",
+        "preview": "Preview",
+        "clear": "Clear",
+        "filter": "Filter",
+        "from": "From",
+        "to": "To",
+        "system": "System",
+        "sort": "Sort",
+        "collapse": "Collapse",
+        "expand": "Expand"
+    },
+    "picker": {
+        "search": "Search…",
+        "noResults": "No results.",
+        "loading": "Loading…",
+        "clearSelection": "Clear selection"
+    },
+    "emptyState": {
+        "collections": {
+            "title": "No collections yet",
+            "description": "Collections group your content fields and items. Create one to get started.",
+            "cta": "Create your first collection",
+            "filteredTitle": "No collections match",
+            "filteredDescription": "Try a different search or clear filters to see all collections.",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted collections will appear here until you restore or permanently remove them."
+        },
+        "items": {
+            "title": "No items yet",
+            "description": "Add your first content item to this collection.",
+            "cta": "Create your first item",
+            "filteredTitle": "No items match",
+            "filteredDescription": "Try a different search or clear filters to see all items.",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted items will appear here until you restore or permanently remove them."
+        },
+        "users": {
+            "title": "No users yet",
+            "description": "Invite teammates so they can manage content and settings.",
+            "cta": "Create your first user",
+            "filteredTitle": "No users found",
+            "filteredDescription": "Try a different search or clear filters to see all users.",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted users will appear here until you restore or permanently remove them."
+        },
+        "apiKeys": {
+            "title": "No API keys yet",
+            "description": "Create an API key to let external apps access the Public CMS API.",
+            "cta": "Create API key"
+        },
+        "roleCollections": {
+            "title": "No collections yet",
+            "description": "Create a collection first, then grant this role access to it.",
+            "cta": "Go to collections",
+            "filteredTitle": "No collections match",
+            "filteredDescription": "Try a different search or clear the filter to see all collections."
+        },
+        "fields": {
+            "title": "No fields yet",
+            "description": "Define field types before entering content for this collection.",
+            "cta": "Add fields"
+        },
+        "dashboard": {
+            "collectionsDescription": "Create a collection to start tracking content volume here.",
+            "collectionsCta": "Create collection",
+            "activityDescription": "Activity will show up as you and your team work in Externa.",
+            "activityCta": "View activity log",
+            "filesDescription": "Upload files to see storage insights on the dashboard.",
+            "filesCta": "Open files",
+            "genericDescription": "Nothing to show here yet."
+        },
+        "files": {
+            "title": "This folder is empty",
+            "description": "Drop files here or use Upload to add media to this folder.",
+            "cta": "Upload file",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted files and folders will appear here until you restore or permanently remove them.",
+            "dropTitle": "Drop files to upload",
+            "dropDescription": "Release to start uploading, or use the Upload button in the toolbar."
+        }
     },
     "roles": {
         "names": {
@@ -37,8 +138,8 @@
         },
         "empty": "No roles yet.",
         "systemBadge": "System",
-        "deleteTitle": "Delete role?",
-        "deleteDescription": "Delete \"{{name}}\"? This cannot be undone.",
+        "deleteTitle": "Delete role “{{name}}”?",
+        "deleteDescription": "This cannot be undone.",
         "deleteFallback": "This cannot be undone.",
         "duplicate": {
             "title": "Duplicate role",
@@ -46,6 +147,45 @@
             "name": "New role name",
             "submit": "Duplicate",
             "duplicating": "Duplicating…"
+        },
+        "form": {
+            "editTitle": "Edit role",
+            "systemRoleHint": "System role — name is locked; not assignable to users.",
+            "create": "Create",
+            "adminPermissions": "Admin permissions",
+            "createPrivateChats": "Create private chats",
+            "filesAccess": "Files access",
+            "filesAccessDescription": "Public CMS API file permissions. <strong>Read</strong> covers public files; <strong>Read private</strong> is required for files/folders marked private (and their inherited children). Missing grant = deny.",
+            "resource": "Resource",
+            "files": "Files",
+            "collectionAccess": "Collection access",
+            "collectionAccessDescription": "Public CMS API permissions (create / read / update / delete). Missing grant = deny.",
+            "searchCollections": "Search collections…",
+            "collection": "Collection",
+            "fieldsAndItemFilter": "Fields & item filter",
+            "itemFilter": "Item filter (AND)",
+            "removeRule": "Remove",
+            "addFilterRule": "Add filter rule",
+            "fileToggleAllowed": "{{action}} for files: allowed",
+            "fileToggleDenied": "{{action}} for files: denied",
+            "collectionToggleAllowed": "{{action}} for {{collection}}: allowed",
+            "collectionToggleDenied": "{{action}} for {{collection}}: denied",
+            "toggleTitleAllowed": "{{action}}: Allowed",
+            "toggleTitleDenied": "{{action}}: Denied",
+            "actions": {
+                "create": "Create",
+                "read": "Read",
+                "readPrivate": "Read private",
+                "update": "Update",
+                "delete": "Delete"
+            },
+            "operators": {
+                "equals": "equals",
+                "notEquals": "not_equals",
+                "empty": "empty",
+                "notEmpty": "not_empty"
+            },
+            "editNamed": "Edit {{name}}"
         }
     },
     "nav": {
@@ -64,7 +204,12 @@
         "chat": "Chat",
         "settings": "Settings",
         "repository": "Repository",
-        "documentation": "Documentation"
+        "documentation": "Documentation",
+        "appVersion": "v{{version}}",
+        "items": "Items",
+        "fields": "Fields",
+        "history": "History",
+        "itemNumber": "Item #{{id}}"
     },
     "notifications": {
         "title": "Notifications",
@@ -91,13 +236,61 @@
     "a11y": {
         "skipToContent": "Skip to content",
         "mainNav": "Main navigation",
+        "breadcrumb": "Breadcrumb",
+        "chatThreadList": "Chat threads",
         "openMenu": "Open menu",
         "search": "Search",
         "removeConditionRule": "Remove condition rule",
         "dismissUpload": "Dismiss upload",
         "clearSelection": "Clear selection",
         "removeTab": "Remove tab",
-        "removeSection": "Remove section"
+        "removeSection": "Remove section",
+        "close": "Close",
+        "toggleSidebar": "Toggle sidebar",
+        "loading": "Loading",
+        "notifications": "Notifications",
+        "notificationsUnread": "Notifications, {{count}} unread",
+        "unreadCount": "{{count}} unread",
+        "moreActions": "More actions",
+        "configureColumns": "Configure columns",
+        "columnOptions": "{{label}} column options",
+        "fieldActions": "Field actions",
+        "saving": "Saving",
+        "aiAnswerReady": "Assistant reply: {{preview}}",
+        "dragToReorder": "Drag to reorder",
+        "removeChoice": "Remove choice",
+        "required": "required",
+        "yes": "Yes",
+        "no": "No",
+        "editMode": "Edit",
+        "previewMode": "Preview",
+        "heading": "Heading",
+        "insertImage": "Image",
+        "moveBlockUp": "Move block up",
+        "moveBlockDown": "Move block down",
+        "changed": "Changed",
+        "reorder": "Reorder",
+        "filters": "Filters",
+        "removeFilter": "Remove filter",
+        "filterField": "Filter field",
+        "filterOperator": "Filter operator",
+        "filterValue": "Filter value",
+        "selectAll": "Select all",
+        "sortBy": "Sort by",
+        "activeList": "Active",
+        "trashList": "Trash",
+        "pinChat": "Pin chat",
+        "unpinChat": "Unpin chat",
+        "deleteChat": "Delete chat",
+        "deleteSelectedChats": "Delete selected chats",
+        "editField": "Edit field",
+        "fieldsPanel": "Fields",
+        "activityPanel": "Activity",
+        "fromDate": "From date",
+        "toDate": "To date",
+        "removeRule": "Remove rule",
+        "removeLocale": "Remove locale {{code}}",
+        "selectRow": "Select {{name}}"
     },
     "auth": {
         "login": {
@@ -191,7 +384,13 @@
             "filesMedia": "Files & Media",
             "api": "API",
             "integrations": "Integrations",
-            "sidebar": "Sidebar"
+            "sidebar": "Sidebar",
+            "aiTools": "AI write tools",
+            "pendingToolCalls": "AI tool approvals",
+            "sectionAi": "AI",
+            "aiToolsNav": "Write tools",
+            "pendingToolCallsNav": "Tool approvals",
+            "jobs": "Jobs"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -203,11 +402,45 @@
             "linkSent": "A new verification link has been sent to your email address."
         },
         "apiKeys": {
+            "description": "Bearer tokens for /api/v1. Permissions come from the selected role (use Public for anonymous-equivalent access).",
+            "create": "Create API key",
+            "createTitle": "Create API key",
+            "createDescription": "Name the key, pick a role and owner, then optionally narrow scopes.",
+            "secretBanner": "Copy this key now — it will not be shown again.",
             "collectionSlugs": "Collection allowlist (optional, comma-separated slugs)",
             "collectionSlugsHelp": "Leave empty to allow every collection the role can access. Scopes only narrow access.",
+            "owner": "Owner",
+            "ownerHelp": "Permission ceiling: the key cannot do more than this user. Defaults to you.",
             "readOnly": "Read-only (block create, update, and delete)",
             "readOnlyBadge": "read-only",
-            "scopes": "Scopes"
+            "scopes": "Scopes",
+            "filesScope": "File access",
+            "filesScopeHelp": "none = no Files API; read = list/download only; all = read+write (still subject to read-only and role).",
+            "filesScopeNone": "None",
+            "filesScopeRead": "Read",
+            "filesScopeAll": "All",
+            "confirm": {
+                "revokeTitle": "Revoke API key “{{name}}”?",
+                "revokeDescription": "This key will stop working immediately.",
+                "revokeConfirm": "Revoke"
+            },
+            "columns": {
+                "name": "Name",
+                "prefix": "Prefix",
+                "role": "Role",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "status": {
+                "active": "Active",
+                "revoked": "Revoked"
+            },
+            "revoke": "Revoke key",
+            "secretValue": "New API key",
+            "selectRole": "Select role",
+            "ipAllowlist": "IP allowlist (optional, comma-separated)",
+            "rateLimit": "Rate limit / minute (optional)",
+            "expiresAt": "Expires at"
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -320,6 +553,15 @@
             "filesMaxUploadMb": "Files max upload (MB)",
             "chatMaxUploadMb": "Chat max upload (MB)",
             "uploadLimitsHint": "Empty = unlimited. Single-request uploads still cannot exceed PHP upload_max_filesize / post_max_size; larger files use chunked upload.",
+            "uploadPolicyTitle": "Upload type policy",
+            "uploadPolicyDescription": "Allowlist of extensions and MIME types for Files and API uploads. Empty fields keep the secure defaults.",
+            "uploadAllowedExtensions": "Allowed extensions (optional)",
+            "uploadAllowedExtensionsHelp": "Comma-separated, without dots. Empty = no extra extension filter (MIME allowlist still applies).",
+            "uploadAllowedMimes": "Allowed MIME types (optional)",
+            "uploadAllowedMimesHelp": "Comma-separated. Empty = built-in safe set (PNG/JPEG/PDF/…).",
+            "uploadAllowSvg": "Allow SVG uploads",
+            "uploadAllowSvgHelp": "Off by default. SVG can carry script and cause XSS if served or inlined — enable only when you need logos/icons and trust your uploaders.",
+            "uploadPolicyFloorHint": "Executables, HTML, SSI (.shtml), and similar types stay blocked even if listed here. That security floor cannot be disabled.",
             "filesTitle": "Files & storage",
             "filesDescription": "Image transformation options used by the file library",
             "allowedTransformations": "Allowed transformations",
@@ -404,6 +646,21 @@
             "notifierTelegramSendTest": "Send Telegram test",
             "notifierTelegramSendTestHint": "Save chat ID and token first, then send a ping immediately (no queue worker needed).",
             "notifiersPrivacyNote": "Event metadata is sent to Slack or Telegram when configured. Review your provider’s data handling for self-hosted deployments.",
+            "deployTitle": "Deploy hooks",
+            "deployDescription": "Named URLs for Vercel, Netlify, Cloudflare Pages, or Forge deploy hooks. URLs are stored encrypted.",
+            "deployHookLabel": "Hook {{number}}",
+            "deployHookName": "Name",
+            "deployHookUrl": "Deploy hook URL",
+            "deployHookUrlHint": "Paste the provider deploy hook URL. It is encrypted at rest and never shown again.",
+            "deployHookUrlConfigured": "A URL is already configured. Leave blank to keep it, or paste a new URL to replace it.",
+            "deployHookAdd": "Add deploy hook",
+            "deployHookRemove": "Remove deploy hook",
+            "deployOnPublish": "Deploy on publish",
+            "deployOnPublishHint": "When enabled, every item publish triggers all configured deploy hooks once.",
+            "deployTrigger": "Deploy now",
+            "deployTriggerHint": "Queues a POST to each configured hook. Requires the deploy.trigger permission and a queue worker unless QUEUE_CONNECTION=sync.",
+            "deployLastRunTitle": "Last deploy run",
+            "deployLastRunNone": "No deploy has been triggered yet.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistant",
@@ -443,7 +700,8 @@
             "integrationsNav": {
                 "breadcrumb": "Integrations",
                 "head": "Integrations"
-            }
+            },
+            "deployHookNamePlaceholder": "Production"
         },
         "appearance": {
             "breadcrumb": "Appearance settings",
@@ -470,7 +728,21 @@
             "sidebar": {
                 "breadcrumb": "Sidebar settings",
                 "head": "Sidebar settings"
-            }
+            },
+            "themePresetTitle": "Theme preset",
+            "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
+            "themePresetTeal": "Teal (default)",
+            "themePresetBlue": "Blue",
+            "themePresetIndigo": "Indigo",
+            "themePresetViolet": "Violet",
+            "themePresetRose": "Rose",
+            "themePresetSlate": "Slate",
+            "customColorTitle": "Custom brand colour",
+            "customColorDescription": "Optional override for primary. Leave empty to use the selected preset.",
+            "clearCustomColor": "Clear custom colour",
+            "brandContrastWarning": "This brand colour does not meet WCAG AA contrast (4.5:1 text / 3:1 UI). Try a darker or lighter shade.",
+            "presetPreviewLight": "Light",
+            "presetPreviewDark": "Dark"
         },
         "performance": {
             "breadcrumb": "Performance settings",
@@ -546,7 +818,20 @@
             "regenerate": "Regenerate codes",
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
-            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above.",
+            "setupKey": "Setup key"
+        },
+        "aiTools": {
+            "breadcrumb": "AI write tools",
+            "head": "AI write tools",
+            "title": "AI write tools",
+            "description": "Choose which mutating AI tool classes may run after human approval. The AI_WRITE_TOOLS env kill switch must be on.",
+            "killSwitchLabel": "Env kill switch",
+            "killSwitchOn": "enabled",
+            "killSwitchOff": "disabled (default)",
+            "killSwitchHint": "Set AI_WRITE_TOOLS=true (or AI_TOOLS_WRITE_ENABLED=true) in the environment to allow any write tools.",
+            "ttlHint": "MCP approvals expire after {{minutes}} minutes. Tool audit rows are retained for {{days}} days.",
+            "save": "Save"
         }
     },
     "collections": {
@@ -636,7 +921,19 @@
             "calendarLoadError": "Could not load calendar items.",
             "calendarTruncated": "Showing {{shown}} of {{total}} items in this month.",
             "activeItems": "Active items",
-            "trash": "Trash"
+            "trash": "Trash",
+            "operators": {
+                "eq": "equals",
+                "neq": "not equals",
+                "contains": "contains",
+                "in": "is one of",
+                "null": "is empty",
+                "nnull": "is not empty",
+                "gt": "greater than",
+                "gte": "greater or equal",
+                "lt": "less than",
+                "lte": "less or equal"
+            }
         },
         "localized": {
             "applyAll": "Apply to all locales",
@@ -666,7 +963,14 @@
             "copied": "Raw value copied",
             "copyFailed": "Could not copy to clipboard",
             "pasted": "Raw value pasted",
-            "pasteFailed": "Could not read clipboard"
+            "pasteFailed": "Could not read clipboard",
+            "edit": "Edit field",
+            "duplicate": "Duplicate field",
+            "showInForm": "Show field in detail",
+            "hideInForm": "Hide field in detail",
+            "delete": "Delete field",
+            "deleteFailed": "Could not delete field.",
+            "width": "Width"
         },
         "itemSave": {
             "create": "Create",
@@ -682,6 +986,10 @@
             "previewAs": "Preview as…",
             "livePreview": "Live Preview",
             "livePreviewError": "Could not open Live Preview. Check the collection preview URL.",
+            "livePreviewAt": "Preview at…",
+            "livePreviewAtHint": "Render the item as it will look when scheduled changes go live (max 90 days ahead).",
+            "livePreviewAtOpen": "Open preview",
+            "livePreviewAtInvalid": "Choose a valid time within the next 90 days.",
             "chat": "Chat",
             "revisions": "Revisions",
             "editFields": "Edit fields",
@@ -764,8 +1072,10 @@
             "sendError": "Could not send message.",
             "reply": "Reply",
             "copyText": "Copy text",
+            "copyFailed": "Could not copy the message",
             "pin": "Pin",
             "unpin": "Unpin",
+            "pinned": "Pinned messages",
             "visibilityHint": "Visible to anyone who can read this item",
             "openInHub": "Open in Chat",
             "mediaPreview": "Media preview",
@@ -778,7 +1088,11 @@
             "sendingMedia": "Sending…",
             "retrySend": "Retry",
             "removePendingFile": "Remove file",
-            "scrollToBottom": "Scroll to bottom"
+            "scrollToBottom": "Scroll to bottom",
+            "mentionCollection": "Collection",
+            "reactionToggle": "{{emoji}} reaction: {{names}}",
+            "messageActions": "Message actions",
+            "react": "React"
         },
         "packs": {
             "createFromPack": "Create from pack",
@@ -1055,7 +1369,392 @@
             "groups": "Groups"
         },
         "translatableDescription": "When enabled, editors enter a separate value for each language (e.g. English and Italian) instead of a single shared value.",
-        "translatableLockedHint": "Locked because this field already has content. Changing Translatable would not convert existing values — create a new field and migrate instead."
+        "translatableLockedHint": "Locked because this field already has content. Changing Translatable would not convert existing values — create a new field and migrate instead.",
+        "confirm": {
+            "deleteTitle": "Delete collection “{{name}}”?",
+            "deleteDescription": "This collection will be soft-deleted and moved to trash.",
+            "forceDeleteTitle": "Delete collection “{{name}}” permanently?",
+            "forceDeleteDescription": "This collection will be permanently removed. This cannot be undone.",
+            "bulkDeleteTitle": "Delete {{count}} selected collections?",
+            "bulkDeleteDescription": "Selected collections will be soft-deleted and moved to trash.",
+            "bulkForceDeleteTitle": "Delete {{count}} selected collections permanently?",
+            "bulkForceDeleteDescription": "Selected collections will be permanently removed. This cannot be undone.",
+            "bulkForceDeleteTitleNamed": "Delete collection “{{name}}” permanently?"
+        },
+        "translatableLockedHintConvert": "Locked here because this field already has content. Use Change type / convert to migrate values safely (or create a new field).",
+        "convert": {
+            "menuLabel": "Change type…",
+            "title": "Convert field “{{name}}”",
+            "description": "Migrate stored values to a supported type or translatable shape. Dry-run first to preview failures.",
+            "targetType": "Target type",
+            "translatableHint": "Move values into the default locale, or collapse to a single locale.",
+            "dryRun": "Dry run",
+            "confirm": "Convert",
+            "previewSummary": "ok {{ok}} · failed {{failed}} · drafts {{drafts}} · skipped {{skipped}}",
+            "loadTargetsFailed": "Could not load conversion targets.",
+            "previewFailed": "Dry run failed.",
+            "convertFailed": "Conversion failed.",
+            "success": "Field converted.",
+            "queued": "Field conversion queued."
+        },
+        "columnPicker": {
+            "fields": "Fields",
+            "related": "Related fields",
+            "openRelated": "Open {{label}} fields",
+            "noNestedFields": "No nested fields available.",
+            "noMatches": "No fields match your search.",
+            "id": "ID",
+            "createdAt": "Created at",
+            "updatedAt": "Updated at",
+            "createdBy": "Created by",
+            "updatedBy": "Updated by",
+            "actions": "Actions"
+        },
+        "layoutWidth": {
+            "half": "Half width",
+            "full": "Full width",
+            "fill": "Fill width"
+        },
+        "reorderColumn": "Reorder {{label}}",
+        "noFieldsMatch": "No fields match your search.",
+        "fieldSettings": {
+            "common": {
+                "fieldWidth": "Field width",
+                "fieldWidthHint": "How much horizontal space this field takes in the form.",
+                "startNewRow": "Start new row",
+                "startNewRowHint": "Force this field to begin on a new row in the form layout.",
+                "required": "Required",
+                "requiredHint": "Content cannot be saved until this field has a value.",
+                "readonly": "Readonly",
+                "readonlyHint": "Editors can see the value but cannot change it after the first save.",
+                "hiddenInForm": "Hidden in form",
+                "hiddenInFormHint": "Hide this field from the item editor while keeping it in the schema.",
+                "defaultValue": "Default value",
+                "defaultValueHint": "Applied when creating a new item if the field is left empty.",
+                "defaultValuePlaceholder": "Applied on create when empty"
+            },
+            "rules": {
+                "operator": "Operator",
+                "value": "Value",
+                "addRule": "Add rule",
+                "operators": {
+                    "required": "Required",
+                    "unique": "Unique",
+                    "min_length": "Min length",
+                    "max_length": "Max length",
+                    "min": "Min value",
+                    "max": "Max value",
+                    "regex": "Regex",
+                    "contains": "Contains",
+                    "not_contains": "Does not contain",
+                    "equals": "Equals",
+                    "not_equals": "Does not equal"
+                }
+            },
+            "validation": {
+                "message": "Validation message",
+                "messageHint": "Optional custom error shown when a rule fails."
+            },
+            "conditions": {
+                "intro": "Optionally show, lock, or require this field based on other field values (AND or OR).",
+                "addConditions": "Add conditions",
+                "hint": "When rules match, apply the flags below. Flat AND / OR only — no nested groups.",
+                "match": "Match",
+                "matchAll": "All rules (AND)",
+                "matchAny": "Any rule (OR)",
+                "field": "Field",
+                "selectField": "Select field…",
+                "valuesCommaSeparated": "Values (comma-separated)",
+                "hideWhenMatched": "Hide when matched",
+                "hideWhenMatchedHint": "Hide this field in the item form when the rules match.",
+                "showWhenMatched": "Show when matched",
+                "showWhenMatchedHint": "Hide by default; show this field only when the rules match.",
+                "readonlyWhenMatched": "Readonly when matched",
+                "readonlyWhenMatchedHint": "Lock the field when the rules match.",
+                "requiredWhenMatched": "Required when matched",
+                "requiredWhenMatchedHint": "Require a value when the rules match (enforced server-side).",
+                "removeConditions": "Remove conditions",
+                "operators": {
+                    "equals": "Equals",
+                    "notEquals": "Not equals",
+                    "contains": "Contains",
+                    "empty": "Is empty",
+                    "notEmpty": "Is not empty",
+                    "gt": "Greater than",
+                    "gte": "Greater or equal",
+                    "lt": "Less than",
+                    "lte": "Less or equal",
+                    "in": "In list",
+                    "notIn": "Not in list"
+                }
+            },
+            "altro": {
+                "hashIntro": "Stores an auto-generated fingerprint ID (`sha256` of a UUID) when empty on save. This is <strong>not</strong> a password hash — values are identifiers, not secrets derived from user input.",
+                "hashMasked": "Mask value in editor",
+                "hashMaskedHint": "Show only a short prefix of the fingerprint after save.",
+                "minimum": "Minimum",
+                "maximum": "Maximum",
+                "step": "Step",
+                "showValue": "Show current value",
+                "showValueHint": "Display the numeric value next to the slider control."
+            },
+            "groups": {
+                "allClosed": "All closed",
+                "firstOpen": "First open",
+                "allOpen": "All open",
+                "maxOneOpen": "Max one section open",
+                "maxOneOpenHint": "Only one accordion section can be expanded at a time.",
+                "initialState": "Initial state",
+                "accordionHint": "Sections are typically Raw groups nested under this accordion (two empty ones are created automatically). Use Add section on the accordion, or nest any field — including leaves — directly (leaf children become accordion panels).",
+                "open": "Open",
+                "closed": "Closed",
+                "fillWidthHint": "Span the full form width (overwrite nested group width).",
+                "tabsHint": "Tab panels are typically Raw groups nested under this tabs group (two empty ones are created automatically). Use Add tab, or nest any field — including leaves — directly (leaf children become tabs).",
+                "rawHint": "Nesting only — no chrome on the item form. Nest fields into this group from the fields list (drag and drop)."
+            },
+            "relational": {
+                "allowMultipleImages": "Allow multiple images",
+                "allowMultipleImagesHint": "Let editors upload more than one image in this field.",
+                "allowedMimeTypes": "Allowed MIME types (comma-separated)",
+                "cropToFit": "Crop to fit",
+                "cropToFitHint": "Crop uploaded images to fit the configured aspect ratio.",
+                "allowMultipleFiles": "Allow multiple files",
+                "allowMultipleFilesHint": "Let editors attach more than one file in this field.",
+                "allowedCollections": "Allowed collections",
+                "allowDuplicateBlocks": "Allow duplicate blocks",
+                "allowDuplicateBlocksHint": "Allow adding the same collection block more than once.",
+                "relatedCollection": "Related collection",
+                "selectCollection": "Select a collection…",
+                "displayField": "Display field",
+                "displayTemplate": "Display template",
+                "displayTemplateHint": "Optional. Use {{placeholder}} placeholders; falls back to display field when empty.",
+                "filterJson": "Filter (JSON)",
+                "filterJsonHint": "Optional. Exact-match filter on related collection field values (field name → expected value).",
+                "layout": "Layout",
+                "layoutList": "List",
+                "layoutTable": "Table",
+                "allowDuplicateLinks": "Allow duplicate links",
+                "allowDuplicateLinksHint": "Allow linking the same related item more than once.",
+                "junctionFields": "Junction fields (JSON)",
+                "junctionFieldsHint": "Optional mini-schema for per-link metadata. Item forms show these fields next to each related item. Types: string, number, boolean."
+            },
+            "selection": {
+                "labelOn": "Label when on",
+                "labelOff": "Label when off",
+                "dateMode": "Mode",
+                "dateOnly": "Date only",
+                "timeOnly": "Time only",
+                "dateAndTime": "Date and time",
+                "includeSeconds": "Include seconds",
+                "includeSecondsHint": "Allow time values with seconds precision (time / datetime modes).",
+                "geometryMode": "Geometry mode",
+                "point": "Point",
+                "multiPoint": "MultiPoint",
+                "defaultLatitude": "Default latitude",
+                "defaultLongitude": "Default longitude",
+                "defaultZoom": "Default zoom",
+                "enableOpacity": "Enable opacity",
+                "enableOpacityHint": "Allow adjusting the alpha channel in the color picker.",
+                "presetColors": "Preset colors (comma-separated hex)",
+                "allowNone": "Allow empty selection",
+                "allowNoneHint": "Let editors clear the selection without choosing an option.",
+                "allowOther": "Allow values outside options",
+                "allowOtherHint": "Accept custom values not listed in the choices.",
+                "valueCombining": "Value combining",
+                "allSelectedNodes": "All selected nodes",
+                "leafNodesOnly": "Leaf nodes only"
+            },
+            "textNumbers": {
+                "inputType": "Input type",
+                "maxLength": "Max length",
+                "placeholder": "Placeholder",
+                "iconLeft": "Icon left",
+                "iconRight": "Icon right",
+                "trim": "Trim whitespace",
+                "trimHint": "Remove leading and trailing spaces when saving.",
+                "slugify": "Slugify",
+                "slugifyHint": "Convert the value to a URL-friendly slug on save.",
+                "masked": "Masked (password)",
+                "maskedHint": "Hide input characters like a password field.",
+                "min": "Min",
+                "max": "Max",
+                "language": "Language",
+                "template": "Template",
+                "lineNumbers": "Show line numbers",
+                "lineNumbersHint": "Display a line number gutter in the item form editor.",
+                "lineWrapping": "Line wrapping",
+                "lineWrappingHint": "Wrap long lines instead of horizontal scrolling.",
+                "tagPresets": "Presets (comma-separated)",
+                "tagSeparator": "Separator",
+                "allowCustomTags": "Allow custom tags",
+                "allowCustomTagsHint": "Let editors add tags not listed in presets.",
+                "lowercase": "Lowercase on save",
+                "lowercaseHint": "Normalize tag values to lowercase when saving.",
+                "alphabetize": "Alphabetize on save",
+                "alphabetizeHint": "Sort tags alphabetically when saving.",
+                "rows": "Rows",
+                "staticComboboxHint": "Static combobox: editors pick from predefined options or type a custom value when allowed.",
+                "urlTemplate": "URL template",
+                "urlTemplateHint": "Use {{token}} as the search term placeholder. Same-origin URLs avoid CORS (e.g. /demo/cities?q={{token}}).",
+                "resultsPath": "Results path",
+                "textPath": "Text path",
+                "valuePath": "Value path",
+                "trigger": "Trigger",
+                "debounce": "Debounce",
+                "throttle": "Throttle",
+                "rate": "Rate (ms)",
+                "inputTypes": {
+                    "string": "String",
+                    "text": "Text",
+                    "integer": "Integer",
+                    "bigInteger": "Big Integer",
+                    "float": "Float",
+                    "decimal": "Decimal",
+                    "uuid": "UUID"
+                }
+            },
+            "form": {
+                "choices": "Choices",
+                "choicesHint": "Add the values users can pick from. Label is shown in the interface; value is stored in the database.",
+                "optionLabel": "Label",
+                "addChoice": "Add choice",
+                "treeChoices": "Tree choices",
+                "treeChoicesHint": "Define nested options. Checking a parent selects all descendants; mixed children show an indeterminate parent.",
+                "addChild": "Add child",
+                "addRootChoice": "Add root choice",
+                "nestedRelationHint": "Nested relations are stored as JSON links inside the block (not junction tables).",
+                "junctionMetaFields": "Junction meta fields (JSON)",
+                "key": "Key",
+                "nameHint": "Translated label shown in the admin UI and item form.",
+                "note": "Note",
+                "noteHint": "Optional helper text shown under the field control in the item form."
+            },
+            "blocks": {
+                "blockTypes": "Block types",
+                "innerBlockTypes": "Inner block types",
+                "blockTypesHint": "Define the inline block schema for this field. Keys must be lowercase snake_case (e.g. rich_text). Nesting depth max {{max}} (ceiling {{ceiling}}).",
+                "innerBlockTypesHint": "Inner blocks (depth {{depth}}/{{max}}). Further blocks nesting is disabled at this depth.",
+                "maxDepth": "Max nesting depth",
+                "maxDepthHint": "Default {{default}}. Absolute ceiling {{ceiling}}.",
+                "expandBlockType": "Expand block type",
+                "collapseBlockType": "Collapse block type",
+                "blockN": "Block {{n}}",
+                "fieldCount_one": "{{count}} field",
+                "fieldCount_other": "{{count}} fields",
+                "labelPlaceholder": "Rich text",
+                "i18n": "I18n",
+                "remove": "Remove",
+                "conditions": "Conditions (vs siblings in this block)",
+                "addNestedField": "Add nested field",
+                "moveUp": "Up",
+                "moveDown": "Down",
+                "deleteBlockType": "Delete block type",
+                "addBlockType": "Add block type"
+            }
+        },
+        "items": {
+            "fields": {
+                "noWriteAccess": "No write access",
+                "readonly": "Readonly",
+                "includeInApply": "Include in Apply"
+            },
+            "blocks": {
+                "nestingExceeded": "Blocks nesting exceeds the maximum depth ({{max}}).",
+                "empty": "No blocks yet.",
+                "expand": "Expand block",
+                "collapse": "Collapse block",
+                "duplicate": "Duplicate",
+                "add": "Add {{label}}",
+                "remove": "Remove",
+                "addBlock": "Add block",
+                "selectItem": "Select block item…"
+            },
+            "choice": {
+                "apiUrlMissing": "Configure an API URL in field settings to enable suggestions.",
+                "generatedOnSave": "Generated on save",
+                "hashHint": "Fingerprint ID (auto). Not a password hash.",
+                "other": "Other",
+                "otherEllipsis": "Other…",
+                "customValue": "Custom value",
+                "select": "Select…",
+                "selectOptions": "Select options…",
+                "additionalCustomValue": "Additional custom value"
+            },
+            "date": {
+                "pickDate": "Pick a date",
+                "pickDateTime": "Pick date & time"
+            },
+            "relation": {
+                "selectBy": "Select by {{field}}…",
+                "selectRelated": "Select related item…",
+                "junctionMetadata": "Junction metadata"
+            },
+            "previewAsRole": {
+                "title": "Preview as role",
+                "description": "Read-only view of field data after collection ACL and file access rules (including <code>access: denied</code>). Not a visual editor.",
+                "role": "Role",
+                "chooseRole": "Choose role",
+                "notReadable": "Not readable for this role."
+            },
+            "compare": {
+                "title": "Compare revision",
+                "editedBy": "Edited by {{name}} · {{date}}",
+                "showDiffOnly": "Show differences only",
+                "selectAll": "Select all differences",
+                "deselectAll": "Deselect all differences",
+                "differences_one": "{{count}} difference",
+                "differences_other": "{{count}} differences",
+                "previousRevision": "Previous revision",
+                "latest": "Latest",
+                "previous": "Previous",
+                "itemRevision": "Item Revision",
+                "comparingTo": "Comparing to",
+                "apply": "Apply"
+            },
+            "columnMenu": {
+                "alignLeft": "Align left",
+                "alignCenter": "Align center",
+                "alignRight": "Align right",
+                "hideField": "Hide field"
+            },
+            "form": {
+                "draftRestored": "Restored unsaved browser draft.",
+                "discardDraft": "Discard browser draft",
+                "noActivity": "No activity recorded yet.",
+                "rejectHint": "Explain what the editor should fix before resubmitting.",
+                "rejectionNote": "Rejection note",
+                "previousNote": "Previous note: {{note}}"
+            },
+            "list": {
+                "newItem": "New item"
+            },
+            "filters": {
+                "clearAll": "Clear all",
+                "fieldFilters": "Field filters",
+                "rulesHint": "Rules are AND-combined and written to the URL (<code>filter[field][_eq]=…</code>).",
+                "noFilterableFields": "No filterable fields on this collection.",
+                "value": "Value",
+                "addRule": "Add rule",
+                "apply": "Apply"
+            },
+            "cell": {
+                "point": "Point",
+                "points_one": "{{count}} point",
+                "points_other": "{{count}} points"
+            },
+            "kanban": {
+                "updated": "Updated {{date}}"
+            },
+            "pageTitle": "Items — {{collection}}",
+            "selectItem": "Select item {{id}}"
+        },
+        "collectionPages": {
+            "edit": "Edit",
+            "sort": "Sort",
+            "deleteCollection": "Delete collection",
+            "singletonDescription": "<mono>{{slug}}</mono> · Singleton collection. Values for this entry. Define field types and order under <link>Edit fields</link>."
+        },
+        "editCollection": "Edit collection"
     },
     "ai": {
         "drawer": {
@@ -1227,8 +1926,8 @@
         "askPlaceholder": "Ask the assistant…",
         "askSomething": "Ask something…",
         "offlinePlaceholder": "AI is offline…",
-        "attachTooltip": "Attach CSV, TXT, Excel or PDF (max 5 MB)",
-        "attachShortTooltip": "Attach CSV or TXT (max 5 MB)",
+        "attachTooltip": "Attach items, files, saved prompts, or import CSV/TXT/Excel/PDF",
+        "attachShortTooltip": "Attach context or import files",
         "attachAria": "Attach",
         "messageAria": "Message",
         "dictationAria": "Dictation",
@@ -1243,7 +1942,7 @@
         "askAi": "Ask AI",
         "assistantOffline": "Assistant offline",
         "assistantOnline": "Assistant online",
-        "aiOfflineHint": "AI offline — start LM Studio to enable",
+        "aiOfflineHint": "AI unavailable — check the AI provider configuration",
         "thinking": "Thinking",
         "copied": "Copied to clipboard",
         "copyFailed": "Copy failed",
@@ -1255,7 +1954,301 @@
         "removeAttachment": "Remove {{name}}",
         "simulation": "Simulation",
         "simulationHint": "Does not write data",
-        "dictationUnsupported": "Dictation is not supported in this browser"
+        "dictationUnsupported": "Dictation is not supported in this browser",
+        "context": {
+            "title": "Attach context",
+            "description": "Add collection items, library files, or saved prompts the assistant should use for this message.",
+            "attachTooltip": "Attach items, files, or saved prompts",
+            "tabs": {
+                "items": "Items",
+                "files": "Files",
+                "prompts": "Prompts"
+            },
+            "searchPlaceholder": "Search…",
+            "searchAria": "Search context",
+            "collectionAria": "Collection",
+            "uploadImport": "Upload import file",
+            "newPrompt": "New prompt",
+            "loading": "Loading…",
+            "emptyItems": "No readable items found.",
+            "emptyFiles": "No files found.",
+            "emptyPrompts": "No saved prompts yet.",
+            "selectedCount": "{{count}} selected",
+            "cancel": "Cancel",
+            "attachSelected": "Attach selected",
+            "promptName": "Name",
+            "promptDescription": "Description",
+            "promptBody": "Prompt body",
+            "savePrompt": "Save prompt",
+            "editPrompt": "Edit prompt",
+            "deletePrompt": "Delete prompt",
+            "promptRequired": "Name and body are required.",
+            "promptSaved": "Prompt saved",
+            "promptSaveFailed": "Could not save prompt",
+            "promptDeleted": "Prompt deleted",
+            "promptDeleteFailed": "Could not delete prompt",
+            "loadFailed": "Could not load context"
+        },
+        "unableStartChat": "Unable to start a new chat",
+        "chatDeleted": "Chat deleted",
+        "unableDeleteChat": "Unable to delete the chat",
+        "unableUpdatePin": "Unable to update pin",
+        "unableLoadMoreChats": "Unable to load more chats",
+        "chatsDeleted": "{{count}} chats deleted",
+        "unableDeleteSelectedChats": "Unable to delete selected chats",
+        "noResponse": "No response from the assistant",
+        "responseError": "Error during response",
+        "attachmentUploadFailed": "Attachment upload failed",
+        "writeMessageWithAttachments": "Write a message in addition to attachments",
+        "noUserMessageToRegenerate": "No user message to regenerate",
+        "unablePrepareRegeneration": "Unable to prepare regeneration",
+        "messageResent": "Message resent",
+        "messageCannotBeEmpty": "Message cannot be empty",
+        "unableEditMessage": "Unable to edit the message",
+        "dictationError": "Dictation error",
+        "unableStartDictation": "Unable to start dictation",
+        "chat": "Chat",
+        "responseTryAgain": "No response from the assistant. Try again.",
+        "sendError": "Error while sending",
+        "loadMore": "Load more",
+        "yesterday": "Yesterday",
+        "thisWeek": "This week",
+        "aWeekAgo": "A week ago",
+        "thisMonth": "This month",
+        "today": "Today",
+        "twoDaysAgo": "2 days ago",
+        "older": "Older",
+        "newChat": "New chat",
+        "noConversations": "No conversations yet.",
+        "openFullPage": "Open full page",
+        "openPanel": "Open in side panel",
+        "conversations": "Conversations",
+        "searchConversations": "Search conversations…",
+        "noConversationsMatch": "No conversations match your search.",
+        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools.",
+        "conversationRegion": "Conversation",
+        "tool": {
+            "title": {
+                "running": "Using {{tool}}",
+                "done": "Used {{tool}}",
+                "error": "Could not use {{tool}}",
+                "denied": "Denied {{tool}}",
+                "approval": "{{tool}} needs your approval"
+            },
+            "provider": {
+                "web_search": "Searched the web"
+            },
+            "steps_one": "Done in {{count}} step",
+            "steps_other": "Done in {{count}} steps",
+            "stepsRunning_one": "Working, {{count}} step so far",
+            "stepsRunning_other": "Working, {{count}} steps so far"
+        },
+        "approval": {
+            "approve": "Approve",
+            "reject": "Reject",
+            "question": "Approve this action?",
+            "hint": "The assistant waits for your answer before it continues.",
+            "destructiveHint": "This call deletes data. The assistant waits for your answer before it continues."
+        },
+        "actions": {
+            "copy": "Copy",
+            "copied": "Copied",
+            "edit": "Edit"
+        },
+        "retry": "Retry",
+        "sendAgain": "Send again",
+        "assistantMessagePdfTitle": "Assistant message",
+        "callingTool": "Calling {{tool}}…",
+        "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "queued",
+            "running": "running",
+            "done": "done",
+            "failed": "failed"
+        },
+        "markdown": {
+            "copyCode": "Copy code",
+            "downloadFile": "Download file",
+            "viewFullscreen": "View fullscreen",
+            "exitFullscreen": "Exit fullscreen",
+            "copyTable": "Copy table",
+            "copyTableAsMarkdown": "Copy table as Markdown",
+            "copyTableAsCsv": "Copy table as CSV",
+            "copyTableAsTsv": "Copy table as TSV",
+            "downloadTable": "Download table",
+            "downloadTableAsCsv": "Download table as CSV",
+            "downloadTableAsMarkdown": "Download table as Markdown",
+            "imageNotAvailable": "Image not available",
+            "downloadImage": "Download image",
+            "openExternalLink": "Open external link?",
+            "externalLinkWarning": "You're about to visit an external website.",
+            "close": "Close",
+            "copyLink": "Copy link",
+            "copied": "Copied",
+            "openLink": "Open link"
+        },
+        "errors": {
+            "tooManyAttachments": "You can attach at most 5 files per message.",
+            "unsupportedAttachment": "Only CSV, TXT, XLSX or PDF files are allowed.",
+            "attachmentTooLarge": "The file is larger than 5 MB.",
+            "attachmentUploadFailed": "Attachment upload failed",
+            "connectionInterrupted": "Connection to the AI server was interrupted (timeout, proxy, or model crash). Check the AI provider and retry with a smaller prompt.",
+            "network": "Network error",
+            "noResponseStream": "No response stream",
+            "stream": "Error during the AI stream",
+            "streamInterrupted": "AI stream connection interrupted (proxy timeout or slow model). Check the AI provider and that fastcgi_read_timeout is at least 600s, then retry.",
+            "loadConversations": "Unable to load conversations",
+            "truncate": "Could not truncate the conversation",
+            "popupBlocked": "Popup blocked: allow pop-ups to export the PDF."
+        },
+        "awaitingApproval": "Waiting for your approval.",
+        "aTool": "a tool",
+        "toolFallback": "Completed via {{tools}}. Ask me to verify the result if needed.",
+        "pinned": "Pinned",
+        "selectConversation": "Select {{title}}",
+        "bulkDeleteTitle": "Delete selected chats?",
+        "bulkDeleteDescription_one": "You are about to delete {{count}} chat. This action cannot be undone.",
+        "bulkDeleteDescription_other": "You are about to delete {{count}} chats. This action cannot be undone.",
+        "reasoning": {
+            "thinking": "Thinking…",
+            "thoughtFewSeconds": "Thought for a few seconds",
+            "thoughtFor_one": "Thought for {{count}} second",
+            "thoughtFor_other": "Thought for {{count}} seconds"
+        },
+        "sources": {
+            "used_one": "Used {{count}} source",
+            "used_other": "Used {{count}} sources"
+        },
+        "usage": {
+            "trigger": "Context used: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Reasoning",
+            "cache": "Cache"
+        },
+        "backToList": "Back to conversations",
+        "suggestedActions": {
+            "verifyImport": "Verify import",
+            "exportCsv": "Export CSV",
+            "scheduleSync": "Schedule sync",
+            "addFields": "Add fields",
+            "showItems": "Show items",
+            "exportJson": "Export JSON",
+            "recentActivity": "Recent activity",
+            "aiOnly": "AI only"
+        },
+        "toolCalls": {
+            "DescribeFieldTypes": {
+                "_": "Read the field types"
+            },
+            "ExportCollection": {
+                "_": "Export a collection"
+            },
+            "ExtractPdfText": {
+                "_": "Read the PDF"
+            },
+            "GetImportJobStatus": {
+                "_": "Check the import"
+            },
+            "ImportCollectionCsv": {
+                "_": "Import a CSV"
+            },
+            "ImportRemoteJson": {
+                "_": "Import data from a URL"
+            },
+            "ManageAiSyncSources": {
+                "create": "Create a sync source",
+                "delete": "Move a sync source to the trash",
+                "disable": "Turn off a sync source",
+                "enable": "Turn on a sync source",
+                "list": "List sync sources",
+                "update": "Update a sync source"
+            },
+            "ManageCollectionItems": {
+                "bulk_delete": "Move several items to the trash",
+                "bulk_update": "Update several items",
+                "create": "Create an item",
+                "delete": "Move an item to the trash",
+                "force_delete": "Delete an item permanently",
+                "get": "Read an item",
+                "list": "List items",
+                "list_relation_options": "List the items you can link",
+                "publish": "Publish an item",
+                "restore": "Restore an item",
+                "update": "Update an item"
+            },
+            "ManageCollections": {
+                "apply_collection_pack": "Create a collection from a template",
+                "apply_field_pack": "Add a field pack",
+                "convert_field": "Change a field type",
+                "create": "Create a collection",
+                "create_field": "Add a field",
+                "delete": "Move a collection to the trash",
+                "delete_field": "Remove a field",
+                "duplicate": "Duplicate a collection",
+                "force_delete": "Delete a collection permanently",
+                "get": "Read a collection",
+                "list": "List collections",
+                "list_collection_packs": "List collection templates",
+                "list_field_packs": "List field packs",
+                "restore": "Restore a collection",
+                "update": "Update a collection",
+                "update_field": "Update a field"
+            },
+            "ManageFiles": {
+                "create": "Create a file",
+                "create_folder": "Create a folder",
+                "delete": "Move a file to the trash",
+                "force_delete": "Delete a file permanently",
+                "list": "List files",
+                "move": "Move a file",
+                "move_many": "Move several files",
+                "rename": "Rename a file",
+                "restore": "Restore a file",
+                "save_attachment": "Save the attachment to Files",
+                "search": "Search the files",
+                "tag": "Tag a file"
+            },
+            "ManageGroups": {
+                "create": "Create a group",
+                "delete": "Move a group to the trash",
+                "force_delete": "Delete a group permanently",
+                "get": "Read a group",
+                "list": "List groups",
+                "restore": "Restore a group",
+                "update": "Update a group"
+            },
+            "ManageRoles": {
+                "create": "Create a role",
+                "delete": "Move a role to the trash",
+                "duplicate": "Duplicate a role",
+                "get": "Read a role",
+                "list": "List roles",
+                "list_permissions": "List permissions",
+                "update": "Update a role"
+            },
+            "ManageUsers": {
+                "create": "Create a user",
+                "delete": "Move a user to the trash",
+                "force_delete": "Delete a user permanently",
+                "get": "Read a user",
+                "list": "List users",
+                "restore": "Restore a user",
+                "update": "Update a user"
+            },
+            "QueryActivityLogs": {
+                "_": "Search the activity log"
+            },
+            "QueryCollectionItems": {
+                "_": "Search the items"
+            },
+            "RollbackLastAiTurn": {
+                "_": "Undo the last changes"
+            },
+            "SearchSimilarCollectionItems": {
+                "_": "Find similar items"
+            }
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1358,7 +2351,15 @@
         "healthWorkloadQueue": "Queue",
         "healthWorkloadLength": "Length",
         "healthWorkloadWait": "Wait",
-        "healthWorkloadProcesses": "Procs"
+        "healthWorkloadProcesses": "Procs",
+        "statFilesHeadline": "Folders: {{count}}",
+        "statSizeContext": "All files, on every disk",
+        "statUploadsInProgress": "Uploads in progress",
+        "statInProgressContext": "Chunked uploads not finished yet",
+        "statStaleUploads": "Stale uploads",
+        "statStaleContext": "Expired before they finished",
+        "statFailedJobsHeadline": "Failed jobs: {{count}}",
+        "healthWorkloadWaitSeconds": "{{seconds}}s"
     },
     "realtime": {
         "connected": "Realtime connected",
@@ -1401,7 +2402,10 @@
         "showArchived": "Show archived",
         "showInbox": "Show chats",
         "deleteChat": "Delete chat",
-        "deleteChatError": "Could not delete chat."
+        "deleteChatError": "Could not delete chat.",
+        "messagesRegion": "Messages",
+        "scrollToLatest": "Scroll to the latest message",
+        "backToList": "Back to chats"
     },
     "errors": {
         "notFound": {
@@ -1409,6 +2413,12 @@
             "title": "Page not found",
             "description": "The page you requested does not exist or is no longer available.",
             "goHome": "Go to home"
+        },
+        "boundary": {
+            "title": "Something went wrong",
+            "description": "The interface hit an unexpected error. You can try reloading the page.",
+            "tryAgain": "Try again",
+            "reload": "Reload page"
         }
     },
     "unsavedChanges": {
@@ -1424,15 +2434,15 @@
     },
     "activityLog": {
         "title": "Activity Log",
-        "description": "Read-only audit trail of model changes and authentication events.",
         "searchPlaceholder": "Search description or subject…",
         "allUsers": "All users",
         "allActions": "All actions",
         "allLogs": "All logs",
         "filterByAction": "Filter by action",
         "filterByLog": "Filter by log name",
-        "dateFrom": "From date",
-        "dateTo": "To date",
+        "dateRange": "Date range",
+        "anyDate": "Any date",
+        "clearDates": "Clear dates",
         "empty": "No activity found for the selected filters.",
         "system": "System",
         "noChanges": "No field changes recorded.",
@@ -1478,7 +2488,8 @@
         },
         "exportCsv": "Export CSV",
         "exportJson": "Export JSON",
-        "exportHint": "Exports the current filters (max {{limit}} rows)."
+        "exportHint": "Exports the current filters (max {{limit}} rows).",
+        "ip": "IP"
     },
     "files": {
         "title": "Files",
@@ -1517,7 +2528,11 @@
             "activeFiles": "Active files",
             "trash": "Trash",
             "selectedCount": "{{count}} selected",
-            "clearSelection": "Clear selection"
+            "clearSelection": "Clear selection",
+            "emptyTrash": "Empty trash",
+            "emptyTrashTitle": "Empty the trash?",
+            "emptyTrashDescription": "Every item in the trash, including its stored files, will be permanently deleted. This can’t be undone. It runs in the background and you’ll get a notification when it’s done.",
+            "uploadOptions": "More upload options"
         },
         "sort": {
             "name": "Name",
@@ -1526,10 +2541,6 @@
             "updated": "Updated"
         },
         "empty": {
-            "trash": "Trash is empty",
-            "dropToUpload": "Drop files anywhere to upload",
-            "folderEmpty": "This folder is empty",
-            "orUseUpload": "Or use the Upload button above",
             "contextNewFolder": "New Folder",
             "contextUploadFile": "Upload File",
             "contextUploadFolder": "Upload Folder"
@@ -1594,22 +2605,19 @@
             "referenceCount": "{{count}} reference",
             "referenceCountPlural": "{{count}} references",
             "moreRefs": "+{{count}} more",
-            "focalPoint": "Focal point",
             "fileNaming": "File naming",
             "diskName": "Disk name",
             "downloadName": "Download name",
-            "transforms": "Transforms",
-            "translateX": "Translate X",
-            "translateY": "Translate Y",
-            "scale": "Scale",
-            "focalX": "Focal X",
-            "focalY": "Focal Y",
-            "mustBeNumber": "{{field}} must be a number",
             "updated": "File updated",
             "replaced": "File replaced",
             "failedSave": "Failed to save file",
             "failedReplace": "Failed to replace file",
-            "failedScanRefs": "Failed to scan references"
+            "failedScanRefs": "Failed to scan references",
+            "focalReadout": "Focal point: X {{x}}% · Y {{y}}%",
+            "focalNotSet": "Focal point: not set (centre)",
+            "focalPickerLabel": "Set focal point. {{readout}}. Click the image, or use the arrow keys.",
+            "focalHint": "Click to set the focal point",
+            "focalReset": "Reset to centre"
         },
         "tags": {
             "label": "Tags",
@@ -1620,7 +2628,9 @@
             "placeholder": "Type a tag and press Enter",
             "exactMatch": "Exact match — will reuse existing tag “{{name}}”",
             "existing": "Existing tags",
-            "moreTags": "{{count}} more tags"
+            "moreTags": "{{count}} more tags",
+            "create": "Create “{{name}}”",
+            "remove": "Remove tag {{name}}"
         },
         "folderPicker": {
             "search": "Search folders…",
@@ -1659,12 +2669,254 @@
             "zipFailed": "Zip preparation failed",
             "zipPreparing": "Preparing zip — you'll be notified when it's ready.",
             "duplicationStarted": "Duplication started — you'll be notified when it finishes",
-            "duplicated": "File duplicated"
+            "duplicated": "File duplicated",
+            "trashEmptying": "Emptying the trash in the background…",
+            "trashEmptied": "Trash emptied",
+            "trashEmptyFailed": "Couldn’t empty the trash"
         },
         "card": {
             "select": "Select {{name}}",
             "privateBadge": "Private",
-            "privateTitle": "Private — requires Read private on API roles"
+            "privateTitle": "Private — requires Read private on API roles",
+            "moreActions": "More actions for {{name}}",
+            "tagsMenu_one": "{{count}} tag on {{name}}",
+            "tagsMenu_other": "{{count}} tags on {{name}}"
+        },
+        "picker": {
+            "title": "Choose file",
+            "descriptionMultiple": "Click files to select them, then confirm below",
+            "description": "Browse folders or upload a new file",
+            "empty": "No files in this folder",
+            "chooseFiles": "Choose files",
+            "chooseCount": "Choose {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Drop files here to upload",
+            "dropOrBrowse": "Drop files here or browse",
+            "chunkedHint": "Large files use chunked upload automatically",
+            "chooseFiles": "Choose files"
         }
+    },
+    "confirmDestructive": {
+        "typeToConfirm": "Type \"{{name}}\" to confirm",
+        "deletePermanently": "Delete permanently",
+        "deleteAiChatTitle": "Delete this chat?",
+        "deleteAiChatDescription": "The conversation and all its messages will be deleted.",
+        "deletePromptTitle": "Delete prompt “{{name}}”?",
+        "deletePromptDescription": "The saved prompt will no longer be available to anyone.",
+        "deleteMessageTitle": "Delete this message?",
+        "deleteMessageDescription": "The message will be removed from the chat for everyone.",
+        "deleteDirectChatTitle": "Delete this chat?",
+        "deleteDirectChatDescription": "The chat will be removed from your chats."
+    },
+    "itemConfirm": {
+        "deleteTitle": "Delete item “{{name}}”?",
+        "deleteDescription": "This item will be soft-deleted and removed from the active list.",
+        "forceDeleteTitle": "Delete item “{{name}}” permanently?",
+        "forceDeleteDescription": "This item will be permanently removed. This cannot be undone.",
+        "bulkDeleteTitle": "Delete {{count}} selected items?",
+        "bulkDeleteDescription": "Selected items will be soft-deleted and removed from the active list.",
+        "bulkForceDeleteTitle": "Delete {{count}} selected items permanently?",
+        "bulkForceDeleteDescription": "Selected items will be permanently removed. This cannot be undone.",
+        "rejectDraftTitle": "Reject draft for “{{name}}”?",
+        "publishDraftTitle": "Publish draft for “{{name}}”?",
+        "publishDraftDescription": "Promote unpublished draft into published values. Draft workspace will clear.",
+        "discardDraftTitle": "Discard draft for “{{name}}”?",
+        "discardDraftDescription": "Drop unpublished draft. Published values stay unchanged.",
+        "restoreRevisionTitle": "Restore revision for “{{name}}”?",
+        "restoreRevisionDescription": "Current values will be overwritten.",
+        "hardRestoreRevisionTitle": "Hard restore revision for “{{name}}”?",
+        "hardRestoreRevisionDescription": "Current published values will be overwritten immediately. Prefer Compare → Apply for soft restore."
+    },
+    "fieldConfirm": {
+        "deleteTitle": "Delete field “{{name}}”?",
+        "deleteDescription": "This cannot be undone."
+    },
+    "users": {
+        "confirm": {
+            "bulkDeleteTitle": "Delete {{count}} selected users?",
+            "bulkDeleteDescription": "Selected users will be soft-deleted.",
+            "bulkForceDeleteTitle": "Delete {{count}} selected users permanently?",
+            "bulkForceDeleteDescription": "Selected users will be permanently removed. This cannot be undone."
+        },
+        "title": "Users",
+        "newUser": "New user",
+        "searchPlaceholder": "Search users…",
+        "searchTrashPlaceholder": "Search trash…",
+        "sortBy": "Sort by",
+        "activeUsers": "Active users",
+        "columns": {
+            "lastName": "Last name",
+            "firstName": "First name",
+            "email": "Email",
+            "created": "Created",
+            "updated": "Updated",
+            "name": "Name",
+            "roles": "Roles",
+            "groups": "Groups",
+            "status": "Status",
+            "actions": "Actions"
+        },
+        "status": {
+            "active": "Active",
+            "inactive": "Inactive"
+        },
+        "form": {
+            "editTitle": "Edit user",
+            "editDescription": "Update profile, direct roles, and group memberships. Groups inherit their attached roles’ permissions and collection/file ACL.",
+            "createDescription": "Create a user and assign direct roles and/or groups. Prefer groups when many users share the same role set.",
+            "requiredHint": "Fields marked with * are required.",
+            "emailHint": "Use a valid email address, for example",
+            "username": "Username",
+            "newPasswordOptional": "New password (optional)",
+            "selectAtLeastOneRole": "Select at least one role",
+            "selectRoles": "Select roles…",
+            "groupsHint": "Group roles are unioned with direct roles for admin permissions and collection/file access.",
+            "create": "Create"
+        }
+    },
+    "groups": {
+        "confirm": {
+            "bulkDeleteTitle": "Delete {{count}} selected groups?",
+            "bulkDeleteDescription": "Selected groups will be soft-deleted.",
+            "bulkForceDeleteTitle": "Delete {{count}} selected groups permanently?",
+            "bulkForceDeleteDescription": "Selected groups will be permanently removed. This cannot be undone.",
+            "forceDeleteTitle": "Delete group “{{name}}” permanently?",
+            "forceDeleteDescription": "This group will be permanently removed. This cannot be undone."
+        },
+        "title": "Groups",
+        "newGroup": "New group",
+        "searchPlaceholder": "Search groups…",
+        "searchTrashPlaceholder": "Search trash…",
+        "sortBy": "Sort by",
+        "columns": {
+            "name": "Name",
+            "slug": "Slug",
+            "roles": "Roles",
+            "members": "Members",
+            "actions": "Actions"
+        },
+        "empty": "No groups yet.",
+        "membersCount_one": "{{count}} member",
+        "membersCount_other": "{{count}} members",
+        "form": {
+            "editTitle": "Edit group",
+            "description": "Attach Spatie roles to this group so members inherit admin permissions and any collection/file ACL tied to those roles. Prefer groups for large memberships instead of assigning roles user-by-user.",
+            "descriptionLabel": "Description",
+            "rolesHint": "Members inherit these roles’ Spatie permissions and collection/file access matrices.",
+            "users": "Users",
+            "create": "Create"
+        }
+    },
+    "pendingToolCalls": {
+        "head": "AI tool approvals",
+        "description": "MCP tool calls waiting for a human with the matching permission.",
+        "colTool": "Tool",
+        "colArgs": "Arguments",
+        "colRequester": "Requested by",
+        "colExpires": "Expires",
+        "colActions": "Actions",
+        "empty": "No pending tool approvals.",
+        "approve": "Approve",
+        "reject": "Reject"
+    },
+    "deploy": {
+        "button": "Deploy"
+    },
+    "richText": {
+        "bold": "Bold",
+        "italic": "Italic",
+        "heading": "Heading",
+        "heading2": "Heading 2",
+        "heading3": "Heading 3",
+        "edit": "Edit",
+        "preview": "Preview",
+        "image": "Image",
+        "chooseImages": "Choose images",
+        "addTag": "Add tag…",
+        "strikethrough": "Strikethrough",
+        "link": "Link",
+        "bulletList": "Bullet list",
+        "orderedList": "Ordered list",
+        "quote": "Quote",
+        "code": "Code",
+        "undo": "Undo",
+        "redo": "Redo",
+        "table": "Table",
+        "linkUrl": "Link URL",
+        "applyLink": "Apply",
+        "removeLink": "Remove link",
+        "headingLevel": "Heading {{level}}",
+        "removeTag": "Remove tag {{name}}",
+        "imageFromComputer": "Upload from computer",
+        "imageFromLibrary": "Choose from library",
+        "imageFromUrl": "Import from URL",
+        "imageOnly": "Please choose an image file.",
+        "imageUploadFailed": "Image upload failed.",
+        "uploadingImage": "Uploading image…",
+        "insertTable": "Insert table",
+        "insertTableDescription": "Choose rows and columns for the markdown table.",
+        "tableRows": "Rows",
+        "tableColumns": "Columns",
+        "createTable": "Create",
+        "nothingToPreview": "Nothing to preview."
+    },
+    "permissions": {
+        "columns": {
+            "name": "Name",
+            "guard": "Guard"
+        },
+        "empty": "No permissions in database. Run sync.",
+        "sync": "Sync from enum",
+        "description": "Permissions are defined in <code>PermissionEnum</code> and synced to the database. Assign them to roles on the role edit page."
+    },
+    "passwordInput": {
+        "strength": "Password strength",
+        "meetsPolicy": "Meets project password policy.",
+        "keepGoing": "Keep going to meet project password policy.",
+        "generate": "Generate secure password"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "pendingCount": "Pending in queue: {{count}}",
+        "pendingTitle": "Pending (sample)",
+        "failedTitle": "Failed jobs",
+        "pendingEmpty": "No pending jobs.",
+        "failedEmpty": "No failed jobs.",
+        "scopeHint": "Domain job status (AI import, zip) remains in their existing UIs — this page monitors the Laravel queue tables only.",
+        "retry": "Retry",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Queue",
+            "attempts": "Attempts",
+            "failedAt": "Failed at",
+            "exception": "Exception",
+            "actions": "Actions"
+        }
+    },
+    "revisions": {
+        "title": "Revisions",
+        "drawerDescription": "Select a revision to compare with the current item. Apply merges into the form — Save to keep.",
+        "pageTitle": "History — Item #{{id}}",
+        "pageDescription": "Select two revisions to compare. Restore writes a snapshot as a new update.",
+        "backToItem": "Back to item",
+        "emptyFiltered": "No revisions for this date range. Clear the filter or widen dates.",
+        "empty": "No revisions yet. Saves, draft edits, publish, and restores appear here.",
+        "hard": "Hard",
+        "hardRestore": "Hard restore",
+        "hardRestoreHint": "Hard restore (writes immediately)",
+        "restore": "Restore",
+        "compare": "Compare",
+        "compareHint": "Select two revisions to see field diffs.",
+        "field": "Field",
+        "selectRevision": "Select revision #{{id}}"
+    },
+    "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "goToPage": "Go to page {{page}}",
+        "goToPreviousPage": "Go to previous page",
+        "goToNextPage": "Go to next page"
     }
 }

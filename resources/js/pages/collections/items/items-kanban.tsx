@@ -1,24 +1,23 @@
 import { Link, router } from '@inertiajs/react';
-import { GripVertical, Loader2 } from 'lucide-react';
+import type { TFunction } from 'i18next';
+import { Columns3, GripVertical } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
 import { createSortableList } from '@/lib/create-sortable-list';
+import { buildItemListQuery, itemRowTitle } from '@/lib/item-list-views';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
-import type { CollectionView } from '@/types';
-import type { QueryParams } from '@/wayfinder';
-
-type ItemRow = {
-    id: number;
-    data: Record<string, unknown>;
-    displays?: Record<string, string | null>;
-    updated_at?: string | null;
-    has_draft?: boolean;
-    approval_status?: string | null;
-};
+import type { CollectionView, ItemRow } from '@/types';
 
 export type KanbanColumnPage = {
     value: string;
@@ -39,26 +38,6 @@ type ColumnState = KanbanColumnPage & {
     loading: boolean;
 };
 
-function itemTitle(row: ItemRow): string {
-    const display = row.displays?.title;
-
-    if (typeof display === 'string' && display.trim() !== '') {
-        return display;
-    }
-
-    const raw = row.data?.title;
-
-    if (typeof raw === 'string' && raw.trim() !== '') {
-        return raw;
-    }
-
-    if (typeof raw === 'number') {
-        return String(raw);
-    }
-
-    return `#${row.id}`;
-}
-
 function formatUpdatedAt(value: string | null | undefined): string | null {
     if (typeof value !== 'string' || value === '') {
         return null;
@@ -77,65 +56,20 @@ function formatUpdatedAt(value: string | null | undefined): string | null {
     });
 }
 
-function approvalLabel(status: string): string {
+function approvalLabel(status: string, t: TFunction): string {
     if (status === 'in_review') {
-        return 'In review';
+        return t('collections.itemToolbar.inReview');
     }
 
     if (status === 'approved') {
-        return 'Approved';
+        return t('collections.itemToolbar.approved');
     }
 
     if (status === 'rejected') {
-        return 'Rejected';
+        return t('collections.itemToolbar.rejected');
     }
 
     return status;
-}
-
-function buildListQuery(filters: Record<string, unknown>): QueryParams {
-    const query: QueryParams = {};
-    const filter: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(filters)) {
-        if (
-            key === 'trashed' ||
-            key === 'has_draft' ||
-            key === 'in_review' ||
-            key === 'sort' ||
-            key === 'direction'
-        ) {
-            continue;
-        }
-
-        filter[key] = value;
-    }
-
-    if (Object.keys(filter).length > 0) {
-        query.filter = filter as QueryParams['filter'];
-    }
-
-    if (filters.trashed === true) {
-        query.trashed = true;
-    }
-
-    if (filters.has_draft === true) {
-        query.has_draft = true;
-    }
-
-    if (filters.in_review === true) {
-        query.in_review = true;
-    }
-
-    if (typeof filters.sort === 'string' && filters.sort !== '') {
-        query.sort = filters.sort;
-    }
-
-    if (filters.direction === 'asc' || filters.direction === 'desc') {
-        query.direction = filters.direction;
-    }
-
-    return query;
 }
 
 /**
@@ -240,7 +174,7 @@ export function ItemsKanban({
         setSortableEpoch((epoch) => epoch + 1);
     }, [board]);
 
-    const listQuery = useMemo(() => buildListQuery(filters), [filters]);
+    const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 
     const loadMore = useCallback(
         async (columnValue: string) => {
@@ -552,12 +486,22 @@ export function ItemsKanban({
 
     if (!board || !fieldName) {
         return (
-            <p
-                className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            <Empty
+                className="gap-3 border border-dashed p-6 md:p-6"
                 data-test="kanban-missing-field"
             >
-                {t('collections.itemsList.kanbanMissingField')}
-            </p>
+                <EmptyHeader>
+                    <EmptyMedia
+                        variant="icon"
+                        className="bg-primary/10 text-primary"
+                    >
+                        <Columns3 />
+                    </EmptyMedia>
+                    <EmptyDescription>
+                        {t('collections.itemsList.kanbanMissingField')}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         );
     }
 
@@ -613,7 +557,7 @@ export function ItemsKanban({
                                         key={item.id}
                                         data-kanban-card
                                         data-item-id={item.id}
-                                        className="rounded-md border bg-background p-2.5 shadow-xs"
+                                        className="rounded-md border bg-background p-3 shadow-xs"
                                     >
                                         <div className="flex items-start gap-2">
                                             {canEdit && !isTrashed ? (
@@ -621,12 +565,14 @@ export function ItemsKanban({
                                                     type="button"
                                                     data-kanban-handle
                                                     className="mt-0.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
-                                                    aria-label="Drag"
+                                                    aria-label={t(
+                                                        'a11y.dragToReorder',
+                                                    )}
                                                 >
                                                     <GripVertical className="size-3.5" />
                                                 </button>
                                             ) : null}
-                                            <div className="min-w-0 flex-1 space-y-1.5">
+                                            <div className="min-w-0 flex-1 space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <Link
                                                         href={withReturnParam(
@@ -641,25 +587,32 @@ export function ItemsKanban({
                                                         )}
                                                         className="min-w-0 flex-1 text-sm leading-snug font-medium hover:underline"
                                                     >
-                                                        {itemTitle(item)}
+                                                        {itemRowTitle(item)}
                                                     </Link>
                                                     {showDraft ? (
                                                         <Badge
                                                             variant="secondary"
-                                                            className="shrink-0 text-[10px]"
+                                                            className="shrink-0 text-xs"
                                                             data-test={`kanban-draft-badge-${item.id}`}
                                                         >
-                                                            Draft
+                                                            {t(
+                                                                'collections.itemToolbar.draft',
+                                                            )}
                                                         </Badge>
                                                     ) : null}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                                    <span className="tabular-nums">
+                                                    <span className="font-mono tabular-nums">
                                                         #{item.id}
                                                     </span>
                                                     {updated ? (
                                                         <span>
-                                                            Updated {updated}
+                                                            {t(
+                                                                'collections.items.kanban.updated',
+                                                                {
+                                                                    date: updated,
+                                                                },
+                                                            )}
                                                         </span>
                                                     ) : null}
                                                 </div>
@@ -672,11 +625,12 @@ export function ItemsKanban({
                                                                 ? 'destructive'
                                                                 : 'outline'
                                                         }
-                                                        className="text-[10px]"
+                                                        className="text-xs"
                                                         data-test={`kanban-approval-badge-${item.id}`}
                                                     >
                                                         {approvalLabel(
                                                             approvalStatus,
+                                                            t,
                                                         )}
                                                     </Badge>
                                                 ) : null}
@@ -699,7 +653,6 @@ export function ItemsKanban({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
                                     className="w-full"
                                     disabled={column.loading}
                                     data-test={`kanban-load-more-${column.value || 'empty'}`}
@@ -707,7 +660,7 @@ export function ItemsKanban({
                                 >
                                     {column.loading ? (
                                         <>
-                                            <Loader2 className="size-3.5 animate-spin" />
+                                            <Spinner className="size-3.5" />
                                             {t(
                                                 'collections.itemsList.kanbanLoading',
                                             )}

@@ -11,11 +11,7 @@ import type {
     FieldTreeOptionRow,
     SliderFieldSettings,
 } from './catalog';
-import {
-    isFieldRequired,
-    parseTranslatedText,
-    serializeTranslatedText,
-} from './display';
+import { parseTranslatedText, serializeTranslatedText } from './display';
 import type { TranslatedText } from './display';
 
 function settingsFlag(value: unknown): boolean {
@@ -169,50 +165,6 @@ export function parseFieldTreeOptions(
     };
 
     return raw.map(parseNode);
-}
-
-/**
- * Flattens a tree option list into value/label pairs (depth-first).
- *
- * @param options - Tree nodes to flatten
- * @returns Flat option rows including all descendants
- */
-export function flattenFieldTreeOptions(
-    options: FieldTreeOptionRow[],
-): FieldOptionRow[] {
-    const flattened: FieldOptionRow[] = [];
-
-    for (const option of options) {
-        flattened.push({ value: option.value, label: option.label });
-
-        if (option.children !== undefined && option.children.length > 0) {
-            flattened.push(...flattenFieldTreeOptions(option.children));
-        }
-    }
-
-    return flattened;
-}
-
-/**
- * Parse string-input settings from a field settings blob.
- *
- * @param settings - Raw string field settings
- * @returns Input subtype, default value, and required flag for forms
- */
-export function parseStringInputSettings(
-    settings?: Record<string, unknown> | null,
-): {
-    inputType: string;
-    defaultValue: string;
-    required: boolean;
-} {
-    const stringSettings = parseStringFieldSettings(settings);
-
-    return {
-        inputType: stringSettings.inputType,
-        defaultValue: stringSettings.defaultValue,
-        required: isFieldRequired(settings),
-    };
 }
 
 /** Parsed settings for string/text input fields. */
@@ -372,7 +324,7 @@ export function parseBooleanFieldSettings(
 }
 
 /** Date/time picker display options. */
-export type DateFieldMode = 'date' | 'time' | 'datetime';
+type DateFieldMode = 'date' | 'time' | 'datetime';
 
 export type DateFieldSettings = {
     includeSeconds: boolean;
@@ -648,7 +600,7 @@ export type RelationFieldSettings = {
 };
 
 /** Leaf schema for M2M junction metadata fields. */
-export type JunctionFieldDefinition = {
+type JunctionFieldDefinition = {
     name: string;
     type: string;
 };
@@ -656,7 +608,7 @@ export type JunctionFieldDefinition = {
 /**
  * Parse `settings.junction_fields` for many-to-many meta inputs.
  */
-export function parseJunctionFields(
+function parseJunctionFields(
     settings?: Record<string, unknown> | null,
 ): JunctionFieldDefinition[] {
     const raw = settings?.junction_fields;

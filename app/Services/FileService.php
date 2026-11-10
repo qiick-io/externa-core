@@ -8,10 +8,12 @@ use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Files\FileEffectiveAccessService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use App\Support\Files\FilesDisk;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\MimeTypeValidator;
 use App\Support\Uploads\SafeUploadMime;
 use App\Traits\HasFilesTrait;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use ZipArchive;
 
 /**
@@ -55,7 +58,7 @@ class FileService
             return $file;
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.created', $file);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.created', $file);
 
         return $file;
     }
@@ -68,9 +71,10 @@ class FileService
         $disk = $this->resolveUploadDisk($disk, $parentId);
         $fileName = PlainTextSanitizer::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
         $field = $name !== null ? 'name' : 'file';
-        // ponytail: single getContent() for sniff + meta + hash (ceiling: loads whole file into memory)
-        $bytes = $uploadedFile->getContent();
-        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, SafeUploadMime::sniff($bytes), $field, $bytes);
+        $absolutePath = $this->absolutePathOfUpload($uploadedFile, $field);
+        $sniffed = MimeTypeValidator::assertAllowedPath($fileName, $absolutePath, $field);
+        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, $sniffed, $field);
+        $fileHash = $this->hashPathSha256($absolutePath);
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($fileName, $disk);
         $storedPath = null;
@@ -82,8 +86,12 @@ class FileService
                 basename($storagePath)
             );
 
-            [$width, $height, $meta] = $this->extractImageMeta($disk, $storedPath, $mimeType, $bytes);
-            $fileHash = hash('sha256', $bytes);
+            [$width, $height, $meta] = $this->extractImageMeta(
+                $disk,
+                $storedPath,
+                $mimeType,
+                $this->imageMetaContent($disk, $storedPath),
+            );
 
             $file = DB::transaction(function () use ($parentId, $disk, $fileName, $mimeType, $size, $width, $height, $meta, $storedPath, $fileHash) {
                 $version = $this->resolveOrCreateVersion($disk, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta);
@@ -116,7 +124,7 @@ class FileService
                 return $file;
             });
 
-            app(OutboundWebhookDispatcher::class)->dispatchFile('file.created', $file);
+            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.created', $file);
 
             return $file;
         } catch (\Throwable $e) {
@@ -190,7 +198,10 @@ class FileService
                 return $file->fresh();
             });
 
-            app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $moved);
+            // query()->update and path-only saves can skip access/parent dirty checks — force recompute.
+            $this->syncEffectiveAccess($moved);
+
+            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $moved);
 
             $moved = $this->reconcilePrivacyDisk($moved);
             if ($moved->isFolder()) {
@@ -236,7 +247,7 @@ class FileService
             return $file->fresh();
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $renamed);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $renamed);
 
         return $renamed;
     }
@@ -294,9 +305,25 @@ class FileService
             }
         }
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $updated);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $updated);
 
         return $updated;
+    }
+
+    /**
+     * Persist denormalized effective_access for a node (and folder descendants).
+     */
+    private function syncEffectiveAccess(File $file): void
+    {
+        $service = app(FileEffectiveAccessService::class);
+        $service->apply($file);
+        File::query()->whereKey($file->id)->update([
+            'effective_access' => $file->effective_access,
+        ]);
+
+        if ($file->isFolder()) {
+            $service->refreshDescendants($file);
+        }
     }
 
     /**
@@ -414,13 +441,11 @@ class FileService
             throw new \InvalidArgumentException('Only files can be replaced.');
         }
 
-        $bytes = $uploadedFile->getContent();
-        $mimeType = SafeUploadMime::assertFilePoolAllowed(
-            $uploadedFile->getClientOriginalName(),
-            SafeUploadMime::sniff($bytes),
-            'file',
-            $bytes,
-        );
+        $absolutePath = $this->absolutePathOfUpload($uploadedFile, 'file');
+        $originalName = $uploadedFile->getClientOriginalName();
+        $sniffed = MimeTypeValidator::assertAllowedPath($originalName, $absolutePath, 'file');
+        $mimeType = SafeUploadMime::assertFilePoolAllowed($originalName, $sniffed, 'file');
+        $fileHash = $this->hashPathSha256($absolutePath);
 
         app(FileTransformService::class)->clearTransforms($file);
 
@@ -435,8 +460,12 @@ class FileService
                 basename($storagePath)
             );
 
-            [$width, $height, $meta] = $this->extractImageMeta($file->disk, $storedPath, $mimeType, $bytes);
-            $fileHash = hash('sha256', $bytes);
+            [$width, $height, $meta] = $this->extractImageMeta(
+                $file->disk,
+                $storedPath,
+                $mimeType,
+                $this->imageMetaContent($file->disk, $storedPath),
+            );
 
             $replaced = DB::transaction(function () use ($file, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta) {
                 $version = $this->resolveOrCreateVersion(
@@ -470,7 +499,7 @@ class FileService
                 return $file->fresh(['tags']);
             });
 
-            app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $replaced);
+            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $replaced);
 
             return $replaced;
         } catch (\Throwable $exception) {
@@ -854,7 +883,7 @@ class FileService
             $file->delete();
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.deleted', $file);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.deleted', $file);
     }
 
     /**
@@ -891,7 +920,7 @@ class FileService
             $file->forceDelete();
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.deleted', $file);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.deleted', $file);
     }
 
     /**
@@ -998,7 +1027,8 @@ class FileService
             return '/'.$file->name;
         }
 
-        $parent = $file->parent;
+        // One query for the parent row (strict models forbid a lazy load here).
+        $parent = $file->relationLoaded('parent') ? $file->parent : $file->parent()->first();
         if (! $parent) {
             return '/'.$file->name;
         }
@@ -1084,6 +1114,53 @@ class FileService
     }
 
     /**
+     * SHA-256 of a file on disk without loading the whole blob into a PHP string.
+     */
+    public function hashPathSha256(string $absolutePath): string
+    {
+        $hash = hash_file('sha256', $absolutePath);
+        if ($hash === false) {
+            throw ValidationException::withMessages([
+                'file' => [__('Unable to hash uploaded file.')],
+            ]);
+        }
+
+        return $hash;
+    }
+
+    /**
+     * Absolute path for an UploadedFile temp body (streaming hash / MIME sniff).
+     *
+     * @throws ValidationException
+     */
+    public function absolutePathOfUpload(UploadedFile $uploadedFile, string $field = 'file'): string
+    {
+        $path = $uploadedFile->getRealPath();
+        if ($path === false || $path === '') {
+            throw ValidationException::withMessages([
+                $field => [__('Unable to read uploaded file.')],
+            ]);
+        }
+
+        return $path;
+    }
+
+    /**
+     * Image meta payload for extractImageMeta: empty on local disks (uses path);
+     * remote disks still need bytes for getimagesizefromstring.
+     */
+    public function imageMetaContent(string $disk, string $path): string
+    {
+        if ($this->isLocalDisk($disk)) {
+            return '';
+        }
+
+        $contents = Storage::disk($disk)->get($path);
+
+        return is_string($contents) ? $contents : '';
+    }
+
+    /**
      * @return array{0: ?int, 1: ?int, 2: array<string, mixed>}
      */
     public function extractImageMeta(string $disk, string $path, ?string $mimeType, string $content): array
@@ -1111,8 +1188,9 @@ class FileService
                 $height = $imageInfo[1];
                 $meta['dimensions'] = ['width' => $width, 'height' => $height];
             }
-        } catch (\Throwable) {
-            // Ignore image processing failures.
+        } catch (\Throwable $exception) {
+            // Ignore image processing failures, but keep them visible.
+            report($exception);
         }
 
         return [$width, $height, $meta];

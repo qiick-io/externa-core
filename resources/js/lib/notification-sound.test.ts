@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import { expect, test } from 'vitest';
 import {
     getNotificationSoundPrefs,
     markNotificationSoundUnlockedForTests,
@@ -27,9 +26,9 @@ test('chat sound stays off by default', () => {
     mockVisibleTab();
     resetNotificationSoundForTests();
 
-    assert.equal(getNotificationSoundPrefs().sound_chat_enabled, false);
-    assert.equal(shouldPlayChatSound(), false);
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(0, 1), false);
+    expect(getNotificationSoundPrefs().sound_chat_enabled).toBe(false);
+    expect(shouldPlayChatSound()).toBe(false);
+    expect(shouldPlayChatSoundOnUnreadIncrease(0, 1)).toBe(false);
 });
 
 test('chat sound plays on unread increase when enabled and unlocked', () => {
@@ -41,13 +40,13 @@ test('chat sound plays on unread increase when enabled and unlocked', () => {
         sound_notifications_enabled: false,
     });
 
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(0, 2), false);
+    expect(shouldPlayChatSoundOnUnreadIncrease(0, 2)).toBe(false);
 
     markNotificationSoundUnlockedForTests();
 
-    assert.equal(shouldPlayChatSound(), true);
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(0, 2), true);
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(2, 2), false);
+    expect(shouldPlayChatSound()).toBe(true);
+    expect(shouldPlayChatSoundOnUnreadIncrease(0, 2)).toBe(true);
+    expect(shouldPlayChatSoundOnUnreadIncrease(2, 2)).toBe(false);
 });
 
 test('chat sound ignores unread decrease', () => {
@@ -60,7 +59,7 @@ test('chat sound ignores unread decrease', () => {
     });
     markNotificationSoundUnlockedForTests();
 
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(3, 1), false);
+    expect(shouldPlayChatSoundOnUnreadIncrease(3, 1)).toBe(false);
 });
 
 test('notification sound respects toggle', () => {
@@ -73,8 +72,8 @@ test('notification sound respects toggle', () => {
     });
     markNotificationSoundUnlockedForTests();
 
-    assert.equal(shouldPlayChatSound(), false);
-    assert.equal(shouldPlayNotificationSound(), true);
+    expect(shouldPlayChatSound()).toBe(false);
+    expect(shouldPlayNotificationSound()).toBe(true);
 });
 
 test('disabled notification toggle blocks sound even when unlocked', () => {
@@ -87,8 +86,8 @@ test('disabled notification toggle blocks sound even when unlocked', () => {
         sound_notifications_enabled: false,
     });
 
-    assert.equal(shouldPlayNotificationSound(), false);
-    assert.equal(shouldPlayChatSound(), false);
+    expect(shouldPlayNotificationSound()).toBe(false);
+    expect(shouldPlayChatSound()).toBe(false);
 });
 
 test('unread increase gate matches live chat path', () => {
@@ -101,9 +100,9 @@ test('unread increase gate matches live chat path', () => {
     markNotificationSoundUnlockedForTests();
 
     // Same predicate use-chat-unread uses before playChatSound().
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(0, 1), true);
-    assert.equal(shouldPlayChatSoundOnUnreadIncrease(1, 1), false);
-    assert.equal(shouldPlayNotificationSound(), true);
+    expect(shouldPlayChatSoundOnUnreadIncrease(0, 1)).toBe(true);
+    expect(shouldPlayChatSoundOnUnreadIncrease(1, 1)).toBe(false);
+    expect(shouldPlayNotificationSound()).toBe(true);
 });
 
 test('play_sound flag beeps for viewers even when unread flat', () => {
@@ -115,7 +114,7 @@ test('play_sound flag beeps for viewers even when unread flat', () => {
     });
     markNotificationSoundUnlockedForTests();
 
-    assert.equal(shouldPlayChatSoundForUnreadEvent(0, 0, true), true);
-    assert.equal(shouldPlayChatSoundForUnreadEvent(0, 0, false), false);
-    assert.equal(shouldPlayChatSoundForUnreadEvent(0, 1, false), true);
+    expect(shouldPlayChatSoundForUnreadEvent(0, 0, true)).toBe(true);
+    expect(shouldPlayChatSoundForUnreadEvent(0, 0, false)).toBe(false);
+    expect(shouldPlayChatSoundForUnreadEvent(0, 1, false)).toBe(true);
 });

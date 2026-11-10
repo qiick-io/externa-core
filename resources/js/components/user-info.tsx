@@ -1,6 +1,8 @@
 import { ConnectionDot } from '@/components/realtime/connection-dot';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { formatUserDisplayName, useInitials } from '@/hooks/use-initials';
+import { avatarToneClass } from '@/lib/avatar-tone';
+import { formatUserDisplayName, initialsFromName } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import type { User } from '@/types';
 
 /**
@@ -16,23 +18,24 @@ export function UserInfo({
     showEmail?: boolean;
     showConnectionStatus?: boolean;
 }) {
-    const getInitials = useInitials();
     const displayName = formatUserDisplayName(user.first_name, user.last_name);
 
     return (
         <>
-            <span className="relative shrink-0">
-                <Avatar
-                    userId={user.id}
-                    className="h-8 w-8 overflow-hidden rounded-full"
+            <Avatar>
+                <AvatarImage src={user.avatar} alt={displayName} />
+                <AvatarFallback
+                    className={cn(
+                        avatarToneClass(user.id),
+                        'text-xs font-medium',
+                    )}
                 >
-                    <AvatarImage src={user.avatar} alt={displayName} />
-                    <AvatarFallback className="rounded-lg text-xs font-medium">
-                        {getInitials(user.first_name, user.last_name)}
-                    </AvatarFallback>
-                </Avatar>
-                {showConnectionStatus ? <ConnectionDot /> : null}
-            </span>
+                    {initialsFromName(displayName)}
+                </AvatarFallback>
+                {showConnectionStatus ? (
+                    <ConnectionDot className="ring-sidebar" />
+                ) : null}
+            </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{displayName}</span>
                 {showEmail && (

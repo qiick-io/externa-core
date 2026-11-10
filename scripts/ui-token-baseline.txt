@@ -1,0 +1,5 @@
+# Baseline of known raw Tailwind palette / #hex className usages outside components/ui.
+# Maintained with scripts/check-ui-tokens.mjs (#240). Do not grow counts; fix call sites instead.
+# Ratchet (#452): counts must match the scan exactly; remove or lower entries once debt is paid.
+# Format: path:kind:token:count
+# Excluded: components/ui/*, pages/welcome.tsx, components/app-logo-icon.tsx

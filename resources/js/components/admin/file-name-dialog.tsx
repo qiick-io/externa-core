@@ -92,6 +92,7 @@ export function FileNameDialog({
                     <Input
                         id="file-name-input"
                         value={name}
+                        // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                         autoFocus
                         disabled={submitting}
                         onChange={(event) => setName(event.target.value)}

@@ -49,22 +49,16 @@ parameters:
 			path: app/Ai/Tools/ImportRemoteJson.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) expects callable\(stdClass, int\)\: array\{id\: int, collection_id\: int, deleted_at\: Illuminate\\Support\\Carbon\|null, data\: array\<string, mixed\>\}, Closure\(App\\Models\\CollectionItem\)\: array\{id\: int, collection_id\: int, deleted_at\: Illuminate\\Support\\Carbon\|null, data\: array\<string, mixed\>\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Ai/Tools/ManageCollectionItems.php
-
-		-
-			message: '#^Parameter \#2 \$query of method App\\Ai\\Tools\\ManageCollectionItems\:\:applyAiItemFilter\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItem\>, Illuminate\\Database\\Query\\Builder given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Ai/Tools/ManageCollectionItems.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Ai/Tools/ManageCollections.php
+
+		-
+			message: '#^Method App\\Auth\\Oidc\\GenericOidcProvider\:\:__construct\(\) has parameter \$guzzle with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Auth/Oidc/GenericOidcProvider.php
 
 		-
 			message: '#^Cannot call method addMinutes\(\) on string\.$#'
@@ -79,6 +73,12 @@ parameters:
 			path: app/GraphQL/Queries/CollectionQuery.php
 
 		-
+			message: '#^Method App\\GraphQL\\Queries\\CollectionsQuery\:\:__invoke\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/GraphQL/Queries/CollectionsQuery.php
+
+		-
 			message: '#^Match expression does not handle remaining value\: mixed$#'
 			identifier: match.unhandled
 			count: 1
@@ -87,6 +87,18 @@ parameters:
 		-
 			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
 			identifier: assign.propertyReadOnly
+			count: 3
+			path: app/Http/Controllers/Admin/FileController.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 3
+			path: app/Http/Controllers/Admin/FileController.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
 			count: 3
 			path: app/Http/Controllers/Admin/FileController.php
 
@@ -127,18 +139,6 @@ parameters:
 			path: app/Http/Controllers/Ai/AiConversationController.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Laravel\\Ai\\Models\\ConversationMessage\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$created_at\.$#'
 			identifier: property.notFound
 			count: 1
@@ -163,22 +163,22 @@ parameters:
 			path: app/Http/Controllers/Ai/AiPageController.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
-			identifier: property.notFound
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
 			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
+			path: app/Http/Controllers/Ai/AiStatusController.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Controllers/Ai/AiStatusController.php
 
 		-
 			message: '#^Parameter \#2 \$usedNames of method App\\Http\\Controllers\\Ai\\CollectionImportWebhookController\:\:uniqueFieldNameFromHeader\(\) expects array\<string, true\>, array\<string, bool\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Ai/CollectionImportWebhookController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/Api/V1/CollectionController.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between int and null will always evaluate to false\.$#'
@@ -235,6 +235,24 @@ parameters:
 			path: app/Http/Controllers/Collections/ItemRevisionController.php
 
 		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,App\\Models\\CollectionItemRevision\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
 			message: '#^Access to an undefined property App\\Models\\File\:\:\$bytes_added\.$#'
 			identifier: property.notFound
 			count: 1
@@ -277,10 +295,88 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Admin/BulkRoleActionRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Admin/BulkRoleActionRequest.php
+
+		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 1
 			path: app/Http/Requests/Collections/UpdateContentCollectionRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Http/Requests/Settings/UpdateAppearanceSidebarSettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Http/Requests/Settings/UpdateAppearanceSidebarSettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectApiSettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectApiSettingsRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Settings\\UpdateProjectFilesSettingsRequest\:\:withValidator\(\) has parameter \$validator with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectFilesSettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectFilesSettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectFilesSettingsRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Settings\\UpdateProjectIntegrationsSettingsRequest\:\:withValidator\(\) has parameter \$validator with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectIntegrationsSettingsRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Settings\\UpdateProjectLocalizationSettingsRequest\:\:withValidator\(\) has parameter \$validator with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectLocalizationSettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectSecuritySettingsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectSecuritySettingsRequest.php
 
 		-
 			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
@@ -313,10 +409,22 @@ parameters:
 			path: app/Http/Resources/Admin/FileResource.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\UserGroup\:\:\$slug\.$#'
-			identifier: property.notFound
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
 			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
+			path: app/Http/Resources/Admin/FileResource.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Resources/Admin/FileResource.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Resources/Admin/FileResource.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
@@ -337,14 +445,26 @@ parameters:
 			path: app/Http/Resources/Admin/UserResource.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\UserGroup\>\:\:map\(\) contains unresolvable type\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Resources/Admin/UserResource.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
 			count: 1
 			path: app/Http/Resources/Admin/UserResource.php
 
@@ -377,6 +497,12 @@ parameters:
 			identifier: return.phpDocType
 			count: 1
 			path: app/Models/Collection.php
+
+		-
+			message: '#^Method App\\Models\\CollectionField\:\:buildSortQuery\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CollectionField.php
 
 		-
 			message: '#^Method App\\Models\\CollectionField\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
@@ -413,6 +539,24 @@ parameters:
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Models/CollectionItemChatMessage.php
+
+		-
+			message: '#^Return type of call to function array_values contains unresolvable type\.$#'
+			identifier: function.unresolvableReturnType
+			count: 1
+			path: app/Models/CollectionItemChatMessage.php
+
+		-
+			message: '#^Method App\\Models\\CollectionItemRevision\:\:item\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CollectionItemRevision.php
+
+		-
+			message: '#^Method App\\Models\\CollectionItemRevision\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CollectionItemRevision.php
 
 		-
 			message: '#^Method App\\Models\\File\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
@@ -487,40 +631,130 @@ parameters:
 			path: app/Models/UserGroup.php
 
 		-
-			message: '#^Method App\\Services\\Ai\\EmbeddingSimilarity\:\:topMatches\(\) should return Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int, score\: float\}\> but returns Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int\<0, max\>, score\: float\}\>\.$#'
-			identifier: return.type
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
 			count: 1
-			path: app/Services/Ai/EmbeddingSimilarity.php
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Ai/AiConversationMutationService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionEnforcerService\:\:intersectNormalizedRules\(\) has parameter \$a with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionEnforcerService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionEnforcerService\:\:intersectNormalizedRules\(\) has parameter \$b with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionEnforcerService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionEnforcerService\:\:intersectNormalizedRules\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionEnforcerService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionEnforcerService\:\:resolveRules\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionEnforcerService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionGuardService\:\:rulesFor\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionGuardService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionGuardService\:\:rulesForUser\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionGuardService.php
 
 		-
 			message: '#^Offset int on array\<int, array\<mixed, mixed\>\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
-			path: app/Services/Api/CollectionPermissionGuard.php
+			path: app/Services/Api/CollectionPermissionGuardService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:deniedWriteFields\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:isFieldAllowed\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:isMatchingItem\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:isMatchingMergedItem\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:merge\(\) has parameter \$sets with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:merge\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:stripUnreadableFields\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Api/CollectionPermissionRulesService.php
 
 		-
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
 			identifier: cast.string
 			count: 1
-			path: app/Services/Api/CollectionPermissionSync.php
+			path: app/Services/Api/CollectionPermissionSyncService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
-			path: app/Services/Api/CollectionPermissionSync.php
+			path: app/Services/Api/CollectionPermissionSyncService.php
 
 		-
-			message: '#^Method App\\Services\\Api\\RelationIncludeHydrator\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
+			message: '#^Method App\\Services\\Api\\RelationIncludeHydratorService\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
-			path: app/Services/Api/RelationIncludeHydrator.php
+			path: app/Services/Api/RelationIncludeHydratorService.php
 
 		-
-			message: '#^Parameter &\$serializedCache by\-ref type of method App\\Services\\Api\\RelationIncludeHydrator\:\:serializeNested\(\) expects array\<int, array\<string, mixed\>\>, array\<int\|string, array\<string, mixed\>\> given\.$#'
+			message: '#^Parameter &\$serializedCache by\-ref type of method App\\Services\\Api\\RelationIncludeHydratorService\:\:serializeNested\(\) expects array\<int, array\<string, mixed\>\>, array\<int\|string, array\<string, mixed\>\> given\.$#'
 			identifier: parameterByRef.type
 			count: 1
-			path: app/Services/Api/RelationIncludeHydrator.php
+			path: app/Services/Api/RelationIncludeHydratorService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -529,28 +763,46 @@ parameters:
 			path: app/Services/Chat/ChatService.php
 
 		-
+			message: '#^Method App\\Services\\Chat\\ChatUnreadService\:\:afterMessageCreated\(\) has parameter \$mentionedIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Chat/ChatUnreadService.php
+
+		-
 			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionLocaleResolver\:\:defaultLocale\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: app/Services/Collections/CollectionFormLayoutNormalizer.php
+			path: app/Services/Collections/CollectionFormLayoutNormalizerService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemDataNormalizerService\:\:normalizeIntegerArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Collections/CollectionItemDataNormalizerService.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
 
 		-
 			message: '#^Match expression does not handle remaining values\: App\\Enums\\FieldTypeEnum\:\:GroupAccordion\|App\\Enums\\FieldTypeEnum\:\:GroupDetail\|App\\Enums\\FieldTypeEnum\:\:GroupRaw\|App\\Enums\\FieldTypeEnum\:\:GroupTabs$#'
 			identifier: match.unhandled
 			count: 2
-			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
-			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemExportService\:\:applyListingConstraints\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/Collections/CollectionItemExportService.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Models\\CollectionItem\>\:\:through\(\)\.$#'
@@ -559,8 +811,20 @@ parameters:
 			path: app/Services/Collections/CollectionItemOptionsService.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
+			message: '#^Method App\\Services\\Collections\\CollectionItemQueryService\:\:applyDateFieldRange\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemQueryService\:\:applyFilters\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemQueryService\:\:applyPermissionItemFilter\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
 			count: 1
 			path: app/Services/Collections/CollectionItemQueryService.php
 
@@ -568,25 +832,19 @@ parameters:
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
 			identifier: cast.string
 			count: 1
-			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
-			message: '#^Method App\\Services\\Collections\\CollectionListColumnsNormalizer\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
+			message: '#^Method App\\Services\\Collections\\CollectionListColumnsNormalizerService\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
-			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
-			path: app/Services/Collections/CollectionListColumnsNormalizer.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Services/Collections/CollectionListDisplayEnricher.php
+			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
 			message: '#^Parameter \#2 \$usedNames of method App\\Services\\Collections\\MigrateFormLayoutToGroupsService\:\:uniqueName\(\) expects array\<string, true\>, array\<mixed, \(int\|string\)\> given\.$#'
@@ -597,6 +855,12 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
+			count: 1
+			path: app/Services/FileService.php
+
+		-
+			message: '#^Unable to resolve the template type TMapValue in call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\)$#'
+			identifier: argument.templateType
 			count: 1
 			path: app/Services/FileService.php
 
@@ -619,28 +883,34 @@ parameters:
 			path: app/Services/FileTransformService.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Services/Files/FileWhereUsedScanner.php
-
-		-
 			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1
-			path: app/Services/Settings/ProjectSettings.php
+			path: app/Services/Settings/ProjectSettingsService.php
 
 		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 2
-			path: app/Services/Settings/ProjectSettings.php
+			path: app/Services/Settings/ProjectSettingsService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
-			path: app/Services/Settings/SettingsRepository.php
+			path: app/Services/Settings/SettingsRepositoryService.php
+
+		-
+			message: '#^Method App\\Support\\Api\\PublicApiIncludeParser\:\:has\(\) has parameter \$include with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Support/Api/PublicApiIncludeParser.php
+
+		-
+			message: '#^Method App\\Support\\Authorization\\PermissionGrouper\:\:group\(\) has parameter \$permissions with generic class Illuminate\\Support\\Collection but does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Support/Authorization/PermissionGrouper.php
 
 		-
 			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionFieldSettingsPipeline\:\:input\(\)\.$#'

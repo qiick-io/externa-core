@@ -97,6 +97,8 @@ class UpgradeCommand extends Command
 
         $this->info('Clearing caches…');
         $this->call('optimize:clear');
+        // optimize:clear leaves Lighthouse's schema file; a stale one hides new GraphQL arguments and fields.
+        $this->call('lighthouse:clear-cache');
 
         $this->newLine();
         $this->info('Automated subset done. Smoke: login + open one collection.');

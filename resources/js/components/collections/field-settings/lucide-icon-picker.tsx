@@ -1,12 +1,24 @@
-import type { LucideIcon } from 'lucide-react';
-import { icons } from 'lucide-react';
-import { Check, Search, X } from 'lucide-react';
-import { createElement, useMemo, useState } from 'react';
+import { Search, SearchX, X } from 'lucide-react';
+import { DynamicIcon, dynamicIconImports } from 'lucide-react/dynamic';
+import type { IconName } from 'lucide-react/dynamic';
+import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
+import { Field, FieldLabel } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     Popover,
     PopoverContent,
@@ -26,20 +38,22 @@ type IconCategory = {
 
 const ICON_CATEGORIES = catalog.categories as IconCategory[];
 
-/** Flat list kept for callers that still expect a curated options array. */
-export const LUCIDE_ICON_OPTIONS: { name: string; icon: LucideIcon }[] =
-    ICON_CATEGORIES.flatMap((category) =>
-        category.icons
-            .map((name) => {
-                const icon = icons[name as keyof typeof icons] as
-                    LucideIcon | undefined;
+/**
+ * Converts PascalCase Lucide component names to kebab-case DynamicIcon keys.
+ * Keeps NxN patterns (e.g. Grid2x2 → grid-2x2) matching lucide-react 1.x.
+ */
+export function toLucideIconKebabName(name: string): string {
+    return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+        .replace(/([a-zA-Z])(\d)/g, '$1-$2')
+        .replace(/(\d)x-(\d)/gi, '$1x$2')
+        .toLowerCase();
+}
 
-                return icon ? { name, icon } : null;
-            })
-            .filter((option): option is { name: string; icon: LucideIcon } =>
-                Boolean(option),
-            ),
-    );
+function isLucideIconName(name: string): name is IconName {
+    return Object.hasOwn(dynamicIconImports, name);
+}
 
 /**
  * Converts kebab-case Lucide names (e.g. flask-conical) to PascalCase component names.
@@ -62,8 +76,9 @@ export function toLucideIconName(name: string): string {
             .join('');
     }
 
-    // Already PascalCase or single word
-    if (icons[trimmed as keyof typeof icons]) {
+    const kebab = toLucideIconKebabName(trimmed);
+
+    if (isLucideIconName(kebab)) {
         return trimmed;
     }
 
@@ -71,7 +86,7 @@ export function toLucideIconName(name: string): string {
 }
 
 /**
- * Resolves a stored icon name to a Lucide key, falling back to the collection default.
+ * Resolves a stored icon name to a Lucide PascalCase key, falling back to the collection default.
  */
 export function resolveCollectionIconName(name?: string | null): string {
     if (!name?.trim()) {
@@ -79,22 +94,20 @@ export function resolveCollectionIconName(name?: string | null): string {
     }
 
     const resolved = toLucideIconName(name);
+    const kebab = toLucideIconKebabName(resolved);
 
-    return icons[resolved as keyof typeof icons]
-        ? resolved
-        : DEFAULT_COLLECTION_ICON;
+    return isLucideIconName(kebab) ? resolved : DEFAULT_COLLECTION_ICON;
 }
 
-function getIconComponent(name: string): LucideIcon | null {
-    const resolved = toLucideIconName(name);
-    const Icon = icons[resolved as keyof typeof icons] as
-        LucideIcon | undefined;
+function resolveDynamicIconName(name: string): IconName | null {
+    const kebab = toLucideIconKebabName(toLucideIconName(name));
 
-    return Icon ?? null;
+    return isLucideIconName(kebab) ? kebab : null;
 }
 
 /**
  * Renders a Lucide icon by its string name (PascalCase or kebab-case).
+ * Uses DynamicIcon so the full icons map is not pulled into the main chunk.
  */
 export function LucideIconByName({
     name,
@@ -110,13 +123,13 @@ export function LucideIconByName({
     const resolved = fallbackToDefault
         ? resolveCollectionIconName(name)
         : toLucideIconName(name);
-    const Icon = getIconComponent(resolved);
+    const iconName = resolveDynamicIconName(resolved);
 
-    if (!Icon) {
+    if (!iconName) {
         return null;
     }
 
-    return createElement(Icon, { className, style });
+    return <DynamicIcon name={iconName} className={className} style={style} />;
 }
 
 type LucideIconPickerProps = {
@@ -138,10 +151,12 @@ export function LucideIconPicker({
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
+    /** Icon under the pointer or keyboard focus, named under the grid. */
+    const [activeName, setActiveName] = useState('');
 
     const selectedName = value ? toLucideIconName(value) : '';
     const previewName = resolveCollectionIconName(value);
-    const PreviewIcon = getIconComponent(previewName);
+    const previewIconName = resolveDynamicIconName(previewName);
 
     const filteredCategories = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
@@ -159,8 +174,8 @@ export function LucideIconPicker({
     }, [query]);
 
     return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
+        <Field>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
             <Popover
                 open={open}
                 onOpenChange={(next) => {
@@ -178,14 +193,15 @@ export function LucideIconPicker({
                         variant="outline"
                         className="w-full justify-start gap-2"
                     >
-                        {PreviewIcon
-                            ? createElement(PreviewIcon, {
-                                  className: cn(
-                                      'size-4 shrink-0',
-                                      !value && 'text-muted-foreground',
-                                  ),
-                              })
-                            : null}
+                        {previewIconName ? (
+                            <DynamicIcon
+                                name={previewIconName}
+                                className={cn(
+                                    'size-4 shrink-0',
+                                    !value && 'text-muted-foreground',
+                                )}
+                            />
+                        ) : null}
                         <span
                             className={cn(
                                 'truncate',
@@ -201,36 +217,51 @@ export function LucideIconPicker({
                     align="start"
                 >
                     <div className="border-b p-3">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
+                        <InputGroup>
+                            <InputGroupAddon>
+                                <Search aria-hidden="true" />
+                            </InputGroupAddon>
+                            <InputGroupInput
                                 placeholder={t('collections.meta.searchIcons')}
                                 value={query}
                                 onChange={(event) =>
                                     setQuery(event.target.value)
                                 }
-                                className="pr-8 pl-8"
+                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                             />
                             {query ? (
-                                <button
-                                    type="button"
-                                    className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-                                    onClick={() => setQuery('')}
-                                    aria-label={t(
-                                        'collections.meta.clearIconSearch',
-                                    )}
-                                >
-                                    <X className="size-4" />
-                                </button>
+                                <InputGroupAddon align="inline-end">
+                                    <InputGroupButton
+                                        size="icon-xs"
+                                        onClick={() => setQuery('')}
+                                        aria-label={t(
+                                            'collections.meta.clearIconSearch',
+                                        )}
+                                    >
+                                        <X />
+                                    </InputGroupButton>
+                                </InputGroupAddon>
                             ) : null}
-                        </div>
+                        </InputGroup>
                     </div>
                     <div className="max-h-72 overflow-y-auto p-3">
                         {filteredCategories.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-muted-foreground">
-                                {t('collections.meta.noIconsFound')}
-                            </p>
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <SearchX />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        <EmptyStatus>
+                                            {t('collections.meta.noIconsFound')}
+                                        </EmptyStatus>
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             <div className="flex flex-col gap-4">
                                 {filteredCategories.map((category) => (
@@ -238,35 +269,50 @@ export function LucideIconPicker({
                                         <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                             {category.label}
                                         </p>
-                                        <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-10">
+                                        <div className="grid grid-cols-8 gap-2 sm:grid-cols-10">
                                             {category.icons.map((name) => {
-                                                const Icon = icons[
-                                                    name as keyof typeof icons
-                                                ] as LucideIcon;
+                                                const iconName =
+                                                    resolveDynamicIconName(
+                                                        name,
+                                                    );
                                                 const selected =
                                                     selectedName === name;
 
+                                                if (!iconName) {
+                                                    return null;
+                                                }
+
                                                 return (
-                                                    <button
+                                                    <Button
                                                         key={name}
                                                         type="button"
-                                                        title={name}
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={name}
+                                                        aria-pressed={selected}
+                                                        data-test={`icon-picker-option-${name}`}
                                                         className={cn(
-                                                            'flex size-8 items-center justify-center rounded-md border border-transparent transition-colors hover:bg-muted',
+                                                            'border border-transparent',
                                                             selected &&
                                                                 'border-primary bg-primary/10',
                                                         )}
+                                                        onMouseEnter={() =>
+                                                            setActiveName(name)
+                                                        }
+                                                        onFocus={() =>
+                                                            setActiveName(name)
+                                                        }
                                                         onClick={() => {
                                                             onChange(name);
                                                             setOpen(false);
                                                             setQuery('');
                                                         }}
                                                     >
-                                                        <Icon className="size-4" />
-                                                        {selected ? (
-                                                            <Check className="sr-only" />
-                                                        ) : null}
-                                                    </button>
+                                                        <DynamicIcon
+                                                            name={iconName}
+                                                            className="size-4"
+                                                        />
+                                                    </Button>
                                                 );
                                             })}
                                         </div>
@@ -275,12 +321,18 @@ export function LucideIconPicker({
                             </div>
                         )}
                     </div>
+                    <p
+                        aria-hidden
+                        data-test="icon-picker-active-name"
+                        className="h-7 truncate border-t px-3 py-1.5 font-mono text-xs text-muted-foreground"
+                    >
+                        {activeName}
+                    </p>
                     {value ? (
                         <div className="border-t p-2">
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="sm"
                                 className="w-full"
                                 onClick={() => {
                                     onChange('');
@@ -294,6 +346,6 @@ export function LucideIconPicker({
                     ) : null}
                 </PopoverContent>
             </Popover>
-        </div>
+        </Field>
     );
 }

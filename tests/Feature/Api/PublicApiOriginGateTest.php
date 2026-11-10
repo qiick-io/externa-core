@@ -3,8 +3,8 @@
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Cache;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
-    Cache::forget(ProjectSettings::PUBLIC_API_ORIGINS_CACHE_KEY);
+    Cache::forget(ProjectSettingsService::PUBLIC_API_ORIGINS_CACHE_KEY);
 });
 
 it('skips the origin gate when allowlist is empty', function (): void {
@@ -25,13 +25,13 @@ it('skips the origin gate when allowlist is empty', function (): void {
 });
 
 it('allows matching Origin and rejects mismatched Origin when allowlist is set', function (): void {
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
     grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
@@ -48,13 +48,13 @@ it('allows matching Origin and rejects mismatched Origin when allowlist is set',
 });
 
 it('requires a valid API key when Origin is absent and allowlist is set', function (): void {
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
     grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
@@ -73,13 +73,13 @@ it('requires a valid API key when Origin is absent and allowlist is set', functi
 });
 
 it('enforces the same origin gate on GraphQL', function (): void {
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
     grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
@@ -112,13 +112,13 @@ it('allows anonymous GraphQL when allowlist is empty', function (): void {
 });
 
 it('applies project origins to CORS config for api paths', function (): void {
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'public_api_allowed_origins',
         ['https://app.example', 'https://www.example'],
     );
-    app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
 
     $this->withHeaders([
         'Origin' => 'https://app.example',
@@ -142,14 +142,14 @@ it('invalidates origins cache when project settings are saved', function (): voi
         [PermissionEnum::CanManageProjectSettings->value],
     );
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'public_api_allowed_origins',
         ['https://old.example'],
     );
 
-    expect(app(ProjectSettings::class)->publicApiAllowedOrigins())
+    expect(app(ProjectSettingsService::class)->publicApiAllowedOrigins())
         ->toBe(['https://old.example']);
 
     $this->withoutVite();
@@ -160,6 +160,6 @@ it('invalidates origins cache when project settings are saved', function (): voi
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.api.edit'));
 
-    expect(app(ProjectSettings::class)->publicApiAllowedOrigins())
+    expect(app(ProjectSettingsService::class)->publicApiAllowedOrigins())
         ->toBe(['https://new.example']);
 });

@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -35,7 +35,7 @@ class DeliverSlackOutboundNotifierJob implements ShouldQueue
         return [15, 45];
     }
 
-    public function handle(ProjectSettings $projectSettings): void
+    public function handle(ProjectSettingsService $projectSettings): void
     {
         $url = $projectSettings->notifierSlackWebhookUrl();
         if ($url === null) {

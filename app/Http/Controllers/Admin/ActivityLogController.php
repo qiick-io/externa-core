@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Models\User;
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ActivityLogController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
     use ValidatesSearchQueryTrait;
 
     /**
@@ -39,7 +41,7 @@ class ActivityLogController extends Controller
         $filters = $this->resolvedFilters($request);
 
         $activityLogs = $this->filteredQuery($filters)
-            ->paginate($request->integer('per_page', 25))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         $users = User::query()

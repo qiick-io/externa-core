@@ -26,6 +26,22 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => [
+            'ManageCollections',
+            'ManageCollectionItems',
+            'ImportCollectionCsv',
+            'ImportRemoteJson',
+            'ManageAiSyncSources',
+            'RollbackLastAiTurn',
+            'ManageFiles',
+            'ManageUsers',
+            'ManageRoles',
+            'ManageGroups',
+            'ExtractPdfText',
+        ],
+    ]);
     $this->seed(PermissionSeeder::class);
     $this->withoutVite();
 });
@@ -79,6 +95,19 @@ test('ai status reports online when models endpoint succeeds', function () {
         ->assertJsonPath('model', config('ai.providers.local.models.text.default'));
 });
 
+test('ai status reports the context window of the assistant provider', function () {
+    Http::fake([
+        'http://127.0.0.1:1234/v1/models' => Http::response(['data' => [['id' => 'local-model']]], 200),
+    ]);
+    config(['ai.assistant.provider' => 'local', 'ai.providers.local.context_window' => 32768]);
+
+    $this->actingAs(grantAiPermissions(User::factory()->create(), [PermissionEnum::CanUseAi->value]));
+
+    $this->getJson(route('ai.status'))
+        ->assertOk()
+        ->assertJsonPath('context_window', 32768);
+});
+
 test('users only see their own conversations', function () {
     $owner = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
@@ -112,6 +141,39 @@ test('users only see their own conversations', function () {
     $this->actingAs($owner)
         ->getJson(route('ai.conversations.show', $foreignId))
         ->assertNotFound();
+});
+
+test('conversation list filters by title', function () {
+    $owner = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+
+    $matchingId = (string) Str::uuid7();
+    $otherId = (string) Str::uuid7();
+
+    Conversation::query()->create([
+        'id' => $matchingId,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
+        'title' => 'Quarterly Report draft',
+    ]);
+    Conversation::query()->create([
+        'id' => $otherId,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
+        'title' => 'Holiday plan',
+    ]);
+
+    $this->actingAs($owner)
+        ->getJson(route('ai.conversations.index', ['q' => 'report']))
+        ->assertOk()
+        ->assertJsonPath('total', 1)
+        ->assertJsonFragment(['id' => $matchingId])
+        ->assertJsonMissing(['id' => $otherId]);
+
+    $this->actingAs($owner)
+        ->getJson(route('ai.conversations.index', ['q' => str_repeat('a', 121)]))
+        ->assertUnprocessable();
 });
 
 test('manage files tool denies create without permission', function () {

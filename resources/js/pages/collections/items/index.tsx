@@ -6,10 +6,12 @@ import {
     FolderOpen,
     GripVertical,
     LayoutList,
+    MoreHorizontal,
     Pencil,
     Plus,
     RotateCcw,
     Rows3,
+    SearchX,
     Trash2,
 } from 'lucide-react';
 import {
@@ -23,8 +25,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import { checkboxTargetClassName } from '@/components/admin/data-table';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     CollectionEditButton,
@@ -32,9 +36,11 @@ import {
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { EmptyStatus } from '@/components/empty-status';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +75,7 @@ import {
 } from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import AppLayout from '@/layouts/app-layout';
 import { seedItemPrompt, seedItemsBulkPrompt } from '@/lib/ai-open';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
@@ -80,12 +87,14 @@ import {
     serializeFilterRules,
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
+import { listPerPageQuery } from '@/lib/pagination';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
 import type {
     BreadcrumbItem,
     CollectionFieldRow,
     CollectionView,
+    ItemRow,
 } from '@/types';
 import type { QueryParams } from '@/wayfinder';
 import { alignClass, ColumnHeaderMenu } from './column-header-menu';
@@ -100,21 +109,6 @@ import { ItemsKanban } from './items-kanban';
 import type { KanbanBoard } from './items-kanban';
 
 type ListLayout = 'table' | 'kanban' | 'calendar';
-
-type ItemRow = {
-    id: number;
-    collection_id: number;
-    data: Record<string, unknown>;
-    created_at?: string | null;
-    updated_at?: string | null;
-    user_created?: { id: number; name: string; email?: string | null } | null;
-    user_updated?: { id: number; name: string; email?: string | null } | null;
-    displays?: Record<string, string | null>;
-    thumbs?: Record<string, string | null>;
-    has_draft?: boolean;
-    schedule_failed?: boolean;
-    approval_status?: string | null;
-};
 
 type Paginator<T> = {
     data: T[];
@@ -239,6 +233,8 @@ function SortableHeader({
     onAlign,
     onHide,
 }: SortableHeaderProps) {
+    const { t } = useTranslation();
+
     return (
         <TableHead
             data-id={id}
@@ -249,7 +245,7 @@ function SortableHeader({
                 <button
                     type="button"
                     className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
-                    aria-label={`Reorder ${label}`}
+                    aria-label={t('collections.reorderColumn', { label })}
                 >
                     <GripVertical className="size-3.5" />
                 </button>
@@ -333,6 +329,17 @@ export default function ItemsIndex({
     const [confirmingDestructive, setConfirmingDestructive] = useState(false);
     const [selected, setSelected] = useState<number[]>([]);
     const hasSelection = selected.length > 0;
+    const hasActiveFilters =
+        filterTitle.trim() !== '' ||
+        filterRules.length > 0 ||
+        hasDraftFilter ||
+        inReviewFilter;
+    const isListEmpty = items.data.length === 0;
+    const hideListChrome =
+        isListEmpty &&
+        !hasActiveFilters &&
+        !isTrashed &&
+        listLayout === 'table';
 
     useEffect(() => {
         setListColumns(listColumnsProp);
@@ -365,17 +372,17 @@ export default function ItemsIndex({
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
-            { title: 'Collections', href: collections.index.url() },
+            { title: t('nav.collections'), href: collections.index.url() },
             {
                 title: collection.name,
                 href: collections.items.index.url(collection.id),
             },
             {
-                title: 'Items',
+                title: t('nav.items'),
                 href: collections.items.index.url(collection.id),
             },
         ],
-        [collection.id, collection.name],
+        [collection.id, collection.name, t],
     );
 
     const fieldsByName = useMemo(() => {
@@ -526,6 +533,12 @@ export default function ItemsIndex({
                 query.calendar_field = calendarField;
             }
 
+            const perPage = listPerPageQuery(items.per_page);
+
+            if (perPage !== undefined) {
+                query.per_page = perPage;
+            }
+
             router.get(
                 collections.items.index.url(collection.id, { query }),
                 {},
@@ -541,6 +554,7 @@ export default function ItemsIndex({
             hasDraftFilter,
             inReviewFilter,
             isTrashed,
+            items.per_page,
             kanbanField,
             listLayout,
         ],
@@ -550,22 +564,23 @@ export default function ItemsIndex({
         setSelected([]);
     }, [isTrashed, collection.id]);
 
-    useEffect(() => {
-        if (filterTitle === titleContainsFromFilters(filters)) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
+    const onDebouncedTitleSearch = useCallback(
+        (value: string): void => {
             setFilterRules((current) => {
-                const nextRules = rulesWithTitleSearch(current, filterTitle);
+                const nextRules = rulesWithTitleSearch(current, value);
                 visit({ rules: nextRules });
 
                 return nextRules;
             });
-        }, 350);
+        },
+        [visit],
+    );
 
-        return () => clearTimeout(timer);
-    }, [filterTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(
+        filterTitle,
+        titleContainsFromFilters(filters),
+        onDebouncedTitleSearch,
+    );
 
     const clearFilters = useCallback(() => {
         setFilterTitle('');
@@ -619,7 +634,6 @@ export default function ItemsIndex({
     }, [listColumnsKey]);
 
     const collectionForm = useCollectionEditDrawer();
-    const colSpan = listColumns.length + 2;
     const canHideColumn = listColumns.length > 1;
     const activeSort = filters.sort ?? 'id';
     const activeDirection =
@@ -745,7 +759,7 @@ export default function ItemsIndex({
                                             type="button"
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Export"
+                                            aria-label={t('common.export')}
                                         >
                                             <Download className="size-4" />
                                         </Button>
@@ -757,10 +771,14 @@ export default function ItemsIndex({
                             </Tooltip>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                    <a href={exportUrl('csv')}>Export CSV</a>
+                                    <a href={exportUrl('csv')}>
+                                        {t('activityLog.exportCsv')}
+                                    </a>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                    <a href={exportUrl('json')}>Export JSON</a>
+                                    <a href={exportUrl('json')}>
+                                        {t('activityLog.exportJson')}
+                                    </a>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -769,7 +787,7 @@ export default function ItemsIndex({
                         <HeaderIconButton
                             asChild
                             variant="outline"
-                            label="Edit fields"
+                            label={t('collections.itemToolbar.editFields')}
                         >
                             <Link
                                 href={FieldController.index.url(collection.id)}
@@ -782,113 +800,118 @@ export default function ItemsIndex({
                         <Button asChild>
                             <Link href={itemNewUrl()}>
                                 <Plus className="size-4" />
-                                New item
+                                {t('collections.items.list.newItem')}
                             </Link>
                         </Button>
                     ) : null}
                 </>
             }
         >
-            <Head title={`Items — ${collection.name}`} />
+            <Head
+                title={t('collections.items.pageTitle', {
+                    collection: collection.name,
+                })}
+            />
 
             <PageLayout
                 filters={
-                    <DataTableToolbar
-                        search={filterTitle}
-                        onSearchChange={setFilterTitle}
-                        searchPlaceholder={
-                            isTrashed
-                                ? t('collections.itemsList.searchTrash')
-                                : t('collections.itemsList.searchTitle')
-                        }
-                        selectedCount={selected.length}
-                        onClearSelection={() => setSelected([])}
-                        bulkActions={
-                            <>
-                                <AskAiButton
-                                    mode="labeled"
-                                    prompt={seedItemsBulkPrompt(
-                                        {
-                                            id: collection.id,
-                                            name: collection.name,
-                                        },
-                                        selectedRows.map((row) => ({
-                                            id: row.id,
-                                            label: itemLabel(row),
-                                        })),
-                                    )}
+                    hideListChrome ? undefined : (
+                        <DataTableToolbar
+                            search={filterTitle}
+                            onSearchChange={setFilterTitle}
+                            searchPlaceholder={
+                                isTrashed
+                                    ? t('collections.itemsList.searchTrash')
+                                    : t('collections.itemsList.searchTitle')
+                            }
+                            selectedCount={selected.length}
+                            onClearSelection={() => setSelected([])}
+                            bulkActions={
+                                <>
+                                    <AskAiButton
+                                        mode="toolbar"
+                                        prompt={seedItemsBulkPrompt(
+                                            {
+                                                id: collection.id,
+                                                name: collection.name,
+                                            },
+                                            selectedRows.map((row) => ({
+                                                id: row.id,
+                                                label: itemLabel(row),
+                                            })),
+                                        )}
+                                    />
+                                    {!isTrashed &&
+                                        can(
+                                            PermissionEnum.CanDeleteCollections,
+                                        ) && (
+                                            <Button
+                                                type="button"
+                                                variant="destructive-outline"
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'delete',
+                                                    )
+                                                }
+                                            >
+                                                {t('common.delete')}
+                                            </Button>
+                                        )}
+                                    {isTrashed &&
+                                        can(
+                                            PermissionEnum.CanRestoreCollections,
+                                        ) && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => bulk('restore')}
+                                            >
+                                                {t('common.restore')}
+                                            </Button>
+                                        )}
+                                    {isTrashed &&
+                                        can(
+                                            PermissionEnum.CanForceDeleteCollections,
+                                        ) && (
+                                            <Button
+                                                type="button"
+                                                variant="destructive-outline"
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'force_delete',
+                                                    )
+                                                }
+                                            >
+                                                {t('common.deletePermanently')}
+                                            </Button>
+                                        )}
+                                </>
+                            }
+                            trailing={
+                                <ItemFiltersBuilder
+                                    fields={collection.fields ?? []}
+                                    rules={filterRules}
+                                    onChange={setFilterRules}
+                                    onApply={applyFilterRules}
+                                    onClear={clearFilters}
+                                    showHasDraft={versioningEnabled}
+                                    hasDraft={hasDraftFilter}
+                                    onHasDraftChange={(value) =>
+                                        visit({ has_draft: value })
+                                    }
+                                    showInReview={approvalsRequired}
+                                    inReview={inReviewFilter}
+                                    onInReviewChange={(value) =>
+                                        visit({ in_review: value })
+                                    }
                                 />
-                                {!isTrashed &&
-                                    can(
-                                        PermissionEnum.CanDeleteCollections,
-                                    ) && (
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() =>
-                                                setPendingBulkAction('delete')
-                                            }
-                                        >
-                                            Delete
-                                        </Button>
-                                    )}
-                                {isTrashed &&
-                                    can(
-                                        PermissionEnum.CanRestoreCollections,
-                                    ) && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => bulk('restore')}
-                                        >
-                                            Restore
-                                        </Button>
-                                    )}
-                                {isTrashed &&
-                                    can(
-                                        PermissionEnum.CanForceDeleteCollections,
-                                    ) && (
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() =>
-                                                setPendingBulkAction(
-                                                    'force_delete',
-                                                )
-                                            }
-                                        >
-                                            Delete permanently
-                                        </Button>
-                                    )}
-                            </>
-                        }
-                        trailing={
-                            <ItemFiltersBuilder
-                                fields={collection.fields ?? []}
-                                rules={filterRules}
-                                onChange={setFilterRules}
-                                onApply={applyFilterRules}
-                                onClear={clearFilters}
-                                showHasDraft={versioningEnabled}
-                                hasDraft={hasDraftFilter}
-                                onHasDraftChange={(value) =>
-                                    visit({ has_draft: value })
-                                }
-                                showInReview={approvalsRequired}
-                                inReview={inReviewFilter}
-                                onInReviewChange={(value) =>
-                                    visit({ in_review: value })
-                                }
-                            />
-                        }
-                    />
+                            }
+                        />
+                    )
                 }
                 filtersRight={
-                    hasSelection ? null : (
-                        <div className="flex flex-wrap items-center gap-1.5">
+                    hideListChrome || hasSelection ? null : (
+                        <div className="flex flex-wrap items-center gap-2">
                             <Select
                                 value={listLayout}
                                 onValueChange={(value) => {
@@ -902,8 +925,7 @@ export default function ItemsIndex({
                                 }}
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="list-layout-select"
                                     aria-label={t(
                                         'collections.itemsList.layout',
@@ -965,8 +987,7 @@ export default function ItemsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="w-auto min-w-36 text-xs"
+                                        className="w-auto min-w-36"
                                         data-test="kanban-field-select"
                                         aria-label={t(
                                             'collections.itemsList.kanbanField',
@@ -1020,8 +1041,7 @@ export default function ItemsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="w-auto min-w-36 text-xs"
+                                        className="w-auto min-w-36"
                                         data-test="calendar-field-select"
                                         aria-label={t(
                                             'collections.itemsList.calendarField',
@@ -1062,6 +1082,7 @@ export default function ItemsIndex({
                                 </Select>
                             ) : null}
                             <ToggleGroup
+                                variant="outline"
                                 type="single"
                                 value={isTrashed ? 'trashed' : 'active'}
                                 onValueChange={(value) => {
@@ -1077,7 +1098,6 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.activeItems',
                                     )}
-                                    className="px-2.5"
                                 >
                                     <FolderOpen className="size-4" />
                                 </ToggleGroupItem>
@@ -1086,7 +1106,6 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.trash',
                                     )}
-                                    className="px-2.5"
                                 >
                                     <Trash2 className="size-4" />
                                 </ToggleGroupItem>
@@ -1095,8 +1114,10 @@ export default function ItemsIndex({
                     )
                 }
                 footer={
-                    listLayout === 'table' && items.last_page > 1 ? (
-                        <TablePagination links={items.links} />
+                    !hideListChrome &&
+                    listLayout === 'table' &&
+                    hasTablePaginationFooter(items) ? (
+                        <TablePaginationFooter pagination={items} />
                     ) : undefined
                 }
             >
@@ -1128,7 +1149,65 @@ export default function ItemsIndex({
                         isTrashed={isTrashed}
                     />
                 ) : null}
-                {listLayout === 'table' ? (
+                {listLayout === 'table' && isListEmpty ? (
+                    <PageEmptyState
+                        icon={
+                            hasActiveFilters
+                                ? SearchX
+                                : isTrashed
+                                  ? Trash2
+                                  : FolderOpen
+                        }
+                        title={
+                            <EmptyStatus>
+                                {hasActiveFilters
+                                    ? t('emptyState.items.filteredTitle')
+                                    : isTrashed
+                                      ? t('emptyState.items.trashTitle')
+                                      : t('emptyState.items.title')}
+                            </EmptyStatus>
+                        }
+                        description={
+                            hasActiveFilters
+                                ? t('emptyState.items.filteredDescription')
+                                : isTrashed
+                                  ? t('emptyState.items.trashDescription')
+                                  : t('emptyState.items.description')
+                        }
+                        action={
+                            hasActiveFilters ? (
+                                <Button type="button" onClick={clearFilters}>
+                                    {t('common.clearFilters')}
+                                </Button>
+                            ) : isTrashed ? (
+                                <Button
+                                    type="button"
+                                    onClick={() => visit({ trashed: false })}
+                                >
+                                    {t('common.back')}
+                                </Button>
+                            ) : can(PermissionEnum.CanCreateCollections) ? (
+                                <Button asChild>
+                                    <Link href={itemNewUrl()}>
+                                        <Plus className="size-4" />
+                                        {t('emptyState.items.cta')}
+                                    </Link>
+                                </Button>
+                            ) : undefined
+                        }
+                        docsHref={
+                            hasActiveFilters || isTrashed
+                                ? undefined
+                                : 'https://docs.externa.qiick.io'
+                        }
+                        docsLabel={
+                            hasActiveFilters || isTrashed
+                                ? undefined
+                                : t('common.learnMore')
+                        }
+                    />
+                ) : null}
+                {listLayout === 'table' && !isListEmpty ? (
                     <TablePanel>
                         <Table>
                             <TableHeader>
@@ -1143,7 +1222,8 @@ export default function ItemsIndex({
                                             onCheckedChange={(c) =>
                                                 toggleAll(c === true)
                                             }
-                                            aria-label="Select all"
+                                            aria-label={t('a11y.selectAll')}
+                                            className={checkboxTargetClassName}
                                         />
                                     </TableHead>
                                     {listColumns.map((path) => (
@@ -1208,255 +1288,291 @@ export default function ItemsIndex({
                                                     onChange={persistColumns}
                                                 />
                                             ) : null}
-                                            <span>Actions</span>
+                                            <span>
+                                                {t(
+                                                    'collections.columnPicker.actions',
+                                                )}
+                                            </span>
                                         </div>
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
-                                {items.data.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={colSpan}
-                                            className="text-muted-foreground"
+                            <TableBody className="[&_td]:h-10">
+                                {items.data.map((row) => {
+                                    const editUrl = itemEditUrl(row.id);
+
+                                    return (
+                                        <TableRow
+                                            key={row.id}
+                                            className={
+                                                isTrashed
+                                                    ? undefined
+                                                    : 'cursor-pointer'
+                                            }
+                                            tabIndex={isTrashed ? undefined : 0}
+                                            role={
+                                                isTrashed ? undefined : 'link'
+                                            }
+                                            onClick={() => {
+                                                if (!isTrashed) {
+                                                    router.visit(editUrl);
+                                                }
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (isTrashed) {
+                                                    return;
+                                                }
+
+                                                if (
+                                                    event.key === 'Enter' ||
+                                                    event.key === ' '
+                                                ) {
+                                                    event.preventDefault();
+                                                    router.visit(editUrl);
+                                                }
+                                            }}
                                         >
-                                            No items yet.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    items.data.map((row) => {
-                                        const editUrl = itemEditUrl(row.id);
-
-                                        return (
-                                            <TableRow
-                                                key={row.id}
-                                                className={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : 'cursor-pointer'
+                                            <TableCell
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
                                                 }
-                                                tabIndex={
-                                                    isTrashed ? undefined : 0
-                                                }
-                                                role={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : 'link'
-                                                }
-                                                aria-label={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : `Edit item ${row.id}`
-                                                }
-                                                onClick={() => {
-                                                    if (!isTrashed) {
-                                                        router.visit(editUrl);
-                                                    }
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (isTrashed) {
-                                                        return;
-                                                    }
-
-                                                    if (
-                                                        event.key === 'Enter' ||
-                                                        event.key === ' '
-                                                    ) {
-                                                        event.preventDefault();
-                                                        router.visit(editUrl);
-                                                    }
-                                                }}
                                             >
+                                                <Checkbox
+                                                    checked={selected.includes(
+                                                        row.id,
+                                                    )}
+                                                    onCheckedChange={() =>
+                                                        toggleRow(row.id)
+                                                    }
+                                                    aria-label={t(
+                                                        'collections.items.selectItem',
+                                                        {
+                                                            id: row.id,
+                                                        },
+                                                    )}
+                                                    className={
+                                                        checkboxTargetClassName
+                                                    }
+                                                />
+                                            </TableCell>
+                                            {listColumns.map((path) => (
                                                 <TableCell
-                                                    onClick={(event) =>
+                                                    key={path}
+                                                    className={alignClass(
+                                                        columnAligns[path] ??
+                                                            'left',
+                                                    )}
+                                                >
+                                                    <ItemTableCell
+                                                        path={path}
+                                                        row={row}
+                                                        fieldsByName={
+                                                            fieldsByName
+                                                        }
+                                                    />
+                                                </TableCell>
+                                            ))}
+                                            <TableCell className="w-[1%] text-right whitespace-nowrap">
+                                                <div
+                                                    className="flex items-center justify-end gap-1"
+                                                    onPointerDown={(event) =>
                                                         event.stopPropagation()
                                                     }
                                                 >
-                                                    <Checkbox
-                                                        checked={selected.includes(
-                                                            row.id,
-                                                        )}
-                                                        onCheckedChange={() =>
-                                                            toggleRow(row.id)
-                                                        }
-                                                        aria-label={`Select item ${row.id}`}
-                                                    />
-                                                </TableCell>
-                                                {listColumns.map((path) => (
-                                                    <TableCell
-                                                        key={path}
-                                                        className={alignClass(
-                                                            columnAligns[
-                                                                path
-                                                            ] ?? 'left',
-                                                        )}
-                                                    >
-                                                        <ItemTableCell
-                                                            path={path}
-                                                            row={row}
-                                                            fieldsByName={
-                                                                fieldsByName
-                                                            }
-                                                        />
-                                                    </TableCell>
-                                                ))}
-                                                <TableCell className="w-[1%] text-right whitespace-nowrap">
-                                                    <div
-                                                        className="flex items-center justify-end gap-1"
-                                                        onClick={(event) =>
-                                                            event.stopPropagation()
-                                                        }
-                                                    >
-                                                        {versioningEnabled &&
-                                                        row.has_draft ? (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="mr-1 text-xs"
-                                                                data-test={`item-draft-badge-${row.id}`}
-                                                            >
-                                                                Draft
-                                                            </Badge>
-                                                        ) : null}
-                                                        {approvalsRequired &&
-                                                        row.approval_status &&
-                                                        row.approval_status !==
-                                                            'draft' ? (
-                                                            <Badge
-                                                                variant={
-                                                                    row.approval_status ===
-                                                                    'rejected'
-                                                                        ? 'destructive'
-                                                                        : 'outline'
-                                                                }
-                                                                className="mr-1 text-xs"
-                                                                data-test={`item-approval-badge-${row.id}`}
-                                                            >
-                                                                {row.approval_status ===
-                                                                'in_review'
-                                                                    ? 'In review'
-                                                                    : row.approval_status ===
-                                                                        'approved'
-                                                                      ? 'Approved'
-                                                                      : 'Rejected'}
-                                                            </Badge>
-                                                        ) : null}
-                                                        {versioningEnabled &&
-                                                        row.schedule_failed ? (
-                                                            <Badge
-                                                                variant="destructive"
-                                                                className="mr-1 text-xs"
-                                                                data-test={`item-schedule-failed-badge-${row.id}`}
-                                                            >
-                                                                {t(
-                                                                    'collections.itemSchedule.failedBadge',
-                                                                )}
-                                                            </Badge>
-                                                        ) : null}
-                                                        <AskAiButton
-                                                            stopPropagation
-                                                            prompt={seedItemPrompt(
-                                                                {
-                                                                    id: row.id,
-                                                                    collection_id:
-                                                                        collection.id,
-                                                                    label: itemLabel(
-                                                                        row,
-                                                                    ),
-                                                                },
+                                                    {versioningEnabled &&
+                                                    row.has_draft ? (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="mr-1 text-xs"
+                                                            data-test={`item-draft-badge-${row.id}`}
+                                                        >
+                                                            {t(
+                                                                'collections.itemToolbar.draft',
                                                             )}
-                                                        />
-                                                        {isTrashed ? (
-                                                            <>
-                                                                {can(
-                                                                    PermissionEnum.CanRestoreCollections,
-                                                                ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Restore"
-                                                                        onClick={() =>
-                                                                            router.post(
-                                                                                ItemController.restore.url(
-                                                                                    {
-                                                                                        collection:
-                                                                                            collection.id,
-                                                                                        item: row.id,
-                                                                                    },
-                                                                                ),
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <RotateCcw className="size-3.5" />
-                                                                    </HeaderIconButton>
-                                                                )}
-                                                                {can(
-                                                                    PermissionEnum.CanForceDeleteCollections,
-                                                                ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete permanently"
-                                                                        onClick={() =>
-                                                                            setPendingForceDeleteItemId(
-                                                                                row.id,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <HeaderIconButton
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
-                                                                    label="Edit"
-                                                                    asChild
-                                                                >
-                                                                    <Link
-                                                                        href={
-                                                                            editUrl
-                                                                        }
-                                                                        onClick={(
-                                                                            event,
-                                                                        ) =>
-                                                                            event.stopPropagation()
-                                                                        }
-                                                                    >
-                                                                        <Pencil className="size-3.5" />
-                                                                    </Link>
-                                                                </HeaderIconButton>
+                                                        </Badge>
+                                                    ) : null}
+                                                    {approvalsRequired &&
+                                                    row.approval_status &&
+                                                    row.approval_status !==
+                                                        'draft' ? (
+                                                        <Badge
+                                                            variant={
+                                                                row.approval_status ===
+                                                                'rejected'
+                                                                    ? 'destructive'
+                                                                    : 'outline'
+                                                            }
+                                                            className="mr-1 text-xs"
+                                                            data-test={`item-approval-badge-${row.id}`}
+                                                        >
+                                                            {row.approval_status ===
+                                                            'in_review'
+                                                                ? t(
+                                                                      'collections.itemToolbar.inReview',
+                                                                  )
+                                                                : row.approval_status ===
+                                                                    'approved'
+                                                                  ? t(
+                                                                        'collections.itemToolbar.approved',
+                                                                    )
+                                                                  : t(
+                                                                        'collections.itemToolbar.rejected',
+                                                                    )}
+                                                        </Badge>
+                                                    ) : null}
+                                                    {versioningEnabled &&
+                                                    row.schedule_failed ? (
+                                                        <Badge
+                                                            variant="destructive"
+                                                            className="mr-1 text-xs"
+                                                            data-test={`item-schedule-failed-badge-${row.id}`}
+                                                        >
+                                                            {t(
+                                                                'collections.itemSchedule.failedBadge',
+                                                            )}
+                                                        </Badge>
+                                                    ) : null}
+                                                    <AskAiButton
+                                                        stopPropagation
+                                                        prompt={seedItemPrompt({
+                                                            id: row.id,
+                                                            collection_id:
+                                                                collection.id,
+                                                            label: itemLabel(
+                                                                row,
+                                                            ),
+                                                        })}
+                                                    />
+                                                    {isTrashed ? (
+                                                        <>
+                                                            {can(
+                                                                PermissionEnum.CanRestoreCollections,
+                                                            ) && (
                                                                 <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8 text-destructive hover:text-destructive"
-                                                                    label="Delete"
+                                                                    size="icon-sm"
+                                                                    label={t(
+                                                                        'common.restore',
+                                                                    )}
+                                                                    onClick={() =>
+                                                                        router.post(
+                                                                            ItemController.restore.url(
+                                                                                {
+                                                                                    collection:
+                                                                                        collection.id,
+                                                                                    item: row.id,
+                                                                                },
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <RotateCcw className="size-3.5" />
+                                                                </HeaderIconButton>
+                                                            )}
+                                                            {can(
+                                                                PermissionEnum.CanForceDeleteCollections,
+                                                            ) && (
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <HeaderIconButton
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            label={t(
+                                                                                'a11y.moreActions',
+                                                                            )}
+                                                                            data-test={`item-row-menu-${row.id}`}
+                                                                        >
+                                                                            <MoreHorizontal className="size-3.5" />
+                                                                        </HeaderIconButton>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuItem
+                                                                            variant="destructive"
+                                                                            onSelect={() =>
+                                                                                setPendingForceDeleteItemId(
+                                                                                    row.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            {t(
+                                                                                'common.deletePermanently',
+                                                                            )}
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <HeaderIconButton
+                                                                variant="outline"
+                                                                size="icon-sm"
+                                                                label={t(
+                                                                    'collections.collectionPages.edit',
+                                                                )}
+                                                                asChild
+                                                                data-test={`item-row-edit-${row.id}`}
+                                                            >
+                                                                <Link
+                                                                    href={
+                                                                        editUrl
+                                                                    }
                                                                     onClick={(
                                                                         event,
-                                                                    ) => {
-                                                                        event.stopPropagation();
-                                                                        setDeleteItemId(
-                                                                            row.id,
-                                                                        );
-                                                                    }}
+                                                                    ) =>
+                                                                        event.stopPropagation()
+                                                                    }
                                                                 >
-                                                                    <Trash2 className="size-3.5" />
-                                                                </HeaderIconButton>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                )}
+                                                                    <Pencil className="size-3.5" />
+                                                                </Link>
+                                                            </HeaderIconButton>
+                                                            {can(
+                                                                PermissionEnum.CanDeleteCollections,
+                                                            ) && (
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <HeaderIconButton
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            label={t(
+                                                                                'a11y.moreActions',
+                                                                            )}
+                                                                            data-test={`item-row-menu-${row.id}`}
+                                                                        >
+                                                                            <MoreHorizontal className="size-3.5" />
+                                                                        </HeaderIconButton>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuItem
+                                                                            variant="destructive"
+                                                                            data-test={`item-row-delete-${row.id}`}
+                                                                            onSelect={() =>
+                                                                                setDeleteItemId(
+                                                                                    row.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            {t(
+                                                                                'common.delete',
+                                                                            )}
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </TablePanel>
@@ -1470,8 +1586,19 @@ export default function ItemsIndex({
                         setDeleteItemId(null);
                     }
                 }}
-                title="Delete item?"
-                description="This item will be soft-deleted and removed from the active list."
+                title={t('itemConfirm.deleteTitle', {
+                    name: (() => {
+                        const row = items.data.find(
+                            (item) => item.id === deleteItemId,
+                        );
+
+                        return (
+                            (row ? itemLabel(row) : null) ??
+                            `#${deleteItemId ?? ''}`
+                        );
+                    })(),
+                })}
+                description={t('itemConfirm.deleteDescription')}
                 confirming={confirmingDestructive}
                 onConfirm={confirmDelete}
             />
@@ -1485,18 +1612,22 @@ export default function ItemsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected items permanently?`
-                        : `Delete ${selected.length} selected items?`
+                        ? t('itemConfirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('itemConfirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected items will be permanently removed. This cannot be undone.'
-                        : 'Selected items will be soft-deleted and moved to trash.'
+                        ? t('itemConfirm.bulkForceDeleteDescription')
+                        : t('itemConfirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -1528,9 +1659,20 @@ export default function ItemsIndex({
                         setPendingForceDeleteItemId(null);
                     }
                 }}
-                title="Delete item permanently?"
-                description="This item will be permanently removed. This cannot be undone."
-                confirmLabel="Delete permanently"
+                title={t('itemConfirm.forceDeleteTitle', {
+                    name: (() => {
+                        const row = items.data.find(
+                            (item) => item.id === pendingForceDeleteItemId,
+                        );
+
+                        return (
+                            (row ? itemLabel(row) : null) ??
+                            `#${pendingForceDeleteItemId ?? ''}`
+                        );
+                    })(),
+                })}
+                description={t('itemConfirm.forceDeleteDescription')}
+                confirmLabel={t('confirmDestructive.deletePermanently')}
                 confirming={confirmingDestructive}
                 onConfirm={() => {
                     if (pendingForceDeleteItemId === null) {

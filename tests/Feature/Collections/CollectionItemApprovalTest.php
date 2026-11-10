@@ -5,10 +5,10 @@ use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Webhooks\OutboundWebhookCatalog;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Webhooks\OutboundWebhookCatalogService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Notification;
 
@@ -17,9 +17,9 @@ beforeEach(function () {
 });
 
 test('catalog reserves approval webhook events', function () {
-    expect(OutboundWebhookCatalog::has('item.submitted'))->toBeTrue();
-    expect(OutboundWebhookCatalog::has('item.approved'))->toBeTrue();
-    expect(OutboundWebhookCatalog::has('item.rejected'))->toBeTrue();
+    expect(OutboundWebhookCatalogService::has('item.submitted'))->toBeTrue();
+    expect(OutboundWebhookCatalogService::has('item.approved'))->toBeTrue();
+    expect(OutboundWebhookCatalogService::has('item.rejected'))->toBeTrue();
 });
 
 test('approvals block publish until approved then allow promote', function () {
@@ -39,8 +39,8 @@ test('approvals block publish until approved then allow promote', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $this->put(route('collections.items.update', [$collection, $item]), [
@@ -54,7 +54,7 @@ test('approvals block publish until approved then allow promote', function () {
 
     $item->refresh();
     expect($item->draft_data['title'] ?? null)->toBe('staging');
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('live');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('live');
 
     $this->post(route('collections.items.submit-for-review', [$collection, $item]))
         ->assertRedirect()
@@ -77,7 +77,7 @@ test('approvals block publish until approved then allow promote', function () {
     $item->refresh();
     expect($item->draft_data)->toBeNull();
     expect($item->approval_status)->toBe('draft');
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('staging');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('staging');
 });
 
 test('reviewer can reject with note', function () {
@@ -97,8 +97,8 @@ test('reviewer can reject with note', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
 
     $this->put(route('collections.items.update', [$collection, $item]), [

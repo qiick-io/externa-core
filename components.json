@@ -17,5 +17,8 @@
         "lib": "@/lib",
         "hooks": "@/hooks"
     },
-    "iconLibrary": "lucide"
+    "iconLibrary": "lucide",
+    "registries": {
+        "@qiick": "https://raw.githubusercontent.com/qiick-io/app-ui/v0.2.1/public/r/{name}.json"
+    }
 }

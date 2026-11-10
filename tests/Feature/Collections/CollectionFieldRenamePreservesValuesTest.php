@@ -7,9 +7,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Laravel\Ai\Tools\Request;
 
@@ -55,8 +55,8 @@ test('rename without a draft keeps the published value under the new name', func
     $this->actingAs($user);
 
     [$collection, $title, $summary, $item] = renamePreservesValuesFixture();
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'Live title',
         'summary' => 'KEEP ME',
@@ -67,7 +67,7 @@ test('rename without a draft keeps the published value under the new name', func
     $summary->refresh();
     expect($summary->name)->toBe('excerpt');
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['excerpt'] ?? null)->toBe('KEEP ME')
         ->and($assembled)->not->toHaveKey('summary');
 });
@@ -77,8 +77,8 @@ test('rename with pending draft then manual publish keeps the value under the ne
     $this->actingAs($user);
 
     [$collection, $title, $summary, $item] = renamePreservesValuesFixture(translatableSummary: true);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'Live title',
         'summary' => ['en' => 'KEEP ME', 'it' => 'CONSERVA'],
@@ -105,7 +105,7 @@ test('rename with pending draft then manual publish keeps the value under the ne
     $this->post(route('collections.items.publish', [$collection, $item]))
         ->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['title'] ?? null)->toBe('T2')
         ->and($assembled['excerpt']['en'] ?? null)->toBe('KEEP ME')
         ->and($assembled['excerpt']['it'] ?? null)->toBe('CONSERVA')
@@ -117,8 +117,8 @@ test('rename with pending draft then scheduled publish keeps the value under the
     $this->actingAs($user);
 
     [$collection, $title, $summary, $item] = renamePreservesValuesFixture();
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'Live title',
         'summary' => 'KEEP ME',
@@ -144,7 +144,7 @@ test('rename with pending draft then scheduled publish keeps the value under the
     $item->refresh();
     expect($item->draft_data)->toBeNull();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['title'] ?? null)->toBe('Scheduled title')
         ->and($assembled['excerpt'] ?? null)->toBe('KEEP ME');
 });
@@ -167,8 +167,8 @@ test('rename via AI update_field then publish keeps the value and rewrites layou
         'settings' => ['group' => 'details', 'required' => '0'],
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'Live title',
         'summary' => 'KEEP ME',
@@ -210,7 +210,7 @@ test('rename via AI update_field then publish keeps the value and rewrites layou
     $this->post(route('collections.items.publish', [$collection, $item]))
         ->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['title'] ?? null)->toBe('AI draft')
         ->and($assembled['excerpt'] ?? null)->toBe('KEEP ME')
         ->and($assembled['body'] ?? null)->toBe('Child value');
@@ -221,8 +221,8 @@ test('restore of a pre-rename revision keeps the value under the new name', func
     $this->actingAs($user);
 
     [$collection, $title, $summary, $item] = renamePreservesValuesFixture();
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'v1',
         'summary' => 'KEEP ME',
@@ -247,7 +247,7 @@ test('restore of a pre-rename revision keeps the value under the new name', func
     $this->post(route('collections.items.revisions.restore', [$collection, $item, $first]))
         ->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['title'] ?? null)->toBe('v1')
         ->and($assembled['excerpt'] ?? null)->toBe('KEEP ME');
 });
@@ -280,8 +280,8 @@ test('kanban move after rename then publish keeps the renamed field value', func
         'collection_id' => $collection->id,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'status' => 'published',
         'summary' => 'KEEP ME',
@@ -312,7 +312,7 @@ test('kanban move after rename then publish keeps the renamed field value', func
     $this->post(route('collections.items.publish', [$collection, $item]))
         ->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['status'] ?? null)->toBe('draft')
         ->and($assembled['excerpt'] ?? null)->toBe('KEEP ME');
 });
@@ -340,8 +340,8 @@ test('calendar move after rename then publish keeps the renamed field value', fu
         'collection_id' => $collection->id,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'published_at' => '2026-10-11T14:30',
         'summary' => 'KEEP ME',
@@ -372,7 +372,7 @@ test('calendar move after rename then publish keeps the renamed field value', fu
     $this->post(route('collections.items.publish', [$collection, $item]))
         ->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['published_at'] ?? null)->toBe('2026-10-20T14:30')
         ->and($assembled['excerpt'] ?? null)->toBe('KEEP ME');
 });

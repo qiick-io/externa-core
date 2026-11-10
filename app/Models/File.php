@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\FileAccessEnum;
 use App\Enums\FileTypeEnum;
+use App\Services\Files\FileEffectiveAccessService;
 use App\Traits\LogsApplicationActivityTrait;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,7 @@ use Spatie\Tags\HasTags;
  * @property int|null $parent_id
  * @property FileTypeEnum $type
  * @property FileAccessEnum|null $access null = inherit from nearest ancestor
+ * @property string|null $effective_access denormalized resolved public|private
  * @property string $name
  * @property string|null $title
  * @property string|null $description
@@ -106,6 +108,30 @@ class File extends Model
                 $file->uuid = (string) Str::uuid();
             }
         });
+
+        static::saving(function (File $file): void {
+            if (
+                $file->exists
+                && ! $file->isDirty(['access', 'parent_id'])
+                && ($file->attributes['effective_access'] ?? null) !== null
+            ) {
+                return;
+            }
+
+            app(FileEffectiveAccessService::class)->apply($file);
+        });
+
+        static::saved(function (File $file): void {
+            if (! $file->wasChanged(['access', 'parent_id'])) {
+                return;
+            }
+
+            if (! $file->isFolder()) {
+                return;
+            }
+
+            app(FileEffectiveAccessService::class)->refreshDescendants($file);
+        });
     }
 
     /**
@@ -185,31 +211,17 @@ class File extends Model
     }
 
     /**
-     * Resolved visibility walking parent_id until a non-null access override is found.
-     * Root with null access defaults to public.
+     * Resolved visibility. Prefers denormalized `effective_access`; falls back to
+     * walking `access` / `parent_id` (null override inherits; root defaults public).
      */
     public function effectiveAccess(): FileAccessEnum
     {
-        $node = $this;
-        $guard = 0;
-
-        while ($node !== null && $guard < 64) {
-            if ($node->access instanceof FileAccessEnum) {
-                return $node->access;
-            }
-
-            if ($node->parent_id === null) {
-                break;
-            }
-
-            // Prefer already-loaded parent to avoid N+1 when ancestors are eager-loaded.
-            $node = $node->relationLoaded('parent')
-                ? $node->parent
-                : $node->parent()->first();
-            $guard++;
+        $stored = $this->attributes['effective_access'] ?? null;
+        if (is_string($stored) && $stored !== '') {
+            return FileAccessEnum::from($stored);
         }
 
-        return FileAccessEnum::Public;
+        return app(FileEffectiveAccessService::class)->compute($this);
     }
 
     public function isEffectivelyPrivate(): bool

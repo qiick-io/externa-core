@@ -7,7 +7,7 @@ use App\Models\ApiKey;
 use App\Models\File;
 use App\Models\FilePermission;
 use App\Models\Role;
-use App\Services\Api\FilePermissionGuard;
+use App\Services\Api\FilePermissionGuardService;
 use App\Services\FileChunkUploadService;
 use App\Support\Http\UserContentResponse;
 use Database\Seeders\PermissionSeeder;
@@ -44,7 +44,7 @@ function fileSecApiKeyWithCreateRead(): array
         ['role_id' => $public->id, 'action' => FilePermissionActionEnum::Read->value],
         ['allowed' => true],
     );
-    app(FilePermissionGuard::class)->forget($public->id);
+    app(FilePermissionGuardService::class)->forget($public->id);
 
     $role = Role::query()->create([
         'name' => 'uploader-'.uniqid(),
@@ -58,7 +58,7 @@ function fileSecApiKeyWithCreateRead(): array
             ['allowed' => true],
         );
     }
-    app(FilePermissionGuard::class)->forget($role->id);
+    app(FilePermissionGuardService::class)->forget($role->id);
 
     $secret = ApiKey::generateSecret();
     ApiKey::query()->create([

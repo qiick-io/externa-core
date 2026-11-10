@@ -6,7 +6,7 @@
  * Drop null/undefined/'' so `{en:"a"}` equals `{en:"a", it:null}`.
  * Canonicalize datetime-local vs ISO (`…T12:00` vs `…T12:00:00.000Z`) at minute precision.
  */
-export function canonicalizeForCompare(value: unknown): unknown {
+function canonicalizeForCompare(value: unknown): unknown {
     if (value === null || value === undefined || value === '') {
         return null;
     }
@@ -49,7 +49,7 @@ function looksLikeDateTime(value: string): boolean {
  * ponytail: wall-clock minute precision — matches `<input type="datetime-local">` submit shape.
  * Avoid timezone conversion (naive `T12:00` vs `T12:00:00.000Z` would shift under local TZ).
  */
-export function canonicalizeDateTimeString(value: string): string {
+function canonicalizeDateTimeString(value: string): string {
     const trimmed = value.trim();
     const match = trimmed.match(
         /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?/,
@@ -74,7 +74,7 @@ export function stableJson(value: unknown): string {
     }
 }
 
-export function fieldValuesEqual(a: unknown, b: unknown): boolean {
+function fieldValuesEqual(a: unknown, b: unknown): boolean {
     return stableJson(a) === stableJson(b);
 }
 

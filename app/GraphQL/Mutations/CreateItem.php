@@ -2,17 +2,17 @@
 
 namespace App\GraphQL\Mutations;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use Illuminate\Validation\ValidationException;
 
 final class CreateItem
 {
     use AuthorizesGraphqlCollectionTrait;
+    use SerializesGraphqlItemTrait;
 
     /**
      * @param  array{collection: string, data: array<string, mixed>}  $args
@@ -23,21 +23,20 @@ final class CreateItem
         $collection = $this->findCollection($args['collection']);
         $this->authorize($collection, CollectionPermissionActionEnum::Create);
 
-        if ($collection->is_singleton && $collection->items()->exists()) {
-            throw ValidationException::withMessages([
-                'collection' => ['Singleton already has content.'],
-            ]);
-        }
-
         $data = is_array($args['data'] ?? null) ? $args['data'] : [];
         $request = request();
-        app(CollectionPermissionEnforcer::class)->assertWritableFields($request, $collection, $data, 'create');
 
-        $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true);
-        $item = $collection->items()->create([]);
-        app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+        $item = app(CreateCollectionItemAction::class)->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            creating: true,
+            request: $request,
+            shouldAssertWritableFields: true,
+            writableMode: 'create',
+        ));
+
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
-        return (new CollectionItemResource($item))->toArray($request);
+        return $this->withGraphqlTimestamps((new CollectionItemResource($item))->toArray($request));
     }
 }

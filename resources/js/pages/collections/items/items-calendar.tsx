@@ -1,34 +1,43 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    CalendarDays,
     ChevronLeft,
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
     GripVertical,
-    Loader2,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
+import { Item, ItemGroup } from '@/components/ui/item';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Spinner } from '@/components/ui/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { createSortableList } from '@/lib/create-sortable-list';
+import { buildItemListQuery, itemRowTitle } from '@/lib/item-list-views';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
-import type { CollectionFieldRow, CollectionView } from '@/types';
-import type { QueryParams } from '@/wayfinder';
-
-type ItemRow = {
-    id: number;
-    data: Record<string, unknown>;
-    displays?: Record<string, string | null>;
-};
+import type { CollectionFieldRow, CollectionView, ItemRow } from '@/types';
 
 export type CalendarMonthPayload = {
     field: string;
@@ -113,32 +122,6 @@ function withUpdatedDate(
     };
 }
 
-function itemTitle(row: ItemRow): string {
-    const display = row.displays?.title;
-
-    if (typeof display === 'string' && display.trim() !== '') {
-        return display;
-    }
-
-    const title = row.data?.title;
-
-    if (typeof title === 'string' && title.trim() !== '') {
-        return title;
-    }
-
-    if (title && typeof title === 'object' && !Array.isArray(title)) {
-        const first = Object.values(title as Record<string, unknown>).find(
-            (value) => typeof value === 'string' && value.trim() !== '',
-        );
-
-        if (typeof first === 'string') {
-            return first;
-        }
-    }
-
-    return `#${row.id}`;
-}
-
 function formatDayKey(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -208,51 +191,6 @@ function visibleDaysForMonth(month: string): Date[] {
     return days;
 }
 
-function buildListQuery(filters: Record<string, unknown>): QueryParams {
-    const query: QueryParams = {};
-    const filter: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(filters)) {
-        if (
-            key === 'trashed' ||
-            key === 'has_draft' ||
-            key === 'in_review' ||
-            key === 'sort' ||
-            key === 'direction'
-        ) {
-            continue;
-        }
-
-        filter[key] = value;
-    }
-
-    if (Object.keys(filter).length > 0) {
-        query.filter = filter as QueryParams['filter'];
-    }
-
-    if (filters.trashed === true) {
-        query.trashed = true;
-    }
-
-    if (filters.has_draft === true) {
-        query.has_draft = true;
-    }
-
-    if (filters.in_review === true) {
-        query.in_review = true;
-    }
-
-    if (typeof filters.sort === 'string' && filters.sort !== '') {
-        query.sort = filters.sort;
-    }
-
-    if (filters.direction === 'asc' || filters.direction === 'desc') {
-        query.direction = filters.direction;
-    }
-
-    return query;
-}
-
 function itemHref(collectionId: number, itemId: number): string {
     return withReturnParam(
         collections.items.show.url({
@@ -310,7 +248,7 @@ function restoreCalendarDom(
 }
 
 /**
- * Full-height collection calendar (Directus-style): Month / Week / Day / List + day→day drag.
+ * Full-height collection calendar: Month / Week / Day / List views, with day-to-day drag.
  */
 export function ItemsCalendar({
     collection,
@@ -351,7 +289,7 @@ export function ItemsCalendar({
     const itemsRef = useRef(items);
     itemsRef.current = items;
 
-    const listQuery = useMemo(() => buildListQuery(filters), [filters]);
+    const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 
     const range = useMemo(() => {
         if (view === 'week') {
@@ -784,12 +722,22 @@ export function ItemsCalendar({
 
     if (!fieldName || !field) {
         return (
-            <p
-                className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            <Empty
+                className="gap-3 border border-dashed p-6 md:p-6"
                 data-test="calendar-missing-field"
             >
-                {t('collections.itemsList.calendarMissingField')}
-            </p>
+                <EmptyHeader>
+                    <EmptyMedia
+                        variant="icon"
+                        className="bg-primary/10 text-primary"
+                    >
+                        <CalendarDays />
+                    </EmptyMedia>
+                    <EmptyDescription>
+                        {t('collections.itemsList.calendarMissingField')}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         );
     }
 
@@ -802,8 +750,8 @@ export function ItemsCalendar({
             className={cn(
                 'group flex items-center gap-0.5 rounded border border-border bg-muted text-foreground',
                 compact
-                    ? 'px-0.5 py-0.5 text-[11px] leading-tight hover:bg-muted/80'
-                    : 'px-1.5 py-1.5 text-sm hover:bg-muted/80',
+                    ? 'px-0.5 py-0.5 text-xs leading-tight hover:bg-muted/80'
+                    : 'px-2 py-2 text-sm hover:bg-muted/80',
             )}
         >
             {canEdit && !isTrashed ? (
@@ -816,13 +764,17 @@ export function ItemsCalendar({
                     <GripVertical className={compact ? 'size-3' : 'size-3.5'} />
                 </span>
             ) : null}
-            <Link
-                href={itemHref(collection.id, item.id)}
-                className="min-w-0 flex-1 truncate px-0.5 text-foreground"
-                title={itemTitle(item)}
-            >
-                {itemTitle(item)}
-            </Link>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link
+                        href={itemHref(collection.id, item.id)}
+                        className="min-w-0 flex-1 truncate px-0.5 text-foreground"
+                    >
+                        {itemRowTitle(item)}
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent>{itemRowTitle(item)}</TooltipContent>
+            </Tooltip>
         </div>
     );
 
@@ -881,7 +833,7 @@ export function ItemsCalendar({
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
-                                    className="mt-0.5 px-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                                    className="mt-0.5 px-1 text-xs font-medium text-muted-foreground hover:text-foreground"
                                     data-test="calendar-day-more"
                                 >
                                     {t('collections.itemsList.calendarMore', {
@@ -931,66 +883,63 @@ export function ItemsCalendar({
             data-view={view}
         >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                    <ButtonGroup>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t(
+                                'collections.itemsList.calendarPrevYear',
+                            )}
+                            data-test="calendar-prev-year"
+                            onClick={goPrevYear}
+                        >
+                            <ChevronsLeft className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t('collections.itemsList.calendarPrev')}
+                            data-test="calendar-prev"
+                            onClick={goPrev}
+                        >
+                            <ChevronLeft className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t('collections.itemsList.calendarNext')}
+                            data-test="calendar-next"
+                            onClick={goNext}
+                        >
+                            <ChevronRight className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={t(
+                                'collections.itemsList.calendarNextYear',
+                            )}
+                            data-test="calendar-next-year"
+                            onClick={goNextYear}
+                        >
+                            <ChevronsRight className="size-4" />
+                        </Button>
+                    </ButtonGroup>
                     <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        aria-label={t('collections.itemsList.calendarPrevYear')}
-                        data-test="calendar-prev-year"
-                        onClick={goPrevYear}
-                    >
-                        <ChevronsLeft className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        aria-label={t('collections.itemsList.calendarPrev')}
-                        data-test="calendar-prev"
-                        onClick={goPrev}
-                    >
-                        <ChevronLeft className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        aria-label={t('collections.itemsList.calendarNext')}
-                        data-test="calendar-next"
-                        onClick={goNext}
-                    >
-                        <ChevronRight className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        aria-label={t('collections.itemsList.calendarNextYear')}
-                        data-test="calendar-next-year"
-                        onClick={goNextYear}
-                    >
-                        <ChevronsRight className="size-4" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="ml-1 h-8 text-xs"
+                        variant="outline"
                         data-test="calendar-today"
                         onClick={goToday}
                     >
                         {t('collections.itemsList.calendarToday')}
                     </Button>
                     {loading ? (
-                        <Loader2
-                            className="ml-2 size-4 animate-spin text-muted-foreground"
-                            aria-hidden
-                        />
+                        <Spinner className="ml-2 text-muted-foreground" />
                     ) : null}
                 </div>
 
@@ -1001,26 +950,27 @@ export function ItemsCalendar({
                     {titleLabel}
                 </h2>
 
-                <div
-                    className="flex items-center gap-3 text-sm"
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    value={view}
+                    onValueChange={(next) => {
+                        if (next) {
+                            switchView(next as CalendarView);
+                        }
+                    }}
                     data-test="calendar-views"
                 >
                     {viewTabs.map((tab) => (
-                        <button
+                        <ToggleGroupItem
                             key={tab.id}
-                            type="button"
+                            value={tab.id}
                             data-test={`calendar-view-${tab.id}`}
-                            className={cn(
-                                'rounded-md px-2 py-0.5 text-muted-foreground transition-colors hover:text-foreground',
-                                view === tab.id &&
-                                    'bg-muted font-medium text-foreground',
-                            )}
-                            onClick={() => switchView(tab.id)}
                         >
                             {tab.label}
-                        </button>
+                        </ToggleGroupItem>
                     ))}
-                </div>
+                </ToggleGroup>
             </div>
 
             {total > items.length ? (
@@ -1053,7 +1003,7 @@ export function ItemsCalendar({
                         {weekdayLabels.map((label) => (
                             <div
                                 key={label}
-                                className="border-r border-b bg-muted/40 px-2 py-1.5 text-center text-xs font-medium text-muted-foreground"
+                                className="border-r border-b bg-muted/40 px-2 py-2 text-center text-xs font-medium text-muted-foreground"
                             >
                                 {label}
                             </div>
@@ -1068,14 +1018,13 @@ export function ItemsCalendar({
 
                 {view === 'week' ? (
                     <div
-                        className="grid min-h-0 flex-1 grid-cols-7 border-t border-l"
-                        style={{ gridTemplateRows: 'auto minmax(0, 1fr)' }}
+                        className="grid min-h-0 flex-1 grid-cols-7 grid-rows-[auto_minmax(0,1fr)] border-t border-l"
                         data-test="calendar-week"
                     >
                         {weekdayLabels.map((label) => (
                             <div
                                 key={label}
-                                className="border-r border-b bg-muted/40 px-2 py-1.5 text-center text-xs font-medium text-muted-foreground"
+                                className="border-r border-b bg-muted/40 px-2 py-2 text-center text-xs font-medium text-muted-foreground"
                             >
                                 {label}
                             </div>
@@ -1137,11 +1086,13 @@ export function ItemsCalendar({
                                 {t('collections.itemsList.calendarEmptyList')}
                             </p>
                         ) : (
-                            <ul className="divide-y">
+                            <ItemGroup className="divide-y">
                                 {listRows.map(({ item, day }) => (
-                                    <li
+                                    <Item
                                         key={item.id}
-                                        className="flex items-center gap-3 px-3 py-2"
+                                        role="listitem"
+                                        size="sm"
+                                        className="flex-nowrap rounded-none"
                                         data-test="calendar-list-row"
                                     >
                                         <time
@@ -1166,11 +1117,11 @@ export function ItemsCalendar({
                                             )}
                                             className="min-w-0 flex-1 truncate text-sm text-foreground hover:underline"
                                         >
-                                            {itemTitle(item)}
+                                            {itemRowTitle(item)}
                                         </Link>
-                                    </li>
+                                    </Item>
                                 ))}
-                            </ul>
+                            </ItemGroup>
                         )}
                     </div>
                 ) : null}

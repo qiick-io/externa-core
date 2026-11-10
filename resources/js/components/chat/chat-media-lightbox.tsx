@@ -1,13 +1,20 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+} from '@/components/ui/carousel';
+import type { CarouselApi } from '@/components/ui/carousel';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import type { ChatAttachment, ChatScope } from '@/lib/item-chat-api';
 import {
@@ -164,21 +171,16 @@ function ChatMediaLightboxImage({
                     aria-live="polite"
                 >
                     <Spinner className="size-8 text-white" />
-                    <div className="w-full max-w-xs">
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/25">
-                            <div
-                                className={cn(
-                                    'h-full bg-white transition-all',
-                                    progress == null && 'w-1/3 animate-pulse',
-                                )}
-                                style={
-                                    progress != null
-                                        ? { width: `${progress}%` }
-                                        : undefined
-                                }
-                            />
-                        </div>
-                    </div>
+                    <Progress
+                        value={progress ?? undefined}
+                        aria-label={t(
+                            'collections.itemChat.mediaLoadingFullRes',
+                        )}
+                        className={cn(
+                            'w-full max-w-xs',
+                            progress == null && 'animate-pulse',
+                        )}
+                    />
                     <span className="text-xs text-white/90">
                         {progress != null
                             ? t(
@@ -212,8 +214,10 @@ type Props = {
 };
 
 /**
- * Fullscreen media preview (antd Image.Preview–style) over chat attachments.
- * shadcn has no Image.Preview — Dialog + local index is enough.
+ * Fullscreen media preview over chat attachments: a Dialog holding a shadcn
+ * `carousel` (embla) with swipe, the arrow keys and previous / next buttons.
+ * Only the current slide loads its full-resolution file; the others show the
+ * preview.
  */
 export function ChatMediaLightbox({
     open,
@@ -223,47 +227,49 @@ export function ChatMediaLightbox({
     onOpenChange,
 }: Props) {
     const { t } = useTranslation();
-    const [index, setIndex] = useState(initialIndex);
+    const [api, setApi] = useState<CarouselApi>();
     const count = items.length;
-    const current = items[index] ?? null;
-    const videoHref = current ? chatAttachmentUrl(scope, current.id) : null;
-    const isVideo = current?.mime.startsWith('video/') ?? false;
-    const canPrev = count > 1;
-    const canNext = count > 1;
+    const startIndex = Math.min(
+        Math.max(initialIndex, 0),
+        Math.max(count - 1, 0),
+    );
+    const [index, setIndex] = useState(startIndex);
 
     useEffect(() => {
         if (open) {
-            setIndex(
-                Math.min(Math.max(initialIndex, 0), Math.max(count - 1, 0)),
-            );
+            setIndex(startIndex);
         }
-    }, [open, initialIndex, count]);
+    }, [open, startIndex]);
 
     useEffect(() => {
-        if (!open || count < 2) {
+        if (!api) {
             return;
         }
 
-        const onKey = (event: KeyboardEvent): void => {
-            if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                setIndex((prev) => (prev - 1 + count) % count);
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                setIndex((prev) => (prev + 1) % count);
-            }
+        const onSelect = (): void => setIndex(api.selectedScrollSnap());
+
+        onSelect();
+        api.on('select', onSelect);
+
+        return () => {
+            api.off('select', onSelect);
         };
+    }, [api]);
 
-        window.addEventListener('keydown', onKey);
-
-        return () => window.removeEventListener('keydown', onKey);
-    }, [open, count]);
+    const current = items[index] ?? null;
 
     return (
         <Dialog open={open && count > 0} onOpenChange={onOpenChange}>
             <DialogContent
                 className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 rounded-none border-0 bg-black/95 p-0 shadow-none sm:max-w-none"
                 data-test="chat-media-lightbox"
+                onOpenAutoFocus={(event) => {
+                    // Land on the carousel so the arrow keys move between items.
+                    event.preventDefault();
+                    (event.currentTarget as HTMLElement | null)
+                        ?.querySelector<HTMLElement>('[data-slot="carousel"]')
+                        ?.focus();
+                }}
             >
                 <DialogHeader className="sr-only">
                     <DialogTitle>
@@ -271,61 +277,55 @@ export function ChatMediaLightbox({
                             t('collections.itemChat.mediaPreview')}
                     </DialogTitle>
                 </DialogHeader>
-
-                <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 py-10">
-                    {current ? (
-                        isVideo && videoHref ? (
-                            <video
-                                key={current.id}
-                                src={videoHref}
-                                className="max-h-full max-w-full object-contain"
-                                controls
-                                autoPlay
-                                playsInline
+                <Carousel
+                    setApi={setApi}
+                    opts={{ startIndex, loop: count > 1 }}
+                    tabIndex={-1}
+                    aria-label={t('collections.itemChat.mediaPreview')}
+                    className="min-h-0 flex-1 outline-none *:data-[slot=carousel-content]:h-full"
+                >
+                    <CarouselContent className="ml-0 h-full">
+                        {items.map((item, itemIndex) => (
+                            <CarouselItem
+                                key={item.id}
+                                className="flex h-full items-center justify-center px-12 py-12"
+                                aria-label={t(
+                                    'collections.itemChat.mediaIndex',
+                                    {
+                                        current: itemIndex + 1,
+                                        total: count,
+                                    },
+                                )}
+                            >
+                                <LightboxSlide
+                                    item={item}
+                                    scope={scope}
+                                    isCurrent={itemIndex === index}
+                                />
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    {count > 1 ? (
+                        <>
+                            <CarouselPrevious
+                                className="left-3 size-10 bg-background/80"
+                                aria-label={t(
+                                    'collections.itemChat.previousMedia',
+                                )}
                             />
-                        ) : (
-                            <ChatMediaLightboxImage
-                                key={current.id}
-                                attachment={current}
-                                scope={scope}
+                            <CarouselNext
+                                className="right-3 size-10 bg-background/80"
+                                aria-label={t('collections.itemChat.nextMedia')}
                             />
-                        )
+                        </>
                     ) : null}
-
-                    {canPrev ? (
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="secondary"
-                            className="absolute top-1/2 left-3 size-10 -translate-y-1/2 rounded-full bg-background/80"
-                            aria-label={t('collections.itemChat.previousMedia')}
-                            onClick={() =>
-                                setIndex((prev) => (prev - 1 + count) % count)
-                            }
-                        >
-                            <ChevronLeft className="size-5" />
-                        </Button>
-                    ) : null}
-
-                    {canNext ? (
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="secondary"
-                            className="absolute top-1/2 right-3 size-10 -translate-y-1/2 rounded-full bg-background/80"
-                            aria-label={t('collections.itemChat.nextMedia')}
-                            onClick={() =>
-                                setIndex((prev) => (prev + 1) % count)
-                            }
-                        >
-                            <ChevronRight className="size-5" />
-                        </Button>
-                    ) : null}
-                </div>
-
+                </Carousel>
                 {count > 0 ? (
                     <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center">
-                        <span className="rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+                        <span
+                            className="rounded-full bg-black/60 px-3 py-1 text-xs text-white"
+                            aria-live="polite"
+                        >
                             {t('collections.itemChat.mediaIndex', {
                                 current: index + 1,
                                 total: count,
@@ -336,4 +336,42 @@ export function ChatMediaLightbox({
             </DialogContent>
         </Dialog>
     );
+}
+
+/** The current slide plays or loads full resolution; the others show the preview. */
+function LightboxSlide({
+    item,
+    scope,
+    isCurrent,
+}: {
+    item: ChatAttachment;
+    scope: ChatScope;
+    isCurrent: boolean;
+}) {
+    if (item.mime.startsWith('video/')) {
+        return isCurrent ? (
+            <video
+                src={chatAttachmentUrl(scope, item.id)}
+                className="max-h-full max-w-full object-contain"
+                controls
+                autoPlay
+                playsInline
+            >
+                {/* Chat attachments have no captions track available. */}
+                <track kind="captions" />
+            </video>
+        ) : null;
+    }
+
+    if (!isCurrent) {
+        return (
+            <img
+                src={chatAttachmentPreviewUrl(scope, item)}
+                alt={item.name}
+                className="max-h-full max-w-full object-contain opacity-50"
+            />
+        );
+    }
+
+    return <ChatMediaLightboxImage attachment={item} scope={scope} />;
 }

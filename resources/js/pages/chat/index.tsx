@@ -1,13 +1,39 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Archive, Database, Inbox, UsersRound } from 'lucide-react';
+import {
+    Archive,
+    Database,
+    MessageSquare,
+    MessagesSquare,
+    Paperclip,
+    Smile,
+    UsersRound,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
-import { Input } from '@/components/ui/input';
+import { ChatLayout } from '@/components/layout/chat-layout';
+import { FilterSearch } from '@/components/layout/page-header';
+import { PageLayout } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DrawerFooter } from '@/components/ui/drawer';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
+import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
 import { applyChatUnread, fetchChatThreads } from '@/lib/chat-hub-api';
@@ -15,7 +41,7 @@ import type { ChatSummary } from '@/lib/chat-hub-api';
 import { formatChatUnread } from '@/lib/format-chat-unread';
 import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
-import { cn } from '@/lib/utils';
+import { index as chatIndex } from '@/routes/chat';
 import { useChatStore } from '@/stores/chat/store';
 import { threadsCacheKey } from '@/stores/chat/types';
 import type { BreadcrumbItem } from '@/types';
@@ -29,13 +55,6 @@ type Props = {
     canCreateDirect: boolean;
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Chat',
-        href: '/chat',
-    },
-];
-
 const noopChatCountChange = (): void => undefined;
 
 export default function ChatHubPage({
@@ -46,6 +65,9 @@ export default function ChatHubPage({
     canCreateDirect,
 }: Props) {
     const { t } = useTranslation();
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: t('nav.chat'), href: chatIndex.url() },
+    ];
     const page = usePage();
     const viewerId = page.props.auth.user?.id ?? 0;
     const unread = useChatUnread();
@@ -167,6 +189,18 @@ export default function ChatHubPage({
         );
     };
 
+    const closeThread = (): void => {
+        router.get(
+            `/chat?tab=${tab}`,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['selectedChat', 'fields', 'tab', 'q'],
+            },
+        );
+    };
+
     const switchTab = (next: 'collection' | 'private'): void => {
         setTab(next);
         setHubTab(next);
@@ -204,140 +238,153 @@ export default function ChatHubPage({
             headerActions={<NewChatMenu canCreateDirect={canCreateDirect} />}
         >
             <Head title={t('chatHub.title')} />
-            <div
-                data-test="chat-hub"
-                className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card"
-            >
-                <aside className="flex w-64 shrink-0 flex-col border-r lg:w-80">
-                    <div className="flex items-stretch border-b border-input">
-                        <button
-                            type="button"
-                            data-test="chat-tab-collection"
-                            className={cn(
-                                'inline-flex flex-1 items-center justify-center gap-1.5 border-r border-input px-3 py-2 text-sm',
-                                tab === 'collection'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground',
-                            )}
-                            onClick={() => switchTab('collection')}
+            <PageLayout
+                filters={
+                    <FilterSearch
+                        dataTest="chat-filter-q"
+                        className="sm:max-w-none md:w-64 md:flex-none lg:w-80"
+                        value={q}
+                        placeholder={t('chatHub.search')}
+                        maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
+                        onChange={(value) => {
+                            setQ(value);
+                            setHubQuery(value);
+                        }}
+                    />
+                }
+                filtersRight={
+                    <>
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={tab}
+                            onValueChange={(value) => {
+                                if (
+                                    value === 'collection' ||
+                                    value === 'private'
+                                ) {
+                                    switchTab(value);
+                                }
+                            }}
                         >
-                            <Database className="size-4" />
-                            {t('chatHub.collection')}
-                            {unread.unread_collection > 0 ? (
-                                <span
-                                    data-test="chat-tab-collection-unread"
-                                    className={cn(
-                                        'min-w-5 rounded-full px-1.5 text-[11px] font-medium',
-                                        tab === 'collection'
-                                            ? 'bg-primary-foreground/20 text-primary-foreground'
-                                            : 'bg-primary text-primary-foreground',
-                                    )}
-                                >
-                                    {formatChatUnread(unread.unread_collection)}
-                                </span>
-                            ) : null}
-                        </button>
-                        <button
-                            type="button"
-                            data-test="chat-tab-private"
-                            className={cn(
-                                'inline-flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-sm',
-                                tab === 'private'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground',
-                            )}
-                            onClick={() => switchTab('private')}
-                        >
-                            <UsersRound className="size-4" />
-                            {t('chatHub.users')}
-                            {unread.unread_private > 0 ? (
-                                <span
-                                    data-test="chat-tab-private-unread"
-                                    className={cn(
-                                        'min-w-5 rounded-full px-1.5 text-[11px] font-medium',
-                                        tab === 'private'
-                                            ? 'bg-primary-foreground/20 text-primary-foreground'
-                                            : 'bg-primary text-primary-foreground',
-                                    )}
-                                >
-                                    {formatChatUnread(unread.unread_private)}
-                                </span>
-                            ) : null}
-                        </button>
-                    </div>
-                    <div className="border-b p-2">
-                        <div className="flex items-center gap-1">
-                            <Input
-                                data-test="chat-filter-q"
-                                className="min-w-0 flex-1"
-                                value={q}
-                                placeholder={t('chatHub.search')}
-                                maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
-                                onChange={(event) => {
-                                    setQ(event.target.value);
-                                    setHubQuery(event.target.value);
-                                }}
-                            />
-                            {tab === 'private' ? (
-                                <HeaderIconButton
-                                    type="button"
-                                    data-test="chat-filter-archived"
-                                    variant={
-                                        showArchived ? 'default' : 'outline'
-                                    }
-                                    label={
-                                        showArchived
-                                            ? t('chatHub.showInbox')
-                                            : t('chatHub.showArchived')
-                                    }
-                                    onClick={() =>
-                                        setShowArchived((prev) => !prev)
-                                    }
-                                >
-                                    {showArchived ? (
-                                        <Inbox className="size-4" />
-                                    ) : (
-                                        <Archive className="size-4" />
-                                    )}
-                                </HeaderIconButton>
-                            ) : null}
-                        </div>
-                    </div>
-                    <div
-                        data-test="chat-list"
-                        className={cn(
-                            'min-h-0 flex-1 overflow-y-auto p-2',
-                            !threadsLoaded &&
-                                'flex flex-col items-center justify-center',
-                        )}
-                    >
-                        {!threadsLoaded ? (
-                            <div
-                                data-test="chat-list-loading"
-                                className="flex flex-col items-center gap-2 text-sm text-muted-foreground"
+                            <ToggleGroupItem
+                                value="collection"
+                                data-test="chat-tab-collection"
                             >
-                                <Spinner className="size-5" />
-                                {t('chatHub.loading')}
-                            </div>
-                        ) : threads.length === 0 ? (
-                            <p className="px-2 py-4 text-sm text-muted-foreground">
-                                {t('chatHub.empty')}
-                            </p>
-                        ) : (
-                            threads.map((thread) => (
-                                <ChatThreadRow
-                                    key={thread.id}
-                                    thread={thread}
-                                    selected={selectedChat?.id === thread.id}
-                                    viewerId={viewerId}
-                                    canCreateDirect={canCreateDirect}
-                                    onOpen={openThread}
-                                />
-                            ))
-                        )}
-                    </div>
-                </aside>
-                <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+                                <Database className="size-4" />
+                                {/* Icon only below `sm`, so the row fits next to the search on a phone. */}
+                                <span className="sr-only sm:not-sr-only">
+                                    {t('chatHub.collection')}
+                                </span>
+                                {unread.unread_collection > 0 ? (
+                                    <Badge
+                                        data-test="chat-tab-collection-unread"
+                                        className="min-w-5 rounded-full px-1.5 tabular-nums"
+                                    >
+                                        {formatChatUnread(
+                                            unread.unread_collection,
+                                        )}
+                                    </Badge>
+                                ) : null}
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="private"
+                                data-test="chat-tab-private"
+                            >
+                                <UsersRound className="size-4" />
+                                <span className="sr-only sm:not-sr-only">
+                                    {t('chatHub.users')}
+                                </span>
+                                {unread.unread_private > 0 ? (
+                                    <Badge
+                                        data-test="chat-tab-private-unread"
+                                        className="min-w-5 rounded-full px-1.5 tabular-nums"
+                                    >
+                                        {formatChatUnread(
+                                            unread.unread_private,
+                                        )}
+                                    </Badge>
+                                ) : null}
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                    <Toggle
+                                        variant="outline"
+                                        data-test="chat-filter-archived"
+                                        disabled={tab !== 'private'}
+                                        pressed={
+                                            tab === 'private' && showArchived
+                                        }
+                                        onPressedChange={setShowArchived}
+                                        aria-label={t('chatHub.showArchived')}
+                                    >
+                                        <Archive />
+                                    </Toggle>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {showArchived
+                                    ? t('chatHub.showInbox')
+                                    : t('chatHub.showArchived')}
+                            </TooltipContent>
+                        </Tooltip>
+                    </>
+                }
+            >
+                <ChatLayout
+                    data-test="chat-hub"
+                    listLabel={t('a11y.chatThreadList')}
+                    isThreadOpen={selectedChat !== null}
+                    isListCentered={!threadsLoaded || threads.length === 0}
+                    listColumnProps={{ 'data-test': 'chat-list-column' }}
+                    listProps={{ 'data-test': 'chat-list' }}
+                    threadProps={{ 'data-test': 'chat-thread-column' }}
+                    list={
+                        <>
+                            {!threadsLoaded ? (
+                                <div
+                                    data-test="chat-list-loading"
+                                    className="flex flex-col items-center gap-2 text-sm text-muted-foreground"
+                                >
+                                    <Spinner className="size-5" />
+                                    {t('chatHub.loading')}
+                                </div>
+                            ) : threads.length === 0 ? (
+                                <Empty
+                                    data-test="chat-list-empty"
+                                    className="gap-3 p-6 md:p-6"
+                                >
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-primary/10 text-primary"
+                                        >
+                                            <MessagesSquare />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            {t('chatHub.empty')}
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
+                            ) : (
+                                threads.map((thread) => (
+                                    <ChatThreadRow
+                                        key={thread.id}
+                                        thread={thread}
+                                        selected={
+                                            selectedChat?.id === thread.id
+                                        }
+                                        viewerId={viewerId}
+                                        canCreateDirect={canCreateDirect}
+                                        onOpen={openThread}
+                                    />
+                                ))
+                            )}
+                        </>
+                    }
+                >
                     <ItemChatDrawer
                         key="chat-hub-pane"
                         open={selectedChat !== null}
@@ -351,14 +398,76 @@ export default function ChatHubPage({
                         onChatCountChange={noopChatCountChange}
                         thread={selectedChat}
                         canCreateDirect={canCreateDirect}
+                        onBack={closeThread}
                     />
                     {selectedChat === null ? (
-                        <div className="absolute inset-0 flex flex-1 items-center justify-center bg-card text-sm text-muted-foreground">
-                            {t('chatHub.pickThread')}
+                        <div className="absolute inset-0 flex flex-col bg-background">
+                            <Empty
+                                data-test="chat-pane-empty"
+                                className="min-h-0 flex-1"
+                            >
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        <MessageSquare />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        {t('chatHub.pickThread')}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                            {/* Same composer frame as an open thread, disabled until one is picked. */}
+                            <DrawerFooter
+                                data-test="chat-composer-placeholder"
+                                className="p-3"
+                            >
+                                <ChatComposer
+                                    disabled
+                                    value=""
+                                    onValueChange={() => undefined}
+                                    onSubmit={() => undefined}
+                                    canSubmit={false}
+                                    placeholder={t(
+                                        'collections.itemChat.placeholder',
+                                    )}
+                                    label={t(
+                                        'collections.itemChat.placeholder',
+                                    )}
+                                    sendLabel={t('collections.itemChat.send')}
+                                    actions={
+                                        <>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                disabled
+                                                aria-label={t(
+                                                    'collections.itemChat.emoji',
+                                                )}
+                                            >
+                                                <Smile className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                disabled
+                                                aria-label={t(
+                                                    'collections.itemChat.attach',
+                                                )}
+                                            >
+                                                <Paperclip className="size-4" />
+                                            </Button>
+                                        </>
+                                    }
+                                />
+                            </DrawerFooter>
                         </div>
                     ) : null}
-                </section>
-            </div>
+                </ChatLayout>
+            </PageLayout>
         </AppLayout>
     );
 }

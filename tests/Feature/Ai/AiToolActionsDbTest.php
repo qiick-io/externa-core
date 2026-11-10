@@ -27,7 +27,7 @@ use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Cache;
@@ -562,7 +562,7 @@ test('ai tool actions mutate and read expected database state', function () {
     $this->assertSoftDeleted('collections_items', ['id' => $rollbackItemId]);
 
     $collection = Collection::query()->with('fields')->findOrFail($collectionId);
-    $storedData = app(CollectionItemValuesAssembler::class)->assemble(
+    $storedData = app(CollectionItemValuesAssemblerService::class)->assemble(
         CollectionItem::query()->findOrFail($readableItemId),
     );
     expect($collection->fields->pluck('id'))->toContain($titleFieldId, $statusFieldResult['field']['id'])

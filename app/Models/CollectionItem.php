@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Search\MeilisearchSyncDispatcher;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Search\MeilisearchSyncDispatcherService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use App\Support\Collections\CollectionItemDataAccessor;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionItemFactory;
@@ -111,7 +111,7 @@ class CollectionItem extends Model
             $item->user_updated_id = (int) $userId;
         });
 
-        // Create/update webhooks fire from CollectionItemValuesWriter (avoids empty create[])
+        // Create/update webhooks fire from CollectionItemValuesWriterService (avoids empty create[])
         static::saved(function (CollectionItem $item): void {
             if (config('ai.embeddings.enabled')) {
                 GenerateCollectionItemEmbeddingJob::dispatch($item->id);
@@ -119,21 +119,21 @@ class CollectionItem extends Model
         });
 
         static::deleted(function (CollectionItem $item): void {
-            app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
-            app(MeilisearchSyncDispatcher::class)->dispatchDelete($item);
-            app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
+            app(OutboundWebhookDispatcherService::class)->dispatchItem('item.deleted', $item);
+            app(MeilisearchSyncDispatcherService::class)->dispatchDelete($item);
+            app(PublicApiResponseCacheService::class)->bump((int) $item->collection_id);
         });
 
         static::restored(function (CollectionItem $item): void {
-            app(OutboundWebhookDispatcher::class)->dispatchItem('item.restored', $item);
-            app(MeilisearchSyncDispatcher::class)->dispatchUpsert($item);
-            app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
+            app(OutboundWebhookDispatcherService::class)->dispatchItem('item.restored', $item);
+            app(MeilisearchSyncDispatcherService::class)->dispatchUpsert($item);
+            app(PublicApiResponseCacheService::class)->bump((int) $item->collection_id);
         });
 
         static::forceDeleted(function (CollectionItem $item): void {
-            app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
-            app(MeilisearchSyncDispatcher::class)->dispatchDelete($item);
-            app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
+            app(OutboundWebhookDispatcherService::class)->dispatchItem('item.deleted', $item);
+            app(MeilisearchSyncDispatcherService::class)->dispatchDelete($item);
+            app(PublicApiResponseCacheService::class)->bump((int) $item->collection_id);
         });
     }
 

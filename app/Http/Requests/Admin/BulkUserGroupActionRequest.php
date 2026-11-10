@@ -57,7 +57,7 @@ class BulkUserGroupActionRequest extends FormRequest
 
             if (
                 ! $superAdminGuard->canManageSuperAdmins($this->user())
-                && $superAdminGuard->includesSuperAdminGroup((array) $this->input('ids', []))
+                && $superAdminGuard->hasSuperAdminGroup((array) $this->input('ids', []))
             ) {
                 $validator->errors()->add('ids', __('Only a super-admin can change groups that grant super-admin.'));
             }

@@ -6,7 +6,7 @@ use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -26,9 +26,9 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        $project = app(ProjectSettings::class);
+        $project = app(ProjectSettingsService::class);
 
-        if (! Features::enabled(Features::registration()) || ! $project->registrationEnabled()) {
+        if (! Features::enabled(Features::registration()) || ! $project->isRegistrationEnabled()) {
             throw ValidationException::withMessages([
                 'email' => __('Registration is currently disabled.'),
             ]);
@@ -62,7 +62,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $input['password'],
         ]);
 
-        if (! $project->emailVerificationRequired()) {
+        if (! $project->isEmailVerificationRequired()) {
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 

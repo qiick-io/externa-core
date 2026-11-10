@@ -47,9 +47,11 @@ export enum PermissionEnum {
     CanShowJobs = 'can-show-jobs',
     CanManageJobs = 'can-manage-jobs',
     CanUseAi = 'can-use-ai',
+    CanManageAiPrompts = 'ai.prompts.manage',
     CanShowChat = 'can-show-chat',
     CanCreateDirectChats = 'can-create-direct-chats',
     CanManageProjectSettings = 'can-manage-project-settings',
+    DeployTrigger = 'deploy.trigger',
     CanShowApiKeys = 'can-show-api-keys',
     CanManageApiKeys = 'can-manage-api-keys',
 }

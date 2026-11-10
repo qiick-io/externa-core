@@ -3,14 +3,17 @@
 namespace App\Notifications;
 
 use App\Notifications\Concerns\BroadcastsWithDatabaseTrait;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
  * In-app notice when someone posts in a chat you follow or are mentioned in.
  */
-class ItemChatNotification extends Notification
+class ItemChatNotification extends Notification implements ShouldQueue
 {
     use BroadcastsWithDatabaseTrait;
+    use Queueable;
 
     public function __construct(
         public readonly string $chatId,

@@ -7,9 +7,9 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\File;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Files\FileWhereUsedScanner;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Files\FileWhereUsedScannerService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Cache;
 
@@ -47,20 +47,20 @@ test('file where-used scanner finds image field references', function () {
     $this->actingAs($user);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['cover' => $file->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['cover' => $file->id], true),
     );
 
-    $refs = app(FileWhereUsedScanner::class)->findReferences((int) $file->id);
+    $refs = app(FileWhereUsedScannerService::class)->findReferences((int) $file->id);
 
     expect($refs)->toHaveCount(1)
         ->and($refs[0]['collection_id'])->toBe($collection->id)
         ->and($refs[0]['item_id'])->toBe($item->id)
         ->and($refs[0]['field'])->toBe('cover');
 
-    expect(app(FileWhereUsedScanner::class)->findReferences((int) $other->id))->toBe([]);
+    expect(app(FileWhereUsedScannerService::class)->findReferences((int) $other->id))->toBe([]);
 });
 
 test('file where-used endpoint returns references for authorized users', function () {
@@ -85,10 +85,10 @@ test('file where-used endpoint returns references for authorized users', functio
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['cover' => $file->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['cover' => $file->id], true),
     );
 
     $this->getJson(route('files.where-used', $file))
@@ -116,12 +116,12 @@ test('file where-used ignores soft-deleted items', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['cover' => $file->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['cover' => $file->id], true),
     );
     $item->delete();
 
-    expect(app(FileWhereUsedScanner::class)->findReferences((int) $file->id))->toBe([]);
+    expect(app(FileWhereUsedScannerService::class)->findReferences((int) $file->id))->toBe([]);
 });

@@ -4,10 +4,21 @@ namespace App\Support\Files;
 
 /**
  * Default and allowed disks for the file manager (FILES_DISK).
+ *
+ * Built-in names: `assets` / `private_assets` (local), `s3`, `gcs`, `azure`.
+ * Remote disks leave privacy mapping alone — object ACLs / signed URLs are
+ * configured on the Flysystem driver, not by swapping disk names.
  */
 final class FilesDisk
 {
     public const PRIVATE_ASSETS = 'private_assets';
+
+    /**
+     * First-class remote file-manager disks (in addition to local assets).
+     *
+     * @var list<string>
+     */
+    public const REMOTE = ['s3', 'gcs', 'azure'];
 
     public static function default(): string
     {
@@ -31,7 +42,7 @@ final class FilesDisk
     }
 
     /**
-     * Map assets ↔ private_assets from effective privacy; leave s3/custom unchanged.
+     * Map assets ↔ private_assets from effective privacy; leave remote/custom unchanged.
      */
     public static function forEffectivePrivacy(bool $private, ?string $disk = null): string
     {
@@ -52,7 +63,7 @@ final class FilesDisk
         return array_values(array_unique(array_filter([
             'assets',
             self::PRIVATE_ASSETS,
-            's3',
+            ...self::REMOTE,
             self::default(),
         ], static fn (string $disk): bool => $disk !== '')));
     }

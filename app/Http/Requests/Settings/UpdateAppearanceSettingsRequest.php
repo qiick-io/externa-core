@@ -4,8 +4,10 @@ namespace App\Http\Requests\Settings;
 
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Enums\ThemePresetEnum;
 use App\Models\File;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -24,7 +26,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
         $user = $this->user();
 
         return $user !== null
-            && app(EffectivePermissionResolver::class)
+            && app(EffectivePermissionResolverService::class)
                 ->hasPermission($user, PermissionEnum::CanManageProjectSettings->value);
     }
 
@@ -34,6 +36,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'theme_preset' => ['required', 'string', Rule::in(ThemePresetEnum::values())],
             'project_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'project_color_dark' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'project_logo_id' => ['nullable', 'integer', 'exists:files,id'],
@@ -71,6 +74,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
 
     /**
      * @return array{
+     *     theme_preset: string,
      *     project_color: string|null,
      *     project_color_dark: string|null,
      *     project_logo: int|null,
@@ -84,6 +88,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
         $validated = $this->validated();
 
         return [
+            'theme_preset' => $validated['theme_preset'],
             'project_color' => $validated['project_color'] ?? null,
             'project_color_dark' => $validated['project_color_dark'] ?? null,
             'project_logo' => isset($validated['project_logo_id']) ? (int) $validated['project_logo_id'] : null,
@@ -111,8 +116,29 @@ class UpdateAppearanceSettingsRequest extends FormRequest
             }
         }
 
+        if (! $this->filled('theme_preset')) {
+            $merge['theme_preset'] = $this->storedThemePreset();
+        }
+
         if ($merge !== []) {
             $this->merge($merge);
         }
+    }
+
+    /**
+     * Preset to keep when the request omits `theme_preset`: the stored one,
+     * or the default only when nothing valid has been saved yet.
+     */
+    private function storedThemePreset(): string
+    {
+        $storedThemePreset = app(SettingsRepositoryService::class)->get(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'appearance',
+            'theme_preset',
+        );
+
+        return ThemePresetEnum::tryFromNullable(
+            is_string($storedThemePreset) ? $storedThemePreset : null,
+        )->value;
     }
 }

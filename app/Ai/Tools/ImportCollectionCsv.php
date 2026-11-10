@@ -10,6 +10,9 @@ use App\Jobs\ImportCollectionJob;
 use App\Models\AiChatAttachment;
 use App\Models\Collection;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Approvals\Approval;
+use Laravel\Ai\Concerns\InteractsWithApprovals;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -19,15 +22,24 @@ use Throwable;
 /**
  * AI tool that imports collection records from an uploaded CSV attachment.
  */
-class ImportCollectionCsv implements Tool
+class ImportCollectionCsv implements Approvable, Tool
 {
     use ChecksAiPermissionsTrait;
     use ImportsCollectionRecordsTrait;
+    use InteractsWithApprovals;
     use LogsAiToolUseTrait;
 
     private const MAX_ROWS = 500;
 
     private const ASYNC_THRESHOLD = 200;
+
+    /**
+     * Imports write collection data, so every call waits for the user's approval.
+     */
+    protected function needsApproval(Request $request): Approval|bool
+    {
+        return Approval::required('ImportCollectionCsv writes collection records.');
+    }
 
     /**
      * Describe what this tool does for the model.

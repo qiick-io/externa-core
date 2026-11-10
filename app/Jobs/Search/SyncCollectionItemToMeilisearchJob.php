@@ -3,8 +3,8 @@
 namespace App\Jobs\Search;
 
 use App\Models\CollectionItem;
-use App\Services\Search\MeilisearchClient;
-use App\Services\Search\MeilisearchDocumentBuilder;
+use App\Services\Search\MeilisearchClientService;
+use App\Services\Search\MeilisearchDocumentBuilderService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -34,10 +34,10 @@ class SyncCollectionItemToMeilisearchJob implements ShouldQueue
     }
 
     public function handle(
-        MeilisearchClient $client,
-        MeilisearchDocumentBuilder $builder,
+        MeilisearchClientService $client,
+        MeilisearchDocumentBuilderService $builder,
     ): void {
-        if (! $client->enabled()) {
+        if (! $client->isEnabled()) {
             return;
         }
 

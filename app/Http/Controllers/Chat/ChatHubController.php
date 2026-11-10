@@ -9,8 +9,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Collections\CollectionItemOptionsService;
@@ -28,8 +28,8 @@ class ChatHubController extends Controller
     public function __construct(
         private ChatService $chats,
         private ChatUnreadService $unread,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private EffectivePermissionResolver $permissionResolver,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private EffectivePermissionResolverService $permissionResolver,
         private CollectionItemOptionsService $itemOptions,
     ) {}
 
@@ -56,10 +56,23 @@ class ChatHubController extends Controller
             'attachments',
         ]);
 
+        $page = max((int) $request->query('page', 1), 1);
+
         if ($tab === 'private') {
-            $chats = $this->chats->directChatsFor($user, $archived)
-                ->with(['messages' => $lastMessage])
-                ->get();
+            $query = $this->chats->directChatsFor($user, $archived)
+                ->with([
+                    'messages' => $lastMessage,
+                    'participants.user:id,first_name,last_name,email',
+                    'participants.group:id,name',
+                ]);
+
+            if ($q !== '') {
+                $query = $this->chats->applyHubSearch($query, $q, $user);
+            }
+
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+            $slice = $paginator->getCollection()->values();
+            $total = $paginator->total();
         } else {
             $query = $this->chats->itemChatsFor($request, $user)
                 ->with(['messages' => $lastMessage]);
@@ -68,16 +81,17 @@ class ChatHubController extends Controller
                 $query->where('collection_id', (int) $validated['collection_id']);
             }
 
-            $chats = $this->chats->filterReadableItemChats($request, $query->get());
+            if ($q !== '') {
+                $query = $this->chats->applyHubSearch($query, $q, $user);
+            }
+
+            // Item-level ACL still needs PHP filter. Over-fetch then page in memory for this set.
+            // Collection scope + search already ran in SQL (readableCollectionScope / applyHubSearch).
+            $candidates = $this->chats->filterReadableItemChats($request, $query->get());
+            $total = $candidates->count();
+            $slice = $candidates->slice(($page - 1) * $perPage, $perPage)->values();
         }
 
-        if ($q !== '') {
-            $chats = $chats->filter(fn (Chat $chat): bool => $this->chats->matchesQuery($chat, $q, $user))->values();
-        }
-
-        $page = max((int) $request->query('page', 1), 1);
-        $total = $chats->count();
-        $slice = $chats->slice(($page - 1) * $perPage, $perPage)->values();
         $unreads = $this->unread->countsFor($slice, $user);
         $totals = $this->unread->shared($user);
 
@@ -258,7 +272,7 @@ class ChatHubController extends Controller
 
         return response()->json([
             'collections' => $rows
-                ->filter(fn (Collection $collection): bool => $this->chats->userCanReadCollection($user, $collection))
+                ->filter(fn (Collection $collection): bool => $this->chats->canUserReadCollection($user, $collection))
                 ->take(20)
                 ->map(fn (Collection $collection): array => [
                     'id' => (int) $collection->id,
@@ -280,7 +294,7 @@ class ChatHubController extends Controller
         ]);
 
         $collection = Collection::query()->findOrFail($validated['collection_id']);
-        abort_unless($this->chats->userCanReadCollection($user, $collection), 404);
+        abort_unless($this->chats->canUserReadCollection($user, $collection), 404);
 
         $page = $this->itemOptions->paginateForCollection(
             $collection,
@@ -400,7 +414,7 @@ class ChatHubController extends Controller
         $collections = Collection::query()->orderBy('name')->get(['id', 'name']);
 
         foreach ($collections as $collection) {
-            if (! $this->chats->userCanReadCollection($user, $collection)) {
+            if (! $this->chats->canUserReadCollection($user, $collection)) {
                 continue;
             }
 

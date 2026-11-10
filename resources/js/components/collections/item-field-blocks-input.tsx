@@ -9,12 +9,16 @@ import {
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { FieldNoteSlot } from '@/components/collections/item-field-choice-inputs';
 import { LocalizedField } from '@/components/collections/localized-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     getFieldDisplayName,
     getFieldNote,
@@ -27,10 +31,9 @@ import type {
 } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
+import { moveItem, newListItemId } from '@/lib/list-items';
 import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
+import type { FieldDef } from '@/types';
 
 const SUMMARY_TEXT_TYPES = new Set([
     'string',
@@ -38,14 +41,6 @@ const SUMMARY_TEXT_TYPES = new Set([
     'wysiwyg',
     'markdown',
 ]);
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
 
 type DefaultValue =
     | string
@@ -78,40 +73,6 @@ type BlocksFieldBlock = {
     data: Record<string, unknown>;
 };
 
-function newBlockId(): string {
-    if (
-        typeof crypto !== 'undefined' &&
-        typeof crypto.randomUUID === 'function'
-    ) {
-        try {
-            return crypto.randomUUID();
-        } catch {
-            // some embedded webviews expose the method but throw
-        }
-    }
-
-    // ponytail: UUID v4 fallback when crypto.randomUUID is missing (e.g. some webviews)
-    const bytes = new Uint8Array(16);
-
-    if (
-        typeof crypto !== 'undefined' &&
-        typeof crypto.getRandomValues === 'function'
-    ) {
-        crypto.getRandomValues(bytes);
-    } else {
-        for (let i = 0; i < 16; i++) {
-            bytes[i] = Math.floor(Math.random() * 256);
-        }
-    }
-
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-    const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
-
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
 function parseBlocksValue(defaultValue: unknown): BlocksFieldBlock[] {
     if (!Array.isArray(defaultValue)) {
         return [];
@@ -128,7 +89,7 @@ function parseBlocksValue(defaultValue: unknown): BlocksFieldBlock[] {
             id:
                 typeof entry.id === 'string' && entry.id
                     ? entry.id
-                    : newBlockId(),
+                    : newListItemId(),
             type: typeof entry.type === 'string' ? entry.type : '',
             data:
                 entry.data &&
@@ -174,19 +135,6 @@ function blockSummary(
     return text.length > 80 ? `${text.slice(0, 77)}…` : text;
 }
 
-function moveItem<T>(items: T[], from: number, to: number): T[] {
-    const next = items.slice();
-    const [item] = next.splice(from, 1);
-
-    if (item === undefined) {
-        return items;
-    }
-
-    next.splice(to, 0, item);
-
-    return next;
-}
-
 export function BlocksFieldInput({
     collectionId,
     field,
@@ -212,6 +160,7 @@ export function BlocksFieldInput({
     /** Root field max nesting; falls back to settings / default 3. */
     maxBlocksDepth?: number;
 }) {
+    const { t } = useTranslation();
     const blockTypes = parseBlocksFieldSettings(field.settings).blockTypes;
     const maxBlocksDepth =
         maxBlocksDepthProp ?? effectiveMaxBlocksDepth(field.settings);
@@ -254,7 +203,7 @@ export function BlocksFieldInput({
             return;
         }
 
-        const id = newBlockId();
+        const id = newListItemId();
         setBlocks((current) => [...current, { id, type: nextType, data: {} }]);
         setSiblingValues((current) => ({ ...current, [id]: {} }));
     };
@@ -315,7 +264,7 @@ export function BlocksFieldInput({
             const original = current[index];
             const duplicate = {
                 ...original,
-                id: newBlockId(),
+                id: newListItemId(),
                 data: JSON.parse(JSON.stringify(original.data)) as Record<
                     string,
                     unknown
@@ -395,7 +344,9 @@ export function BlocksFieldInput({
     if (nestingBlocked) {
         return (
             <p className="text-sm text-muted-foreground">
-                Blocks nesting exceeds the maximum depth ({maxBlocksDepth}).
+                {t('collections.items.blocks.nestingExceeded', {
+                    max: maxBlocksDepth,
+                })}
             </p>
         );
     }
@@ -408,7 +359,9 @@ export function BlocksFieldInput({
             )}
         >
             {blocks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No blocks yet.</p>
+                <p className="text-sm text-muted-foreground">
+                    {t('collections.items.blocks.empty')}
+                </p>
             ) : null}
 
             <div ref={listRef} className="space-y-3">
@@ -440,8 +393,12 @@ export function BlocksFieldInput({
                                     aria-expanded={!collapsed}
                                     aria-label={
                                         collapsed
-                                            ? 'Expand block'
-                                            : 'Collapse block'
+                                            ? t(
+                                                  'collections.items.blocks.expand',
+                                              )
+                                            : t(
+                                                  'collections.items.blocks.collapse',
+                                              )
                                     }
                                     onClick={() => toggleCollapsed(block.id)}
                                 >
@@ -455,7 +412,7 @@ export function BlocksFieldInput({
                                     <button
                                         type="button"
                                         className="drag-handle text-muted-foreground"
-                                        aria-label="Drag to reorder"
+                                        aria-label={t('a11y.dragToReorder')}
                                     >
                                         <GripVertical className="size-4" />
                                     </button>
@@ -468,8 +425,8 @@ export function BlocksFieldInput({
                                         {summary}
                                     </span>
                                 ) : null}
-                                <select
-                                    className={cn(inputLike, 'max-w-xs')}
+                                <NativeSelect
+                                    className="max-w-xs"
                                     value={block.type}
                                     disabled={readonly}
                                     onChange={(event) =>
@@ -487,56 +444,62 @@ export function BlocksFieldInput({
                                             {entry.label}
                                         </option>
                                     ))}
-                                </select>
+                                </NativeSelect>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
+                                        <ButtonGroup>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={index === 0}
+                                                aria-label={t(
+                                                    'a11y.moveBlockUp',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, -1)
+                                                }
+                                            >
+                                                <ArrowUp className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={
+                                                    index === blocks.length - 1
+                                                }
+                                                aria-label={t(
+                                                    'a11y.moveBlockDown',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, 1)
+                                                }
+                                            >
+                                                <ArrowDown className="size-4" />
+                                            </Button>
+                                        </ButtonGroup>
                                         <Button
                                             type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={index === 0}
-                                            aria-label="Move block up"
-                                            onClick={() =>
-                                                moveBlock(block.id, -1)
-                                            }
-                                        >
-                                            <ArrowUp className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={
-                                                index === blocks.length - 1
-                                            }
-                                            aria-label="Move block down"
-                                            onClick={() =>
-                                                moveBlock(block.id, 1)
-                                            }
-                                        >
-                                            <ArrowDown className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 duplicateBlock(block.id)
                                             }
                                         >
                                             <Copy className="mr-1 size-4" />{' '}
-                                            Duplicate
+                                            {t(
+                                                'collections.items.blocks.duplicate',
+                                            )}
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 removeBlock(block.id)
                                             }
                                         >
                                             <Trash2 className="mr-1 size-4" />{' '}
-                                            Delete
+                                            {t('common.delete')}
                                         </Button>
                                     </div>
                                 ) : null}
@@ -555,7 +518,7 @@ export function BlocksFieldInput({
 
                             <div
                                 className={cn(
-                                    'mt-4 space-y-5',
+                                    'mt-4 space-y-6',
                                     collapsed && 'hidden',
                                 )}
                             >
@@ -598,10 +561,7 @@ export function BlocksFieldInput({
                                                     <>
                                                         {nestedLabel}
                                                         {flags.required ? (
-                                                            <span className="text-destructive">
-                                                                {' '}
-                                                                *
-                                                            </span>
+                                                            <RequiredMarker />
                                                         ) : null}
                                                     </>
                                                 }
@@ -742,17 +702,14 @@ export function BlocksFieldInput({
                                                 );
                                             }}
                                         >
-                                            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                                            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                                                 <div className="min-w-0 flex-1">
                                                     <Label
                                                         htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
                                                     >
                                                         {nestedLabel}
                                                         {flags.required ? (
-                                                            <span className="text-destructive">
-                                                                {' '}
-                                                                *
-                                                            </span>
+                                                            <RequiredMarker />
                                                         ) : null}
                                                     </Label>
                                                 </div>
@@ -790,11 +747,12 @@ export function BlocksFieldInput({
                         <Button
                             key={blockType.key}
                             type="button"
-                            size="sm"
                             variant="outline"
                             onClick={() => addBlock(blockType.key)}
                         >
-                            Add {blockType.label}
+                            {t('collections.items.blocks.add', {
+                                label: blockType.label,
+                            })}
                         </Button>
                     ))}
                 </div>

@@ -1,6 +1,13 @@
 import { Check, X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
+import { formatDateTime } from '@/lib/format';
+import i18n from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -38,7 +45,7 @@ function formatDate(value: unknown): string | null {
         return value;
     }
 
-    return date.toLocaleString();
+    return formatDateTime(date);
 }
 
 function empty(): string {
@@ -55,7 +62,7 @@ export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
 
     if (path === 'created_at') {
         return (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
                 {formatDate(row.created_at) ?? empty()}
             </span>
         );
@@ -63,7 +70,7 @@ export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
 
     if (path === 'updated_at') {
         return (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
                 {formatDate(row.updated_at) ?? empty()}
             </span>
         );
@@ -145,9 +152,17 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
     switch (type) {
         case 'boolean':
             return value === true || value === 1 || value === '1' ? (
-                <Check className="size-4 text-foreground" aria-label="Yes" />
+                <Check
+                    className="size-4 text-foreground"
+                    role="img"
+                    aria-label={i18n.t('a11y.yes')}
+                />
             ) : (
-                <X className="size-4 text-muted-foreground" aria-label="No" />
+                <X
+                    className="size-4 text-muted-foreground"
+                    role="img"
+                    aria-label={i18n.t('a11y.no')}
+                />
             );
         case 'date':
             return (
@@ -162,10 +177,19 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                 : [String(value)];
             const text = tags.join(', ');
 
+            if (!text) {
+                return <span className="text-sm">{empty()}</span>;
+            }
+
             return (
-                <span className="max-w-[14rem] truncate text-sm" title={text}>
-                    {text || empty()}
-                </span>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="max-w-[14rem] truncate text-sm">
+                            {text}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">{text}</TooltipContent>
+                </Tooltip>
             );
         }
         case 'map': {
@@ -185,17 +209,25 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
 
                     return (
                         <span className="text-sm">
-                            {count === 1 ? '1 point' : `${count} points`}
+                            {i18n.t('collections.items.cell.points', { count })}
                         </span>
                     );
                 }
 
                 if (record.type === 'Point') {
-                    return <span className="text-sm">Point</span>;
+                    return (
+                        <span className="text-sm">
+                            {i18n.t('collections.items.cell.point')}
+                        </span>
+                    );
                 }
 
                 if ('lat' in record && 'lng' in record) {
-                    return <span className="text-sm">Point</span>;
+                    return (
+                        <span className="text-sm">
+                            {i18n.t('collections.items.cell.point')}
+                        </span>
+                    );
                 }
             }
 
@@ -203,12 +235,16 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
         }
         case 'hash':
             return (
-                <span
-                    className="max-w-[10rem] truncate font-mono text-xs"
-                    title={String(value)}
-                >
-                    {String(value)}
-                </span>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="max-w-[10rem] truncate font-mono text-xs">
+                            {String(value)}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="font-mono">
+                        {String(value)}
+                    </TooltipContent>
+                </Tooltip>
             );
         case 'color':
             return (

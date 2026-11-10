@@ -8,6 +8,7 @@
  */
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Settings\AiToolSettingsController;
 use App\Http\Controllers\Settings\AppearanceSettingsController;
 use App\Http\Controllers\Settings\AppearanceSidebarSettingsController;
 use App\Http\Controllers\Settings\LocaleController;
@@ -113,6 +114,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware($canManageProject)
         ->name('project.integrations.telegram-notifier-test');
 
+    Route::post('settings/project/integrations/deploy', [ProjectIntegrationsSettingsController::class, 'triggerDeploy'])
+        ->middleware('permission:'.PermissionEnum::DeployTrigger->value)
+        ->name('project.integrations.deploy');
+
     // Deprecated aliases (one minor): keep old test URLs working.
     Route::post('settings/project/webhook-test', [ProjectIntegrationsSettingsController::class, 'sendTestWebhook'])
         ->middleware($canManageProject)
@@ -161,4 +166,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('settings/performance/flush-dashboard-metrics', [PerformanceSettingsController::class, 'flushDashboardMetrics'])
         ->middleware($canManageProject)
         ->name('performance.flush-dashboard-metrics');
+
+    Route::get('settings/ai-tools', [AiToolSettingsController::class, 'edit'])
+        ->middleware($canManageProject)
+        ->name('ai-tools.edit');
+
+    Route::put('settings/ai-tools', [AiToolSettingsController::class, 'update'])
+        ->middleware($canManageProject)
+        ->name('ai-tools.update');
 });

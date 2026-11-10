@@ -11,7 +11,7 @@ final class StringLimits
 {
     public const SEARCH = 255;
 
-    /** Chat hub thread search stays tighter than generic admin search. */
+    /** Chat hub and assistant conversation search stay tighter than generic admin search. */
     public const SEARCH_CHAT_HUB = 120;
 
     public const NAME = 255;
@@ -43,4 +43,10 @@ final class StringLimits
     public const FILTER_VALUE = 1024;
 
     public const FILTER_MAX_KEYS = 32;
+
+    /**
+     * Max relation hops in a dotted Public API filter path (`author.name` = depth 1).
+     * Depth 0 = own-collection field; depth above this cap is rejected with 422.
+     */
+    public const FILTER_MAX_RELATION_DEPTH = 1;
 }

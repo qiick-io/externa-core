@@ -1,17 +1,22 @@
 import { Form, Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useMemo } from 'react';
+import type {} from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectFilesSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectFilesSettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { TransformPresetsField } from '@/components/settings/transform-presets-field';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editFiles } from '@/routes/project/files';
@@ -27,6 +32,9 @@ type FilesProjectSettings = Pick<
     | 'chat_max_upload_bytes'
     | 'allowed_transformations'
     | 'preset_transformations'
+    | 'upload_allowed_mimes'
+    | 'upload_allowed_extensions'
+    | 'upload_allow_svg'
 >;
 
 type Props = {
@@ -34,6 +42,7 @@ type Props = {
     transformationOptions: string[];
     transformFits: TransformPreset['fit'][];
     transformFormats: TransformPreset['format'][];
+    defaultUploadMimes: string[];
 };
 
 function buildFormState(project: FilesProjectSettings) {
@@ -42,7 +51,21 @@ function buildFormState(project: FilesProjectSettings) {
         chat_max_upload_bytes: project.chat_max_upload_bytes ?? null,
         allowed_transformations: project.allowed_transformations ?? [],
         preset_transformations: project.preset_transformations ?? [],
+        upload_allowed_mimes_text: (project.upload_allowed_mimes ?? []).join(
+            ', ',
+        ),
+        upload_allowed_extensions_text: (
+            project.upload_allowed_extensions ?? []
+        ).join(', '),
+        upload_allow_svg: project.upload_allow_svg ?? false,
     };
+}
+
+function splitList(value: string): string[] {
+    return value
+        .split(/[\s,]+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
 }
 
 function presetTransformErrors(
@@ -68,25 +91,12 @@ export default function ProjectFilesSettingsPage({
     transformationOptions,
     transformFits,
     transformFormats,
+    defaultUploadMimes,
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(() => buildFormState(project), [project]);
-    const [form, setFormState] = useState(initialForm);
-    const [isDirty, setIsDirty] = useState(false);
-
-    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
-        setIsDirty(true);
-        setFormState(action);
-    };
-
-    useRegisterUnsavedChanges({
-        scope: 'page',
-        isDirty,
-        onDiscard: () => {
-            setFormState(initialForm);
-            setIsDirty(false);
-        },
-    });
+    const { form, setForm, isDirty, markSaved } =
+        useSettingsFormState(initialForm);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -105,8 +115,9 @@ export default function ProjectFilesSettingsPage({
                 <Form
                     {...ProjectFilesSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
-                    onSuccess={() => setIsDirty(false)}
+                    className="space-y-12"
+                    onSuccess={markSaved}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -124,6 +135,27 @@ export default function ProjectFilesSettingsPage({
                                     form.preset_transformations,
                                 )}
                             />
+                            <input
+                                type="hidden"
+                                name="upload_allowed_mimes"
+                                value={JSON.stringify(
+                                    splitList(form.upload_allowed_mimes_text),
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="upload_allowed_extensions"
+                                value={JSON.stringify(
+                                    splitList(
+                                        form.upload_allowed_extensions_text,
+                                    ),
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="upload_allow_svg"
+                                value={form.upload_allow_svg ? '1' : '0'}
+                            />
 
                             <div className="space-y-6">
                                 <Heading
@@ -136,13 +168,19 @@ export default function ProjectFilesSettingsPage({
                                     )}
                                 />
 
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="files_max_upload_mb">
+                                <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                                    <Field
+                                        data-invalid={
+                                            errors.files_max_upload_bytes
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="files_max_upload_mb">
                                             {t(
                                                 'settings.project.filesMaxUploadMb',
                                             )}
-                                        </Label>
+                                        </FieldLabel>
                                         <Input
                                             id="files_max_upload_mb"
                                             type="number"
@@ -175,6 +213,16 @@ export default function ProjectFilesSettingsPage({
                                                               1024,
                                                 }))
                                             }
+                                            aria-invalid={
+                                                errors.files_max_upload_bytes
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.files_max_upload_bytes
+                                                    ? 'files-max-upload-bytes-error'
+                                                    : undefined
+                                            }
                                         />
                                         <input
                                             type="hidden"
@@ -184,18 +232,22 @@ export default function ProjectFilesSettingsPage({
                                                 ''
                                             }
                                         />
-                                        <InputError
-                                            message={
-                                                errors.files_max_upload_bytes
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="chat_max_upload_mb">
+                                        <FieldError id="files-max-upload-bytes-error">
+                                            {errors.files_max_upload_bytes}
+                                        </FieldError>
+                                    </Field>
+                                    <Field
+                                        data-invalid={
+                                            errors.chat_max_upload_bytes
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="chat_max_upload_mb">
                                             {t(
                                                 'settings.project.chatMaxUploadMb',
                                             )}
-                                        </Label>
+                                        </FieldLabel>
                                         <Input
                                             id="chat_max_upload_mb"
                                             type="number"
@@ -228,6 +280,16 @@ export default function ProjectFilesSettingsPage({
                                                               1024,
                                                 }))
                                             }
+                                            aria-invalid={
+                                                errors.chat_max_upload_bytes
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.chat_max_upload_bytes
+                                                    ? 'chat-max-upload-bytes-error'
+                                                    : undefined
+                                            }
                                         />
                                         <input
                                             type="hidden"
@@ -236,15 +298,178 @@ export default function ProjectFilesSettingsPage({
                                                 form.chat_max_upload_bytes ?? ''
                                             }
                                         />
-                                        <InputError
-                                            message={
-                                                errors.chat_max_upload_bytes
-                                            }
-                                        />
-                                    </div>
-                                </div>
+                                        <FieldError id="chat-max-upload-bytes-error">
+                                            {errors.chat_max_upload_bytes}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                                 <p className="text-sm text-muted-foreground">
                                     {t('settings.project.uploadLimitsHint')}
+                                </p>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.uploadPolicyTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.uploadPolicyDescription',
+                                    )}
+                                />
+
+                                <FieldGroup className="gap-6">
+                                    <Field
+                                        data-invalid={
+                                            errors.upload_allowed_extensions
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="upload_allowed_extensions">
+                                            {t(
+                                                'settings.project.uploadAllowedExtensions',
+                                            )}
+                                        </FieldLabel>
+                                        <Input
+                                            id="upload_allowed_extensions"
+                                            value={
+                                                form.upload_allowed_extensions_text
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    upload_allowed_extensions_text:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder="png, jpg, pdf"
+                                            aria-invalid={
+                                                errors.upload_allowed_extensions
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.upload_allowed_extensions
+                                                    ? 'upload-allowed-extensions-error'
+                                                    : 'upload-allowed-extensions-hint'
+                                            }
+                                        />
+                                        <FieldDescription id="upload-allowed-extensions-hint">
+                                            {t(
+                                                'settings.project.uploadAllowedExtensionsHelp',
+                                            )}
+                                        </FieldDescription>
+                                        <FieldError id="upload-allowed-extensions-error">
+                                            {errors.upload_allowed_extensions}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.upload_allowed_mimes
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="upload_allowed_mimes">
+                                            {t(
+                                                'settings.project.uploadAllowedMimes',
+                                            )}
+                                        </FieldLabel>
+                                        <Input
+                                            id="upload_allowed_mimes"
+                                            value={
+                                                form.upload_allowed_mimes_text
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    upload_allowed_mimes_text:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder={defaultUploadMimes
+                                                .slice(0, 4)
+                                                .join(', ')}
+                                            aria-invalid={
+                                                errors.upload_allowed_mimes
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.upload_allowed_mimes
+                                                    ? 'upload-allowed-mimes-error'
+                                                    : 'upload-allowed-mimes-hint'
+                                            }
+                                        />
+                                        <FieldDescription id="upload-allowed-mimes-hint">
+                                            {t(
+                                                'settings.project.uploadAllowedMimesHelp',
+                                            )}
+                                        </FieldDescription>
+                                        <FieldError id="upload-allowed-mimes-error">
+                                            {errors.upload_allowed_mimes}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        orientation="horizontal"
+                                        data-invalid={
+                                            errors.upload_allow_svg
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <Checkbox
+                                            id="upload_allow_svg"
+                                            checked={form.upload_allow_svg}
+                                            onCheckedChange={(checked) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    upload_allow_svg:
+                                                        checked === true,
+                                                }))
+                                            }
+                                            aria-invalid={
+                                                errors.upload_allow_svg
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.upload_allow_svg
+                                                    ? 'upload-allow-svg-error'
+                                                    : 'upload-allow-svg-hint'
+                                            }
+                                        />
+                                        <div className="grid gap-1">
+                                            <FieldLabel
+                                                htmlFor="upload_allow_svg"
+                                                className="font-normal"
+                                            >
+                                                {t(
+                                                    'settings.project.uploadAllowSvg',
+                                                )}
+                                            </FieldLabel>
+                                            <FieldDescription id="upload-allow-svg-hint">
+                                                {t(
+                                                    'settings.project.uploadAllowSvgHelp',
+                                                )}
+                                            </FieldDescription>
+                                            <FieldError id="upload-allow-svg-error">
+                                                {errors.upload_allow_svg}
+                                            </FieldError>
+                                        </div>
+                                    </Field>
+                                </FieldGroup>
+
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'settings.project.uploadPolicyFloorHint',
+                                    )}
                                 </p>
                             </div>
 
@@ -259,60 +484,74 @@ export default function ProjectFilesSettingsPage({
                                     )}
                                 />
 
-                                <div className="space-y-2">
-                                    <Label>
+                                <Field
+                                    data-invalid={
+                                        errors.allowed_transformations
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <FieldLabel>
                                         {t(
                                             'settings.project.allowedTransformations',
                                         )}
-                                    </Label>
-                                    {transformationOptions.map((option) => (
-                                        <div
-                                            key={option}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <Checkbox
-                                                id={`transform-${option}`}
-                                                checked={form.allowed_transformations.includes(
-                                                    option,
-                                                )}
-                                                onCheckedChange={(checked) =>
-                                                    setForm((current) => {
-                                                        const next =
-                                                            checked === true
-                                                                ? [
-                                                                      ...current.allowed_transformations,
-                                                                      option,
-                                                                  ]
-                                                                : current.allowed_transformations.filter(
-                                                                      (entry) =>
-                                                                          entry !==
-                                                                          option,
-                                                                  );
-
-                                                        return {
-                                                            ...current,
-                                                            allowed_transformations:
-                                                                next,
-                                                        };
-                                                    })
-                                                }
-                                            />
-                                            <Label
-                                                htmlFor={`transform-${option}`}
+                                    </FieldLabel>
+                                    <div className="space-y-2">
+                                        {transformationOptions.map((option) => (
+                                            <div
+                                                key={option}
+                                                className="flex items-center gap-3"
                                             >
-                                                {t(
-                                                    `settings.project.transformations.${option}`,
-                                                    {
-                                                        defaultValue: option,
-                                                    },
-                                                )}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                    <InputError
-                                        message={errors.allowed_transformations}
-                                    />
-                                </div>
+                                                <Checkbox
+                                                    id={`transform-${option}`}
+                                                    checked={form.allowed_transformations.includes(
+                                                        option,
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setForm((current) => {
+                                                            const next =
+                                                                checked === true
+                                                                    ? [
+                                                                          ...current.allowed_transformations,
+                                                                          option,
+                                                                      ]
+                                                                    : current.allowed_transformations.filter(
+                                                                          (
+                                                                              entry,
+                                                                          ) =>
+                                                                              entry !==
+                                                                              option,
+                                                                      );
+
+                                                            return {
+                                                                ...current,
+                                                                allowed_transformations:
+                                                                    next,
+                                                            };
+                                                        })
+                                                    }
+                                                />
+                                                <FieldLabel
+                                                    htmlFor={`transform-${option}`}
+                                                    className="font-normal"
+                                                >
+                                                    {t(
+                                                        `settings.project.transformations.${option}`,
+                                                        {
+                                                            defaultValue:
+                                                                option,
+                                                        },
+                                                    )}
+                                                </FieldLabel>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <FieldError id="allowed-transformations-error">
+                                        {errors.allowed_transformations}
+                                    </FieldError>
+                                </Field>
 
                                 <TransformPresetsField
                                     presets={form.preset_transformations}

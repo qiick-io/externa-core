@@ -25,6 +25,24 @@ test('filter query rejects too many keys', function () {
         ->toThrow(ValidationException::class);
 });
 
+test('filter query rejects relational depth above the hard cap', function () {
+    expect(fn () => FilterQueryLimits::assertValid([
+        'author.profile.city' => ['_eq' => 'x'],
+    ]))->toThrow(ValidationException::class);
+
+    expect(FilterQueryLimits::assertValid([
+        'author.name' => ['_eq' => 'Ada'],
+    ]))->toBe([
+        'author.name' => ['_eq' => 'Ada'],
+    ]);
+
+    expect(FilterQueryLimits::relationalKeyCount([
+        'title' => 'x',
+        'author.name' => ['_eq' => 'Ada'],
+        'category.label' => ['_contains' => 'n'],
+    ]))->toBe(2);
+});
+
 test('collection item query service applies filter caps', function () {
     $collection = Collection::query()->create([
         'name' => 'Filter Cap',

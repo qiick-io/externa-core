@@ -13,6 +13,22 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => [
+            'ManageCollections',
+            'ManageCollectionItems',
+            'ImportCollectionCsv',
+            'ImportRemoteJson',
+            'ManageAiSyncSources',
+            'RollbackLastAiTurn',
+            'ManageFiles',
+            'ManageUsers',
+            'ManageRoles',
+            'ManageGroups',
+            'ExtractPdfText',
+        ],
+    ]);
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 });

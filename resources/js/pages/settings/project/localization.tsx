@@ -1,13 +1,17 @@
 import { Form, Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useMemo } from 'react';
+import type {} from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectLocalizationSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectLocalizationSettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { ContentLocalesField } from '@/components/settings/content-locales-field';
 import { SettingsFormActions } from '@/components/settings-form-actions';
-import { Label } from '@/components/ui/label';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import {
     Select,
     SelectContent,
@@ -16,7 +20,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
@@ -60,22 +64,8 @@ export default function ProjectLocalizationSettingsPage({
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(() => buildFormState(project), [project]);
-    const [form, setFormState] = useState(initialForm);
-    const [isDirty, setIsDirty] = useState(false);
-
-    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
-        setIsDirty(true);
-        setFormState(action);
-    };
-
-    useRegisterUnsavedChanges({
-        scope: 'page',
-        isDirty,
-        onDiscard: () => {
-            setFormState(initialForm);
-            setIsDirty(false);
-        },
-    });
+    const { form, setForm, isDirty, markSaved } =
+        useSettingsFormState(initialForm);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -96,133 +86,171 @@ export default function ProjectLocalizationSettingsPage({
                 <Form
                     {...ProjectLocalizationSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
-                    onSuccess={() => setIsDirty(false)}
+                    className="space-y-12"
+                    onSuccess={markSaved}
+                    noValidate
                 >
-                    {({ processing, recentlySuccessful, errors }) => (
-                        <>
-                            <input
-                                type="hidden"
-                                name="default_language"
-                                value={form.default_language}
-                            />
-                            <input
-                                type="hidden"
-                                name="content_locales"
-                                value={JSON.stringify(form.content_locales)}
-                            />
-                            <input
-                                type="hidden"
-                                name="default_content_locale"
-                                value={form.default_content_locale}
-                            />
-                            <input
-                                type="hidden"
-                                name="fallback_content_locales"
-                                value={JSON.stringify(
-                                    form.fallback_content_locales,
-                                )}
-                            />
+                    {({ processing, recentlySuccessful, errors }) => {
+                        const contentLocalesError =
+                            errors.content_locales ??
+                            errors.default_content_locale ??
+                            errors['content_locales.0'];
 
-                            <div className="space-y-6">
-                                <Heading
-                                    variant="small"
-                                    title={t(
-                                        'settings.project.localization.title',
-                                    )}
-                                    description={t(
-                                        'settings.project.localization.description',
+                        return (
+                            <>
+                                <input
+                                    type="hidden"
+                                    name="default_language"
+                                    value={form.default_language}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="content_locales"
+                                    value={JSON.stringify(form.content_locales)}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="default_content_locale"
+                                    value={form.default_content_locale}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="fallback_content_locales"
+                                    value={JSON.stringify(
+                                        form.fallback_content_locales,
                                     )}
                                 />
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="default_language">
-                                        {t('settings.project.defaultLanguage')}
-                                    </Label>
-                                    <Select
-                                        value={form.default_language}
-                                        onValueChange={(value) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                default_language: value,
-                                            }))
+                                <div className="space-y-6">
+                                    <Heading
+                                        variant="small"
+                                        title={t(
+                                            'settings.project.localization.title',
+                                        )}
+                                        description={t(
+                                            'settings.project.localization.description',
+                                        )}
+                                    />
+
+                                    <FieldGroup>
+                                        <Field
+                                            data-invalid={
+                                                errors.default_language
+                                                    ? true
+                                                    : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="default_language">
+                                                {t(
+                                                    'settings.project.defaultLanguage',
+                                                )}
+                                            </FieldLabel>
+                                            <Select
+                                                value={form.default_language}
+                                                onValueChange={(value) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        default_language: value,
+                                                    }))
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    id="default_language"
+                                                    className="w-full"
+                                                    aria-invalid={
+                                                        errors.default_language
+                                                            ? true
+                                                            : undefined
+                                                    }
+                                                    aria-describedby={
+                                                        errors.default_language
+                                                            ? 'default-language-error'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.entries(
+                                                        availableLocales,
+                                                    ).map(([code, label]) => (
+                                                        <SelectItem
+                                                            key={code}
+                                                            value={code}
+                                                        >
+                                                            {label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FieldError id="default-language-error">
+                                                {errors.default_language}
+                                            </FieldError>
+                                        </Field>
+                                    </FieldGroup>
+                                </div>
+
+                                <Separator />
+
+                                <div className="space-y-6">
+                                    <Heading
+                                        variant="small"
+                                        title={t(
+                                            'settings.project.contentLocalesTitle',
+                                        )}
+                                        description={t(
+                                            'settings.project.contentLocalesDescription',
+                                        )}
+                                    />
+
+                                    <Field
+                                        data-invalid={
+                                            contentLocalesError
+                                                ? true
+                                                : undefined
                                         }
                                     >
-                                        <SelectTrigger
-                                            id="default_language"
-                                            className="w-full"
-                                        >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(
-                                                availableLocales,
-                                            ).map(([code, label]) => (
-                                                <SelectItem
-                                                    key={code}
-                                                    value={code}
-                                                >
-                                                    {label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError
-                                        message={errors.default_language}
-                                    />
+                                        <ContentLocalesField
+                                            catalog={contentLocaleCatalog}
+                                            value={form.content_locales}
+                                            defaultLocale={
+                                                form.default_content_locale
+                                            }
+                                            onChange={(
+                                                locales,
+                                                defaultLocale,
+                                            ) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    content_locales: locales,
+                                                    default_content_locale:
+                                                        defaultLocale,
+                                                    fallback_content_locales: [
+                                                        defaultLocale,
+                                                        ...locales.filter(
+                                                            (code) =>
+                                                                code !==
+                                                                defaultLocale,
+                                                        ),
+                                                    ],
+                                                }))
+                                            }
+                                        />
+                                        <FieldError id="content-locales-error">
+                                            {contentLocalesError}
+                                        </FieldError>
+                                    </Field>
                                 </div>
-                            </div>
 
-                            <Separator />
-
-                            <div className="space-y-6">
-                                <Heading
-                                    variant="small"
-                                    title={t(
-                                        'settings.project.contentLocalesTitle',
-                                    )}
-                                    description={t(
-                                        'settings.project.contentLocalesDescription',
-                                    )}
+                                <SettingsFormActions
+                                    processing={processing}
+                                    recentlySuccessful={recentlySuccessful}
+                                    isDirty={isDirty}
+                                    data-test="project-localization-settings-save"
                                 />
-
-                                <ContentLocalesField
-                                    catalog={contentLocaleCatalog}
-                                    value={form.content_locales}
-                                    defaultLocale={form.default_content_locale}
-                                    onChange={(locales, defaultLocale) =>
-                                        setForm((current) => ({
-                                            ...current,
-                                            content_locales: locales,
-                                            default_content_locale:
-                                                defaultLocale,
-                                            fallback_content_locales: [
-                                                defaultLocale,
-                                                ...locales.filter(
-                                                    (code) =>
-                                                        code !== defaultLocale,
-                                                ),
-                                            ],
-                                        }))
-                                    }
-                                />
-                                <InputError
-                                    message={
-                                        errors.content_locales ??
-                                        errors.default_content_locale ??
-                                        errors['content_locales.0']
-                                    }
-                                />
-                            </div>
-
-                            <SettingsFormActions
-                                processing={processing}
-                                recentlySuccessful={recentlySuccessful}
-                                isDirty={isDirty}
-                                data-test="project-localization-settings-save"
-                            />
-                        </>
-                    )}
+                            </>
+                        );
+                    }}
                 </Form>
             </SettingsLayout>
         </AppLayout>

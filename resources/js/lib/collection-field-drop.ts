@@ -8,34 +8,10 @@ export type FieldDropLayoutIntent =
     'below-new-row' | 'beside' | 'into-group' | null;
 
 /**
- * @param oldIndex - Index of the dragged field
- * @param overIndex - Index of the drop target field
- * @param intent - Vertical/horizontal before vs after the target
- * @returns insert target index, or null when order is already correct
- */
-export function targetIndexForFieldDrop(
-    oldIndex: number,
-    overIndex: number,
-    intent: FieldDropIntent,
-): number | null {
-    let insertIndex = intent === 'before' ? overIndex : overIndex + 1;
-
-    if (oldIndex < insertIndex) {
-        insertIndex -= 1;
-    }
-
-    if (oldIndex === insertIndex) {
-        return null;
-    }
-
-    return insertIndex;
-}
-
-/**
  * Half over full/fill (or full over half) is vertical-only: force the half onto
  * its own row so it never pairs into the full's row during packing.
  */
-export function shouldForceHalfRowBreakForVerticalDrop(
+function shouldForceHalfRowBreakForVerticalDrop(
     activeLayoutWidth: string,
     overLayoutWidth: string,
     layoutIntent: FieldDropLayoutIntent,
@@ -58,7 +34,7 @@ export function shouldForceHalfRowBreakForVerticalDrop(
  * Half↔half over a lone half (open partner column).
  * Bottom strip stacks to a new row; right column / left card → beside.
  */
-export function halfOpenSlotDropIntent(
+function halfOpenSlotDropIntent(
     relativeX: number,
     relativeY: number,
 ): { intent: FieldDropIntent; layoutIntent: 'beside' | 'below-new-row' } {
@@ -81,7 +57,7 @@ export function halfOpenSlotDropIntent(
  * Half↔half already paired (no open column). One-shot onEnd geometry —
  * Sortable invertSwap owns mid-drag seat swaps.
  */
-export function halfPairedDropIntent(
+function halfPairedDropIntent(
     relativeX: number,
     relativeY: number,
     verticalIntent: FieldDropIntent,
@@ -102,7 +78,7 @@ export function halfPairedDropIntent(
  * - Trailing mid → insert before (left|active, over wraps)
  * - Trailing far-left → stack below
  */
-export function halfOccupiedInsertDropIntent(
+function halfOccupiedInsertDropIntent(
     relativeX: number,
     relativeY: number,
     overIsLeading: boolean,

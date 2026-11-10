@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\Api\ApiKeyOwnerService;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -42,6 +44,29 @@ class User extends Authenticatable implements PasskeyUser
     use HasConversations, HasFactory, HasRoles, LogsApplicationActivityTrait, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
+     * The column defaults a freshly created user does not read back from the
+     * database (same values as the users migrations): strict models throw on a
+     * missing attribute.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_active' => true,
+        'last_name' => null,
+        'username' => null,
+        'oidc_sub' => null,
+        'email_verified_at' => null,
+        'phone' => null,
+        'locale' => 'en',
+        'timezone' => 'UTC',
+        'last_login_at' => null,
+        'last_login_ip' => null,
+        'two_factor_secret' => null,
+        'two_factor_recovery_codes' => null,
+        'two_factor_confirmed_at' => null,
+    ];
+
+    /**
      * Activity log options excluding sensitive credential fields.
      */
     public function getActivitylogOptions(): LogOptions
@@ -66,6 +91,24 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('is_active') && $user->is_active === false) {
+                app(ApiKeyOwnerService::class)->revokeForOwner($user, 'deactivated');
+            }
+        });
+
+        static::deleted(function (User $user): void {
+            app(ApiKeyOwnerService::class)->revokeForOwner($user, 'deleted');
+        });
+
+        // Before row removal: owner_id is nullOnDelete, so revoke must run first.
+        static::forceDeleting(function (User $user): void {
+            app(ApiKeyOwnerService::class)->revokeForOwner($user, 'deleted');
+        });
+    }
+
     /**
      * @return BelongsToMany<UserGroup, $this>
      */
@@ -74,6 +117,14 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsToMany(UserGroup::class, 'user_group_user')
             ->using(UserGroupUser::class)
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<ApiKey, $this>
+     */
+    public function ownedApiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class, 'owner_id');
     }
 
     /**

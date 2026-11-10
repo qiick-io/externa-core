@@ -6,6 +6,7 @@ import {
     FolderGit2,
     LayoutGrid,
     MessageCircle,
+    PanelRight,
     ScrollText,
     Settings,
     Sparkles,
@@ -20,6 +21,7 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavUser } from '@/components/nav-user';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
+import { Kbd } from '@/components/ui/kbd';
 import {
     Sidebar,
     SidebarContent,
@@ -28,20 +30,29 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import adminRoutes from '@/lib/admin-routes';
-import { cn } from '@/lib/utils';
+import { toggleAiAssistant } from '@/lib/ai-open';
 import { dashboard } from '@/routes';
+import activityLogs from '@/routes/activity-logs';
 import { index as aiIndex } from '@/routes/ai';
 import { index as chatIndex } from '@/routes/chat';
 import collections from '@/routes/collections';
+import files from '@/routes/files';
+import groups from '@/routes/groups';
 import { edit as editProfile } from '@/routes/profile';
+import users from '@/routes/users';
 import type { NavItem, SidebarModuleSetting } from '@/types';
 
 type ModuleDef = {
@@ -55,6 +66,13 @@ type ModuleDef = {
 
 /** Always first in the nav, regardless of persisted module order. */
 const PINNED_SIDEBAR_MODULE_IDS = ['ai'] as const;
+
+/** Keyboard shortcut hint for the AI assistant panel (handled in the panel). */
+const AI_PANEL_SHORTCUT =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+        ? '⌘J'
+        : 'Ctrl+J';
 
 /**
  * Primary application sidebar with navigation and user menu.
@@ -85,7 +103,7 @@ export function AppSidebar() {
             files: {
                 id: 'files',
                 titleKey: 'nav.files',
-                href: adminRoutes.files.index(),
+                href: files.index.url(),
                 icon: Folder,
                 permission: PermissionEnum.CanShowFiles,
             },
@@ -106,21 +124,21 @@ export function AppSidebar() {
             activity: {
                 id: 'activity',
                 titleKey: 'nav.activityLog',
-                href: adminRoutes.activityLogs.index(),
+                href: activityLogs.index.url(),
                 icon: ScrollText,
                 permission: PermissionEnum.CanShowActivityLogs,
             },
             users: {
                 id: 'users',
                 titleKey: 'nav.users',
-                href: adminRoutes.users.index(),
+                href: users.index.url(),
                 icon: Users,
                 permission: PermissionEnum.CanShowUsers,
             },
             groups: {
                 id: 'groups',
                 titleKey: 'nav.groups',
-                href: adminRoutes.groups.index(),
+                href: groups.index.url(),
                 icon: UsersRound,
                 permission: PermissionEnum.CanShowGroups,
             },
@@ -171,6 +189,8 @@ export function AppSidebar() {
         },
     ];
 
+    const isOnAiPage = isCurrentUrl(aiIndex.url(), undefined, true);
+
     const renderModuleItem = (item: ModuleDef) => (
         <SidebarMenuItem key={item.id}>
             <SidebarMenuButton
@@ -178,88 +198,105 @@ export function AppSidebar() {
                 isActive={isCurrentUrl(
                     item.id === 'settings' ? '/settings' : item.href,
                     undefined,
-                    item.id === 'ai' || item.id === 'settings',
+                    item.id === 'ai' ||
+                        item.id === 'settings' ||
+                        item.id === 'dashboard',
                 )}
                 tooltip={{ children: t(item.titleKey) }}
-                className={
-                    item.id === 'chat'
-                        ? 'relative'
-                        : item.accent
-                          ? cn(
-                                'sidebar-ai-nav relative overflow-hidden',
-                                'text-orange-700 hover:text-orange-700',
-                                'dark:text-orange-300 dark:hover:text-orange-300',
-                                'data-[active=true]:font-medium',
-                                'data-[active=true]:text-orange-700',
-                                'dark:data-[active=true]:text-orange-300',
-                            )
-                          : undefined
-                }
+                className={item.accent ? 'sidebar-ai-nav' : undefined}
             >
-                <Link href={item.href} prefetch className="relative">
+                <Link href={item.href} prefetch>
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
-                    {item.id === 'chat' ? (
-                        <SidebarUnreadBadge
-                            count={chatUnread.unread_count}
-                            data-test="chat-nav-unread"
-                        />
+                    {item.id === 'ai' && !isOnAiPage ? (
+                        <Kbd className="ml-auto transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0 group-data-[collapsible=icon]:hidden">
+                            {AI_PANEL_SHORTCUT}
+                        </Kbd>
                     ) : null}
                 </Link>
             </SidebarMenuButton>
+            {/* The item goes to /ai; this hover action opens the side panel in place
+                (the shortcut hint gives way to it on hover). */}
+            {item.id === 'ai' && !isOnAiPage ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <SidebarMenuAction
+                            showOnHover
+                            onClick={toggleAiAssistant}
+                            aria-label={t('ai.openPanel')}
+                            data-test="sidebar-ai-panel"
+                        >
+                            <PanelRight />
+                        </SidebarMenuAction>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        {t('ai.openPanel')} ({AI_PANEL_SHORTCUT})
+                    </TooltipContent>
+                </Tooltip>
+            ) : null}
+            {item.id === 'chat' ? (
+                <SidebarUnreadBadge
+                    count={chatUnread.unread_count}
+                    data-test="chat-nav-unread"
+                />
+            ) : null}
         </SidebarMenuItem>
     );
 
     return (
-        <Sidebar
-            collapsible="icon"
-            variant="inset"
-            role="navigation"
-            aria-label={t('a11y.mainNav')}
-        >
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+        <Sidebar collapsible="icon" variant="inset">
+            {/*
+              Real <nav> (not role=navigation on a div) so desktop chrome and the
+              mobile Sheet both expose a labelled navigation landmark (#252).
+            */}
+            <nav
+                aria-label={t('a11y.mainNav')}
+                className="flex h-full w-full flex-col"
+            >
+                <SidebarHeader>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton size="lg" asChild>
+                                <Link href={dashboard()} prefetch>
+                                    <AppLogo />
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarHeader>
 
-            <SidebarContent>
-                {pinnedModules.length > 0 ? (
-                    <SidebarGroup className="px-2 py-0">
-                        <SidebarMenu>
-                            {pinnedModules.map(renderModuleItem)}
-                        </SidebarMenu>
-                    </SidebarGroup>
-                ) : null}
+                <SidebarContent>
+                    {pinnedModules.length > 0 ? (
+                        <SidebarGroup className="px-2 py-0">
+                            <SidebarMenu>
+                                {pinnedModules.map(renderModuleItem)}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    ) : null}
 
-                {platformModules.length > 0 ? (
-                    <SidebarGroup className="px-2 py-0">
-                        <SidebarGroupLabel>
-                            {t('nav.platform')}
-                        </SidebarGroupLabel>
-                        <SidebarMenu>
-                            {platformModules.map(renderModuleItem)}
-                        </SidebarMenu>
-                    </SidebarGroup>
-                ) : null}
-            </SidebarContent>
+                    {platformModules.length > 0 ? (
+                        <SidebarGroup className="px-2 py-0">
+                            <SidebarGroupLabel>
+                                {t('nav.platform')}
+                            </SidebarGroupLabel>
+                            <SidebarMenu>
+                                {platformModules.map(renderModuleItem)}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    ) : null}
+                </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NotificationsBell />
-                <NavUser />
-                {appVersion ? (
-                    <p className="truncate px-2 text-center text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
-                        v{appVersion}
-                    </p>
-                ) : null}
-            </SidebarFooter>
+                <SidebarFooter>
+                    <NavFooter items={footerNavItems} className="mt-auto" />
+                    <NotificationsBell />
+                    <NavUser />
+                    {appVersion ? (
+                        <p className="truncate px-2 text-center text-xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+                            {t('nav.appVersion', { version: appVersion })}
+                        </p>
+                    ) : null}
+                </SidebarFooter>
+            </nav>
         </Sidebar>
     );
 }

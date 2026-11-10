@@ -2,7 +2,7 @@
 
 namespace Tests\Support;
 
-use App\Services\Auth\OidcSocialiteFactory;
+use App\Services\Auth\OidcSocialiteFactoryService;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Two\AbstractProvider;
 use Mockery;
@@ -10,7 +10,7 @@ use Mockery;
 /**
  * Test double for OIDC Socialite factory (avoids Mockery container quirks).
  */
-class FakeOidcSocialiteFactory extends OidcSocialiteFactory
+class FakeOidcSocialiteFactory extends OidcSocialiteFactoryService
 {
     public function __construct(
         private readonly bool $isEnabled = true,
@@ -20,7 +20,7 @@ class FakeOidcSocialiteFactory extends OidcSocialiteFactory
         // Skip parent constructor — tests never call discovery via this fake.
     }
 
-    public function enabled(): bool
+    public function isEnabled(): bool
     {
         return $this->isEnabled;
     }

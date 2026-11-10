@@ -2,46 +2,75 @@
 
 namespace App\Ai\Agents;
 
-use App\Ai\Tools\DescribeFieldTypes;
-use App\Ai\Tools\ExportCollection;
-use App\Ai\Tools\ExtractPdfText;
-use App\Ai\Tools\GetImportJobStatus;
-use App\Ai\Tools\ImportCollectionCsv;
-use App\Ai\Tools\ImportRemoteJson;
-use App\Ai\Tools\ManageAiSyncSources;
-use App\Ai\Tools\ManageCollectionItems;
-use App\Ai\Tools\ManageCollections;
-use App\Ai\Tools\ManageFiles;
-use App\Ai\Tools\ManageGroups;
-use App\Ai\Tools\ManageRoles;
-use App\Ai\Tools\ManageUsers;
-use App\Ai\Tools\QueryActivityLogs;
-use App\Ai\Tools\QueryCollectionItems;
-use App\Ai\Tools\RollbackLastAiTurn;
-use App\Ai\Tools\SearchSimilarCollectionItems;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolver;
-use Laravel\Ai\Attributes\Provider;
+use App\Services\Ai\AiToolRegistryService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasProviderOptions;
+use Laravel\Ai\Contracts\HasSkills;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-#[Provider('local')]
 /**
  * Primary in-app AI assistant agent with tools for admin and content workflows.
  */
-class AppAssistant implements Agent, Conversational, HasTools
+class AppAssistant implements Agent, Conversational, HasProviderOptions, HasSkills, HasTools
 {
     use Promptable;
     use RemembersConversations;
 
+    /**
+     * Anthropic and Gemini thinking budgets (tokens) for each reasoning effort.
+     *
+     * @var array<string, int>
+     */
+    private const THINKING_BUDGET_TOKENS = [
+        'low' => 2048,
+        'medium' => 8192,
+        'high' => 24576,
+    ];
+
     public function __construct(private readonly ?User $user = null) {}
+
+    /**
+     * The provider the assistant runs on (`ai.assistant.provider`, "local" by default).
+     */
+    public function provider(): string
+    {
+        $provider = config('ai.assistant.provider');
+
+        return is_string($provider) && $provider !== '' ? $provider : 'local';
+    }
+
+    /**
+     * Reasoning options for the provider in use, from `ai.providers.<name>.reasoning.effort`
+     * (low, medium or high). Without an effort (the local model's default) nothing is sent,
+     * so the model keeps its own behaviour.
+     *
+     * @return array<string, mixed>
+     */
+    public function providerOptions(Lab|string $provider): array
+    {
+        $effort = config('ai.providers.'.$this->provider().'.reasoning.effort');
+
+        if (! is_string($effort) || ! array_key_exists($effort, self::THINKING_BUDGET_TOKENS)) {
+            return [];
+        }
+
+        return match ($provider instanceof Lab ? $provider->value : $provider) {
+            'openai', 'azure' => ['reasoning' => ['effort' => $effort, 'summary' => 'auto']],
+            'anthropic' => ['thinking' => ['type' => 'enabled', 'budget_tokens' => self::THINKING_BUDGET_TOKENS[$effort]]],
+            'gemini' => ['generation_config' => ['thinking_level' => $effort, 'thinking_summaries' => 'auto']],
+            default => [],
+        };
+    }
 
     /**
      * Allow create collection + one create_field per FieldTypeEnum + buffer for get/list/retries/final text.
@@ -57,6 +86,18 @@ class AppAssistant implements Agent, Conversational, HasTools
     public function timeout(): int
     {
         return 300;
+    }
+
+    /**
+     * CMS/operator playbooks loaded on demand via LoadSkill (resources/skills).
+     *
+     * @return list<string>
+     */
+    public function skills(): iterable
+    {
+        return [
+            resource_path('skills'),
+        ];
     }
 
     /**
@@ -97,6 +138,7 @@ Rules:
 - To create a role with permissions: call ManageRoles list_permissions, then create with permission_names_json (exact permission name strings). Never invent permission names.
 - To assign a role to a user, use ManageUsers with role_names_json after the role exists. Groups can attach roles via ManageGroups role_names_json.
 - Users may attach CSV, TXT, XLSX, or PDF files. Attachment metadata appears in [AI_ATTACHMENTS] with attachment_id values.
+- Users may also attach collection items, library files, and saved project prompts as explicit context. Prefer [AI_CONTEXT_ITEMS], [AI_CONTEXT_FILES], and [AI_SAVED_PROMPT] blocks over searching when present.
 - For CSV/XLSX import, use ImportCollectionCsv. For remote JSON/API import, use ImportRemoteJson. Both support dry_run previews, inferred fields, and upsert_key.
 - Use ExtractPdfText for PDF contents, QueryCollectionItems for filtered reads, QueryActivityLogs for Activity Log audits, and ExportCollection for CSV/JSON exports.
 - For activity log / suspicious activity / strange or failed logins: ALWAYS call QueryActivityLogs when it is listed. Prefer log_name=auth with event=failed (and separately event=login if needed). Never claim you lack Activity Log access when QueryActivityLogs is available. date_from/date_to must be YYYY-MM-DD only.
@@ -114,95 +156,8 @@ INSTRUCTIONS;
      */
     public function tools(): iterable
     {
-        $user = $this->resolveUser();
-
-        if ($user === null) {
-            return [];
-        }
-
-        $resolver = app(EffectivePermissionResolver::class);
-        $tools = [];
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowCollections,
-            PermissionEnum::CanCreateCollections,
-            PermissionEnum::CanEditCollections,
-            PermissionEnum::CanDeleteCollections,
-            PermissionEnum::CanRestoreCollections,
-            PermissionEnum::CanForceDeleteCollections,
-        ])) {
-            $tools[] = new ManageCollections;
-            $tools[] = new ManageCollectionItems;
-            $tools[] = new DescribeFieldTypes;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanCreateCollections->value)) {
-            $tools[] = new ImportCollectionCsv;
-            $tools[] = new ImportRemoteJson;
-            $tools[] = new ExtractPdfText;
-            $tools[] = new GetImportJobStatus;
-            $tools[] = new ManageAiSyncSources;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
-            $tools[] = new QueryCollectionItems;
-            $tools[] = new ExportCollection;
-            $tools[] = new SearchSimilarCollectionItems;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanDeleteCollections->value)) {
-            $tools[] = new RollbackLastAiTurn;
-        }
-
-        // ponytail: config('ai.mcp.enabled') stays opt-in until laravel/ai exposes stable agent MCP wiring.
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowFiles,
-            PermissionEnum::CanCreateFiles,
-            PermissionEnum::CanEditFiles,
-            PermissionEnum::CanDeleteFiles,
-            PermissionEnum::CanRestoreFiles,
-            PermissionEnum::CanForceDeleteFiles,
-        ])) {
-            $tools[] = new ManageFiles;
-        }
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowUsers,
-            PermissionEnum::CanCreateUsers,
-            PermissionEnum::CanEditUsers,
-            PermissionEnum::CanDeleteUsers,
-            PermissionEnum::CanRestoreUsers,
-            PermissionEnum::CanForceDeleteUsers,
-        ])) {
-            $tools[] = new ManageUsers;
-        }
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowRoles,
-            PermissionEnum::CanCreateRoles,
-            PermissionEnum::CanEditRoles,
-            PermissionEnum::CanDeleteRoles,
-        ])) {
-            $tools[] = new ManageRoles;
-        }
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowGroups,
-            PermissionEnum::CanCreateGroups,
-            PermissionEnum::CanEditGroups,
-            PermissionEnum::CanDeleteGroups,
-            PermissionEnum::CanRestoreGroups,
-            PermissionEnum::CanForceDeleteGroups,
-        ])) {
-            $tools[] = new ManageGroups;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanShowActivityLogs->value)) {
-            $tools[] = new QueryActivityLogs;
-        }
-
-        return $tools;
+        // Shared registry (same definitions as MCP). Chat always opts into write tools for BC.
+        return app(AiToolRegistryService::class)->chatToolsFor($this->resolveUser());
     }
 
     private function resolveUser(): ?User
@@ -219,7 +174,7 @@ INSTRUCTIONS;
     /**
      * @param  list<PermissionEnum>  $permissions
      */
-    private function canAny(EffectivePermissionResolver $resolver, User $user, array $permissions): bool
+    private function canAny(EffectivePermissionResolverService $resolver, User $user, array $permissions): bool
     {
         foreach ($permissions as $permission) {
             if ($resolver->hasPermission($user, $permission->value)) {
@@ -241,7 +196,7 @@ INSTRUCTIONS;
             return [];
         }
 
-        $resolver = app(EffectivePermissionResolver::class);
+        $resolver = app(EffectivePermissionResolverService::class);
         $lines = [];
 
         if ($this->canAny($resolver, $user, [

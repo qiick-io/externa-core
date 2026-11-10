@@ -7,7 +7,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -135,6 +135,6 @@ final class FieldSettingsTestHelpers
      */
     public static function assemble(CollectionItem $item): array
     {
-        return app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+        return app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     }
 }

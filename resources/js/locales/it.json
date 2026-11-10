@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} selezionati",
         "save": "Salva",
         "saved": "Salvato",
         "cancel": "Annulla",
@@ -15,7 +16,107 @@
         "lastName": "Cognome",
         "hide": "Nascondi",
         "view": "Mostra",
-        "export": "Esporta"
+        "export": "Esporta",
+        "clearFilters": "Cancella filtri",
+        "learnMore": "Scopri di più",
+        "restore": "Ripristina",
+        "deletePermanently": "Elimina definitivamente",
+        "created": "Creato",
+        "updated": "Aggiornato",
+        "search": "Cerca",
+        "rowsPerPage": "Righe per pagina",
+        "online": "Online",
+        "offline": "Offline",
+        "sortAscending": "Ordine crescente",
+        "sortDescending": "Ordine decrescente",
+        "active": "Attivo",
+        "name": "Nome",
+        "pageRange": "{{from}}–{{to}} di {{total}}",
+        "perPageOption": "{{count}} / pagina",
+        "noResults": "Nessun risultato.",
+        "copy": "Copia",
+        "copied": "Copiato",
+        "loading": "Caricamento…",
+        "loadMore": "Carica altri",
+        "preview": "Anteprima",
+        "clear": "Cancella",
+        "filter": "Filtra",
+        "from": "Da",
+        "to": "A",
+        "system": "Sistema",
+        "sort": "Ordina",
+        "collapse": "Comprimi",
+        "expand": "Espandi"
+    },
+    "picker": {
+        "search": "Cerca…",
+        "noResults": "Nessun risultato.",
+        "loading": "Caricamento…",
+        "clearSelection": "Cancella selezione"
+    },
+    "emptyState": {
+        "collections": {
+            "title": "Nessuna collection ancora",
+            "description": "Le collection raggruppano campi e contenuti. Creane una per iniziare.",
+            "cta": "Crea la tua prima collection",
+            "filteredTitle": "Nessuna collection corrispondente",
+            "filteredDescription": "Prova un'altra ricerca o cancella i filtri per vedere tutte le collection.",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "Le collection eliminate compariranno qui finché non le ripristini o le rimuovi definitivamente."
+        },
+        "items": {
+            "title": "Nessun elemento ancora",
+            "description": "Aggiungi il primo contenuto a questa collection.",
+            "cta": "Crea il tuo primo elemento",
+            "filteredTitle": "Nessun elemento corrispondente",
+            "filteredDescription": "Prova un'altra ricerca o cancella i filtri per vedere tutti gli elementi.",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "Gli elementi eliminati compariranno qui finché non li ripristini o li rimuovi definitivamente."
+        },
+        "users": {
+            "title": "Nessun utente ancora",
+            "description": "Invita i colleghi per gestire contenuti e impostazioni.",
+            "cta": "Crea il tuo primo utente",
+            "filteredTitle": "Nessun utente trovato",
+            "filteredDescription": "Prova un'altra ricerca o cancella i filtri per vedere tutti gli utenti.",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "Gli utenti eliminati compariranno qui finché non li ripristini o li rimuovi definitivamente."
+        },
+        "apiKeys": {
+            "title": "Nessuna API key ancora",
+            "description": "Crea un'API key per consentire alle app esterne di accedere alla Public CMS API.",
+            "cta": "Crea API key"
+        },
+        "roleCollections": {
+            "title": "Nessuna collection ancora",
+            "description": "Crea prima una collection, poi concedi a questo ruolo l'accesso.",
+            "cta": "Vai alle collection",
+            "filteredTitle": "Nessuna collection corrispondente",
+            "filteredDescription": "Prova un'altra ricerca o cancella il filtro per vedere tutte le collection."
+        },
+        "fields": {
+            "title": "Nessun campo ancora",
+            "description": "Definisci i tipi di campo prima di inserire i contenuti di questa collection.",
+            "cta": "Aggiungi campi"
+        },
+        "dashboard": {
+            "collectionsDescription": "Crea una collection per iniziare a vedere i volumi di contenuto qui.",
+            "collectionsCta": "Crea collection",
+            "activityDescription": "L'attività apparirà mentre tu e il tuo team lavorate in Externa.",
+            "activityCta": "Vedi registro attività",
+            "filesDescription": "Carica file per vedere le informazioni sullo storage nella dashboard.",
+            "filesCta": "Apri file",
+            "genericDescription": "Non c'è ancora nulla da mostrare."
+        },
+        "files": {
+            "title": "Questa cartella è vuota",
+            "description": "Trascina i file qui o usa Carica per aggiungere media a questa cartella.",
+            "cta": "Carica file",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "File e cartelle eliminati compariranno qui finché non li ripristini o li rimuovi definitivamente.",
+            "dropTitle": "Rilascia i file per caricarli",
+            "dropDescription": "Rilascia per avviare il caricamento, oppure usa il pulsante Carica nella barra degli strumenti."
+        }
     },
     "roles": {
         "names": {
@@ -37,8 +138,8 @@
         },
         "empty": "Nessun ruolo.",
         "systemBadge": "Sistema",
-        "deleteTitle": "Eliminare il ruolo?",
-        "deleteDescription": "Eliminare \"{{name}}\"? L'operazione non può essere annullata.",
+        "deleteTitle": "Eliminare il ruolo “{{name}}”?",
+        "deleteDescription": "L’operazione non può essere annullata.",
         "deleteFallback": "L'operazione non può essere annullata.",
         "duplicate": {
             "title": "Duplica ruolo",
@@ -46,6 +147,45 @@
             "name": "Nome del nuovo ruolo",
             "submit": "Duplica",
             "duplicating": "Duplicazione…"
+        },
+        "form": {
+            "editTitle": "Modifica ruolo",
+            "systemRoleHint": "Ruolo di sistema — il nome è bloccato; non assegnabile agli utenti.",
+            "create": "Crea",
+            "adminPermissions": "Permessi di amministrazione",
+            "createPrivateChats": "Crea chat private",
+            "filesAccess": "Accesso ai file",
+            "filesAccessDescription": "Permessi sui file della CMS API pubblica. <strong>Lettura</strong> copre i file pubblici; <strong>Lettura privati</strong> è necessario per file/cartelle contrassegnati come privati (e i relativi figli ereditati). Permesso assente = negato.",
+            "resource": "Risorsa",
+            "files": "File",
+            "collectionAccess": "Accesso alle collection",
+            "collectionAccessDescription": "Permessi della CMS API pubblica (creazione / lettura / modifica / eliminazione). Permesso assente = negato.",
+            "searchCollections": "Cerca collection…",
+            "collection": "Collection",
+            "fieldsAndItemFilter": "Campi e filtro elementi",
+            "itemFilter": "Filtro elementi (AND)",
+            "removeRule": "Rimuovi",
+            "addFilterRule": "Aggiungi regola di filtro",
+            "fileToggleAllowed": "{{action}} per i file: consentito",
+            "fileToggleDenied": "{{action}} per i file: negato",
+            "collectionToggleAllowed": "{{action}} per {{collection}}: consentito",
+            "collectionToggleDenied": "{{action}} per {{collection}}: negato",
+            "toggleTitleAllowed": "{{action}}: Consentito",
+            "toggleTitleDenied": "{{action}}: Negato",
+            "actions": {
+                "create": "Crea",
+                "read": "Lettura",
+                "readPrivate": "Lettura privati",
+                "update": "Modifica",
+                "delete": "Elimina"
+            },
+            "operators": {
+                "equals": "uguale a",
+                "notEquals": "diverso da",
+                "empty": "vuoto",
+                "notEmpty": "non vuoto"
+            },
+            "editNamed": "Modifica {{name}}"
         }
     },
     "nav": {
@@ -64,7 +204,12 @@
         "chat": "Chat",
         "settings": "Impostazioni",
         "repository": "Repository",
-        "documentation": "Documentazione"
+        "documentation": "Documentazione",
+        "appVersion": "v{{version}}",
+        "items": "Item",
+        "fields": "Campi",
+        "history": "Cronologia",
+        "itemNumber": "Item #{{id}}"
     },
     "notifications": {
         "title": "Notifiche",
@@ -91,13 +236,61 @@
     "a11y": {
         "skipToContent": "Vai al contenuto",
         "mainNav": "Navigazione principale",
+        "breadcrumb": "Percorso di navigazione",
+        "chatThreadList": "Conversazioni chat",
         "openMenu": "Apri menu",
         "search": "Cerca",
         "removeConditionRule": "Rimuovi regola di condizione",
         "dismissUpload": "Chiudi caricamento",
         "clearSelection": "Cancella selezione",
         "removeTab": "Rimuovi scheda",
-        "removeSection": "Rimuovi sezione"
+        "removeSection": "Rimuovi sezione",
+        "close": "Chiudi",
+        "toggleSidebar": "Attiva/disattiva barra laterale",
+        "loading": "Caricamento",
+        "notifications": "Notifiche",
+        "notificationsUnread": "Notifiche, {{count}} non lette",
+        "unreadCount": "{{count}} non lette",
+        "moreActions": "Altre azioni",
+        "configureColumns": "Configura colonne",
+        "columnOptions": "Opzioni colonna {{label}}",
+        "fieldActions": "Azioni campo",
+        "saving": "Salvataggio",
+        "aiAnswerReady": "Risposta dell'assistente: {{preview}}",
+        "dragToReorder": "Trascina per riordinare",
+        "removeChoice": "Rimuovi scelta",
+        "required": "obbligatorio",
+        "yes": "Sì",
+        "no": "No",
+        "editMode": "Modifica",
+        "previewMode": "Anteprima",
+        "heading": "Titolo",
+        "insertImage": "Immagine",
+        "moveBlockUp": "Sposta blocco su",
+        "moveBlockDown": "Sposta blocco giù",
+        "changed": "Modificato",
+        "reorder": "Riordina",
+        "filters": "Filtri",
+        "removeFilter": "Rimuovi filtro",
+        "filterField": "Campo filtro",
+        "filterOperator": "Operatore filtro",
+        "filterValue": "Valore filtro",
+        "selectAll": "Seleziona tutto",
+        "sortBy": "Ordina per",
+        "activeList": "Attivi",
+        "trashList": "Cestino",
+        "pinChat": "Fissa chat",
+        "unpinChat": "Sblocca chat",
+        "deleteChat": "Elimina chat",
+        "deleteSelectedChats": "Elimina chat selezionate",
+        "editField": "Modifica campo",
+        "fieldsPanel": "Campi",
+        "activityPanel": "Attività",
+        "fromDate": "Data da",
+        "toDate": "Data a",
+        "removeRule": "Rimuovi regola",
+        "removeLocale": "Rimuovi locale {{code}}",
+        "selectRow": "Seleziona {{name}}"
     },
     "auth": {
         "login": {
@@ -191,7 +384,13 @@
             "filesMedia": "File e media",
             "api": "API",
             "integrations": "Integrazioni",
-            "sidebar": "Barra laterale"
+            "sidebar": "Barra laterale",
+            "aiTools": "Strumenti AI in scrittura",
+            "pendingToolCalls": "Approvazioni strumenti AI",
+            "sectionAi": "AI",
+            "aiToolsNav": "Strumenti in scrittura",
+            "pendingToolCallsNav": "Approvazioni strumenti",
+            "jobs": "Job"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -203,11 +402,45 @@
             "linkSent": "Un nuovo link di verifica è stato inviato al tuo indirizzo email."
         },
         "apiKeys": {
+            "description": "Bearer token per /api/v1. I permessi dipendono dal ruolo selezionato (usa Public per accesso equivalente all’anonimo).",
+            "create": "Crea API key",
+            "createTitle": "Crea API key",
+            "createDescription": "Assegna un nome, scegli ruolo e proprietario, poi restringi gli scope se serve.",
+            "secretBanner": "Copia questa chiave ora — non verrà mostrata di nuovo.",
             "collectionSlugs": "Allowlist collezioni (opzionale, slug separati da virgola)",
             "collectionSlugsHelp": "Lascia vuoto per consentire ogni collezione a cui il ruolo ha accesso. Gli scope restringono soltanto.",
+            "owner": "Proprietario",
+            "ownerHelp": "Limite di permesso: la chiave non può fare più di questo utente. Predefinito: tu.",
             "readOnly": "Sola lettura (blocca create, update e delete)",
             "readOnlyBadge": "sola lettura",
-            "scopes": "Scope"
+            "scopes": "Scope",
+            "filesScope": "Accesso file",
+            "filesScopeHelp": "none = niente Files API; read = solo lista/download; all = lettura+scrittura (soggetto a sola lettura e ruolo).",
+            "filesScopeNone": "Nessuno",
+            "filesScopeRead": "Lettura",
+            "filesScopeAll": "Tutto",
+            "confirm": {
+                "revokeTitle": "Revocare la API key “{{name}}”?",
+                "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
+                "revokeConfirm": "Revoca"
+            },
+            "columns": {
+                "name": "Nome",
+                "prefix": "Prefisso",
+                "role": "Ruolo",
+                "status": "Stato",
+                "actions": "Azioni"
+            },
+            "status": {
+                "active": "Attiva",
+                "revoked": "Revocata"
+            },
+            "revoke": "Revoca chiave",
+            "secretValue": "Nuova chiave API",
+            "selectRole": "Seleziona ruolo",
+            "ipAllowlist": "Allowlist IP (opzionale, separati da virgola)",
+            "rateLimit": "Limite di richieste / minuto (opzionale)",
+            "expiresAt": "Scade il"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -320,6 +553,15 @@
             "filesMaxUploadMb": "Upload Files max (MB)",
             "chatMaxUploadMb": "Upload chat max (MB)",
             "uploadLimitsHint": "Vuoto = illimitato. Gli upload in una sola richiesta restano sotto upload_max_filesize / post_max_size di PHP; i file più grandi usano l'upload a chunk.",
+            "uploadPolicyTitle": "Policy tipi di upload",
+            "uploadPolicyDescription": "Allowlist di estensioni e MIME per Files e API. Campi vuoti mantengono i default sicuri.",
+            "uploadAllowedExtensions": "Estensioni consentite (opzionale)",
+            "uploadAllowedExtensionsHelp": "Separate da virgola, senza punto. Vuoto = nessun filtro extra sulle estensioni (vale ancora l'allowlist MIME).",
+            "uploadAllowedMimes": "MIME consentiti (opzionale)",
+            "uploadAllowedMimesHelp": "Separati da virgola. Vuoto = set sicuro integrato (PNG/JPEG/PDF/…).",
+            "uploadAllowSvg": "Consenti upload SVG",
+            "uploadAllowSvgHelp": "Disattivato di default. Gli SVG possono contenere script e causare XSS se serviti o inline — abilita solo se ti servono loghi/icone e ti fidi di chi carica.",
+            "uploadPolicyFloorHint": "Eseguibili, HTML, SSI (.shtml) e simili restano bloccati anche se elencati qui. Questo piano di sicurezza non si può disattivare.",
             "filesTitle": "File e storage",
             "filesDescription": "Opzioni di trasformazione immagini usate dalla libreria file",
             "allowedTransformations": "Trasformazioni consentite",
@@ -404,6 +646,21 @@
             "notifierTelegramSendTest": "Invia test Telegram",
             "notifierTelegramSendTestHint": "Salva chat ID e token, poi invia un ping subito (non serve un worker di coda).",
             "notifiersPrivacyNote": "I metadati degli eventi vengono inviati a Slack o Telegram quando configurato. Valuta la gestione dati del provider in self-host.",
+            "deployTitle": "Hook di deploy",
+            "deployDescription": "URL con nome per gli hook di deploy di Vercel, Netlify, Cloudflare Pages o Forge. Gli URL sono salvati crittografati.",
+            "deployHookLabel": "Hook {{number}}",
+            "deployHookName": "Nome",
+            "deployHookUrl": "URL hook di deploy",
+            "deployHookUrlHint": "Incolla l’URL dell’hook del provider. Viene crittografato e non viene più mostrato.",
+            "deployHookUrlConfigured": "Un URL è già configurato. Lascia vuoto per mantenerlo, oppure incolla un nuovo URL per sostituirlo.",
+            "deployHookAdd": "Aggiungi hook di deploy",
+            "deployHookRemove": "Rimuovi hook di deploy",
+            "deployOnPublish": "Deploy alla pubblicazione",
+            "deployOnPublishHint": "Se attivo, ogni pubblicazione di un elemento attiva una volta tutti gli hook configurati.",
+            "deployTrigger": "Esegui deploy",
+            "deployTriggerHint": "Accoda un POST a ogni hook configurato. Richiede il permesso deploy.trigger e un worker di coda, salvo QUEUE_CONNECTION=sync.",
+            "deployLastRunTitle": "Ultimo deploy",
+            "deployLastRunNone": "Nessun deploy ancora eseguito.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistente",
@@ -443,7 +700,8 @@
             "integrationsNav": {
                 "breadcrumb": "Integrazioni",
                 "head": "Integrazioni"
-            }
+            },
+            "deployHookNamePlaceholder": "Produzione"
         },
         "appearance": {
             "breadcrumb": "Impostazioni aspetto",
@@ -470,7 +728,21 @@
             "sidebar": {
                 "breadcrumb": "Impostazioni barra laterale",
                 "head": "Impostazioni barra laterale"
-            }
+            },
+            "themePresetTitle": "Preset tema",
+            "themePresetDescription": "Scegli una palette integrata per l’admin. Un colore brand personalizzato ha comunque priorità sul primary.",
+            "themePresetTeal": "Teal (predefinito)",
+            "themePresetBlue": "Blu",
+            "themePresetIndigo": "Indaco",
+            "themePresetViolet": "Viola",
+            "themePresetRose": "Rosa",
+            "themePresetSlate": "Ardesia",
+            "customColorTitle": "Colore brand personalizzato",
+            "customColorDescription": "Override opzionale del primary. Lascia vuoto per usare il preset selezionato.",
+            "clearCustomColor": "Rimuovi colore personalizzato",
+            "brandContrastWarning": "Questo colore brand non rispetta il contrasto WCAG AA (4.5:1 testo / 3:1 UI). Prova una tonalità più scura o più chiara.",
+            "presetPreviewLight": "Chiaro",
+            "presetPreviewDark": "Scuro"
         },
         "performance": {
             "breadcrumb": "Impostazioni performance",
@@ -546,7 +818,20 @@
             "regenerate": "Rigenera codici",
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
-            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra.",
+            "setupKey": "Chiave di configurazione"
+        },
+        "aiTools": {
+            "breadcrumb": "Strumenti AI in scrittura",
+            "head": "Strumenti AI in scrittura",
+            "title": "Strumenti AI in scrittura",
+            "description": "Scegli quali classi di strumenti AI mutanti possono essere eseguiti dopo l’approvazione umana. Il kill switch AI_WRITE_TOOLS deve essere attivo.",
+            "killSwitchLabel": "Kill switch env",
+            "killSwitchOn": "abilitato",
+            "killSwitchOff": "disabilitato (default)",
+            "killSwitchHint": "Imposta AI_WRITE_TOOLS=true (o AI_TOOLS_WRITE_ENABLED=true) nell’ambiente per consentire gli strumenti in scrittura.",
+            "ttlHint": "Le approvazioni MCP scadono dopo {{minutes}} minuti. Le voci di audit degli strumenti sono conservate per {{days}} giorni.",
+            "save": "Salva"
         }
     },
     "collections": {
@@ -636,7 +921,19 @@
             "calendarLoadError": "Impossibile caricare gli elementi del calendario.",
             "calendarTruncated": "Mostro {{shown}} di {{total}} elementi in questo mese.",
             "activeItems": "Elementi attivi",
-            "trash": "Cestino"
+            "trash": "Cestino",
+            "operators": {
+                "eq": "uguale a",
+                "neq": "diverso da",
+                "contains": "contiene",
+                "in": "è uno tra",
+                "null": "è vuoto",
+                "nnull": "non è vuoto",
+                "gt": "maggiore di",
+                "gte": "maggiore o uguale",
+                "lt": "minore di",
+                "lte": "minore o uguale"
+            }
         },
         "localized": {
             "applyAll": "Applica a tutte le lingue",
@@ -666,7 +963,14 @@
             "copied": "Valore grezzo copiato",
             "copyFailed": "Impossibile copiare negli appunti",
             "pasted": "Valore grezzo incollato",
-            "pasteFailed": "Impossibile leggere gli appunti"
+            "pasteFailed": "Impossibile leggere gli appunti",
+            "edit": "Modifica campo",
+            "duplicate": "Duplica campo",
+            "showInForm": "Mostra campo nel dettaglio",
+            "hideInForm": "Nascondi campo nel dettaglio",
+            "delete": "Elimina campo",
+            "deleteFailed": "Impossibile eliminare il campo.",
+            "width": "Larghezza"
         },
         "itemSave": {
             "create": "Crea",
@@ -682,6 +986,10 @@
             "previewAs": "Anteprima come…",
             "livePreview": "Live Preview",
             "livePreviewError": "Impossibile aprire Live Preview. Controlla l’URL di anteprima della collection.",
+            "livePreviewAt": "Anteprima al…",
+            "livePreviewAtHint": "Mostra l’item come apparirà quando le modifiche programmate andranno live (max 90 giorni avanti).",
+            "livePreviewAtOpen": "Apri anteprima",
+            "livePreviewAtInvalid": "Scegli un orario valido entro i prossimi 90 giorni.",
             "chat": "Chat",
             "revisions": "Revisioni",
             "editFields": "Modifica campi",
@@ -764,8 +1072,10 @@
             "sendError": "Impossibile inviare il messaggio.",
             "reply": "Rispondi",
             "copyText": "Copia testo",
+            "copyFailed": "Impossibile copiare il messaggio",
             "pin": "Fissa",
             "unpin": "Togli",
+            "pinned": "Messaggi fissati",
             "visibilityHint": "Visibile a chi può leggere questo item",
             "openInHub": "Apri in Chat",
             "mediaPreview": "Anteprima media",
@@ -778,7 +1088,11 @@
             "sendingMedia": "Invio…",
             "retrySend": "Riprova",
             "removePendingFile": "Rimuovi file",
-            "scrollToBottom": "Vai in fondo"
+            "scrollToBottom": "Vai in fondo",
+            "mentionCollection": "Collezione",
+            "reactionToggle": "Reazione {{emoji}}: {{names}}",
+            "messageActions": "Azioni sul messaggio",
+            "react": "Reagisci"
         },
         "packs": {
             "createFromPack": "Crea da pack",
@@ -1055,7 +1369,392 @@
             "groups": "Gruppi"
         },
         "translatableDescription": "Se attivo, gli editor inseriscono un valore separato per ogni lingua (es. inglese e italiano) invece di un unico valore condiviso.",
-        "translatableLockedHint": "Bloccato perché questo campo ha già dei contenuti. Cambiare Translatable non convertirebbe i valori esistenti — crea un nuovo campo e migra i contenuti."
+        "translatableLockedHint": "Bloccato perché questo campo ha già dei contenuti. Cambiare Translatable non convertirebbe i valori esistenti — crea un nuovo campo e migra i contenuti.",
+        "confirm": {
+            "deleteTitle": "Eliminare la collection “{{name}}”?",
+            "deleteDescription": "La collection verrà eliminata in modo soft e spostata nel cestino.",
+            "forceDeleteTitle": "Eliminare definitivamente la collection “{{name}}”?",
+            "forceDeleteDescription": "La collection verrà rimossa definitivamente. L’operazione non può essere annullata.",
+            "bulkDeleteTitle": "Eliminare {{count}} collection selezionate?",
+            "bulkDeleteDescription": "Le collection selezionate verranno eliminate in modo soft e spostate nel cestino.",
+            "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} collection selezionate?",
+            "bulkForceDeleteDescription": "Le collection selezionate verranno rimosse definitivamente. L’operazione non può essere annullata.",
+            "bulkForceDeleteTitleNamed": "Eliminare definitivamente la collection “{{name}}”?"
+        },
+        "translatableLockedHintConvert": "Bloccato qui perché il campo ha già contenuti. Usa Cambia tipo / converti per migrare i valori in sicurezza (oppure crea un nuovo campo).",
+        "convert": {
+            "menuLabel": "Cambia tipo…",
+            "title": "Converti campo “{{name}}”",
+            "description": "Migra i valori memorizzati verso un tipo o forma traducibile supportata. Esegui prima un dry-run per vedere gli errori.",
+            "targetType": "Tipo di destinazione",
+            "translatableHint": "Sposta i valori nella locale predefinita, oppure riduci a una sola locale.",
+            "dryRun": "Dry run",
+            "confirm": "Converti",
+            "previewSummary": "ok {{ok}} · falliti {{failed}} · bozze {{drafts}} · saltati {{skipped}}",
+            "loadTargetsFailed": "Impossibile caricare le destinazioni di conversione.",
+            "previewFailed": "Dry run non riuscito.",
+            "convertFailed": "Conversione non riuscita.",
+            "success": "Campo convertito.",
+            "queued": "Conversione del campo in coda."
+        },
+        "columnPicker": {
+            "fields": "Campi",
+            "related": "Campi collegati",
+            "openRelated": "Apri i campi di {{label}}",
+            "noNestedFields": "Nessun campo annidato disponibile.",
+            "noMatches": "Nessun campo corrisponde alla ricerca.",
+            "id": "ID",
+            "createdAt": "Creato il",
+            "updatedAt": "Aggiornato il",
+            "createdBy": "Creato da",
+            "updatedBy": "Aggiornato da",
+            "actions": "Azioni"
+        },
+        "layoutWidth": {
+            "half": "Metà larghezza",
+            "full": "Larghezza massima",
+            "fill": "Riempi larghezza"
+        },
+        "reorderColumn": "Riordina {{label}}",
+        "noFieldsMatch": "Nessun campo corrisponde alla ricerca.",
+        "fieldSettings": {
+            "common": {
+                "fieldWidth": "Larghezza del campo",
+                "fieldWidthHint": "Quanto spazio orizzontale occupa questo campo nel modulo.",
+                "startNewRow": "Inizia una nuova riga",
+                "startNewRowHint": "Fa iniziare questo campo su una nuova riga nel layout del modulo.",
+                "required": "Obbligatorio",
+                "requiredHint": "Il contenuto non può essere salvato finché questo campo non ha un valore.",
+                "readonly": "Sola lettura",
+                "readonlyHint": "Gli editor vedono il valore ma non possono modificarlo dopo il primo salvataggio.",
+                "hiddenInForm": "Nascosto nel modulo",
+                "hiddenInFormHint": "Nasconde questo campo dall'editor degli elementi mantenendolo nello schema.",
+                "defaultValue": "Valore predefinito",
+                "defaultValueHint": "Applicato alla creazione di un nuovo elemento se il campo è vuoto.",
+                "defaultValuePlaceholder": "Applicato alla creazione se vuoto"
+            },
+            "rules": {
+                "operator": "Operatore",
+                "value": "Valore",
+                "addRule": "Aggiungi regola",
+                "operators": {
+                    "required": "Obbligatorio",
+                    "unique": "Univoco",
+                    "min_length": "Lunghezza minima",
+                    "max_length": "Lunghezza massima",
+                    "min": "Valore minimo",
+                    "max": "Valore massimo",
+                    "regex": "Regex",
+                    "contains": "Contiene",
+                    "not_contains": "Non contiene",
+                    "equals": "Uguale a",
+                    "not_equals": "Diverso da"
+                }
+            },
+            "validation": {
+                "message": "Messaggio di validazione",
+                "messageHint": "Messaggio di errore personalizzato facoltativo, mostrato quando una regola non è rispettata."
+            },
+            "conditions": {
+                "intro": "Facoltativamente mostra, blocca o rendi obbligatorio questo campo in base ai valori di altri campi (AND o OR).",
+                "addConditions": "Aggiungi condizioni",
+                "hint": "Quando le regole corrispondono, applica le opzioni qui sotto. Solo AND / OR semplici, senza gruppi annidati.",
+                "match": "Corrispondenza",
+                "matchAll": "Tutte le regole (AND)",
+                "matchAny": "Almeno una regola (OR)",
+                "field": "Campo",
+                "selectField": "Seleziona campo…",
+                "valuesCommaSeparated": "Valori (separati da virgola)",
+                "hideWhenMatched": "Nascondi se corrisponde",
+                "hideWhenMatchedHint": "Nasconde questo campo nel modulo dell'elemento quando le regole corrispondono.",
+                "showWhenMatched": "Mostra se corrisponde",
+                "showWhenMatchedHint": "Nascosto per impostazione predefinita; mostra questo campo solo quando le regole corrispondono.",
+                "readonlyWhenMatched": "Sola lettura se corrisponde",
+                "readonlyWhenMatchedHint": "Blocca il campo quando le regole corrispondono.",
+                "requiredWhenMatched": "Obbligatorio se corrisponde",
+                "requiredWhenMatchedHint": "Richiede un valore quando le regole corrispondono (verificato lato server).",
+                "removeConditions": "Rimuovi condizioni",
+                "operators": {
+                    "equals": "Uguale a",
+                    "notEquals": "Diverso da",
+                    "contains": "Contiene",
+                    "empty": "È vuoto",
+                    "notEmpty": "Non è vuoto",
+                    "gt": "Maggiore di",
+                    "gte": "Maggiore o uguale a",
+                    "lt": "Minore di",
+                    "lte": "Minore o uguale a",
+                    "in": "Nell'elenco",
+                    "notIn": "Non nell'elenco"
+                }
+            },
+            "altro": {
+                "hashIntro": "Salva un ID fingerprint generato automaticamente (`sha256` di un UUID) se il campo è vuoto al salvataggio. <strong>Non</strong> è un hash di password: i valori sono identificatori, non segreti derivati da input dell'utente.",
+                "hashMasked": "Maschera il valore nell'editor",
+                "hashMaskedHint": "Dopo il salvataggio mostra solo un breve prefisso del fingerprint.",
+                "minimum": "Minimo",
+                "maximum": "Massimo",
+                "step": "Incremento",
+                "showValue": "Mostra il valore corrente",
+                "showValueHint": "Mostra il valore numerico accanto al cursore."
+            },
+            "groups": {
+                "allClosed": "Tutte chiuse",
+                "firstOpen": "Prima aperta",
+                "allOpen": "Tutte aperte",
+                "maxOneOpen": "Al massimo una sezione aperta",
+                "maxOneOpenHint": "Si può espandere una sola sezione della fisarmonica alla volta.",
+                "initialState": "Stato iniziale",
+                "accordionHint": "Le sezioni sono di solito gruppi grezzi annidati in questa fisarmonica (due vuoti vengono creati automaticamente). Usa Aggiungi sezione sulla fisarmonica oppure annida direttamente qualsiasi campo, anche semplice (i campi semplici diventano pannelli della fisarmonica).",
+                "open": "Aperto",
+                "closed": "Chiuso",
+                "fillWidthHint": "Occupa l'intera larghezza del modulo (sostituisce la larghezza dei gruppi annidati).",
+                "tabsHint": "I pannelli delle schede sono di solito gruppi grezzi annidati in questo gruppo di schede (due vuoti vengono creati automaticamente). Usa Aggiungi scheda oppure annida direttamente qualsiasi campo, anche semplice (i campi semplici diventano schede).",
+                "rawHint": "Solo annidamento, senza elementi visivi nel modulo dell'elemento. Annida i campi in questo gruppo dall'elenco dei campi (trascina e rilascia)."
+            },
+            "relational": {
+                "allowMultipleImages": "Consenti più immagini",
+                "allowMultipleImagesHint": "Consente agli editor di caricare più di un'immagine in questo campo.",
+                "allowedMimeTypes": "Tipi MIME consentiti (separati da virgola)",
+                "cropToFit": "Ritaglia per adattare",
+                "cropToFitHint": "Ritaglia le immagini caricate secondo le proporzioni configurate.",
+                "allowMultipleFiles": "Consenti più file",
+                "allowMultipleFilesHint": "Consente agli editor di allegare più di un file in questo campo.",
+                "allowedCollections": "Collection consentite",
+                "allowDuplicateBlocks": "Consenti blocchi duplicati",
+                "allowDuplicateBlocksHint": "Consente di aggiungere lo stesso blocco di collection più di una volta.",
+                "relatedCollection": "Collection correlata",
+                "selectCollection": "Seleziona una collection…",
+                "displayField": "Campo visualizzato",
+                "displayTemplate": "Modello di visualizzazione",
+                "displayTemplateHint": "Facoltativo. Usa segnaposto {{placeholder}}; se vuoto viene usato il campo visualizzato.",
+                "filterJson": "Filtro (JSON)",
+                "filterJsonHint": "Facoltativo. Filtro a corrispondenza esatta sui valori dei campi della collection correlata (nome campo → valore atteso).",
+                "layout": "Layout",
+                "layoutList": "Elenco",
+                "layoutTable": "Tabella",
+                "allowDuplicateLinks": "Consenti collegamenti duplicati",
+                "allowDuplicateLinksHint": "Consente di collegare lo stesso elemento correlato più di una volta.",
+                "junctionFields": "Campi di giunzione (JSON)",
+                "junctionFieldsHint": "Mini-schema facoltativo per i metadati di ciascun collegamento. I moduli degli elementi mostrano questi campi accanto a ogni elemento correlato. Tipi: string, number, boolean."
+            },
+            "selection": {
+                "labelOn": "Etichetta se attivo",
+                "labelOff": "Etichetta se disattivo",
+                "dateMode": "Modalità",
+                "dateOnly": "Solo data",
+                "timeOnly": "Solo ora",
+                "dateAndTime": "Data e ora",
+                "includeSeconds": "Includi i secondi",
+                "includeSecondsHint": "Consente orari con precisione al secondo (modalità ora / data e ora).",
+                "geometryMode": "Modalità geometria",
+                "point": "Punto",
+                "multiPoint": "Più punti",
+                "defaultLatitude": "Latitudine predefinita",
+                "defaultLongitude": "Longitudine predefinita",
+                "defaultZoom": "Zoom predefinito",
+                "enableOpacity": "Abilita opacità",
+                "enableOpacityHint": "Consente di regolare il canale alfa nel selettore colore.",
+                "presetColors": "Colori predefiniti (hex separati da virgola)",
+                "allowNone": "Consenti selezione vuota",
+                "allowNoneHint": "Consente agli editor di svuotare la selezione senza scegliere un'opzione.",
+                "allowOther": "Consenti valori fuori dalle opzioni",
+                "allowOtherHint": "Accetta valori personalizzati non presenti tra le scelte.",
+                "valueCombining": "Combinazione dei valori",
+                "allSelectedNodes": "Tutti i nodi selezionati",
+                "leafNodesOnly": "Solo nodi foglia"
+            },
+            "textNumbers": {
+                "inputType": "Tipo di input",
+                "maxLength": "Lunghezza massima",
+                "placeholder": "Segnaposto",
+                "iconLeft": "Icona a sinistra",
+                "iconRight": "Icona a destra",
+                "trim": "Rimuovi spazi iniziali e finali",
+                "trimHint": "Rimuove gli spazi all'inizio e alla fine al salvataggio.",
+                "slugify": "Converti in slug",
+                "slugifyHint": "Converte il valore in uno slug adatto agli URL al salvataggio.",
+                "masked": "Mascherato (password)",
+                "maskedHint": "Nasconde i caratteri digitati come in un campo password.",
+                "min": "Min",
+                "max": "Max",
+                "language": "Linguaggio",
+                "template": "Modello",
+                "lineNumbers": "Mostra numeri di riga",
+                "lineNumbersHint": "Mostra la colonna dei numeri di riga nell'editor del modulo dell'elemento.",
+                "lineWrapping": "A capo automatico",
+                "lineWrappingHint": "Manda a capo le righe lunghe invece di scorrere in orizzontale.",
+                "tagPresets": "Valori predefiniti (separati da virgola)",
+                "tagSeparator": "Separatore",
+                "allowCustomTags": "Consenti tag personalizzati",
+                "allowCustomTagsHint": "Consente agli editor di aggiungere tag non presenti tra i valori predefiniti.",
+                "lowercase": "Minuscolo al salvataggio",
+                "lowercaseHint": "Converte i tag in minuscolo al salvataggio.",
+                "alphabetize": "Ordina alfabeticamente al salvataggio",
+                "alphabetizeHint": "Ordina i tag in ordine alfabetico al salvataggio.",
+                "rows": "Righe",
+                "staticComboboxHint": "Combobox statica: gli editor scelgono tra opzioni predefinite o, se consentito, digitano un valore personalizzato.",
+                "urlTemplate": "Modello URL",
+                "urlTemplateHint": "Usa {{token}} come segnaposto per il termine di ricerca. Gli URL della stessa origine evitano problemi CORS (es. /demo/cities?q={{token}}).",
+                "resultsPath": "Percorso dei risultati",
+                "textPath": "Percorso del testo",
+                "valuePath": "Percorso del valore",
+                "trigger": "Attivazione",
+                "debounce": "Debounce",
+                "throttle": "Throttle",
+                "rate": "Intervallo (ms)",
+                "inputTypes": {
+                    "string": "Stringa",
+                    "text": "Testo",
+                    "integer": "Intero",
+                    "bigInteger": "Intero grande",
+                    "float": "Decimale a virgola mobile",
+                    "decimal": "Decimale",
+                    "uuid": "UUID"
+                }
+            },
+            "form": {
+                "choices": "Scelte",
+                "choicesHint": "Aggiungi i valori tra cui gli utenti possono scegliere. L'etichetta è mostrata nell'interfaccia; il valore viene salvato nel database.",
+                "optionLabel": "Etichetta",
+                "addChoice": "Aggiungi scelta",
+                "treeChoices": "Scelte ad albero",
+                "treeChoicesHint": "Definisci opzioni annidate. Selezionando un genitore si selezionano tutti i discendenti; con figli misti il genitore appare indeterminato.",
+                "addChild": "Aggiungi figlio",
+                "addRootChoice": "Aggiungi scelta principale",
+                "nestedRelationHint": "Le relazioni annidate sono salvate come collegamenti JSON all'interno del blocco (non in tabelle di giunzione).",
+                "junctionMetaFields": "Metacampi di giunzione (JSON)",
+                "key": "Chiave",
+                "nameHint": "Etichetta tradotta mostrata nell'interfaccia di amministrazione e nel modulo dell'elemento.",
+                "note": "Nota",
+                "noteHint": "Testo di aiuto facoltativo mostrato sotto il campo nel modulo dell'elemento."
+            },
+            "blocks": {
+                "blockTypes": "Tipi di blocco",
+                "innerBlockTypes": "Tipi di blocco interni",
+                "blockTypesHint": "Definisci lo schema dei blocchi inline per questo campo. Le chiavi devono essere in snake_case minuscolo (es. rich_text). Profondità di annidamento massima {{max}} (limite {{ceiling}}).",
+                "innerBlockTypesHint": "Blocchi interni (profondità {{depth}}/{{max}}). A questa profondità non è possibile annidare altri blocchi.",
+                "maxDepth": "Profondità massima di annidamento",
+                "maxDepthHint": "Predefinita {{default}}. Limite assoluto {{ceiling}}.",
+                "expandBlockType": "Espandi tipo di blocco",
+                "collapseBlockType": "Comprimi tipo di blocco",
+                "blockN": "Blocco {{n}}",
+                "fieldCount_one": "{{count}} campo",
+                "fieldCount_other": "{{count}} campi",
+                "labelPlaceholder": "Testo formattato",
+                "i18n": "I18n",
+                "remove": "Rimuovi",
+                "conditions": "Condizioni (rispetto agli altri campi del blocco)",
+                "addNestedField": "Aggiungi campo annidato",
+                "moveUp": "Su",
+                "moveDown": "Giù",
+                "deleteBlockType": "Elimina tipo di blocco",
+                "addBlockType": "Aggiungi tipo di blocco"
+            }
+        },
+        "items": {
+            "fields": {
+                "noWriteAccess": "Nessun permesso di scrittura",
+                "readonly": "Sola lettura",
+                "includeInApply": "Includi in Applica"
+            },
+            "blocks": {
+                "nestingExceeded": "L’annidamento dei blocchi supera la profondità massima ({{max}}).",
+                "empty": "Ancora nessun blocco.",
+                "expand": "Espandi blocco",
+                "collapse": "Comprimi blocco",
+                "duplicate": "Duplica",
+                "add": "Aggiungi {{label}}",
+                "remove": "Rimuovi",
+                "addBlock": "Aggiungi blocco",
+                "selectItem": "Seleziona item del blocco…"
+            },
+            "choice": {
+                "apiUrlMissing": "Configura un URL API nelle impostazioni del campo per abilitare i suggerimenti.",
+                "generatedOnSave": "Generato al salvataggio",
+                "hashHint": "ID impronta (automatico). Non è un hash di password.",
+                "other": "Altro",
+                "otherEllipsis": "Altro…",
+                "customValue": "Valore personalizzato",
+                "select": "Seleziona…",
+                "selectOptions": "Seleziona opzioni…",
+                "additionalCustomValue": "Valore personalizzato aggiuntivo"
+            },
+            "date": {
+                "pickDate": "Scegli una data",
+                "pickDateTime": "Scegli data e ora"
+            },
+            "relation": {
+                "selectBy": "Seleziona per {{field}}…",
+                "selectRelated": "Seleziona item correlato…",
+                "junctionMetadata": "Metadati di collegamento"
+            },
+            "previewAsRole": {
+                "title": "Anteprima come ruolo",
+                "description": "Vista in sola lettura dei dati dei campi dopo le regole ACL della collection e di accesso ai file (incluso <code>access: denied</code>). Non è un editor visuale.",
+                "role": "Ruolo",
+                "chooseRole": "Scegli ruolo",
+                "notReadable": "Non leggibile per questo ruolo."
+            },
+            "compare": {
+                "title": "Confronta revisione",
+                "editedBy": "Modificato da {{name}} · {{date}}",
+                "showDiffOnly": "Mostra solo le differenze",
+                "selectAll": "Seleziona tutte le differenze",
+                "deselectAll": "Deseleziona tutte le differenze",
+                "differences_one": "{{count}} differenza",
+                "differences_other": "{{count}} differenze",
+                "previousRevision": "Revisione precedente",
+                "latest": "Più recente",
+                "previous": "Precedente",
+                "itemRevision": "Revisione item",
+                "comparingTo": "Confronto con",
+                "apply": "Applica"
+            },
+            "columnMenu": {
+                "alignLeft": "Allinea a sinistra",
+                "alignCenter": "Allinea al centro",
+                "alignRight": "Allinea a destra",
+                "hideField": "Nascondi campo"
+            },
+            "form": {
+                "draftRestored": "Bozza non salvata del browser ripristinata.",
+                "discardDraft": "Scarta bozza del browser",
+                "noActivity": "Nessuna attività registrata finora.",
+                "rejectHint": "Spiega cosa deve correggere l’editor prima di inviare di nuovo.",
+                "rejectionNote": "Nota di rifiuto",
+                "previousNote": "Nota precedente: {{note}}"
+            },
+            "list": {
+                "newItem": "Nuovo item"
+            },
+            "filters": {
+                "clearAll": "Cancella tutto",
+                "fieldFilters": "Filtri sui campi",
+                "rulesHint": "Le regole sono combinate in AND e scritte nell’URL (<code>filter[field][_eq]=…</code>).",
+                "noFilterableFields": "Nessun campo filtrabile in questa collection.",
+                "value": "Valore",
+                "addRule": "Aggiungi regola",
+                "apply": "Applica"
+            },
+            "cell": {
+                "point": "Punto",
+                "points_one": "{{count}} punto",
+                "points_other": "{{count}} punti"
+            },
+            "kanban": {
+                "updated": "Aggiornato {{date}}"
+            },
+            "pageTitle": "Item — {{collection}}",
+            "selectItem": "Seleziona item {{id}}"
+        },
+        "collectionPages": {
+            "edit": "Modifica",
+            "sort": "Ordina",
+            "deleteCollection": "Elimina collection",
+            "singletonDescription": "<mono>{{slug}}</mono> · Collection singleton. Valori di questa voce. Definisci tipi e ordine dei campi in <link>Modifica campi</link>."
+        },
+        "editCollection": "Modifica collection"
     },
     "ai": {
         "drawer": {
@@ -1227,8 +1926,8 @@
         "askPlaceholder": "Chiedi all’assistente…",
         "askSomething": "Chiedi qualcosa…",
         "offlinePlaceholder": "AI offline…",
-        "attachTooltip": "Allega CSV, TXT, Excel o PDF (max 5 MB)",
-        "attachShortTooltip": "Allega CSV o TXT (max 5 MB)",
+        "attachTooltip": "Allega item, file, prompt salvati o importa CSV/TXT/Excel/PDF",
+        "attachShortTooltip": "Allega contesto o file di import",
         "attachAria": "Allega",
         "messageAria": "Messaggio",
         "dictationAria": "Dettatura",
@@ -1243,7 +1942,7 @@
         "askAi": "Chiedi all'AI",
         "assistantOffline": "Assistente offline",
         "assistantOnline": "Assistente online",
-        "aiOfflineHint": "AI offline — avvia LM Studio per abilitarla",
+        "aiOfflineHint": "AI non disponibile — verifica la configurazione del provider AI",
         "thinking": "Sto pensando",
         "copied": "Copiato negli appunti",
         "copyFailed": "Copia non riuscita",
@@ -1255,7 +1954,301 @@
         "removeAttachment": "Rimuovi {{name}}",
         "simulation": "Simulazione",
         "simulationHint": "Non scrive dati",
-        "dictationUnsupported": "La dettatura non è supportata in questo browser"
+        "dictationUnsupported": "La dettatura non è supportata in questo browser",
+        "context": {
+            "title": "Allega contesto",
+            "description": "Aggiungi item di collection, file della libreria o prompt salvati che l’assistente deve usare per questo messaggio.",
+            "attachTooltip": "Allega item, file o prompt salvati",
+            "tabs": {
+                "items": "Item",
+                "files": "File",
+                "prompts": "Prompt"
+            },
+            "searchPlaceholder": "Cerca…",
+            "searchAria": "Cerca contesto",
+            "collectionAria": "Collection",
+            "uploadImport": "Carica file di import",
+            "newPrompt": "Nuovo prompt",
+            "loading": "Caricamento…",
+            "emptyItems": "Nessun item leggibile trovato.",
+            "emptyFiles": "Nessun file trovato.",
+            "emptyPrompts": "Nessun prompt salvato.",
+            "selectedCount": "{{count}} selezionati",
+            "cancel": "Annulla",
+            "attachSelected": "Allega selezionati",
+            "promptName": "Nome",
+            "promptDescription": "Descrizione",
+            "promptBody": "Corpo del prompt",
+            "savePrompt": "Salva prompt",
+            "editPrompt": "Modifica prompt",
+            "deletePrompt": "Elimina prompt",
+            "promptRequired": "Nome e corpo sono obbligatori.",
+            "promptSaved": "Prompt salvato",
+            "promptSaveFailed": "Impossibile salvare il prompt",
+            "promptDeleted": "Prompt eliminato",
+            "promptDeleteFailed": "Impossibile eliminare il prompt",
+            "loadFailed": "Impossibile caricare il contesto"
+        },
+        "unableStartChat": "Impossibile avviare una nuova chat",
+        "chatDeleted": "Chat eliminata",
+        "unableDeleteChat": "Impossibile eliminare la chat",
+        "unableUpdatePin": "Impossibile aggiornare il pin",
+        "unableLoadMoreChats": "Impossibile caricare altre chat",
+        "chatsDeleted": "{{count}} chat eliminate",
+        "unableDeleteSelectedChats": "Impossibile eliminare le chat selezionate",
+        "noResponse": "Nessuna risposta dall’assistente",
+        "responseError": "Errore durante la risposta",
+        "attachmentUploadFailed": "Caricamento allegato non riuscito",
+        "writeMessageWithAttachments": "Scrivi un messaggio oltre agli allegati",
+        "noUserMessageToRegenerate": "Nessun messaggio utente da rigenerare",
+        "unablePrepareRegeneration": "Impossibile preparare la rigenerazione",
+        "messageResent": "Messaggio reinviato",
+        "messageCannotBeEmpty": "Il messaggio non può essere vuoto",
+        "unableEditMessage": "Impossibile modificare il messaggio",
+        "dictationError": "Errore di dettatura",
+        "unableStartDictation": "Impossibile avviare la dettatura",
+        "chat": "Chat",
+        "responseTryAgain": "Nessuna risposta dall’assistente. Riprova.",
+        "sendError": "Errore durante l’invio",
+        "loadMore": "Carica altri",
+        "yesterday": "Ieri",
+        "thisWeek": "Questa settimana",
+        "aWeekAgo": "Una settimana fa",
+        "thisMonth": "Questo mese",
+        "today": "Oggi",
+        "twoDaysAgo": "2 giorni fa",
+        "older": "Più vecchie",
+        "newChat": "Nuova chat",
+        "noConversations": "Nessuna conversazione.",
+        "openFullPage": "Apri a schermo intero",
+        "openPanel": "Apri nel pannello laterale",
+        "conversations": "Conversazioni",
+        "searchConversations": "Cerca conversazioni…",
+        "noConversationsMatch": "Nessuna conversazione corrisponde alla ricerca.",
+        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti.",
+        "conversationRegion": "Conversazione",
+        "tool": {
+            "title": {
+                "running": "Uso {{tool}}",
+                "done": "Ho usato {{tool}}",
+                "error": "Non sono riuscito a usare {{tool}}",
+                "denied": "Rifiutato: {{tool}}",
+                "approval": "{{tool}} richiede la tua approvazione"
+            },
+            "provider": {
+                "web_search": "Ho cercato sul web"
+            },
+            "steps_one": "Fatto in {{count}} passaggio",
+            "steps_other": "Fatto in {{count}} passaggi",
+            "stepsRunning_one": "Al lavoro, {{count}} passaggio finora",
+            "stepsRunning_other": "Al lavoro, {{count}} passaggi finora"
+        },
+        "approval": {
+            "approve": "Approva",
+            "reject": "Rifiuta",
+            "question": "Approvi questa azione?",
+            "hint": "L’assistente aspetta la tua risposta prima di continuare.",
+            "destructiveHint": "Questa azione elimina dati. L’assistente aspetta la tua risposta prima di continuare."
+        },
+        "actions": {
+            "copy": "Copia",
+            "copied": "Copiato",
+            "edit": "Modifica"
+        },
+        "retry": "Riprova",
+        "sendAgain": "Invia di nuovo",
+        "assistantMessagePdfTitle": "Messaggio dell’assistente",
+        "callingTool": "Chiamata {{tool}}…",
+        "importStatus": "Importazione {{status}}: {{progress}} — {{message}}",
+        "importState": {
+            "queued": "in coda",
+            "running": "in corso",
+            "done": "completata",
+            "failed": "non riuscita"
+        },
+        "markdown": {
+            "copyCode": "Copia codice",
+            "downloadFile": "Scarica file",
+            "viewFullscreen": "Schermo intero",
+            "exitFullscreen": "Esci da schermo intero",
+            "copyTable": "Copia tabella",
+            "copyTableAsMarkdown": "Copia tabella come Markdown",
+            "copyTableAsCsv": "Copia tabella come CSV",
+            "copyTableAsTsv": "Copia tabella come TSV",
+            "downloadTable": "Scarica tabella",
+            "downloadTableAsCsv": "Scarica tabella come CSV",
+            "downloadTableAsMarkdown": "Scarica tabella come Markdown",
+            "imageNotAvailable": "Immagine non disponibile",
+            "downloadImage": "Scarica immagine",
+            "openExternalLink": "Aprire il link esterno?",
+            "externalLinkWarning": "Stai per visitare un sito esterno.",
+            "close": "Chiudi",
+            "copyLink": "Copia link",
+            "copied": "Copiato",
+            "openLink": "Apri link"
+        },
+        "errors": {
+            "tooManyAttachments": "Puoi allegare al massimo 5 file per messaggio.",
+            "unsupportedAttachment": "Sono ammessi solo file CSV, TXT, XLSX o PDF.",
+            "attachmentTooLarge": "Il file supera il limite di 5 MB.",
+            "attachmentUploadFailed": "Caricamento dell’allegato non riuscito",
+            "connectionInterrupted": "La connessione al server AI si è interrotta (timeout, proxy o crash del modello). Controlla il provider AI e riprova con un prompt più breve.",
+            "network": "Errore di rete",
+            "noResponseStream": "Nessuno stream di risposta",
+            "stream": "Errore durante lo stream AI",
+            "streamInterrupted": "Connessione allo stream AI interrotta (timeout del proxy o modello lento). Controlla il provider AI e che fastcgi_read_timeout sia almeno 600 s, poi riprova.",
+            "loadConversations": "Impossibile caricare le conversazioni",
+            "truncate": "Impossibile troncare la conversazione",
+            "popupBlocked": "Popup bloccato: consenti le finestre popup per esportare il PDF."
+        },
+        "awaitingApproval": "In attesa della tua approvazione.",
+        "aTool": "uno strumento",
+        "toolFallback": "Completato con {{tools}}. Chiedimi di verificare il risultato se serve.",
+        "pinned": "Fissate",
+        "selectConversation": "Seleziona {{title}}",
+        "bulkDeleteTitle": "Eliminare le chat selezionate?",
+        "bulkDeleteDescription_one": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "bulkDeleteDescription_other": "Stai per eliminare {{count}} chat. L’azione non si può annullare.",
+        "reasoning": {
+            "thinking": "Sto ragionando…",
+            "thoughtFewSeconds": "Ha ragionato per qualche secondo",
+            "thoughtFor_one": "Ha ragionato per {{count}} secondo",
+            "thoughtFor_other": "Ha ragionato per {{count}} secondi"
+        },
+        "sources": {
+            "used_one": "{{count}} fonte usata",
+            "used_other": "{{count}} fonti usate"
+        },
+        "usage": {
+            "trigger": "Contesto usato: {{percent}}",
+            "input": "Input",
+            "output": "Output",
+            "reasoning": "Ragionamento",
+            "cache": "Cache"
+        },
+        "backToList": "Torna alle conversazioni",
+        "suggestedActions": {
+            "verifyImport": "Verifica importazione",
+            "exportCsv": "Esporta CSV",
+            "scheduleSync": "Pianifica sincronizzazione",
+            "addFields": "Aggiungi campi",
+            "showItems": "Mostra item",
+            "exportJson": "Esporta JSON",
+            "recentActivity": "Attività recente",
+            "aiOnly": "Solo IA"
+        },
+        "toolCalls": {
+            "DescribeFieldTypes": {
+                "_": "Lettura dei tipi di campo"
+            },
+            "ExportCollection": {
+                "_": "Esportazione di una collection"
+            },
+            "ExtractPdfText": {
+                "_": "Lettura del PDF"
+            },
+            "GetImportJobStatus": {
+                "_": "Controllo dell’importazione"
+            },
+            "ImportCollectionCsv": {
+                "_": "Importazione di un CSV"
+            },
+            "ImportRemoteJson": {
+                "_": "Importazione di dati da un URL"
+            },
+            "ManageAiSyncSources": {
+                "create": "Creazione di una sorgente di sincronizzazione",
+                "delete": "Spostamento nel cestino di una sorgente di sincronizzazione",
+                "disable": "Disattivazione di una sorgente di sincronizzazione",
+                "enable": "Attivazione di una sorgente di sincronizzazione",
+                "list": "Elenco delle sorgenti di sincronizzazione",
+                "update": "Modifica di una sorgente di sincronizzazione"
+            },
+            "ManageCollectionItems": {
+                "bulk_delete": "Spostamento nel cestino di più item",
+                "bulk_update": "Modifica di più item",
+                "create": "Creazione di un item",
+                "delete": "Spostamento nel cestino di un item",
+                "force_delete": "Eliminazione definitiva di un item",
+                "get": "Lettura di un item",
+                "list": "Elenco degli item",
+                "list_relation_options": "Elenco degli item collegabili",
+                "publish": "Pubblicazione di un item",
+                "restore": "Ripristino di un item",
+                "update": "Modifica di un item"
+            },
+            "ManageCollections": {
+                "apply_collection_pack": "Creazione di una collection da un modello",
+                "apply_field_pack": "Aggiunta di un pacchetto di campi",
+                "convert_field": "Cambio del tipo di un campo",
+                "create": "Creazione di una collection",
+                "create_field": "Aggiunta di un campo",
+                "delete": "Spostamento nel cestino di una collection",
+                "delete_field": "Rimozione di un campo",
+                "duplicate": "Duplicazione di una collection",
+                "force_delete": "Eliminazione definitiva di una collection",
+                "get": "Lettura di una collection",
+                "list": "Elenco delle collection",
+                "list_collection_packs": "Elenco dei modelli di collection",
+                "list_field_packs": "Elenco dei pacchetti di campi",
+                "restore": "Ripristino di una collection",
+                "update": "Modifica di una collection",
+                "update_field": "Modifica di un campo"
+            },
+            "ManageFiles": {
+                "create": "Creazione di un file",
+                "create_folder": "Creazione di una cartella",
+                "delete": "Spostamento nel cestino di un file",
+                "force_delete": "Eliminazione definitiva di un file",
+                "list": "Elenco dei file",
+                "move": "Spostamento di un file",
+                "move_many": "Spostamento di più file",
+                "rename": "Rinomina di un file",
+                "restore": "Ripristino di un file",
+                "save_attachment": "Salvataggio dell’allegato in File",
+                "search": "Ricerca tra i file",
+                "tag": "Assegnazione di tag a un file"
+            },
+            "ManageGroups": {
+                "create": "Creazione di un gruppo",
+                "delete": "Spostamento nel cestino di un gruppo",
+                "force_delete": "Eliminazione definitiva di un gruppo",
+                "get": "Lettura di un gruppo",
+                "list": "Elenco dei gruppi",
+                "restore": "Ripristino di un gruppo",
+                "update": "Modifica di un gruppo"
+            },
+            "ManageRoles": {
+                "create": "Creazione di un ruolo",
+                "delete": "Spostamento nel cestino di un ruolo",
+                "duplicate": "Duplicazione di un ruolo",
+                "get": "Lettura di un ruolo",
+                "list": "Elenco dei ruoli",
+                "list_permissions": "Elenco dei permessi",
+                "update": "Modifica di un ruolo"
+            },
+            "ManageUsers": {
+                "create": "Creazione di un utente",
+                "delete": "Spostamento nel cestino di un utente",
+                "force_delete": "Eliminazione definitiva di un utente",
+                "get": "Lettura di un utente",
+                "list": "Elenco degli utenti",
+                "restore": "Ripristino di un utente",
+                "update": "Modifica di un utente"
+            },
+            "QueryActivityLogs": {
+                "_": "Ricerca nell’activity log"
+            },
+            "QueryCollectionItems": {
+                "_": "Ricerca tra gli item"
+            },
+            "RollbackLastAiTurn": {
+                "_": "Annullamento delle ultime modifiche"
+            },
+            "SearchSimilarCollectionItems": {
+                "_": "Ricerca di item simili"
+            }
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1358,7 +2351,15 @@
         "healthWorkloadQueue": "Coda",
         "healthWorkloadLength": "Lunghezza",
         "healthWorkloadWait": "Attesa",
-        "healthWorkloadProcesses": "Proc"
+        "healthWorkloadProcesses": "Proc",
+        "statFilesHeadline": "Cartelle: {{count}}",
+        "statSizeContext": "Tutti i file, su ogni disco",
+        "statUploadsInProgress": "Upload in corso",
+        "statInProgressContext": "Upload a blocchi non ancora completati",
+        "statStaleUploads": "Upload stagnanti",
+        "statStaleContext": "Scaduti prima di finire",
+        "statFailedJobsHeadline": "Job falliti: {{count}}",
+        "healthWorkloadWaitSeconds": "{{seconds}}s"
     },
     "realtime": {
         "connected": "Realtime connesso",
@@ -1401,7 +2402,10 @@
         "showArchived": "Mostra archiviate",
         "showInbox": "Mostra chat",
         "deleteChat": "Elimina chat",
-        "deleteChatError": "Impossibile eliminare la chat."
+        "deleteChatError": "Impossibile eliminare la chat.",
+        "messagesRegion": "Messaggi",
+        "scrollToLatest": "Vai all’ultimo messaggio",
+        "backToList": "Torna alle chat"
     },
     "errors": {
         "notFound": {
@@ -1409,6 +2413,12 @@
             "title": "Pagina non trovata",
             "description": "La pagina richiesta non esiste o non è più disponibile.",
             "goHome": "Vai alla home"
+        },
+        "boundary": {
+            "title": "Qualcosa è andato storto",
+            "description": "L’interfaccia ha incontrato un errore imprevisto. Puoi provare a ricaricare la pagina.",
+            "tryAgain": "Riprova",
+            "reload": "Ricarica la pagina"
         }
     },
     "unsavedChanges": {
@@ -1424,15 +2434,15 @@
     },
     "activityLog": {
         "title": "Activity Log",
-        "description": "Audit trail in sola lettura di modifiche e eventi di autenticazione.",
         "searchPlaceholder": "Cerca descrizione o soggetto…",
         "allUsers": "Tutti gli utenti",
         "allActions": "Tutte le azioni",
         "allLogs": "Tutti i log",
         "filterByAction": "Filtra per azione",
         "filterByLog": "Filtra per nome log",
-        "dateFrom": "Data da",
-        "dateTo": "Data a",
+        "dateRange": "Intervallo di date",
+        "anyDate": "Qualsiasi data",
+        "clearDates": "Cancella date",
         "empty": "Nessuna attività per i filtri selezionati.",
         "system": "Sistema",
         "noChanges": "Nessuna modifica ai campi registrata.",
@@ -1478,7 +2488,8 @@
         },
         "exportCsv": "Esporta CSV",
         "exportJson": "Esporta JSON",
-        "exportHint": "Esporta i filtri attuali (max {{limit}} righe)."
+        "exportHint": "Esporta i filtri attuali (max {{limit}} righe).",
+        "ip": "IP"
     },
     "files": {
         "title": "File",
@@ -1517,7 +2528,11 @@
             "activeFiles": "File attivi",
             "trash": "Cestino",
             "selectedCount": "{{count}} selezionati",
-            "clearSelection": "Deseleziona"
+            "clearSelection": "Deseleziona",
+            "emptyTrash": "Svuota cestino",
+            "emptyTrashTitle": "Svuotare il cestino?",
+            "emptyTrashDescription": "Tutti gli elementi nel cestino, compresi i file salvati, verranno eliminati definitivamente. L’operazione non si può annullare. Avviene in background e riceverai una notifica al termine.",
+            "uploadOptions": "Altre opzioni di caricamento"
         },
         "sort": {
             "name": "Nome",
@@ -1526,10 +2541,6 @@
             "updated": "Aggiornato"
         },
         "empty": {
-            "trash": "Il cestino è vuoto",
-            "dropToUpload": "Trascina i file qui per caricarli",
-            "folderEmpty": "Questa cartella è vuota",
-            "orUseUpload": "Oppure usa il pulsante Carica sopra",
             "contextNewFolder": "Nuova cartella",
             "contextUploadFile": "Carica file",
             "contextUploadFolder": "Carica cartella"
@@ -1594,22 +2605,19 @@
             "referenceCount": "{{count}} riferimento",
             "referenceCountPlural": "{{count}} riferimenti",
             "moreRefs": "+{{count}} altri",
-            "focalPoint": "Punto focale",
             "fileNaming": "Nome file",
             "diskName": "Nome su disco",
             "downloadName": "Nome download",
-            "transforms": "Trasformazioni",
-            "translateX": "Trasla X",
-            "translateY": "Trasla Y",
-            "scale": "Scala",
-            "focalX": "Focale X",
-            "focalY": "Focale Y",
-            "mustBeNumber": "{{field}} deve essere un numero",
             "updated": "File aggiornato",
             "replaced": "File sostituito",
             "failedSave": "Salvataggio file non riuscito",
             "failedReplace": "Sostituzione file non riuscita",
-            "failedScanRefs": "Scansione riferimenti non riuscita"
+            "failedScanRefs": "Scansione riferimenti non riuscita",
+            "focalReadout": "Punto focale: X {{x}}% · Y {{y}}%",
+            "focalNotSet": "Punto focale: non impostato (centro)",
+            "focalPickerLabel": "Imposta il punto focale. {{readout}}. Fai clic sull’immagine o usa le frecce.",
+            "focalHint": "Fai clic per impostare il punto focale",
+            "focalReset": "Riporta al centro"
         },
         "tags": {
             "label": "Tag",
@@ -1620,7 +2628,9 @@
             "placeholder": "Digita un tag e premi Invio",
             "exactMatch": "Corrispondenza esatta — verrà riusato il tag “{{name}}”",
             "existing": "Tag esistenti",
-            "moreTags": "{{count}} altri tag"
+            "moreTags": "{{count}} altri tag",
+            "create": "Crea “{{name}}”",
+            "remove": "Rimuovi tag {{name}}"
         },
         "folderPicker": {
             "search": "Cerca cartelle…",
@@ -1659,12 +2669,254 @@
             "zipFailed": "Preparazione zip non riuscita",
             "zipPreparing": "Preparazione zip — riceverai una notifica quando è pronto.",
             "duplicationStarted": "Duplicazione avviata — riceverai una notifica al termine",
-            "duplicated": "File duplicato"
+            "duplicated": "File duplicato",
+            "trashEmptying": "Svuotamento del cestino in background…",
+            "trashEmptied": "Cestino svuotato",
+            "trashEmptyFailed": "Impossibile svuotare il cestino"
         },
         "card": {
             "select": "Seleziona {{name}}",
             "privateBadge": "Privato",
-            "privateTitle": "Privato — richiede Read private sui ruoli API"
+            "privateTitle": "Privato — richiede Read private sui ruoli API",
+            "moreActions": "Altre azioni per {{name}}",
+            "tagsMenu_one": "{{count}} tag su {{name}}",
+            "tagsMenu_other": "{{count}} tag su {{name}}"
+        },
+        "picker": {
+            "title": "Scegli file",
+            "descriptionMultiple": "Fai clic sui file per selezionarli, poi conferma qui sotto",
+            "description": "Sfoglia le cartelle o carica un nuovo file",
+            "empty": "Nessun file in questa cartella",
+            "chooseFiles": "Scegli i file",
+            "chooseCount": "Scegli {{count}}"
+        },
+        "dropzone": {
+            "dropToUpload": "Rilascia qui i file per caricarli",
+            "dropOrBrowse": "Rilascia qui i file o sfoglia",
+            "chunkedHint": "I file grandi vengono caricati a blocchi automaticamente",
+            "chooseFiles": "Scegli i file"
         }
+    },
+    "confirmDestructive": {
+        "typeToConfirm": "Digita \"{{name}}\" per confermare",
+        "deletePermanently": "Elimina definitivamente",
+        "deleteAiChatTitle": "Eliminare questa chat?",
+        "deleteAiChatDescription": "La conversazione e tutti i suoi messaggi verranno eliminati.",
+        "deletePromptTitle": "Eliminare il prompt “{{name}}”?",
+        "deletePromptDescription": "Il prompt salvato non sarà più disponibile per nessuno.",
+        "deleteMessageTitle": "Eliminare questo messaggio?",
+        "deleteMessageDescription": "Il messaggio verrà rimosso dalla chat per tutti.",
+        "deleteDirectChatTitle": "Eliminare questa chat?",
+        "deleteDirectChatDescription": "La chat verrà rimossa dalle tue chat."
+    },
+    "itemConfirm": {
+        "deleteTitle": "Eliminare l’item “{{name}}”?",
+        "deleteDescription": "L’item verrà eliminato in modo soft e rimosso dall’elenco attivo.",
+        "forceDeleteTitle": "Eliminare definitivamente l’item “{{name}}”?",
+        "forceDeleteDescription": "L’item verrà rimosso definitivamente. L’operazione non può essere annullata.",
+        "bulkDeleteTitle": "Eliminare {{count}} item selezionati?",
+        "bulkDeleteDescription": "Gli item selezionati verranno eliminati in modo soft e rimossi dall’elenco attivo.",
+        "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} item selezionati?",
+        "bulkForceDeleteDescription": "Gli item selezionati verranno rimossi definitivamente. L’operazione non può essere annullata.",
+        "rejectDraftTitle": "Rifiutare la bozza di “{{name}}”?",
+        "publishDraftTitle": "Pubblicare la bozza di “{{name}}”?",
+        "publishDraftDescription": "Promuove la bozza non pubblicata nei valori pubblicati. Lo spazio bozza verrà svuotato.",
+        "discardDraftTitle": "Scartare la bozza di “{{name}}”?",
+        "discardDraftDescription": "Elimina la bozza non pubblicata. I valori pubblicati restano invariati.",
+        "restoreRevisionTitle": "Ripristinare la revisione di “{{name}}”?",
+        "restoreRevisionDescription": "I valori correnti verranno sovrascritti.",
+        "hardRestoreRevisionTitle": "Hard restore della revisione di “{{name}}”?",
+        "hardRestoreRevisionDescription": "I valori pubblicati correnti verranno sovrascritti immediatamente. Preferisci Confronta → Applica per il soft restore."
+    },
+    "fieldConfirm": {
+        "deleteTitle": "Eliminare il campo “{{name}}”?",
+        "deleteDescription": "L’operazione non può essere annullata."
+    },
+    "users": {
+        "confirm": {
+            "bulkDeleteTitle": "Eliminare {{count}} utenti selezionati?",
+            "bulkDeleteDescription": "Gli utenti selezionati verranno eliminati in modo soft.",
+            "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} utenti selezionati?",
+            "bulkForceDeleteDescription": "Gli utenti selezionati verranno rimossi definitivamente. L’operazione non può essere annullata."
+        },
+        "title": "Utenti",
+        "newUser": "Nuovo utente",
+        "searchPlaceholder": "Cerca utenti…",
+        "searchTrashPlaceholder": "Cerca nel cestino…",
+        "sortBy": "Ordina per",
+        "activeUsers": "Utenti attivi",
+        "columns": {
+            "lastName": "Cognome",
+            "firstName": "Nome",
+            "email": "Email",
+            "created": "Creato",
+            "updated": "Aggiornato",
+            "name": "Nome",
+            "roles": "Ruoli",
+            "groups": "Gruppi",
+            "status": "Stato",
+            "actions": "Azioni"
+        },
+        "status": {
+            "active": "Attivo",
+            "inactive": "Inattivo"
+        },
+        "form": {
+            "editTitle": "Modifica utente",
+            "editDescription": "Aggiorna profilo, ruoli diretti e appartenenza ai gruppi. I gruppi ereditano i permessi e le ACL di collezioni/file dei ruoli associati.",
+            "createDescription": "Crea un utente e assegna ruoli diretti e/o gruppi. Se molti utenti condividono gli stessi ruoli, preferisci i gruppi.",
+            "requiredHint": "I campi contrassegnati con * sono obbligatori.",
+            "emailHint": "Usa un indirizzo email valido, ad esempio",
+            "username": "Nome utente",
+            "newPasswordOptional": "Nuova password (facoltativa)",
+            "selectAtLeastOneRole": "Seleziona almeno un ruolo",
+            "selectRoles": "Seleziona ruoli…",
+            "groupsHint": "I ruoli dei gruppi si sommano ai ruoli diretti per i permessi di amministrazione e l’accesso a collezioni/file.",
+            "create": "Crea"
+        }
+    },
+    "groups": {
+        "confirm": {
+            "bulkDeleteTitle": "Eliminare {{count}} gruppi selezionati?",
+            "bulkDeleteDescription": "I gruppi selezionati verranno eliminati in modo soft.",
+            "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} gruppi selezionati?",
+            "bulkForceDeleteDescription": "I gruppi selezionati verranno rimossi definitivamente. L’operazione non può essere annullata.",
+            "forceDeleteTitle": "Eliminare definitivamente il gruppo “{{name}}”?",
+            "forceDeleteDescription": "Il gruppo verrà rimosso definitivamente. L’operazione non può essere annullata."
+        },
+        "title": "Gruppi",
+        "newGroup": "Nuovo gruppo",
+        "searchPlaceholder": "Cerca gruppi…",
+        "searchTrashPlaceholder": "Cerca nel cestino…",
+        "sortBy": "Ordina per",
+        "columns": {
+            "name": "Nome",
+            "slug": "Slug",
+            "roles": "Ruoli",
+            "members": "Membri",
+            "actions": "Azioni"
+        },
+        "empty": "Ancora nessun gruppo.",
+        "membersCount_one": "{{count}} membro",
+        "membersCount_other": "{{count}} membri",
+        "form": {
+            "editTitle": "Modifica gruppo",
+            "description": "Associa ruoli Spatie a questo gruppo affinché i membri ereditino i permessi di amministrazione e le ACL di collezioni/file legate a quei ruoli. Per gruppi numerosi preferisci i gruppi invece di assegnare i ruoli utente per utente.",
+            "descriptionLabel": "Descrizione",
+            "rolesHint": "I membri ereditano i permessi Spatie e le matrici di accesso a collezioni/file di questi ruoli.",
+            "users": "Utenti",
+            "create": "Crea"
+        }
+    },
+    "pendingToolCalls": {
+        "head": "Approvazioni strumenti AI",
+        "description": "Chiamate MCP in attesa di un utente con il permesso corrispondente.",
+        "colTool": "Strumento",
+        "colArgs": "Argomenti",
+        "colRequester": "Richiesto da",
+        "colExpires": "Scade",
+        "colActions": "Azioni",
+        "empty": "Nessuna approvazione in sospeso.",
+        "approve": "Approva",
+        "reject": "Rifiuta"
+    },
+    "deploy": {
+        "button": "Deploy"
+    },
+    "richText": {
+        "bold": "Grassetto",
+        "italic": "Corsivo",
+        "heading": "Titolo",
+        "heading2": "Titolo 2",
+        "heading3": "Titolo 3",
+        "edit": "Modifica",
+        "preview": "Anteprima",
+        "image": "Immagine",
+        "chooseImages": "Scegli immagini",
+        "addTag": "Aggiungi tag…",
+        "strikethrough": "Barrato",
+        "link": "Link",
+        "bulletList": "Elenco puntato",
+        "orderedList": "Elenco numerato",
+        "quote": "Citazione",
+        "code": "Codice",
+        "undo": "Annulla",
+        "redo": "Ripeti",
+        "table": "Tabella",
+        "linkUrl": "URL del link",
+        "applyLink": "Applica",
+        "removeLink": "Rimuovi link",
+        "headingLevel": "Titolo {{level}}",
+        "removeTag": "Rimuovi tag {{name}}",
+        "imageFromComputer": "Carica dal computer",
+        "imageFromLibrary": "Scegli dalla libreria",
+        "imageFromUrl": "Importa da URL",
+        "imageOnly": "Scegli un file immagine.",
+        "imageUploadFailed": "Caricamento immagine non riuscito.",
+        "uploadingImage": "Caricamento immagine…",
+        "insertTable": "Inserisci tabella",
+        "insertTableDescription": "Scegli righe e colonne della tabella markdown.",
+        "tableRows": "Righe",
+        "tableColumns": "Colonne",
+        "createTable": "Crea",
+        "nothingToPreview": "Niente da visualizzare."
+    },
+    "permissions": {
+        "columns": {
+            "name": "Nome",
+            "guard": "Guard"
+        },
+        "empty": "Nessun permesso nel database. Esegui la sincronizzazione.",
+        "sync": "Sincronizza dall'enum",
+        "description": "I permessi sono definiti in <code>PermissionEnum</code> e sincronizzati nel database. Assegnali ai ruoli dalla pagina di modifica del ruolo."
+    },
+    "passwordInput": {
+        "strength": "Robustezza della password",
+        "meetsPolicy": "Rispetta la policy password del progetto.",
+        "keepGoing": "Continua per rispettare la policy password del progetto.",
+        "generate": "Genera una password sicura"
+    },
+    "jobs": {
+        "title": "Job",
+        "pendingCount": "In coda: {{count}}",
+        "pendingTitle": "In attesa (campione)",
+        "failedTitle": "Job falliti",
+        "pendingEmpty": "Nessun job in attesa.",
+        "failedEmpty": "Nessun job fallito.",
+        "scopeHint": "Lo stato dei job di dominio (import AI, zip) resta nelle rispettive interfacce: questa pagina monitora solo le tabelle della coda Laravel.",
+        "retry": "Riprova",
+        "columns": {
+            "id": "ID",
+            "job": "Job",
+            "queue": "Coda",
+            "attempts": "Tentativi",
+            "failedAt": "Fallito il",
+            "exception": "Eccezione",
+            "actions": "Azioni"
+        }
+    },
+    "revisions": {
+        "title": "Revisioni",
+        "drawerDescription": "Seleziona una revisione da confrontare con l’elemento attuale. Applica la unisce al modulo: salva per mantenerla.",
+        "pageTitle": "Cronologia — Elemento #{{id}}",
+        "pageDescription": "Seleziona due revisioni da confrontare. Ripristina scrive lo snapshot come nuovo aggiornamento.",
+        "backToItem": "Torna all’elemento",
+        "emptyFiltered": "Nessuna revisione in questo intervallo. Cancella il filtro o allarga le date.",
+        "empty": "Ancora nessuna revisione. Salvataggi, bozze, pubblicazioni e ripristini compaiono qui.",
+        "hard": "Diretto",
+        "hardRestore": "Ripristino diretto",
+        "hardRestoreHint": "Ripristino diretto (scrive subito)",
+        "restore": "Ripristina",
+        "compare": "Confronta",
+        "compareHint": "Seleziona due revisioni per vedere le differenze.",
+        "field": "Campo",
+        "selectRevision": "Seleziona revisione #{{id}}"
+    },
+    "pagination": {
+        "previous": "Precedente",
+        "next": "Successiva",
+        "goToPage": "Vai alla pagina {{page}}",
+        "goToPreviousPage": "Vai alla pagina precedente",
+        "goToNextPage": "Vai alla pagina successiva"
     }
 }

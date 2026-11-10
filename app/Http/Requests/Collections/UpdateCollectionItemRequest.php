@@ -5,7 +5,7 @@ namespace App\Http\Requests\Collections;
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
+use App\Services\Collections\CollectionItemDataRuleBuilderService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -60,7 +60,7 @@ class UpdateCollectionItemRequest extends FormRequest
 
         return [
             ...$base,
-            ...app(CollectionItemDataRuleBuilder::class)->rules(
+            ...app(CollectionItemDataRuleBuilderService::class)->rules(
                 $collection,
                 false,
                 $excludeItemId,
@@ -81,7 +81,7 @@ class UpdateCollectionItemRequest extends FormRequest
             if (! is_array($data)) {
                 return;
             }
-            app(CollectionItemDataRuleBuilder::class)->assertKnownKeysOnly($collection, $data);
+            app(CollectionItemDataRuleBuilderService::class)->assertKnownKeysOnly($collection, $data);
         });
     }
 }

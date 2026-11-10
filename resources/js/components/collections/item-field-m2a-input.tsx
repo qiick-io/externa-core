@@ -1,23 +1,16 @@
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { NativeSelect } from '@/components/ui/native-select';
 import { parseM2aFieldSettings } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
-import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
+import { moveItem, newListItemId } from '@/lib/list-items';
+import type { FieldDef } from '@/types';
 
 type M2aBlock = {
     id: string;
@@ -27,35 +20,6 @@ type M2aBlock = {
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
-}
-
-function newBlockId(): string {
-    if (
-        typeof crypto !== 'undefined' &&
-        typeof crypto.randomUUID === 'function'
-    ) {
-        try {
-            return crypto.randomUUID();
-        } catch {
-            // some embedded webviews expose the method but throw
-        }
-    }
-
-    // ponytail: UUID v4 fallback when crypto.randomUUID is missing
-    return `m2a-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function moveItem<T>(items: T[], from: number, to: number): T[] {
-    const next = items.slice();
-    const [item] = next.splice(from, 1);
-
-    if (item === undefined) {
-        return items;
-    }
-
-    next.splice(to, 0, item);
-
-    return next;
 }
 
 function parseM2aBlocks(defaultValue: unknown): M2aBlock[] {
@@ -80,7 +44,7 @@ function parseM2aBlocks(defaultValue: unknown): M2aBlock[] {
 
         return [
             {
-                id: newBlockId(),
+                id: newListItemId(),
                 related_collection_id: (
                     entry as {
                         related_collection_id: number;
@@ -113,6 +77,7 @@ export function M2aFieldInput({
     readonly: boolean;
     relatedCollections: RelatedCollectionOption[];
 }) {
+    const { t } = useTranslation();
     const m2aSettings = parseM2aFieldSettings(field.settings);
     const allowedCollections = relatedCollections.filter((collection) =>
         m2aSettings.allowedCollectionIds.includes(collection.id),
@@ -143,7 +108,7 @@ export function M2aFieldInput({
         setBlocks((current) => [
             ...current,
             {
-                id: newBlockId(),
+                id: newListItemId(),
                 related_collection_id: firstCollection.id,
                 related_item_id: 0,
             },
@@ -233,13 +198,13 @@ export function M2aFieldInput({
                                     <button
                                         type="button"
                                         className="drag-handle text-muted-foreground"
-                                        aria-label="Drag to reorder"
+                                        aria-label={t('a11y.dragToReorder')}
                                     >
                                         <GripVertical className="size-4" />
                                     </button>
                                 ) : null}
-                                <select
-                                    className={cn(inputLike, 'max-w-xs')}
+                                <NativeSelect
+                                    className="max-w-xs"
                                     value={block.related_collection_id}
                                     disabled={readonly}
                                     onChange={(event) =>
@@ -259,44 +224,52 @@ export function M2aFieldInput({
                                             {collection.name}
                                         </option>
                                     ))}
-                                </select>
+                                </NativeSelect>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
+                                        <ButtonGroup>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={blockIndex === 0}
+                                                aria-label={t(
+                                                    'a11y.moveBlockUp',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, -1)
+                                                }
+                                            >
+                                                <ArrowUp className="size-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                disabled={
+                                                    blockIndex ===
+                                                    blocks.length - 1
+                                                }
+                                                aria-label={t(
+                                                    'a11y.moveBlockDown',
+                                                )}
+                                                onClick={() =>
+                                                    moveBlock(block.id, 1)
+                                                }
+                                            >
+                                                <ArrowDown className="size-4" />
+                                            </Button>
+                                        </ButtonGroup>
                                         <Button
                                             type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={blockIndex === 0}
-                                            aria-label="Move block up"
-                                            onClick={() =>
-                                                moveBlock(block.id, -1)
-                                            }
-                                        >
-                                            <ArrowUp className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={
-                                                blockIndex === blocks.length - 1
-                                            }
-                                            aria-label="Move block down"
-                                            onClick={() =>
-                                                moveBlock(block.id, 1)
-                                            }
-                                        >
-                                            <ArrowDown className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 removeBlock(block.id)
                                             }
                                         >
-                                            Remove
+                                            {t(
+                                                'collections.items.blocks.remove',
+                                            )}
                                         </Button>
                                     </div>
                                 ) : null}
@@ -306,12 +279,15 @@ export function M2aFieldInput({
                                 value={selectedIds}
                                 disabled={readonly}
                                 multiple={false}
+                                aria-label={field.name}
                                 onChange={(next) =>
                                     updateBlock(block.id, {
                                         related_item_id: next[0] ?? 0,
                                     })
                                 }
-                                placeholder="Select block item…"
+                                placeholder={t(
+                                    'collections.items.blocks.selectItem',
+                                )}
                             />
                         </div>
                     );
@@ -336,16 +312,17 @@ export function M2aFieldInput({
             {!readonly ? (
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     disabled={allowedCollections.length === 0}
                     onClick={addBlock}
                 >
-                    Add block
+                    {t('collections.items.blocks.addBlock')}
                 </Button>
             ) : null}
             {blocks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No blocks yet.</p>
+                <p className="text-sm text-muted-foreground">
+                    {t('collections.items.blocks.empty')}
+                </p>
             ) : null}
         </div>
     );

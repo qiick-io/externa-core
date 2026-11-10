@@ -13,14 +13,15 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Authorization\EffectivePermissionResolver;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Support\Collections\CollectionItemDataAccessor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -29,10 +30,10 @@ use Illuminate\Validation\ValidationException;
 class ChatService
 {
     public function __construct(
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private CollectionPermissionGuard $permissionGuard,
-        private EffectivePermissionResolver $permissionResolver,
-        private ChatParticipantSync $participantSync,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private CollectionPermissionGuardService $permissionGuard,
+        private EffectivePermissionResolverService $permissionResolver,
+        private ChatParticipantSyncService $participantSync,
         private CollectionItemDataAccessor $itemDataAccessor,
     ) {}
 
@@ -74,7 +75,7 @@ class ChatService
 
         if (count($userIds) < 2 && $groupIds === []) {
             throw ValidationException::withMessages([
-                'user_ids' => 'Add at least one other person or a group.',
+                'user_ids' => __('Add at least one other person or a group.'),
             ]);
         }
 
@@ -90,42 +91,52 @@ class ChatService
 
         if ($users->count() !== count($userIds)) {
             throw ValidationException::withMessages([
-                'user_ids' => 'One or more users are invalid.',
+                'user_ids' => __('One or more users are invalid.'),
             ]);
         }
 
         $groups = UserGroup::query()->whereIn('id', $groupIds)->get();
         if ($groups->count() !== count($groupIds)) {
             throw ValidationException::withMessages([
-                'group_ids' => 'One or more groups are invalid.',
+                'group_ids' => __('One or more groups are invalid.'),
             ]);
         }
 
-        $chat = Chat::query()->create([
-            'kind' => Chat::KIND_DIRECT,
-            'created_by_user_id' => $creator->id,
-        ]);
+        return DB::transaction(function () use ($creator, $userIds, $groupIds, $groups): Chat {
+            // Serialize concurrent creates for the same participant set (creator row lock).
+            User::query()->whereKey($creator->id)->lockForUpdate()->first();
 
-        foreach ($userIds as $userId) {
-            ChatParticipant::query()->create([
-                'chat_id' => $chat->id,
-                'user_id' => $userId,
-                'user_group_id' => null,
-                'source' => ChatParticipant::SOURCE_EXPLICIT,
+            $existing = $this->matchingDirectChat($userIds, $groupIds);
+            if ($existing instanceof Chat) {
+                return $existing;
+            }
+
+            $chat = Chat::query()->create([
+                'kind' => Chat::KIND_DIRECT,
+                'created_by_user_id' => $creator->id,
             ]);
-        }
 
-        foreach ($groups as $group) {
-            ChatParticipant::query()->create([
-                'chat_id' => $chat->id,
-                'user_id' => null,
-                'user_group_id' => $group->id,
-                'source' => ChatParticipant::SOURCE_EXPLICIT,
-            ]);
-            $this->participantSync->expandGroup($chat, $group);
-        }
+            foreach ($userIds as $userId) {
+                ChatParticipant::query()->create([
+                    'chat_id' => $chat->id,
+                    'user_id' => $userId,
+                    'user_group_id' => null,
+                    'source' => ChatParticipant::SOURCE_EXPLICIT,
+                ]);
+            }
 
-        return $chat;
+            foreach ($groups as $group) {
+                ChatParticipant::query()->create([
+                    'chat_id' => $chat->id,
+                    'user_id' => null,
+                    'user_group_id' => $group->id,
+                    'source' => ChatParticipant::SOURCE_EXPLICIT,
+                ]);
+                $this->participantSync->expandGroup($chat, $group);
+            }
+
+            return $chat;
+        });
     }
 
     public function assertAccessible(Request $request, Chat $chat): void
@@ -209,7 +220,7 @@ class ChatService
         return $userCount > 2;
     }
 
-    public function userCanReadCollection(User $user, Collection $collection): bool
+    public function canUserReadCollection(User $user, Collection $collection): bool
     {
         if (! $user->is_active) {
             return false;
@@ -238,16 +249,104 @@ class ChatService
     }
 
     /**
+     * Collection IDs the user may read (empty list means unrestricted Spatie-only admin:
+     * no collection_permissions grants → all collections with CanShowCollections).
+     *
+     * @return array{unrestricted: bool, ids: list<int>}
+     */
+    public function readableCollectionScope(User $user): array
+    {
+        if (! $user->is_active || ! $this->permissionResolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
+            return ['unrestricted' => false, 'ids' => []];
+        }
+
+        if ($this->permissionResolver->isSuperAdmin($user)) {
+            return ['unrestricted' => true, 'ids' => []];
+        }
+
+        $roleIds = $this->permissionResolver->effectiveRoleIds($user);
+        $readable = [];
+        $hasAnyGrant = false;
+
+        foreach ($roleIds as $roleId) {
+            $matrix = $this->permissionGuard->matrixForRole($roleId);
+            if ($matrix !== []) {
+                $hasAnyGrant = true;
+            }
+            foreach ($matrix as $collectionId => $actions) {
+                if (($actions[CollectionPermissionActionEnum::Read->value] ?? false) === true) {
+                    $readable[(int) $collectionId] = true;
+                }
+            }
+        }
+
+        // Spatie-only: no collection_permissions rows → treat as unrestricted.
+        if (! $hasAnyGrant) {
+            return ['unrestricted' => true, 'ids' => []];
+        }
+
+        return ['unrestricted' => false, 'ids' => array_keys($readable)];
+    }
+
+    /**
      * @return Builder<Chat>
      */
     public function itemChatsFor(Request $request, User $user): Builder
     {
-        return Chat::query()
+        $query = Chat::query()
             ->where('kind', Chat::KIND_ITEM)
             ->whereHas('collection')
             ->whereHas('item')
-            ->with(['collection:id,name,icon,color', 'item'])
+            ->with([
+                'collection:id,name,icon,color',
+                // Eager labels for serializeSummary / itemLabel (avoids N+1 assemble).
+                'item.fieldValues',
+                'item.collection.fields',
+            ])
             ->orderByDesc('updated_at');
+
+        $scope = $this->readableCollectionScope($user);
+        if (! $scope['unrestricted']) {
+            // Empty whereIn → Laravel emits `0 = 1` (no raw SQL in this file).
+            $query->whereIn('collection_id', $scope['ids']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Apply hub search in SQL (collection name, message body, participant names).
+     *
+     * @param  Builder<Chat>  $query
+     * @return Builder<Chat>
+     */
+    public function applyHubSearch(Builder $query, string $q, User $viewer): Builder
+    {
+        $needle = trim($q);
+        if ($needle === '') {
+            return $query;
+        }
+
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle);
+        $like = '%'.$escaped.'%';
+        $likeOp = DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function (Builder $outer) use ($like, $likeOp, $viewer): void {
+            $outer->whereHas('collection', function (Builder $collection) use ($like, $likeOp): void {
+                $collection->where('name', $likeOp, $like);
+            })->orWhereHas('messages', function (Builder $messages) use ($like, $likeOp): void {
+                $messages->where('body', $likeOp, $like);
+            })->orWhereHas('participants.user', function (Builder $users) use ($like, $likeOp, $viewer): void {
+                $users->where('users.id', '!=', $viewer->id)
+                    ->where(function (Builder $name) use ($like, $likeOp): void {
+                        $name->where('first_name', $likeOp, $like)
+                            ->orWhere('last_name', $likeOp, $like)
+                            ->orWhere('email', $likeOp, $like);
+                    });
+            })->orWhereHas('participants.group', function (Builder $groups) use ($like, $likeOp): void {
+                $groups->where('name', $likeOp, $like);
+            });
+        });
     }
 
     /**
@@ -362,7 +461,8 @@ class ChatService
             'title' => $title,
             'collection_id' => $chat->collection_id !== null ? (int) $chat->collection_id : null,
             'collection_item_id' => $chat->collection_item_id !== null ? (int) $chat->collection_item_id : null,
-            'collection_name' => $chat->collection?->name,
+            // Only item chats belong to a collection; a direct chat never loads the relation.
+            'collection_name' => $chat->isItem() ? $chat->collection?->name : null,
             'collection_icon' => $chat->isItem() ? ($chat->collection?->icon) : null,
             'collection_color' => $chat->isItem() ? ($chat->collection?->color) : null,
             'item_label' => $chat->isItem() && $chat->item instanceof CollectionItem
@@ -393,7 +493,7 @@ class ChatService
             return trim($title);
         }
 
-        $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+        $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
         foreach (['name', 'label', 'heading'] as $field) {
             $value = $assembled[$field] ?? null;
             if (is_string($value) && trim($value) !== '') {
@@ -463,7 +563,7 @@ class ChatService
         return $out;
     }
 
-    public function matchesQuery(Chat $chat, string $q, User $viewer): bool
+    public function isMatchingQuery(Chat $chat, string $q, User $viewer): bool
     {
         $needle = mb_strtolower($q);
         $hay = mb_strtolower($this->titleFor($chat, $viewer));
@@ -515,7 +615,7 @@ class ChatService
                 return false;
             }
 
-            if (! $this->userCanReadCollection($user, $collection)) {
+            if (! $this->canUserReadCollection($user, $collection)) {
                 return false;
             }
 
@@ -560,14 +660,14 @@ class ChatService
 
         if ($users->count() !== count($userIds)) {
             throw ValidationException::withMessages([
-                'user_ids' => 'One or more users are invalid.',
+                'user_ids' => __('One or more users are invalid.'),
             ]);
         }
 
         $groups = UserGroup::query()->whereIn('id', $groupIds)->get();
         if ($groups->count() !== count($groupIds)) {
             throw ValidationException::withMessages([
-                'group_ids' => 'One or more groups are invalid.',
+                'group_ids' => __('One or more groups are invalid.'),
             ]);
         }
 

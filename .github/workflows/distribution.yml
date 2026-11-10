@@ -1,0 +1,23 @@
+# Self-hosted distribution smoke (qiick standards): create-project from this
+# commit, non-interactive externa:install, /health/live and /health/ready, and
+# externa:upgrade from the previous release tag.
+name: distribution
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    uses: qiick-io/app-ui/.github/workflows/app-distribution-smoke.yml@v0.2.1
+    with:
+      package: qiick/externa-core
+      command: externa

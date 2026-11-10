@@ -1,4 +1,5 @@
 import { Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { Drawer } from '@/components/ui/drawer';
@@ -75,6 +76,7 @@ export function CollectionEditButton({
     variant?:
         'outline' | 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
 
     if (!can(PermissionEnum.CanEditCollections)) {
@@ -85,7 +87,7 @@ export function CollectionEditButton({
         <HeaderIconButton
             type="button"
             variant={variant}
-            label="Edit collection"
+            label={t('collections.editCollection')}
             onClick={() => {
                 collectionForm.setEditing(collection);
                 collectionForm.setOpen(true);

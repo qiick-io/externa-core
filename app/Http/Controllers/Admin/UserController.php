@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
@@ -25,6 +26,7 @@ use Inertia\Response;
 class UserController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
     use ValidatesSearchQueryTrait;
 
     /**
@@ -82,7 +84,7 @@ class UserController extends Controller
         }
 
         $users = $query
-            ->paginate($request->integer('per_page', 15))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         if ($wantsJson) {

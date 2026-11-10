@@ -4,8 +4,8 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 
@@ -73,10 +73,10 @@ test('api create without auth user leaves audit ids null', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Anon'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Anon'], true),
     );
 
     $item->refresh();

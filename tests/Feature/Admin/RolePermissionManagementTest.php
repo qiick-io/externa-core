@@ -175,7 +175,7 @@ test('authorized users can manage permissions and sync from enum', function () {
     $this->actingAs($actor);
 
     $totalPermissions = count(PermissionEnum::cases());
-    $perPage = 15;
+    $perPage = 20;
 
     $this->get(route('permissions.index'))
         ->assertOk()
@@ -235,4 +235,22 @@ test('legacy access paths redirect under settings', function () {
     $this->get('/roles')->assertRedirect('/settings/roles');
     $this->get('/permissions')->assertRedirect('/settings/permissions');
     $this->get('/api-keys')->assertRedirect('/settings/api-keys');
+});
+
+test('role list carries the counted permissions and the json picker omits the count', function () {
+    $actor = grantRolePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowRoles->value,
+        PermissionEnum::CanShowUsers->value,
+    ]);
+    $this->actingAs($actor);
+
+    $this->get(route('roles.index', ['search' => 'test-role-manager']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('roles.data.0.permissions_count', 2)
+        );
+
+    $this->getJson(route('roles.index'))
+        ->assertOk()
+        ->assertJsonMissingPath('data.0.permissions_count');
 });

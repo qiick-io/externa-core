@@ -5,17 +5,17 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
 
-    app(SettingsRepository::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->setMany(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         [
             'content_locales' => ['en', 'it'],
@@ -59,7 +59,7 @@ test('item store persists multi-locale values for translatable fields', function
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
     expect($item)->not->toBeNull();
 
-    $data = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $data = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($data['title'])->toBe(['en' => 'Hello', 'it' => 'Ciao']);
     expect($data['body'])->toBe(['en' => 'English body', 'it' => 'Corpo italiano']);
 });
@@ -79,8 +79,8 @@ test('item update can fill target locale while keeping source locale', function 
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync(
         $item,
         $collection,
@@ -99,7 +99,7 @@ test('item update can fill target locale while keeping source locale', function 
     ])->assertRedirect();
 
     $item->refresh();
-    $data = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $data = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($data['title']['en'] ?? null)->toBe('Hello');
     expect($data['title']['it'] ?? null)->toBe('Ciao');
 });

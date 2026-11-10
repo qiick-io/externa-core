@@ -4,8 +4,8 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function (): void {
@@ -34,8 +34,8 @@ test('items export downloads filtered csv and json', function () {
         'type' => FieldTypeEnum::String,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $published = $collection->items()->create([]);
     $writer->sync($published, $collection, $normalizer->normalize($collection, [

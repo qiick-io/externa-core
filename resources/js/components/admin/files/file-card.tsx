@@ -1,14 +1,16 @@
-import { Star } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { EllipsisVertical, Star, Tag } from 'lucide-react';
+import { useState } from 'react';
+import type { HTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     INTERNAL_FILE_DRAG_TYPE,
     isInternalFileDrag,
 } from '@/components/admin/file-dropzone';
-import {
-    FilePreview,
-    hasCoverMedia,
-} from '@/components/admin/files/file-preview';
+import { FileActionMenuItems } from '@/components/admin/files/file-action-menu-items';
+import { FilePreview } from '@/components/admin/files/file-preview';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     ContextMenu,
@@ -18,9 +20,20 @@ import {
     ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -34,40 +47,47 @@ type FileCardProps = {
     file: AdminFileRow;
     selected: boolean;
     multiSelectMode: boolean;
-    isDropTarget: boolean;
-    isTrashed: boolean;
-    canEdit: boolean;
-    canDrag: boolean;
-    actions: FileActionDefinition[];
     onSelect: (
         fileId: number,
         event: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean },
     ) => void;
     onOpenFolder: (folderId: number) => void;
-    onOpenDetails: (file: AdminFileRow) => void;
-    onAction: (action: FileActionKey, file: AdminFileRow) => void;
-    onPrepareContextMenu: (file: AdminFileRow) => void;
-    onDragStart: (fileId: number) => void;
-    onDragEnd: () => void;
-    onDragOverFolder: (folderId: number) => void;
-    onDragLeaveFolder: (folderId: number) => void;
-    onDropOnFolder: (folderId: number) => void;
+    /** Manager-only props below: the file picker leaves them out. */
+    isDropTarget?: boolean;
+    isTrashed?: boolean;
+    canEdit?: boolean;
+    canDrag?: boolean;
+    /** Context menu actions; none renders the card without a context menu. */
+    actions?: FileActionDefinition[];
+    onOpenDetails?: (file: AdminFileRow) => void;
+    onAction?: (action: FileActionKey, file: AdminFileRow) => void;
+    onPrepareContextMenu?: (file: AdminFileRow) => void;
+    onDragStart?: (fileId: number) => void;
+    onDragEnd?: () => void;
+    onDragOverFolder?: (folderId: number) => void;
+    onDragLeaveFolder?: (folderId: number) => void;
+    onDropOnFolder?: (folderId: number) => void;
 };
 
 /**
  * Single file or folder tile in the manager grid.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
+ *
+ * The card surface is a plain container: mouse click selects, double click
+ * opens, right-click shows the actions. It has no role or tab stop, so no
+ * control sits inside another (axe nested-interactive). Keyboard users reach
+ * the checkbox (select), the title button (select a file / open a folder) and,
+ * on files, the tag and ⋮ menus. Also used by the file picker drawer, without
+ * actions, drag and drop.
  */
 export function FileCard({
     file,
     selected,
     multiSelectMode,
-    isDropTarget,
-    isTrashed,
-    canEdit,
-    canDrag,
-    actions,
+    isDropTarget = false,
+    isTrashed = false,
+    canEdit = false,
+    canDrag = false,
+    actions = [],
     onSelect,
     onOpenFolder,
     onOpenDetails,
@@ -82,11 +102,7 @@ export function FileCard({
     const { t } = useTranslation();
     const [hovered, setHovered] = useState(false);
     const isFolder = file.type === 'folder';
-    const useCoverLayout = hasCoverMedia(file);
     const showCheckbox = hovered || selected || multiSelectMode;
-    const firstDestructiveIndex = actions.findIndex(
-        (action) => action.destructive,
-    );
     const displayName = file.title || file.name;
 
     const titleControl =
@@ -94,10 +110,7 @@ export function FileCard({
             <button
                 type="button"
                 data-testid={`file-card-title-${file.id}`}
-                className={cn(
-                    'w-full min-w-0 truncate text-center text-xs leading-4 font-medium hover:underline',
-                    !useCoverLayout && 'h-4',
-                )}
+                className="block w-full min-w-0 truncate text-left text-sm leading-6 font-medium hover:underline"
                 onClick={(event) => {
                     event.stopPropagation();
                     onOpenFolder(file.id);
@@ -109,10 +122,7 @@ export function FileCard({
             <button
                 type="button"
                 data-testid={`file-card-title-${file.id}`}
-                className={cn(
-                    'w-full min-w-0 truncate text-center text-xs leading-4 font-medium',
-                    !useCoverLayout && 'h-4',
-                )}
+                className="block w-full min-w-0 truncate text-left text-sm leading-6 font-medium"
                 onClick={(event) => {
                     event.stopPropagation();
                     onSelect(file.id, event);
@@ -122,210 +132,275 @@ export function FileCard({
             </button>
         );
 
-    const tagsRow =
-        file.tags.length > 0 ? (
-            <div
-                className="flex w-full min-w-0 items-center justify-center gap-1 overflow-hidden"
-                onClick={(event) => event.stopPropagation()}
-            >
-                <span
-                    className={cn(
-                        'min-w-0 truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-                        useCoverLayout
-                            ? 'bg-background/80 text-foreground'
-                            : 'bg-muted text-muted-foreground',
-                    )}
+    const surfaceClassName = cn(
+        'group overflow-hidden rounded-xl border border-sidebar-border/70 bg-card transition-colors hover:bg-muted/40',
+        // The selection ring is drawn by an inset overlay above the cover
+        // media: an outer ring-2 is cut by the grid's scroll container on the
+        // outer columns and rows.
+        (selected || isDropTarget) &&
+            'after:pointer-events-none after:absolute after:inset-0 after:z-30 after:rounded-xl after:ring-2 after:ring-primary after:ring-inset',
+        selected && 'bg-muted/50',
+        isTrashed && 'opacity-80',
+    );
+
+    const surfaceProps: HTMLAttributes<HTMLDivElement> & {
+        'data-file-id': number;
+        'data-testid': string;
+        'data-selected': boolean;
+    } = {
+        draggable: canDrag && !isFolder && !isTrashed,
+        'data-file-id': file.id,
+        'data-testid': `file-card-${file.id}`,
+        'data-selected': selected,
+        onMouseEnter: () => setHovered(true),
+        onMouseLeave: () => setHovered(false),
+        onContextMenu: () => onPrepareContextMenu?.(file),
+        onClick: (event) => {
+            event.stopPropagation();
+            onSelect(file.id, event);
+        },
+        onDoubleClick: () => {
+            if (isFolder && !isTrashed) {
+                onOpenFolder(file.id);
+
+                return;
+            }
+
+            if (!isTrashed) {
+                onOpenDetails?.(file);
+            }
+        },
+        onDragStart: (event) => {
+            if (isTrashed || isFolder) {
+                return;
+            }
+
+            onDragStart?.(file.id);
+            event.dataTransfer.setData(
+                INTERNAL_FILE_DRAG_TYPE,
+                String(file.id),
+            );
+        },
+        onDragEnd: () => onDragEnd?.(),
+        onDragOver: (event) => {
+            if (
+                !isFolder ||
+                !canEdit ||
+                isTrashed ||
+                !isInternalFileDrag(event)
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            onDragOverFolder?.(file.id);
+        },
+        onDragLeave: () => onDragLeaveFolder?.(file.id),
+        onDrop: (event) => {
+            if (isTrashed || !isInternalFileDrag(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (isFolder) {
+                onDropOnFolder?.(file.id);
+            }
+        },
+    };
+
+    const selectionCheckbox = (
+        <div
+            className={cn(
+                'absolute top-2 left-2 z-20 transition-opacity',
+                showCheckbox
+                    ? 'opacity-100'
+                    : 'opacity-0 focus-within:opacity-100',
+            )}
+            onPointerDown={(event) => event.stopPropagation()}
+        >
+            <Checkbox
+                checked={selected}
+                onClick={(event) => {
+                    // Keep the card's select-only click from replacing the multi-selection (#464).
+                    event.stopPropagation();
+
+                    if (event.shiftKey) {
+                        event.preventDefault();
+                        onSelect(file.id, { shiftKey: true });
+                    }
+                }}
+                onCheckedChange={() => onSelect(file.id, { metaKey: true })}
+                aria-label={t('files.card.select', {
+                    name: file.name,
+                })}
+            />
+        </div>
+    );
+
+    const statusMarks = (
+        <>
+            {file.is_favorited && (
+                <Star className="absolute top-2 right-2 z-20 size-3.5 fill-favorite text-favorite drop-shadow-sm" />
+            )}
+
+            {file.effective_access === 'private' && (
+                <Badge
+                    variant="outline"
+                    className="absolute bottom-2 left-2 z-20 bg-background/90 text-muted-foreground shadow-sm"
+                    title={t('files.card.privateTitle')}
                 >
-                    {file.tags[0].name}
-                </span>
-                {file.tags.length > 1 && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span
-                                    className={cn(
-                                        'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium',
-                                        useCoverLayout
-                                            ? 'bg-background/80 text-foreground'
-                                            : 'bg-muted text-muted-foreground',
-                                    )}
-                                    aria-label={t('files.tags.moreTags', {
-                                        count: file.tags.length - 1,
-                                    })}
-                                >
-                                    +{file.tags.length - 1}
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {file.tags
-                                    .slice(1)
-                                    .map((tag) => tag.name)
-                                    .join(', ')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    {t('files.card.privateBadge')}
+                </Badge>
+            )}
+        </>
+    );
+
+    // Menu buttons in the file footer: they prepare the selection like a
+    // right-click does, and keep their clicks off the card surface.
+    const menuTriggerProps = {
+        onPointerDown: () => onPrepareContextMenu?.(file),
+        onClick: (event: { stopPropagation: () => void }) =>
+            event.stopPropagation(),
+        onDoubleClick: (event: { stopPropagation: () => void }) =>
+            event.stopPropagation(),
+    };
+
+    const card = (
+        <AspectRatio
+            ratio={1}
+            {...surfaceProps}
+            className={cn('flex min-w-0 flex-col', surfaceClassName)}
+        >
+            {/* The whole card is square (files and folders alike): the
+                preview fills the space above the 40px name row, edge to
+                edge. */}
+            <div
+                data-test={`file-card-preview-${file.id}`}
+                className={cn(
+                    'relative min-h-0 flex-1 overflow-hidden bg-muted/30',
+                    // Same tile and glyph size as the type icon on file cards.
+                    isFolder && 'flex items-center justify-center bg-muted',
+                )}
+            >
+                {isFolder ? (
+                    <div className="flex size-1/3 items-center justify-center">
+                        <FilePreview
+                            file={file}
+                            hovered={hovered}
+                            className="size-full"
+                        />
+                    </div>
+                ) : (
+                    <FilePreview
+                        file={file}
+                        hovered={hovered}
+                        variant="cover"
+                    />
+                )}
+                {selectionCheckbox}
+                {statusMarks}
+            </div>
+
+            <div
+                data-test={`file-card-header-${file.id}`}
+                className="flex h-10 shrink-0 items-center gap-1 border-t border-sidebar-border/70 pr-1 pl-2.5"
+            >
+                <Tooltip>
+                    <TooltipTrigger asChild>{titleControl}</TooltipTrigger>
+                    <TooltipContent>{displayName}</TooltipContent>
+                </Tooltip>
+
+                {file.tags.length > 0 && (
+                    // Hover or focus shows the tags; a click neither opens a
+                    // menu nor selects the card.
+                    <HoverCard openDelay={150} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                className="shrink-0 text-muted-foreground"
+                                data-test={`file-tags-${file.id}`}
+                                aria-label={t('files.card.tagsMenu', {
+                                    count: file.tags.length,
+                                    name: displayName,
+                                })}
+                                onClick={(event) => event.stopPropagation()}
+                                onDoubleClick={(event) =>
+                                    event.stopPropagation()
+                                }
+                            >
+                                <Tag />
+                            </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent
+                            align="end"
+                            className="w-auto max-w-64 p-2"
+                            data-test={`file-tags-card-${file.id}`}
+                        >
+                            <div className="flex flex-wrap gap-1">
+                                {file.tags.map((tag) => (
+                                    <Badge
+                                        key={tag.id}
+                                        variant="secondary"
+                                        className="max-w-full truncate"
+                                        data-test="file-tags-item"
+                                    >
+                                        {tag.name}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </HoverCardContent>
+                    </HoverCard>
+                )}
+
+                {actions.length > 0 && (
+                    <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                className="shrink-0 text-muted-foreground"
+                                data-test={`file-card-more-${file.id}`}
+                                aria-label={t('files.card.moreActions', {
+                                    name: displayName,
+                                })}
+                                {...menuTriggerProps}
+                            >
+                                <EllipsisVertical />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <FileActionMenuItems
+                                actions={actions}
+                                onAction={(key) => onAction?.(key, file)}
+                                item={DropdownMenuItem}
+                                separator={DropdownMenuSeparator}
+                            />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
             </div>
-        ) : null;
+        </AspectRatio>
+    );
+
+    if (actions.length === 0) {
+        return card;
+    }
 
     return (
         <ContextMenu modal={false}>
-            <ContextMenuTrigger asChild>
-                <div
-                    draggable={canDrag && !isFolder && !isTrashed}
-                    data-file-id={file.id}
-                    data-testid={`file-card-${file.id}`}
-                    className={cn(
-                        'group relative aspect-square w-full min-w-0 overflow-hidden rounded-xl border transition-colors',
-                        useCoverLayout
-                            ? 'bg-muted/30'
-                            : 'flex flex-col items-center bg-card p-3 hover:bg-muted/40',
-                        'border-sidebar-border/70',
-                        selected && 'bg-muted/50 ring-2 ring-primary',
-                        isDropTarget && 'ring-2 ring-primary',
-                        isTrashed && 'opacity-80',
-                    )}
-                    onMouseEnter={() => setHovered(true)}
-                    onMouseLeave={() => setHovered(false)}
-                    onContextMenu={() => onPrepareContextMenu(file)}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        onSelect(file.id, event);
-                    }}
-                    onDoubleClick={() => {
-                        if (isFolder && !isTrashed) {
-                            onOpenFolder(file.id);
-
-                            return;
-                        }
-
-                        if (!isTrashed) {
-                            onOpenDetails(file);
-                        }
-                    }}
-                    onDragStart={(event) => {
-                        if (isTrashed || isFolder) {
-                            return;
-                        }
-
-                        onDragStart(file.id);
-                        event.dataTransfer.setData(
-                            INTERNAL_FILE_DRAG_TYPE,
-                            String(file.id),
-                        );
-                    }}
-                    onDragEnd={onDragEnd}
-                    onDragOver={(event) => {
-                        if (
-                            !isFolder ||
-                            !canEdit ||
-                            isTrashed ||
-                            !isInternalFileDrag(event)
-                        ) {
-                            return;
-                        }
-
-                        event.preventDefault();
-                        onDragOverFolder(file.id);
-                    }}
-                    onDragLeave={() => onDragLeaveFolder(file.id)}
-                    onDrop={(event) => {
-                        if (isTrashed || !isInternalFileDrag(event)) {
-                            return;
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        if (isFolder) {
-                            onDropOnFolder(file.id);
-                        }
-                    }}
-                >
-                    {useCoverLayout && (
-                        <div className="absolute inset-0 z-0 overflow-hidden rounded-xl">
-                            <FilePreview
-                                file={file}
-                                hovered={hovered}
-                                variant="cover"
-                            />
-                        </div>
-                    )}
-
-                    <div
-                        className={cn(
-                            'absolute top-2 left-2 z-20 transition-opacity',
-                            showCheckbox ? 'opacity-100' : 'opacity-0',
-                        )}
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <Checkbox
-                            checked={selected}
-                            onCheckedChange={() =>
-                                onSelect(file.id, { metaKey: true })
-                            }
-                            aria-label={t('files.card.select', {
-                                name: file.name,
-                            })}
-                        />
-                    </div>
-
-                    {file.is_favorited && (
-                        <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
-                    )}
-
-                    {file.effective_access === 'private' && (
-                        <span
-                            className="absolute bottom-2 left-2 z-20 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase shadow-sm"
-                            title={t('files.card.privateTitle')}
-                        >
-                            {t('files.card.privateBadge')}
-                        </span>
-                    )}
-
-                    {useCoverLayout ? (
-                        <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-2.5 py-2 backdrop-blur-md">
-                            <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-                                {titleControl}
-                                {tagsRow}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-2 overflow-hidden">
-                            <div className="flex size-12 shrink-0 items-center justify-center">
-                                <FilePreview file={file} hovered={hovered} />
-                            </div>
-                            {titleControl}
-                            {tagsRow}
-                        </div>
-                    )}
-                </div>
-            </ContextMenuTrigger>
+            <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
             <ContextMenuContent>
-                {actions.map((action, index) => {
-                    const Icon = action.icon;
-                    const showSeparator =
-                        firstDestructiveIndex > 0 &&
-                        index === firstDestructiveIndex;
-
-                    return (
-                        <Fragment key={action.key}>
-                            {showSeparator && <ContextMenuSeparator />}
-                            <ContextMenuItem
-                                variant={
-                                    action.destructive
-                                        ? 'destructive'
-                                        : 'default'
-                                }
-                                data-testid={`files-context-action-${action.key}`}
-                                onSelect={() => onAction(action.key, file)}
-                            >
-                                <Icon className="size-4" />
-                                {action.label}
-                            </ContextMenuItem>
-                        </Fragment>
-                    );
-                })}
+                <FileActionMenuItems
+                    actions={actions}
+                    onAction={(key) => onAction?.(key, file)}
+                    item={ContextMenuItem}
+                    separator={ContextMenuSeparator}
+                />
             </ContextMenuContent>
         </ContextMenu>
     );

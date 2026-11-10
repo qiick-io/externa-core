@@ -6,7 +6,7 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Services\Collections\CollectionFieldGroupService;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
@@ -342,7 +342,7 @@ trait ValidatesCollectionFieldSettingsTrait
         }
 
         if (array_key_exists('conditions', $settings)) {
-            $normalizedConditions = app(FieldConditionEvaluator::class)
+            $normalizedConditions = app(FieldConditionEvaluatorService::class)
                 ->normalizeSettings(is_array($settings['conditions']) ? $settings['conditions'] : null);
 
             if ($normalizedConditions === null) {
@@ -475,7 +475,7 @@ trait ValidatesCollectionFieldSettingsTrait
     {
         $type = $this->resolveFieldTypeForTranslatable();
 
-        if ($type !== null && ! $type->supportsTranslatable()) {
+        if ($type !== null && ! $type->isTranslatableSupported()) {
             $this->merge(['translatable' => false]);
         }
     }

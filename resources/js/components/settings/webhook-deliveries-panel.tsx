@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
+import { Item, ItemContent, ItemTitle } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import {
     Table,
@@ -9,6 +10,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { WebhookDeliveryEntry, WebhookDeliverySummary } from '@/types';
 
 function formatAt(value: string): string {
@@ -29,35 +35,44 @@ function DeliveryCard({
     const { t } = useTranslation();
 
     return (
-        <div className="space-y-1 rounded-md border p-3" data-test={dataTest}>
-            <p className="text-sm font-medium">{title}</p>
-            {entry === null ? (
-                <p className="text-sm text-muted-foreground">
-                    {t('settings.project.webhookDeliveryNone')}
-                </p>
-            ) : (
-                <>
-                    <p className="text-sm">
-                        <code className="font-mono">{entry.type}</code>{' '}
-                        <span className="text-muted-foreground">
-                            · {formatAt(entry.at)}
-                        </span>
+        <Item
+            variant="outline"
+            size="sm"
+            className="items-start p-3"
+            data-test={dataTest}
+        >
+            <ItemContent className="min-w-0">
+                <ItemTitle>{title}</ItemTitle>
+                {entry === null ? (
+                    <p className="text-sm text-muted-foreground">
+                        {t('settings.project.webhookDeliveryNone')}
                     </p>
-                    {tone === 'error' && entry.message ? (
-                        <p className="text-sm break-words text-destructive">
-                            {entry.message}
+                ) : (
+                    <>
+                        <p className="text-sm">
+                            <code className="font-mono">{entry.type}</code>{' '}
+                            <span className="text-muted-foreground">
+                                · {formatAt(entry.at)}
+                            </span>
                         </p>
-                    ) : null}
-                    <p className="font-mono text-xs text-muted-foreground">
-                        {entry.event_id} ·{' '}
-                        {t('settings.project.webhookDeliveryAttempts', {
-                            count: entry.attempts,
-                        })}
-                        {entry.status !== null ? ` · HTTP ${entry.status}` : ''}
-                    </p>
-                </>
-            )}
-        </div>
+                        {tone === 'error' && entry.message ? (
+                            <p className="text-sm break-words text-destructive">
+                                {entry.message}
+                            </p>
+                        ) : null}
+                        <p className="font-mono text-xs text-muted-foreground">
+                            {entry.event_id} ·{' '}
+                            {t('settings.project.webhookDeliveryAttempts', {
+                                count: entry.attempts,
+                            })}
+                            {entry.status !== null
+                                ? ` · HTTP ${entry.status}`
+                                : ''}
+                        </p>
+                    </>
+                )}
+            </ItemContent>
+        </Item>
     );
 }
 
@@ -103,7 +118,7 @@ export function WebhookDeliveryStatus({
                             </TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="[&_td]:h-10">
                         {deliveries.recent.map((entry) => (
                             <TableRow key={`${entry.event_id}-${entry.at}`}>
                                 <TableCell className="whitespace-nowrap text-muted-foreground">
@@ -115,22 +130,31 @@ export function WebhookDeliveryStatus({
                                     </code>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge
-                                        variant={
-                                            entry.outcome === 'success'
-                                                ? 'secondary'
-                                                : 'destructive'
-                                        }
-                                        title={entry.message ?? undefined}
-                                    >
-                                        {entry.outcome === 'success'
-                                            ? t(
-                                                  'settings.project.webhookOutcomeSuccess',
-                                              )
-                                            : t(
-                                                  'settings.project.webhookOutcomeFailed',
-                                              )}
-                                    </Badge>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge
+                                                data-slot="badge"
+                                                variant={
+                                                    entry.outcome === 'success'
+                                                        ? 'secondary'
+                                                        : 'destructive'
+                                                }
+                                            >
+                                                {entry.outcome === 'success'
+                                                    ? t(
+                                                          'settings.project.webhookOutcomeSuccess',
+                                                      )
+                                                    : t(
+                                                          'settings.project.webhookOutcomeFailed',
+                                                      )}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        {entry.message ? (
+                                            <TooltipContent className="max-w-sm">
+                                                {entry.message}
+                                            </TooltipContent>
+                                        ) : null}
+                                    </Tooltip>
                                 </TableCell>
                             </TableRow>
                         ))}

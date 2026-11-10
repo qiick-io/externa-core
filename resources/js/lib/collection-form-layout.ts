@@ -2,7 +2,7 @@
 
 export type FormLayoutLabel = Record<string, string>;
 
-export type FormLayoutTab = {
+type FormLayoutTab = {
     id: string;
     label: FormLayoutLabel;
 };
@@ -200,8 +200,4 @@ export function resolveFormLayoutGroups<T extends { id: number }>(
     }
 
     return groups;
-}
-
-export function newFormLayoutId(prefix: string): string {
-    return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }

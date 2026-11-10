@@ -10,8 +10,10 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Ai\AiChatAttachmentController;
 use App\Http\Controllers\Ai\AiChatController;
+use App\Http\Controllers\Ai\AiContextSearchController;
 use App\Http\Controllers\Ai\AiConversationController;
 use App\Http\Controllers\Ai\AiPageController;
+use App\Http\Controllers\Ai\AiPromptController;
 use App\Http\Controllers\Ai\AiStatusController;
 use App\Http\Controllers\Ai\AiTranslateFieldsController;
 use App\Http\Controllers\Ai\CollectionImportWebhookController;
@@ -47,6 +49,29 @@ Route::middleware([
     Route::post('/attachments', [AiChatAttachmentController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('attachments.store');
+
+    Route::get('/context/collections', [AiContextSearchController::class, 'collections'])
+        ->middleware('throttle:60,1')
+        ->name('context.collections');
+    Route::get('/context/items', [AiContextSearchController::class, 'items'])
+        ->middleware('throttle:60,1')
+        ->name('context.items');
+    Route::get('/context/files', [AiContextSearchController::class, 'files'])
+        ->middleware('throttle:60,1')
+        ->name('context.files');
+
+    Route::get('/prompts', [AiPromptController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('prompts.index');
+    Route::post('/prompts', [AiPromptController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('prompts.store');
+    Route::put('/prompts/{prompt}', [AiPromptController::class, 'update'])
+        ->middleware('throttle:30,1')
+        ->name('prompts.update');
+    Route::delete('/prompts/{prompt}', [AiPromptController::class, 'destroy'])
+        ->middleware('throttle:30,1')
+        ->name('prompts.destroy');
 
     Route::post('/chat', AiChatController::class)
         ->middleware('throttle:30,1')

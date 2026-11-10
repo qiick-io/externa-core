@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -64,6 +66,7 @@ export function ItemRevisionCompareModal({
     canRestore = false,
     onApply,
 }: Props) {
+    const { t } = useTranslation();
     const [compareTo, setCompareTo] = useState<'latest' | 'previous'>('latest');
     const [showDiffOnly, setShowDiffOnly] = useState(false);
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -113,7 +116,10 @@ export function ItemRevisionCompareModal({
 
     const canApply = canRestore && compareTo === 'latest' && revision !== null;
 
-    const leftLabel = compareTo === 'previous' ? 'Previous revision' : 'Latest';
+    const leftLabel =
+        compareTo === 'previous'
+            ? t('collections.items.compare.previousRevision')
+            : t('collections.items.compare.latest');
 
     const toggleField = (name: string): void => {
         setSelected((prev) => {
@@ -170,7 +176,7 @@ export function ItemRevisionCompareModal({
         onOpenChange(false);
     };
 
-    const editedBy = revision?.user?.name ?? 'System';
+    const editedBy = revision?.user?.name ?? t('common.system');
     const editedAt = revision?.created_at
         ? new Date(revision.created_at).toLocaleString()
         : '—';
@@ -182,41 +188,48 @@ export function ItemRevisionCompareModal({
                 className="flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[90vw]"
             >
                 <DialogHeader className="shrink-0 border-b px-6 py-4 text-left">
-                    <DialogTitle>Compare revision</DialogTitle>
+                    <DialogTitle>
+                        {t('collections.items.compare.title')}
+                    </DialogTitle>
                     <DialogDescription>
-                        Edited by {editedBy} · {editedAt}
+                        {t('collections.items.compare.editedBy', {
+                            name: editedBy,
+                            date: editedAt,
+                        })}
                     </DialogDescription>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                         <label className="flex items-center gap-2 text-sm">
-                            <input
-                                type="checkbox"
-                                className="size-3.5 rounded border"
+                            <Checkbox
                                 checked={showDiffOnly}
-                                onChange={(e) =>
-                                    setShowDiffOnly(e.target.checked)
+                                onCheckedChange={(isChecked) =>
+                                    setShowDiffOnly(isChecked === true)
                                 }
                                 data-test="show-differences-only"
                             />
-                            Show differences only
+                            {t('collections.items.compare.showDiffOnly')}
                         </label>
                         <div className="flex items-center gap-3">
                             {canApply ? (
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     onClick={toggleSelectAllDiffs}
                                     disabled={diffNames.length === 0}
                                     data-test="select-all-differences"
                                 >
                                     {allDiffsSelected
-                                        ? 'Deselect all differences'
-                                        : 'Select all differences'}
+                                        ? t(
+                                              'collections.items.compare.deselectAll',
+                                          )
+                                        : t(
+                                              'collections.items.compare.selectAll',
+                                          )}
                                 </Button>
                             ) : null}
                             <span className="text-xs text-muted-foreground">
-                                {diffNames.length} difference
-                                {diffNames.length === 1 ? '' : 's'}
+                                {t('collections.items.compare.differences', {
+                                    count: diffNames.length,
+                                })}
                             </span>
                         </div>
                     </div>
@@ -248,7 +261,7 @@ export function ItemRevisionCompareModal({
                         </div>
                         <div className="min-w-0">
                             <div className="sticky top-0 z-10 border-b bg-muted px-4 py-2 text-sm font-medium">
-                                Item Revision
+                                {t('collections.items.compare.itemRevision')}
                             </div>
                             <div className="p-4">
                                 {open && revision ? (
@@ -279,7 +292,7 @@ export function ItemRevisionCompareModal({
                 <DialogFooter className="shrink-0 items-center border-t px-6 py-4 sm:justify-between">
                     <div className="flex items-center gap-2 text-sm">
                         <span className="text-muted-foreground">
-                            Comparing to
+                            {t('collections.items.compare.comparingTo')}
                         </span>
                         <Select
                             value={compareTo}
@@ -294,19 +307,20 @@ export function ItemRevisionCompareModal({
                             }}
                         >
                             <SelectTrigger
-                                size="sm"
-                                className="h-8 w-auto border-0 bg-transparent px-1.5 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
+                                className="w-auto border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
                                 data-test="compare-to-select"
                             >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="latest">Latest</SelectItem>
+                                <SelectItem value="latest">
+                                    {t('collections.items.compare.latest')}
+                                </SelectItem>
                                 <SelectItem
                                     value="previous"
                                     disabled={!previousRevision}
                                 >
-                                    Previous
+                                    {t('collections.items.compare.previous')}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -317,7 +331,7 @@ export function ItemRevisionCompareModal({
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                         {canRestore ? (
                             <Button
@@ -326,7 +340,7 @@ export function ItemRevisionCompareModal({
                                 onClick={handleApply}
                                 data-test="revision-apply"
                             >
-                                Apply
+                                {t('collections.items.compare.apply')}
                             </Button>
                         ) : null}
                     </div>

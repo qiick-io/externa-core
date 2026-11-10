@@ -1,5 +1,9 @@
 /**
  * Page or section heading with optional description.
+ *
+ * Default = one visual page title (Settings layout). Small = muted semibold
+ * section title so subpages do not repeat a second large heading.
+ *
  * @param {{ title: string, description?: string, variant?: 'default' | 'small' }} props - Component props.
  * @param {string} props.title - Heading text.
  * @param {string} [props.description] - Optional supporting text below the title.
@@ -20,7 +24,7 @@ export default function Heading({
             <h2
                 className={
                     variant === 'small'
-                        ? 'mb-0.5 text-base font-medium'
+                        ? 'mb-0.5 text-sm font-semibold text-muted-foreground'
                         : 'text-xl font-semibold tracking-tight'
                 }
             >

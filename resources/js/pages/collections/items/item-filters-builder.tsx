@@ -1,8 +1,10 @@
 import { Filter, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     Popover,
     PopoverContent,
@@ -19,7 +21,6 @@ import {
     countActiveFilterRules,
     emptyFilterRule,
     isFilterableFieldType,
-    OPERATOR_LABELS,
     operatorNeedsValue,
     FILTER_OPERATORS,
 } from '@/lib/item-list-filters';
@@ -92,16 +93,14 @@ export function ItemFiltersBuilder({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-1.5"
-                    aria-label="Filters"
+                    aria-label={t('a11y.filters')}
                 >
                     <Filter className="size-4" />
-                    Filters
+                    {t('a11y.filters')}
                     {activeCount > 0 ? (
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
+                        <Badge className="min-w-5 rounded-full px-1.5 tabular-nums">
                             {activeCount}
-                        </span>
+                        </Badge>
                     ) : null}
                 </Button>
             </PopoverTrigger>
@@ -110,26 +109,25 @@ export function ItemFiltersBuilder({
                 align="start"
             >
                 <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Filters</p>
+                    <p className="text-sm font-medium">{t('a11y.filters')}</p>
                     {activeCount > 0 ? (
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="px-2"
                             onClick={() => {
                                 onClear();
                                 setOpen(false);
                             }}
                         >
                             <X className="mr-1 size-3" />
-                            Clear all
+                            {t('collections.items.filters.clearAll')}
                         </Button>
                     ) : null}
                 </div>
 
                 {showStatusFilters ? (
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
                         {showHasDraft ? (
                             <Select
                                 value={hasDraft ? 'yes' : 'all'}
@@ -138,8 +136,7 @@ export function ItemFiltersBuilder({
                                 }
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="filter-has-draft"
                                     aria-label={t(
                                         'collections.itemsList.hasDraft',
@@ -173,8 +170,7 @@ export function ItemFiltersBuilder({
                                 }
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="filter-in-review"
                                     aria-label={t(
                                         'collections.itemsList.inReview',
@@ -204,30 +200,31 @@ export function ItemFiltersBuilder({
                 ) : null}
 
                 <div className="space-y-2">
-                    <p className="text-sm font-medium">Field filters</p>
+                    <p className="text-sm font-medium">
+                        {t('collections.items.filters.fieldFilters')}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                        Rules are AND-combined and written to the URL (
-                        <code className="text-[10px]">
-                            filter[field][_eq]=…
-                        </code>
-                        ).
+                        <Trans
+                            i18nKey="collections.items.filters.rulesHint"
+                            components={{ code: <code className="text-xs" /> }}
+                        />
                     </p>
 
                     {filterableFields.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
-                            No filterable fields on this collection.
+                            {t('collections.items.filters.noFilterableFields')}
                         </p>
                     ) : (
                         <div className="space-y-2">
                             {rules.map((rule) => (
                                 <div
                                     key={rule.id}
-                                    className="flex flex-wrap items-center gap-1.5"
+                                    className="flex flex-wrap items-center gap-2"
                                 >
-                                    <select
-                                        className="h-8 min-w-24 flex-1 rounded-md border bg-background px-2 text-xs"
+                                    <NativeSelect
+                                        className="min-w-24 flex-1"
                                         value={rule.field}
-                                        aria-label="Filter field"
+                                        aria-label={t('a11y.filterField')}
                                         onChange={(e) =>
                                             updateRule(rule.id, {
                                                 field: e.target.value,
@@ -242,11 +239,11 @@ export function ItemFiltersBuilder({
                                                 {field.name}
                                             </option>
                                         ))}
-                                    </select>
-                                    <select
-                                        className="h-8 min-w-28 rounded-md border bg-background px-2 text-xs"
+                                    </NativeSelect>
+                                    <NativeSelect
+                                        className="min-w-28"
                                         value={rule.operator}
-                                        aria-label="Filter operator"
+                                        aria-label={t('a11y.filterOperator')}
                                         onChange={(e) =>
                                             updateRule(rule.id, {
                                                 operator: e.target
@@ -256,20 +253,24 @@ export function ItemFiltersBuilder({
                                     >
                                         {FILTER_OPERATORS.map((op) => (
                                             <option key={op} value={op}>
-                                                {OPERATOR_LABELS[op]}
+                                                {t(
+                                                    `collections.itemsList.operators.${op.slice(1)}`,
+                                                )}
                                             </option>
                                         ))}
-                                    </select>
+                                    </NativeSelect>
                                     {operatorNeedsValue(rule.operator) ? (
                                         <Input
-                                            className="h-8 min-w-24 flex-1 text-xs"
+                                            className="min-w-24 flex-1"
                                             value={rule.value}
                                             placeholder={
                                                 rule.operator === '_in'
                                                     ? 'a, b, c'
-                                                    : 'Value'
+                                                    : t(
+                                                          'collections.items.filters.value',
+                                                      )
                                             }
-                                            aria-label="Filter value"
+                                            aria-label={t('a11y.filterValue')}
                                             onChange={(e) =>
                                                 updateRule(rule.id, {
                                                     value: e.target.value,
@@ -287,9 +288,8 @@ export function ItemFiltersBuilder({
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2"
-                                        aria-label="Remove filter"
+                                        className="px-2"
+                                        aria-label={t('a11y.removeFilter')}
                                         onClick={() => removeRule(rule.id)}
                                     >
                                         <X className="size-3.5" />
@@ -300,23 +300,19 @@ export function ItemFiltersBuilder({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
-                                    className="h-8 text-xs"
                                     onClick={addRule}
                                 >
                                     <Plus className="mr-1 size-3.5" />
-                                    Add rule
+                                    {t('collections.items.filters.addRule')}
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
-                                    className="h-8 text-xs"
                                     onClick={() => {
                                         onApply();
                                         setOpen(false);
                                     }}
                                 >
-                                    Apply
+                                    {t('collections.items.filters.apply')}
                                 </Button>
                             </div>
                         </div>

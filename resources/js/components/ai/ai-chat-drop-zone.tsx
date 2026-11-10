@@ -1,6 +1,8 @@
 import { Paperclip } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { DropOverlay } from '@/components/drop-overlay';
 import { cn } from '@/lib/utils';
 
 function isFileDrag(event: DragEvent): boolean {
@@ -25,6 +27,7 @@ export function AiChatDropZone({
     disabled = false,
     className,
 }: AiChatDropZoneProps) {
+    const { t } = useTranslation();
     const [isDragOver, setIsDragOver] = useState(false);
 
     const clearDragOver = useCallback((): void => {
@@ -97,15 +100,11 @@ export function AiChatDropZone({
         >
             {children}
             {isDragOver && !disabled ? (
-                <div
-                    className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10"
-                    aria-hidden
-                >
-                    <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-                        <Paperclip className="size-4" />
-                        Rilascia per allegare
-                    </div>
-                </div>
+                <DropOverlay
+                    className="rounded-xl"
+                    icon={Paperclip}
+                    title={t('collections.itemChat.dropToAttach')}
+                />
             ) : null}
         </div>
     );

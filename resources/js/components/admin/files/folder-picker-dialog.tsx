@@ -1,6 +1,14 @@
 import { ChevronRight, FolderOpen } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,9 +18,25 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemGroup,
+    ItemMedia,
+    ItemSeparator,
+    ItemTitle,
+} from '@/components/ui/item';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Spinner } from '@/components/ui/spinner';
 import { listFilesPage } from '@/lib/files-api';
-import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileBreadcrumb } from '@/types/files';
 
 type BlockedFolder = Pick<AdminFileRow, 'id' | 'path'>;
@@ -226,74 +250,114 @@ export function FolderPickerDialog({
                         data-testid="folder-picker-search"
                     />
 
-                    <nav
-                        className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
+                    <Breadcrumb
                         aria-label={t('files.folderPicker.breadcrumbs')}
                     >
-                        <button
-                            type="button"
-                            className="hover:text-foreground"
-                            disabled={submitting}
-                            onClick={() => navigateTo(-1)}
-                        >
-                            {t('files.root')}
-                        </button>
-                        {breadcrumbs.map((crumb, index) => (
-                            <span
-                                key={crumb.id}
-                                className="flex items-center gap-1"
-                            >
-                                <ChevronRight className="size-3.5" />
-                                <button
-                                    type="button"
-                                    className="hover:text-foreground"
-                                    disabled={submitting}
-                                    onClick={() => navigateTo(index)}
-                                >
-                                    {crumb.name}
-                                </button>
-                            </span>
-                        ))}
-                    </nav>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                {breadcrumbs.length === 0 ? (
+                                    <BreadcrumbPage>
+                                        {t('files.root')}
+                                    </BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink asChild>
+                                        <button
+                                            type="button"
+                                            disabled={submitting}
+                                            onClick={() => navigateTo(-1)}
+                                        >
+                                            {t('files.root')}
+                                        </button>
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
+                            {breadcrumbs.map((crumb, index) => (
+                                <Fragment key={crumb.id}>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        {index === breadcrumbs.length - 1 ? (
+                                            <BreadcrumbPage>
+                                                {crumb.name}
+                                            </BreadcrumbPage>
+                                        ) : (
+                                            <BreadcrumbLink asChild>
+                                                <button
+                                                    type="button"
+                                                    disabled={submitting}
+                                                    onClick={() =>
+                                                        navigateTo(index)
+                                                    }
+                                                >
+                                                    {crumb.name}
+                                                </button>
+                                            </BreadcrumbLink>
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            ))}
+                        </BreadcrumbList>
+                    </Breadcrumb>
 
-                    <div className="max-h-72 min-h-40 overflow-y-auto rounded-lg border border-sidebar-border/70">
+                    <ScrollArea className="rounded-lg border border-sidebar-border/70 [&>[data-slot=scroll-area-viewport]]:max-h-72 [&>[data-slot=scroll-area-viewport]]:min-h-40">
                         {loading && folders.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 p-6 text-sm text-muted-foreground">
+                                <Spinner className="size-5" />
                                 {t('files.loading')}
-                            </p>
+                            </div>
                         ) : null}
                         {!loading && folders.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">
-                                {t('files.folderPicker.empty')}
-                            </p>
-                        ) : null}
-                        <ul className="divide-y divide-sidebar-border/70">
-                            {folders.map((folder) => (
-                                <li key={folder.id}>
-                                    <button
-                                        type="button"
-                                        className={cn(
-                                            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60',
-                                        )}
-                                        disabled={submitting}
-                                        onClick={() => openFolder(folder)}
-                                        data-testid={`folder-picker-item-${folder.id}`}
+                            <Empty className="gap-3 p-6 md:p-6">
+                                <EmptyHeader>
+                                    <EmptyMedia
+                                        variant="icon"
+                                        className="bg-primary/10 text-primary"
                                     >
-                                        <FolderOpen className="size-4 shrink-0 text-amber-500" />
-                                        <span className="truncate font-medium">
-                                            {folder.name}
-                                        </span>
-                                        <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
-                                    </button>
-                                </li>
+                                        <FolderOpen />
+                                    </EmptyMedia>
+                                    <EmptyDescription>
+                                        {t('files.folderPicker.empty')}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                        ) : null}
+                        <ItemGroup>
+                            {folders.map((folder, index) => (
+                                <Fragment key={folder.id}>
+                                    {index > 0 && (
+                                        <ItemSeparator className="bg-sidebar-border/70" />
+                                    )}
+                                    <Item
+                                        size="sm"
+                                        className="w-full flex-nowrap rounded-none px-3 py-2 text-left hover:bg-accent/50 disabled:pointer-events-none disabled:opacity-50"
+                                        asChild
+                                    >
+                                        <button
+                                            type="button"
+                                            disabled={submitting}
+                                            onClick={() => openFolder(folder)}
+                                            data-testid={`folder-picker-item-${folder.id}`}
+                                        >
+                                            <ItemMedia>
+                                                <FolderOpen className="size-4 text-folder" />
+                                            </ItemMedia>
+                                            <ItemContent className="min-w-0">
+                                                <ItemTitle className="truncate">
+                                                    {folder.name}
+                                                </ItemTitle>
+                                            </ItemContent>
+                                            <ItemActions>
+                                                <ChevronRight className="size-4 text-muted-foreground" />
+                                            </ItemActions>
+                                        </button>
+                                    </Item>
+                                </Fragment>
                             ))}
-                        </ul>
+                        </ItemGroup>
                         {page < lastPage ? (
                             <div className="border-t border-sidebar-border/70 p-2">
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
                                     className="w-full"
                                     disabled={loading || submitting}
                                     onClick={() =>
@@ -303,13 +367,12 @@ export function FolderPickerDialog({
                                         })
                                     }
                                 >
-                                    {loading
-                                        ? t('files.loading')
-                                        : t('files.loadMore')}
+                                    {loading && <Spinner />}
+                                    {t('files.loadMore')}
                                 </Button>
                             </div>
                         ) : null}
-                    </div>
+                    </ScrollArea>
 
                     <p className="text-sm text-muted-foreground">
                         {t('files.folderPicker.destination')}{' '}

@@ -4,7 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Spatie\Permission\Models\Role;
@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Role;
 test('effective permission resolver unions direct roles and group roles', function () {
     $this->seed([PermissionSeeder::class, RoleSeeder::class]);
 
-    $resolver = app(EffectivePermissionResolver::class);
+    $resolver = app(EffectivePermissionResolverService::class);
 
     $directRole = Role::query()->firstOrCreate([
         'name' => 'direct-editor',
@@ -31,7 +31,6 @@ test('effective permission resolver unions direct roles and group roles', functi
 
     $group = UserGroup::query()->create([
         'name' => 'Editors',
-        'slug' => 'editors',
     ]);
     $group->roles()->attach($groupRole);
     $user->groups()->attach($group);
@@ -54,7 +53,7 @@ test('super admin resolver exposes all enum permissions and role name', function
     $user = User::factory()->create();
     $user->assignRole(RoleEnum::SuperAdmin->value);
 
-    $resolver = app(EffectivePermissionResolver::class);
+    $resolver = app(EffectivePermissionResolverService::class);
 
     expect($resolver->isSuperAdmin($user))->toBeTrue()
         ->and($resolver->permissionsFor($user))->toEqual(PermissionEnum::values())
@@ -80,7 +79,7 @@ test('reader without extra roles only receives show permissions from role', func
     $user = User::factory()->create();
     $user->assignRole($readerRole);
 
-    $resolver = app(EffectivePermissionResolver::class);
+    $resolver = app(EffectivePermissionResolverService::class);
 
     expect($resolver->hasPermission($user, PermissionEnum::CanShowUsers->value))->toBeTrue()
         ->and($resolver->hasPermission($user, PermissionEnum::CanDeleteUsers->value))->toBeFalse();

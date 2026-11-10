@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Ai\Support;
 
 use App\Models\User;
+use App\Services\Ai\AiToolArgumentRedactorService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-/**
- * Writes activity-log entries for AI tool usage.
- */
 /**
  * Writes AI prompts, responses, tool calls, and mutations to the activity log.
  */
@@ -57,6 +57,7 @@ class AiActivityLogger
 
     /**
      * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $extra
      */
     public static function tool(
         User $user,
@@ -65,19 +66,67 @@ class AiActivityLogger
         string $result,
         ?string $conversationId = null,
         bool $failed = false,
+        array $extra = [],
     ): void {
+        $redacted = app(AiToolArgumentRedactorService::class)->redact($input);
+
         activity()
             ->causedBy($user)
             ->useLog('ai')
             ->event('ai_tool')
-            ->withProperties([
+            ->withProperties(array_merge([
                 'tool' => $tool,
-                'input' => $input,
+                'input' => $redacted,
                 'result' => self::truncate($result),
                 'conversation_id' => $conversationId,
                 'failed' => $failed,
-            ])
+            ], $extra))
             ->log($failed ? 'AI tool failed' : 'AI tool');
+    }
+
+    /**
+     * Full audit trail for registry/MCP/chat tool decisions (always logged when an actor exists).
+     *
+     * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>  $extra
+     */
+    public static function toolDecision(
+        ?User $actor,
+        string $tool,
+        array $arguments,
+        string $decision,
+        string $status,
+        string $surface = 'chat',
+        ?User $approver = null,
+        ?string $result = null,
+        ?string $pendingId = null,
+        ?string $conversationId = null,
+        array $extra = [],
+    ): void {
+        $redacted = app(AiToolArgumentRedactorService::class)->redact($arguments);
+
+        $logger = activity()
+            ->useLog('ai')
+            ->event('ai_tool')
+            ->withProperties(array_merge([
+                'tool' => $tool,
+                'input' => $redacted,
+                'arguments' => $redacted,
+                'decision' => $decision,
+                'status' => $status,
+                'surface' => $surface,
+                'approver_id' => $approver?->id,
+                'pending_id' => $pendingId,
+                'result' => $result !== null ? self::truncate($result) : null,
+                'conversation_id' => $conversationId,
+                'failed' => in_array($status, ['denied', 'failed', 'rejected', 'expired'], true),
+            ], $extra));
+
+        if ($actor instanceof User) {
+            $logger->causedBy($actor);
+        }
+
+        $logger->log(sprintf('AI tool %s (%s)', $decision, $status));
     }
 
     /**

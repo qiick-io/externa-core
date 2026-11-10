@@ -37,7 +37,6 @@ import {
     Link2,
     List,
     ListOrdered,
-    Loader2,
     Quote,
     Redo2,
     Strikethrough,
@@ -47,12 +46,17 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
+import { AutocompleteInput } from '@/components/collections/autocomplete-input';
+import { ShortcutKeys } from '@/components/collections/shortcut-keys';
+import { RemovableBadge } from '@/components/removable-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
     Dialog,
     DialogContent,
@@ -68,10 +72,23 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
+import { Spinner } from '@/components/ui/spinner';
+import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAppearance } from '@/hooks/use-appearance';
 import {
     parseCodeFieldSettings,
@@ -96,7 +113,7 @@ import type { AdminFileRow } from '@/types/files';
 
 import '@uiw/react-md-editor/markdown-editor.css';
 
-/** Outer chrome for color picker — matches Input h-9 single-row controls. */
+/** Outer chrome for color picker — matches the default Input height (`h-control`). */
 const colorFieldChrome = cn(fieldControlChromeSingle, 'dark:border-white/25');
 const colorFieldChromeWithOpacity = cn(
     fieldControlChromeMulti,
@@ -142,10 +159,11 @@ function markdownImageSnippet(url: string, alt = 'image'): string {
 
 async function uploadImageFile(
     file: File,
+    notImageMessage: string,
     maxBytes?: number | null,
 ): Promise<AdminFileRow> {
     if (!file.type.startsWith('image/')) {
-        throw new Error('Please choose an image file.');
+        throw new Error(notImageMessage);
     }
 
     if (file.size > CHUNK_SIZE_BYTES) {
@@ -155,144 +173,268 @@ async function uploadImageFile(
     return uploadFileDirect(file, null, maxBytes);
 }
 
+/**
+ * Action button for the rich-text toolbars (undo, redo, markdown commands):
+ * outline icon Button with its label in a Tooltip.
+ * @returns {JSX.Element}
+ */
 function ToolbarButton({
     label,
-    active,
     disabled,
     onClick,
     children,
 }: {
     label: string;
-    active?: boolean;
     disabled?: boolean;
     onClick: () => void;
     children: ReactNode;
 }) {
     return (
-        <Button
-            type="button"
-            size="sm"
-            variant={active ? 'default' : 'outline'}
-            className="h-7 px-2"
-            aria-label={label}
-            title={label}
-            disabled={disabled}
-            onClick={onClick}
-        >
-            {children}
-        </Button>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={label}
+                    disabled={disabled}
+                    onClick={onClick}
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+/**
+ * On/off format control for the WYSIWYG toolbar (bold, heading, list, ...):
+ * outline `Toggle` whose pressed state mirrors the editor selection, label in
+ * a Tooltip. Pressing runs the editor command; the editor state then drives
+ * `pressed` on the next render.
+ * @returns {JSX.Element}
+ */
+function ToolbarToggle({
+    label,
+    pressed,
+    onToggle,
+    children,
+}: {
+    label: string;
+    pressed: boolean;
+    onToggle: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Toggle
+                    variant="outline"
+                    aria-label={label}
+                    pressed={pressed}
+                    onPressedChange={onToggle}
+                >
+                    {children}
+                </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+/**
+ * Link editor for the WYSIWYG toolbar (was `window.prompt`): Popover with a
+ * URL Input. Apply (or Enter) sets the link on the selection; an empty URL
+ * or Remove clears it.
+ * @returns {JSX.Element}
+ */
+function WysiwygLinkPopover({ editor }: { editor: Editor }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const [url, setUrl] = useState('');
+    const isActive = editor.isActive('link');
+
+    const openChange = (next: boolean): void => {
+        if (next) {
+            const previous = editor.getAttributes('link').href as
+                string | undefined;
+            setUrl(previous ?? 'https://');
+        }
+
+        setOpen(next);
+    };
+
+    const applyLink = (): void => {
+        const trimmed = url.trim();
+        const chain = editor.chain().focus().extendMarkRange('link');
+
+        if (trimmed === '') {
+            chain.unsetLink().run();
+        } else {
+            chain.setLink({ href: trimmed }).run();
+        }
+
+        setOpen(false);
+    };
+
+    const removeLink = (): void => {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={openChange}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                        <Toggle
+                            variant="outline"
+                            aria-label={t('richText.link')}
+                            pressed={isActive}
+                        >
+                            <Link2 className="size-3.5" />
+                        </Toggle>
+                    </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>{t('richText.link')}</TooltipContent>
+            </Tooltip>
+            <PopoverContent align="start" className="w-80">
+                <Field>
+                    <FieldLabel htmlFor="wysiwyg-link-url">
+                        {t('richText.linkUrl')}
+                    </FieldLabel>
+                    <Input
+                        id="wysiwyg-link-url"
+                        type="url"
+                        value={url}
+                        onChange={(event) => setUrl(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                applyLink();
+                            }
+                        }}
+                        data-test="wysiwyg-link-url"
+                    />
+                </Field>
+                <div className="mt-3 flex justify-end gap-2">
+                    {isActive ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={removeLink}
+                        >
+                            {t('richText.removeLink')}
+                        </Button>
+                    ) : null}
+                    <Button
+                        type="button"
+                        onClick={applyLink}
+                        data-test="wysiwyg-link-apply"
+                    >
+                        {t('richText.applyLink')}
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
     );
 }
 
 function WysiwygToolbar({ editor }: { editor: Editor }) {
-    const setLink = (): void => {
-        const previous = editor.getAttributes('link').href as
-            string | undefined;
-        const url = window.prompt('Link URL', previous ?? 'https://');
-
-        if (url === null) {
-            return;
-        }
-
-        const trimmed = url.trim();
-
-        if (trimmed === '') {
-            editor.chain().focus().extendMarkRange('link').unsetLink().run();
-
-            return;
-        }
-
-        editor
-            .chain()
-            .focus()
-            .extendMarkRange('link')
-            .setLink({ href: trimmed })
-            .run();
-    };
+    const { t } = useTranslation();
 
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
-            <ToolbarButton
-                label="Bold"
-                active={editor.isActive('bold')}
-                onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-                <Bold className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Italic"
-                active={editor.isActive('italic')}
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-            >
-                <Italic className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Strikethrough"
-                active={editor.isActive('strike')}
-                onClick={() => editor.chain().focus().toggleStrike().run()}
-            >
-                <Strikethrough className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Heading 2"
-                active={editor.isActive('heading', { level: 2 })}
-                onClick={() =>
-                    editor.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-            >
-                <Heading2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Heading 3"
-                active={editor.isActive('heading', { level: 3 })}
-                onClick={() =>
-                    editor.chain().focus().toggleHeading({ level: 3 }).run()
-                }
-            >
-                <Heading3 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Bullet list"
-                active={editor.isActive('bulletList')}
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-            >
-                <List className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Ordered list"
-                active={editor.isActive('orderedList')}
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            >
-                <ListOrdered className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Blockquote"
-                active={editor.isActive('blockquote')}
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            >
-                <Quote className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Link"
-                active={editor.isActive('link')}
-                onClick={setLink}
-            >
-                <Link2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Undo"
-                disabled={!editor.can().undo()}
-                onClick={() => editor.chain().focus().undo().run()}
-            >
-                <Undo2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Redo"
-                disabled={!editor.can().redo()}
-                onClick={() => editor.chain().focus().redo().run()}
-            >
-                <Redo2 className="size-3.5" />
-            </ToolbarButton>
+        <div className="flex flex-wrap gap-2 border-b p-1.5">
+            <ButtonGroup>
+                <ToolbarToggle
+                    label={t('richText.bold')}
+                    pressed={editor.isActive('bold')}
+                    onToggle={() => editor.chain().focus().toggleBold().run()}
+                >
+                    <Bold className="size-3.5" />
+                </ToolbarToggle>
+                <ToolbarToggle
+                    label={t('richText.italic')}
+                    pressed={editor.isActive('italic')}
+                    onToggle={() => editor.chain().focus().toggleItalic().run()}
+                >
+                    <Italic className="size-3.5" />
+                </ToolbarToggle>
+                <ToolbarToggle
+                    label={t('richText.strikethrough')}
+                    pressed={editor.isActive('strike')}
+                    onToggle={() => editor.chain().focus().toggleStrike().run()}
+                >
+                    <Strikethrough className="size-3.5" />
+                </ToolbarToggle>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarToggle
+                    label={t('richText.heading2')}
+                    pressed={editor.isActive('heading', { level: 2 })}
+                    onToggle={() =>
+                        editor.chain().focus().toggleHeading({ level: 2 }).run()
+                    }
+                >
+                    <Heading2 className="size-3.5" />
+                </ToolbarToggle>
+                <ToolbarToggle
+                    label={t('richText.heading3')}
+                    pressed={editor.isActive('heading', { level: 3 })}
+                    onToggle={() =>
+                        editor.chain().focus().toggleHeading({ level: 3 }).run()
+                    }
+                >
+                    <Heading3 className="size-3.5" />
+                </ToolbarToggle>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarToggle
+                    label={t('richText.bulletList')}
+                    pressed={editor.isActive('bulletList')}
+                    onToggle={() =>
+                        editor.chain().focus().toggleBulletList().run()
+                    }
+                >
+                    <List className="size-3.5" />
+                </ToolbarToggle>
+                <ToolbarToggle
+                    label={t('richText.orderedList')}
+                    pressed={editor.isActive('orderedList')}
+                    onToggle={() =>
+                        editor.chain().focus().toggleOrderedList().run()
+                    }
+                >
+                    <ListOrdered className="size-3.5" />
+                </ToolbarToggle>
+                <ToolbarToggle
+                    label={t('richText.quote')}
+                    pressed={editor.isActive('blockquote')}
+                    onToggle={() =>
+                        editor.chain().focus().toggleBlockquote().run()
+                    }
+                >
+                    <Quote className="size-3.5" />
+                </ToolbarToggle>
+            </ButtonGroup>
+            <WysiwygLinkPopover editor={editor} />
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.undo')}
+                    disabled={!editor.can().undo()}
+                    onClick={() => editor.chain().focus().undo().run()}
+                >
+                    <Undo2 className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.redo')}
+                    disabled={!editor.can().redo()}
+                    onClick={() => editor.chain().focus().redo().run()}
+                >
+                    <Redo2 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
         </div>
     );
 }
@@ -401,6 +543,8 @@ export function MarkdownModeToggle({
     onChange: (next: 'edit' | 'preview') => void;
     disabled?: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <ToggleGroup
             type="single"
@@ -410,16 +554,19 @@ export function MarkdownModeToggle({
                     onChange(next);
                 }
             }}
-            size="sm"
             className="justify-start"
             disabled={disabled}
         >
-            <ToggleGroupItem value="edit" aria-label="Edit" className="px-2">
+            <ToggleGroupItem
+                value="edit"
+                aria-label={t('richText.edit')}
+                className="px-2"
+            >
                 <FileText className="size-3.5" />
             </ToggleGroupItem>
             <ToggleGroupItem
                 value="preview"
-                aria-label="Preview"
+                aria-label={t('richText.preview')}
                 className="px-2"
             >
                 <Eye className="size-3.5" />
@@ -447,17 +594,17 @@ function MarkdownToolbar({
     onImageFromLibrary: () => void;
     onImageFromUrl: () => void;
 }) {
+    const { t } = useTranslation();
+
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
+        <div className="flex flex-wrap gap-2 border-b p-1.5">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        className="h-7 gap-1.5 px-2"
-                        aria-label="Heading"
-                        title="Heading"
+                        className="gap-1.5 px-2"
+                        aria-label={t('richText.heading')}
                         disabled={disabled}
                     >
                         <Heading className="size-3.5" />
@@ -474,73 +621,79 @@ function MarkdownToolbar({
                                 className="min-h-10 py-2.5"
                                 onSelect={() => onRun(command)}
                             >
-                                Heading {level}
+                                {t('richText.headingLevel', { level })}
                                 <DropdownMenuShortcut>
-                                    ⌘⌥{level}
+                                    <ShortcutKeys
+                                        keys={['⌘', '⌥', String(level)]}
+                                    />
                                 </DropdownMenuShortcut>
                             </DropdownMenuItem>
                         );
                     })}
                 </DropdownMenuContent>
             </DropdownMenu>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bold')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.bold)}
+                >
+                    <Bold className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.italic')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.italic)}
+                >
+                    <Italic className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.strikethrough')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.strikethrough)}
+                >
+                    <Strikethrough className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
+            <ButtonGroup>
+                <ToolbarButton
+                    label={t('richText.bulletList')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.unorderedListCommand)}
+                >
+                    <List className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.orderedList')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.orderedListCommand)}
+                >
+                    <ListOrdered className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.quote')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.quote)}
+                >
+                    <Quote className="size-3.5" />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={t('richText.code')}
+                    disabled={disabled}
+                    onClick={() => onRun(commands.code)}
+                >
+                    <Code2 className="size-3.5" />
+                </ToolbarButton>
+            </ButtonGroup>
             <ToolbarButton
-                label="Bold"
-                disabled={disabled}
-                onClick={() => onRun(commands.bold)}
-            >
-                <Bold className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Italic"
-                disabled={disabled}
-                onClick={() => onRun(commands.italic)}
-            >
-                <Italic className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Strikethrough"
-                disabled={disabled}
-                onClick={() => onRun(commands.strikethrough)}
-            >
-                <Strikethrough className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Bullet list"
-                disabled={disabled}
-                onClick={() => onRun(commands.unorderedListCommand)}
-            >
-                <List className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Ordered list"
-                disabled={disabled}
-                onClick={() => onRun(commands.orderedListCommand)}
-            >
-                <ListOrdered className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Blockquote"
-                disabled={disabled}
-                onClick={() => onRun(commands.quote)}
-            >
-                <Quote className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Code"
-                disabled={disabled}
-                onClick={() => onRun(commands.code)}
-            >
-                <Code2 className="size-3.5" />
-            </ToolbarButton>
-            <ToolbarButton
-                label="Link"
+                label={t('richText.link')}
                 disabled={disabled}
                 onClick={() => onRun(commands.link)}
             >
                 <Link2 className="size-3.5" />
             </ToolbarButton>
             <ToolbarButton
-                label="Table"
+                label={t('richText.table')}
                 disabled={disabled}
                 onClick={onOpenTable}
             >
@@ -550,11 +703,9 @@ function MarkdownToolbar({
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        className="h-7 px-2"
-                        aria-label="Image"
-                        title="Image"
+                        className="px-2"
+                        aria-label={t('richText.image')}
                         disabled={disabled}
                     >
                         <ImageIcon className="size-3.5" />
@@ -566,21 +717,21 @@ function MarkdownToolbar({
                         onSelect={onImageFromComputer}
                     >
                         <Upload className="size-4" />
-                        Upload from computer
+                        {t('richText.imageFromComputer')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="min-h-10 gap-2 py-2.5"
                         onSelect={onImageFromLibrary}
                     >
                         <FolderOpen className="size-4" />
-                        Choose from library
+                        {t('richText.imageFromLibrary')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="min-h-10 gap-2 py-2.5"
                         onSelect={onImageFromUrl}
                     >
                         <Link2 className="size-4" />
-                        Import from URL
+                        {t('richText.imageFromUrl')}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -616,6 +767,7 @@ export function MarkdownFieldInput({
     /** When false, parent should render MarkdownModeToggle on the title row. */
     showModeToggle?: boolean;
 }) {
+    const { t } = useTranslation();
     const textareaSettings = parseTextareaFieldSettings(settings);
     const { resolvedAppearance } = useAppearance();
     const { projectSettings } = usePage().props;
@@ -737,7 +889,11 @@ export function MarkdownFieldInput({
 
                 for (const file of Array.from(fileList)) {
                     uploaded.push(
-                        await uploadImageFile(file, filesMaxUploadBytes),
+                        await uploadImageFile(
+                            file,
+                            t('richText.imageOnly'),
+                            filesMaxUploadBytes,
+                        ),
                     );
                 }
 
@@ -746,7 +902,7 @@ export function MarkdownFieldInput({
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : 'Image upload failed.',
+                        : t('richText.imageUploadFailed'),
                 );
             } finally {
                 setImageUploading(false);
@@ -756,7 +912,13 @@ export function MarkdownFieldInput({
                 }
             }
         },
-        [filesMaxUploadBytes, imageUploading, insertImagesFromFiles, readonly],
+        [
+            filesMaxUploadBytes,
+            imageUploading,
+            insertImagesFromFiles,
+            readonly,
+            t,
+        ],
     );
 
     useEffect(() => {
@@ -858,7 +1020,7 @@ export function MarkdownFieldInput({
                 onOpenChange={setImageLibraryOpen}
                 acceptImagesOnly
                 multiple
-                title="Choose images"
+                title={t('richText.chooseImages')}
                 onSelect={(files) => {
                     insertImagesFromFiles(files);
                 }}
@@ -874,14 +1036,16 @@ export function MarkdownFieldInput({
             <Dialog open={tableOpen} onOpenChange={setTableOpen}>
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Insert table</DialogTitle>
+                        <DialogTitle>{t('richText.insertTable')}</DialogTitle>
                         <DialogDescription>
-                            Choose rows and columns for the markdown table.
+                            {t('richText.insertTableDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor={`${id}-table-rows`}>Rows</Label>
+                            <Label htmlFor={`${id}-table-rows`}>
+                                {t('richText.tableRows')}
+                            </Label>
                             <Input
                                 id={`${id}-table-rows`}
                                 type="number"
@@ -896,7 +1060,9 @@ export function MarkdownFieldInput({
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor={`${id}-table-cols`}>Columns</Label>
+                            <Label htmlFor={`${id}-table-cols`}>
+                                {t('richText.tableColumns')}
+                            </Label>
                             <Input
                                 id={`${id}-table-cols`}
                                 type="number"
@@ -917,10 +1083,10 @@ export function MarkdownFieldInput({
                             variant="outline"
                             onClick={() => setTableOpen(false)}
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                         <Button type="button" onClick={insertTable}>
-                            Create
+                            {t('richText.createTable')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -932,7 +1098,7 @@ export function MarkdownFieldInput({
                 >
                     {value.trim() === '' ? (
                         <p className="text-sm text-muted-foreground">
-                            Nothing to preview.
+                            {t('richText.nothingToPreview')}
                         </p>
                     ) : (
                         <AssistantMarkdown content={value} />
@@ -970,8 +1136,8 @@ export function MarkdownFieldInput({
                     ) : null}
                     {imageUploading ? (
                         <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs text-muted-foreground">
-                            <Loader2 className="size-3.5 animate-spin" />
-                            Uploading image…
+                            <Spinner className="size-3.5" />
+                            {t('richText.uploadingImage')}
                         </div>
                     ) : null}
                     <MDEditor
@@ -1164,9 +1330,11 @@ export function TagChipInput({
     defaultParts: string[];
     readonly: boolean;
 }) {
+    const { t } = useTranslation();
     const tagSettings = parseTagFieldSettings(settings);
     const [tags, setTags] = useState<string[]>(defaultParts);
     const [draft, setDraft] = useState('');
+    const chipBoxRef = useRef<HTMLDivElement>(null);
 
     const addTag = (raw: string) => {
         const trimmed = raw.trim();
@@ -1187,55 +1355,64 @@ export function TagChipInput({
 
     return (
         <div className="space-y-2">
-            <div className="flex min-h-9 flex-wrap items-center gap-2 rounded-md border px-2 py-1">
+            <div
+                ref={chipBoxRef}
+                className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5"
+            >
                 {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="gap-1">
+                    <RemovableBadge
+                        key={tag}
+                        removeLabel={t('richText.removeTag', { name: tag })}
+                        onRemove={
+                            readonly
+                                ? undefined
+                                : () =>
+                                      setTags((current) =>
+                                          current.filter(
+                                              (entry) => entry !== tag,
+                                          ),
+                                      )
+                        }
+                    >
                         {tag}
-                        {!readonly ? (
-                            <button
-                                type="button"
-                                className="text-xs"
-                                onClick={() =>
-                                    setTags((current) =>
-                                        current.filter(
-                                            (entry) => entry !== tag,
-                                        ),
-                                    )
-                                }
-                            >
-                                ×
-                            </button>
-                        ) : null}
-                    </Badge>
+                    </RemovableBadge>
                 ))}
                 {!readonly ? (
-                    <Input
-                        value={draft}
-                        className="h-7 min-w-[120px] flex-1 border-0 shadow-none focus-visible:ring-0"
-                        placeholder="Add tag…"
-                        list={
-                            tagSettings.presets.length > 0
-                                ? `${nameBase}-presets`
-                                : undefined
-                        }
-                        onChange={(event) => setDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                                event.preventDefault();
-                                addTag(draft);
+                    <div className="min-w-[120px] flex-1">
+                        <AutocompleteInput
+                            anchorRef={chipBoxRef}
+                            value={draft}
+                            className="h-7 border-0 shadow-none focus-visible:ring-0"
+                            placeholder={t('richText.addTag')}
+                            suggestions={tagSettings.presets
+                                .filter(
+                                    (preset) =>
+                                        !tags.includes(preset) &&
+                                        preset
+                                            .toLowerCase()
+                                            .includes(
+                                                draft.trim().toLowerCase(),
+                                            ),
+                                )
+                                .map((preset) => ({
+                                    value: preset,
+                                    label: preset,
+                                }))}
+                            onSelectSuggestion={(suggestion) =>
+                                addTag(suggestion.value)
                             }
-                        }}
-                        onBlur={() => addTag(draft)}
-                    />
+                            onChange={(event) => setDraft(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    addTag(draft);
+                                }
+                            }}
+                            onBlur={() => addTag(draft)}
+                        />
+                    </div>
                 ) : null}
             </div>
-            {tagSettings.presets.length > 0 ? (
-                <datalist id={`${nameBase}-presets`}>
-                    {tagSettings.presets.map((preset) => (
-                        <option key={preset} value={preset} />
-                    ))}
-                </datalist>
-            ) : null}
             {tags.map((tag) => (
                 <input
                     key={tag}
@@ -1290,21 +1467,27 @@ export function ColorFieldInput({
                 type="color"
                 value={hex}
                 disabled={readonly}
-                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-100 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                 onChange={(event) => setHex(event.target.value)}
             />
             <Input
                 type="text"
                 value={storedValue}
                 readOnly
-                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none focus-visible:ring-0"
+                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none read-only:bg-transparent focus-visible:ring-0"
             />
         </>
     );
 
     if (!colorSettings.opacity) {
         return (
-            <div className={cn(colorFieldChrome, 'gap-2')}>
+            <div
+                className={cn(
+                    colorFieldChrome,
+                    'gap-2',
+                    readonly && 'bg-muted/50',
+                )}
+            >
                 {swatchAndHex}
                 <input type="hidden" name={name} value={storedValue} />
             </div>
@@ -1312,12 +1495,21 @@ export function ColorFieldInput({
     }
 
     return (
-        <div className={cn(colorFieldChromeWithOpacity, 'space-y-2')}>
+        <div
+            className={cn(
+                colorFieldChromeWithOpacity,
+                'space-y-2',
+                readonly && 'bg-muted/50',
+            )}
+        >
             <div className="flex h-7 items-center gap-2">{swatchAndHex}</div>
             <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums">
+                <Badge
+                    variant="muted"
+                    className="min-w-9 font-mono text-foreground tabular-nums"
+                >
                     {Math.round(alpha * 100)}%
-                </span>
+                </Badge>
                 <Slider
                     className="w-auto min-w-0 flex-1"
                     min={0}

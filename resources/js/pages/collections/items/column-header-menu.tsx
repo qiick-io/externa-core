@@ -7,6 +7,7 @@ import {
     ChevronDown,
     EyeOff,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -43,6 +44,8 @@ export function ColumnHeaderMenu({
     onAlign,
     onHide,
 }: ColumnHeaderMenuProps) {
+    const { t } = useTranslation();
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -54,7 +57,7 @@ export function ColumnHeaderMenu({
                         'size-6 shrink-0 text-muted-foreground hover:text-foreground',
                         sortActive && 'text-foreground',
                     )}
-                    aria-label={`${label} column options`}
+                    aria-label={t('a11y.columnOptions', { label })}
                     onClick={(event) => event.stopPropagation()}
                     onPointerDown={(event) => event.stopPropagation()}
                 >
@@ -81,7 +84,7 @@ export function ColumnHeaderMenu({
                     )}
                 >
                     <ArrowUpAZ className="size-4" />
-                    Sort ascending
+                    {t('common.sortAscending')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onSelect={() => onSort('desc')}
@@ -90,7 +93,7 @@ export function ColumnHeaderMenu({
                     )}
                 >
                     <ArrowDownAZ className="size-4" />
-                    Sort descending
+                    {t('common.sortDescending')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -98,21 +101,21 @@ export function ColumnHeaderMenu({
                     className={cn(align === 'left' && 'bg-accent')}
                 >
                     <AlignLeft className="size-4" />
-                    Align left
+                    {t('collections.items.columnMenu.alignLeft')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onSelect={() => onAlign('center')}
                     className={cn(align === 'center' && 'bg-accent')}
                 >
                     <AlignCenter className="size-4" />
-                    Align center
+                    {t('collections.items.columnMenu.alignCenter')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onSelect={() => onAlign('right')}
                     className={cn(align === 'right' && 'bg-accent')}
                 >
                     <AlignRight className="size-4" />
-                    Align right
+                    {t('collections.items.columnMenu.alignRight')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -124,7 +127,7 @@ export function ColumnHeaderMenu({
                     }}
                 >
                     <EyeOff className="size-4" />
-                    Hide field
+                    {t('collections.items.columnMenu.hideField')}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -136,7 +139,7 @@ export function alignClass(align: ColumnAlign | undefined): string {
         case 'center':
             return 'text-center';
         case 'right':
-            return 'text-right';
+            return 'text-right tabular-nums';
         default:
             return 'text-left';
     }
