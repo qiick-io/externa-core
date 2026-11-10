@@ -94,6 +94,28 @@ test('create direct chat works with can-create-direct-chats', function () {
         ->assertJsonCount(0, 'data');
 });
 
+test('the private tab lists several direct chats without lazy loading', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+    $third = User::factory()->create();
+
+    foreach ([$other, $third] as $peer) {
+        $this->actingAs($user)
+            ->postJson(route('chat.threads.store'), [
+                'kind' => Chat::KIND_DIRECT,
+                'user_ids' => [$peer->id],
+            ])
+            ->assertCreated();
+    }
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.collection_name', null);
+});
+
 test('create direct chat broadcasts ThreadUpserted to peer private channel', function () {
     ['user' => $user, 'other' => $other] = hubKitchen([
         PermissionEnum::CanCreateDirectChats->value,
