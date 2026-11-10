@@ -135,19 +135,23 @@ export type AiApprovalDecision = {
 };
 
 /**
- * Short notice shown on a turn paused for tool approval.
+ * Short notice shown on a turn paused for tool approval. It names no tool: the
+ * approval card below it describes each call in words.
  *
- * @param approvals - Pending approvals of the paused turn
- * @returns English notice naming the gated tools
+ * @returns The translated notice
  */
-export function awaitingApprovalContent(
-    approvals: AiPendingApproval[],
-): string {
-    const tools = [...new Set(approvals.map((approval) => approval.tool))];
+export function awaitingApprovalContent(): string {
+    return i18n.t('ai.awaitingApproval');
+}
 
-    return i18n.t('ai.awaitingApproval', {
-        tools: tools.length > 0 ? tools.join(', ') : i18n.t('ai.aTool'),
-    });
+/**
+ * Whether a pending call deletes data. The server's approval reason says so in
+ * a fixed form ("ManageFiles delete deletes data.", from
+ * `RequiresDestructiveApprovalTrait::needsApproval()`); a write ends in
+ * "writes data.".
+ */
+export function isDestructiveApproval(approval: AiPendingApproval): boolean {
+    return approval.reason?.endsWith(' deletes data.') ?? false;
 }
 
 /** Callbacks invoked while consuming an AI chat SSE stream. */

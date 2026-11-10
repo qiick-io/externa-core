@@ -47,7 +47,7 @@ class AiConversationMessagePresenterService
         if ($message->role === 'assistant' && trim($content) === '') {
             if ($pendingApprovals !== []) {
                 $content = $isLastMessage
-                    ? AiToolTurnSummary::awaitingApproval($pendingApprovals)
+                    ? AiToolTurnSummary::awaitingApproval()
                     : AiToolTurnSummary::approvalAbandoned($pendingApprovals);
             } elseif ($toolCalls !== [] || $toolResults !== []) {
                 $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);

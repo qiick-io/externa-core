@@ -2047,7 +2047,8 @@
             "approve": "Approve",
             "reject": "Reject",
             "question": "Approve this action?",
-            "hint": "The assistant waits for your answer before it continues."
+            "hint": "The assistant waits for your answer before it continues.",
+            "destructiveHint": "This call deletes data. The assistant waits for your answer before it continues."
         },
         "actions": {
             "copy": "Copy",
@@ -2100,7 +2101,7 @@
             "truncate": "Could not truncate the conversation",
             "popupBlocked": "Popup blocked: allow pop-ups to export the PDF."
         },
-        "awaitingApproval": "Waiting for your approval to run {{tools}}.",
+        "awaitingApproval": "Waiting for your approval.",
         "aTool": "a tool",
         "toolFallback": "Completed via {{tools}}. Ask me to verify the result if needed.",
         "pinned": "Pinned",

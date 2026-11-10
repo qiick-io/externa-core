@@ -103,7 +103,7 @@ describe('AiChatMessages', () => {
             {
                 id: 'local-assistant-1',
                 role: 'assistant',
-                content: 'Waiting for your approval to run delete_item.',
+                content: 'Waiting for your approval.',
                 pending_approvals: [
                     {
                         id: 'approval-1',
@@ -137,6 +137,43 @@ describe('AiChatMessages', () => {
             'local-assistant-1',
             false,
         );
+    });
+
+    it('keeps Approve on the brand colour for a write and turns it red for a delete', () => {
+        const approvalMessage = (reason: string) => ({
+            id: 'local-assistant-1',
+            role: 'assistant' as const,
+            content: 'Waiting for your approval.',
+            pending_approvals: [
+                { id: 'approval-1', tool: 'ManageCollections', reason },
+            ],
+        });
+
+        renderMessages([
+            prompt,
+            approvalMessage(
+                'ManageCollections apply_collection_pack writes data.',
+            ),
+        ]);
+
+        expect(
+            screen.getByRole('button', { name: 'ai.approval.approve' }),
+        ).not.toHaveClass('bg-destructive');
+        expect(screen.getByText('ai.approval.hint')).toBeInTheDocument();
+        expect(screen.queryByText(/writes data/)).toBeNull();
+        cleanup();
+
+        renderMessages([
+            prompt,
+            approvalMessage('ManageCollections delete deletes data.'),
+        ]);
+
+        expect(
+            screen.getByRole('button', { name: 'ai.approval.approve' }),
+        ).toHaveClass('bg-destructive');
+        expect(
+            screen.getByText('ai.approval.destructiveHint'),
+        ).toBeInTheDocument();
     });
 
     it('offers retry on an error answer', () => {

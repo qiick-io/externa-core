@@ -16,8 +16,9 @@ import {
  * (ui.shadcn.com/docs/ai-elements/base/confirmation): a call waiting for
  * approval, with a question and Deny / Approve. It sits outside the `Trace`;
  * once answered, the call becomes a `Tool` line again. Change from upstream:
- * the button labels go through i18n (`ai.approval.*`), and Approve takes the
- * destructive variant, since the calls that ask for approval write or delete.
+ * the button labels go through i18n (`ai.approval.*`). Approve takes the brand
+ * (default) variant for a call that writes, and the destructive variant only
+ * for one that deletes (`isDestructive`), as for every other destructive action.
  */
 
 export type ConfirmationProps = {
@@ -25,6 +26,8 @@ export type ConfirmationProps = {
     title: ReactNode;
     description?: ReactNode;
     disabled?: boolean;
+    /** The call deletes data: Approve turns destructive. */
+    isDestructive?: boolean;
     onApprove: () => void;
     onDeny: () => void;
 };
@@ -33,6 +36,7 @@ export const Confirmation = ({
     title,
     description,
     disabled = false,
+    isDestructive = false,
     onApprove,
     onDeny,
 }: ConfirmationProps) => {
@@ -60,7 +64,7 @@ export const Confirmation = ({
                 </Button>
                 <Button
                     size="sm"
-                    variant="destructive"
+                    variant={isDestructive ? 'destructive' : 'default'}
                     disabled={disabled}
                     onClick={onApprove}
                 >

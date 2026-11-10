@@ -2047,7 +2047,8 @@
             "approve": "Freigeben",
             "reject": "Ablehnen",
             "question": "Diese Aktion freigeben?",
-            "hint": "Der Assistent wartet auf deine Antwort, bevor er weitermacht."
+            "hint": "Der Assistent wartet auf deine Antwort, bevor er weitermacht.",
+            "destructiveHint": "Diese Aktion löscht Daten. Der Assistent wartet auf deine Antwort, bevor er weitermacht."
         },
         "actions": {
             "copy": "Kopieren",
@@ -2100,7 +2101,7 @@
             "truncate": "Die Unterhaltung konnte nicht gekürzt werden",
             "popupBlocked": "Pop-up blockiert: Erlauben Sie Pop-ups, um das PDF zu exportieren."
         },
-        "awaitingApproval": "Wartet auf Ihre Freigabe, um {{tools}} auszuführen.",
+        "awaitingApproval": "Wartet auf deine Freigabe.",
         "aTool": "ein Werkzeug",
         "toolFallback": "Erledigt mit {{tools}}. Bitten Sie mich bei Bedarf, das Ergebnis zu prüfen.",
         "pinned": "Angeheftet",
