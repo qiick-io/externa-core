@@ -7,9 +7,10 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Http;
 
 /**
- * A streamed answer renders as AI Elements parts: the reasoning collapsed with
- * its duration, each tool call with its state, several tool steps as a chain
- * of thought, the cited sources and the text. The SSE body is replayed in the
+ * A streamed answer renders as AI Elements parts on Trace: the reasoning closed
+ * with its duration once the stream ends, each tool call as a sentence with its
+ * state, several calls folded into "Done in N steps", the cited sources and the
+ * text. The SSE body is replayed in the
  * page (laravel/ai event shapes), so no model is needed.
  */
 beforeEach(function (): void {
@@ -77,7 +78,7 @@ it('renders reasoning, tool steps, sources and text of a streamed answer', funct
         ->assertSee('The move failed: the folder does not exist.')
         ->assertSee('Thought for 1 second')
         ->assertDontSee('Check the folder first.')
-        ->assertSee('2 tool steps')
+        ->assertSee('Done in 2 steps')
         ->assertSee('Used 1 source')
         ->assertScript(<<<'JS'
 (() => {
