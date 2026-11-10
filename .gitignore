@@ -28,6 +28,8 @@ yarn-error.log
 !/.cursor/rules/**
 !/.cursor/commands/
 !/.cursor/commands/**
+# A maintainer's own Cursor workspace rule (local paths), never shared
+/.cursor/rules/stay-in-externa-workspace.mdc
 /.fleet
 /.idea
 /.nova

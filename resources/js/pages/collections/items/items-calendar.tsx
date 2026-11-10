@@ -248,7 +248,7 @@ function restoreCalendarDom(
 }
 
 /**
- * Full-height collection calendar (Directus-style): Month / Week / Day / List + day→day drag.
+ * Full-height collection calendar: Month / Week / Day / List views, with day-to-day drag.
  */
 export function ItemsCalendar({
     collection,

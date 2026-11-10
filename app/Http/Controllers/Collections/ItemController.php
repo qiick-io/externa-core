@@ -726,7 +726,7 @@ class ItemController extends Controller
     /**
      * Update a collection item while preserving readonly field values.
      * When collection versioning is on and version=draft, writes draft_data only.
-     * Kanban board_move / calendar_move write the moved field to published values (Directus-like).
+     * Kanban board_move / calendar_move write the moved field to the published values, never to a draft.
      */
     public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
