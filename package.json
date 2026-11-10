@@ -92,7 +92,7 @@
         "laravel-echo": "^2.6.3",
         "laravel-vite-plugin": "^3.2.1",
         "leaflet": "^1.9.4",
-        "lucide-react": "^1.69.0",
+        "lucide-react": "^1.70.0",
         "pusher-js": "^8.6.0",
         "radix-ui": "^1.8.1",
         "react": "^19.3.1",
