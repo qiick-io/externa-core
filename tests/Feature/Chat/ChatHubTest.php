@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Events\ChatThreadUpsertedEvent;
@@ -287,6 +288,33 @@ test('item chat uuid is 404 when the item is not readable', function () {
     $this->actingAs($stranger)
         ->get(route('chat.show', $chatId))
         ->assertNotFound();
+});
+
+test('the collection unread badge skips chats of collections the user cannot read', function () {
+    ['user' => $user, 'other' => $other, 'collection' => $collection, 'item' => $item] = hubKitchen();
+
+    $this->actingAs($other)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), ['body' => 'first'])
+        ->assertCreated();
+    $this->actingAs($user)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), ['body' => 'reply'])
+        ->assertCreated();
+
+    $this->actingAs($other)
+        ->getJson(route('chat.unread-count'))
+        ->assertJsonPath('unread_collection', 1);
+
+    // The other user's role now reads another collection only, so Kitchen Sink is hidden.
+    $otherRole = $other->roles()->firstOrFail();
+    grantRoleActions($otherRole, Collection::factory()->create(), [CollectionPermissionActionEnum::Read]);
+
+    $this->actingAs($other)
+        ->getJson(route('chat.unread-count'))
+        ->assertJsonPath('unread_collection', 0);
+    $this->actingAs($other)
+        ->getJson(route('chat.threads.index', ['tab' => 'collection']))
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
 });
 
 test('collection tab lists readable item threads the viewer did not start', function () {
