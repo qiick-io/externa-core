@@ -14,21 +14,21 @@ import type { EchoConnectionState } from '@/lib/echo';
 export function useEchoConnection(): EchoConnectionState {
     const page = usePage();
     const enabled = isRealtimeEnabled(page.props.realtime);
+    const isConnectionTracked = enabled && !!page.props.auth.user;
     const [state, setState] = useState<EchoConnectionState>(() =>
         enabled ? getEchoConnectionState() : 'disabled',
     );
 
     useEffect(() => {
-        if (!enabled || !page.props.auth.user) {
-            setState('disabled');
-
+        if (!isConnectionTracked) {
             return;
         }
 
         ensureEcho(true);
 
         return subscribeEchoConnection(setState);
-    }, [enabled, page.props.auth.user]);
+    }, [isConnectionTracked]);
 
-    return state;
+    // Derived rather than reset in the effect: the subscription replays the current state on re-enable.
+    return isConnectionTracked ? state : 'disabled';
 }

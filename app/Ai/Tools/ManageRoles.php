@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
@@ -15,6 +17,7 @@ use App\Services\Api\CollectionPermissionSyncService;
 use App\Services\Api\FilePermissionSyncService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -117,7 +120,8 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
             return $source;
         }
 
-        if ($source->name === RoleEnum::SuperAdmin->value || $source->isLockedSystemRole()) {
+        // RolePolicy refuses the super-admin role and locked system roles as sources.
+        if (Gate::forUser($this->authenticatedUser())->inspect('duplicate', $source)->denied()) {
             return 'Error: This role cannot be duplicated.';
         }
 

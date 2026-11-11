@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ArrowDownAZ, ArrowUpAZ, Plus, Trash2, UsersRound } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataTable,
@@ -175,11 +175,28 @@ export default function AdminGroupsIndex({
         [direction, isTrashed, groups.per_page, search, sort],
     );
 
-    useEffect(() => {
+    const [previousFilters, setPreviousFilters] = useState({
+        search: filters.search,
+        sort: filters.sort,
+        direction: filters.direction,
+    });
+
+    // Adopt the server filters during render after a visit (React's "adjust
+    // state on prop change" pattern).
+    if (
+        previousFilters.search !== filters.search ||
+        previousFilters.sort !== filters.sort ||
+        previousFilters.direction !== filters.direction
+    ) {
+        setPreviousFilters({
+            search: filters.search,
+            sort: filters.sort,
+            direction: filters.direction,
+        });
         setSearch(filters.search ?? '');
         setSort(filters.sort ?? 'name');
         setDirection(filters.direction ?? 'asc');
-    }, [filters.search, filters.sort, filters.direction]);
+    }
 
     const onDebouncedSearch = useCallback(
         (value: string): void => {
@@ -190,9 +207,13 @@ export default function AdminGroupsIndex({
 
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
-    useEffect(() => {
+    const [previousIsTrashed, setPreviousIsTrashed] = useState(isTrashed);
+
+    // Clear the selection during render when switching to or from the trash.
+    if (previousIsTrashed !== isTrashed) {
+        setPreviousIsTrashed(isTrashed);
         setRowSelection({});
-    }, [isTrashed]);
+    }
 
     const changeSort = (nextSort: DataTableSort): void => {
         if (!isGroupSortField(nextSort.id)) {
