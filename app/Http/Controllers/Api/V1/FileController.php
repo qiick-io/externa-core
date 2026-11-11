@@ -6,6 +6,9 @@ use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ListFilesRequest;
+use App\Http\Requests\Api\V1\StoreFileRequest;
+use App\Http\Requests\Api\V1\UpdateFileRequest;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
 use App\Services\Api\FilePermissionGuardService;
@@ -19,7 +22,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -34,16 +36,9 @@ class FileController extends Controller
         private FileTransformService $fileTransformService,
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(ListFilesRequest $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Read);
-
-        $validated = $request->validate([
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'search' => ['nullable', 'string', 'max:255'],
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('api.max_per_page', 100))],
-        ]);
+        $validated = $request->validated();
 
         $maxPerPage = max(1, (int) config('api.max_per_page', 100));
         $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), $maxPerPage);
@@ -139,16 +134,9 @@ class FileController extends Controller
         );
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreFileRequest $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Create);
-
-        $validated = $request->validate([
-            'file' => ['required', 'file'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $upload */
         $upload = $validated['file'];
@@ -165,24 +153,10 @@ class FileController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateFileRequest $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Update);
-
-        $file = File::query()->find($id);
-        if ($file === null) {
-            abort(404);
-        }
-
-        $validated = $request->validate([
-            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
-            'location' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'download_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'focal_point_x' => ['sometimes', 'nullable', 'numeric', 'between:0,1'],
-            'focal_point_y' => ['sometimes', 'nullable', 'numeric', 'between:0,1'],
-            'name' => ['sometimes', 'string', 'max:255'],
-        ]);
+        $file = $request->targetFile();
+        $validated = $request->validated();
 
         if (array_key_exists('name', $validated) && $validated['name'] !== $file->name) {
             $file = $this->fileService->rename($file, $validated['name']);
