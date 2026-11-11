@@ -14,6 +14,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - AI tool approvals: two concurrent approve or reject clicks can no longer both decide (and run) the same call; the decision is one conditional update (#441).
 - An approved MCP call runs under the API key that asked for it (new `pending_tool_calls.api_key_id`), so the key's role, `collection_slugs`, read-only and files scope still apply, and a key revoked or narrowed while the call waited cannot run it (#441).
 - Rejecting a pending tool call needs the same tool permission as approving it; the requester can still withdraw their own call (#441).
+- Public API cost budget: a batch create, update or delete is charged once per entry (`API_COST_MUTATION` × the number of `items` / `ids`), so a 100-item batch costs like 100 writes, not one (#441).
 
 ### Changed
 

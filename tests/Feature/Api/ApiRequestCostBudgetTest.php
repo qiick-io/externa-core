@@ -148,3 +148,45 @@ it('rejects GraphQL queries deeper than GRAPHQL_MAX_DEPTH', function (): void {
     $messages = collect($response->json('errors'))->pluck('message')->implode(' ');
     expect(strtolower($messages))->toContain('depth');
 });
+
+it('charges a batch write once per entry (#441)', function (): void {
+    config([
+        'api.cost_limit' => 100,
+        'api.cost.base' => 1,
+        'api.cost.mutation' => 5,
+    ]);
+
+    $posts = makePostsCollection();
+    grantPublicActions($posts, [
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Create,
+    ]);
+
+    // Three entries → base 1 + mutation 5 × 3 = 16, not 6. The batch routes add their own
+    // throttle, which rewrites X-RateLimit-Remaining, so read the cost bucket itself.
+    $this->postJson('/api/v1/collections/posts/items/batch', [
+        'items' => [['data' => []], ['data' => []], ['data' => []]],
+    ])->assertSuccessful();
+
+    expect(RateLimiter::attempts('api-cost:127.0.0.1'))->toBe(16);
+});
+
+it('charges a batch delete once per id', function (): void {
+    config([
+        'api.cost_limit' => 100,
+        'api.cost.base' => 1,
+        'api.cost.mutation' => 5,
+    ]);
+
+    $posts = makePostsCollection();
+    grantPublicActions($posts, [
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Delete,
+    ]);
+    $ids = CollectionItem::factory()->count(2)->create(['collection_id' => $posts->id])->pluck('id')->all();
+
+    // Two ids → base 1 + mutation 5 × 2 = 11.
+    $this->deleteJson('/api/v1/collections/posts/items/batch', ['ids' => $ids])->assertSuccessful();
+
+    expect(RateLimiter::attempts('api-cost:127.0.0.1'))->toBe(11);
+});
