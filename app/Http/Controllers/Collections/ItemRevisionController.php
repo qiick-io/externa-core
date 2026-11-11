@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Collections;
 use App\Actions\Collections\UpdateCollectionItemAction;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Collections\ListCollectionItemRevisionsRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
@@ -23,7 +24,7 @@ class ItemRevisionController extends Controller
 {
     private const DEFAULT_PER_PAGE = 20;
 
-    private const MAX_PER_PAGE = 100;
+    private const MAX_PER_PAGE = ListCollectionItemRevisionsRequest::MAX_PER_PAGE;
 
     public function __construct(
         private UpdateCollectionItemAction $updateCollectionItemAction,
@@ -31,17 +32,9 @@ class ItemRevisionController extends Controller
         private CollectionFieldConvertService $fieldConvert,
     ) {}
 
-    public function index(Request $request, Collection $collection, CollectionItem $item): Response|JsonResponse
+    public function index(ListCollectionItemRevisionsRequest $request, Collection $collection, CollectionItem $item): Response|JsonResponse
     {
-        abort_unless((int) $item->collection_id === (int) $collection->id, 404);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
-
-        $validated = $request->validate([
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
-        ]);
+        $validated = $request->validated();
 
         $perPage = min(
             max((int) ($validated['per_page'] ?? self::DEFAULT_PER_PAGE), 1),

@@ -7,17 +7,16 @@ use App\Ai\Support\AiActivityLogger;
 use App\Ai\Support\AiPendingApprovals;
 use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\SendAiChatMessageRequest;
 use App\Models\AiChatAttachment;
 use App\Models\User;
 use App\Services\Ai\AiConversationContextService;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Files\File;
 use Laravel\Ai\Models\ConversationMessage;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
-use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,52 +25,21 @@ use Symfony\Component\HttpFoundation\Response;
 class AiChatController extends Controller
 {
     /**
-     * Validate the prompt, run the assistant stream, and emit SSE events to the client.
+     * Run the assistant stream for a validated prompt and emit SSE events to the client.
      *
+     * The request enforces the daily prompt limit (429) and validates the payload (422) before the stream starts.
      * ponytail: sync SSE holds the PHP worker for the whole tool loop — raise ceiling above max_execution_time=30.
      * Tool-only turns backfill empty assistant rows with a short summary. User messages are rewritten
      * after streaming to restore clean text and display-only attachment metadata.
      * ponytail: in FPM, output buffers are ended so SSE reaches the browser; tests keep buffers.
      */
-    public function __invoke(Request $request): Response
+    public function __invoke(SendAiChatMessageRequest $request): Response
     {
         /** @var User $user */
         $user = $request->user();
 
-        $isResume = $request->filled('approvals');
-        $dailyPromptLimit = (int) config('ai.daily_prompt_limit', 0);
-
-        if (
-            ! $isResume
-            && $dailyPromptLimit > 0
-            && Activity::query()
-                ->where('log_name', 'ai')
-                ->where('event', 'ai_prompt')
-                ->where('causer_type', $user->getMorphClass())
-                ->where('causer_id', $user->id)
-                ->where('created_at', '>=', now()->startOfDay())
-                ->count() >= $dailyPromptLimit
-        ) {
-            return response()->json([
-                'message' => 'Daily AI prompt limit reached.',
-            ], Response::HTTP_TOO_MANY_REQUESTS);
-        }
-
-        $validated = $request->validate([
-            'message' => [$isResume ? 'nullable' : 'required', 'string', 'max:20000'],
-            'conversation_id' => [$isResume ? 'required' : 'nullable', 'string', 'uuid'],
-            'attachment_ids' => ['nullable', 'array', 'max:5'],
-            'attachment_ids.*' => ['uuid'],
-            'context_item_ids' => ['nullable', 'array', 'max:'.AiConversationContextService::MAX_ITEMS],
-            'context_item_ids.*' => ['integer', 'min:1'],
-            'context_file_ids' => ['nullable', 'array', 'max:'.AiConversationContextService::MAX_FILES],
-            'context_file_ids.*' => ['integer', 'min:1'],
-            'context_prompt_ids' => ['nullable', 'array', 'max:'.AiConversationContextService::MAX_PROMPTS],
-            'context_prompt_ids.*' => ['integer', 'min:1'],
-            'approvals' => ['nullable', 'array', 'max:20'],
-            'approvals.*.id' => ['required', 'string', 'max:255'],
-            'approvals.*.approved' => ['required', 'boolean'],
-        ]);
+        $isResume = $request->isResume();
+        $validated = $request->validated();
 
         $conversationId = $validated['conversation_id'] ?? null;
 

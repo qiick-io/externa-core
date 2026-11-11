@@ -8,9 +8,15 @@ use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Collections\BuildLivePreviewUrlRequest;
 use App\Http\Requests\Collections\BulkItemActionRequest;
+use App\Http\Requests\Collections\ListCalendarMonthItemsRequest;
+use App\Http\Requests\Collections\ListCollectionFieldOptionsRequest;
+use App\Http\Requests\Collections\ListKanbanColumnItemsRequest;
+use App\Http\Requests\Collections\PreviewCollectionItemAsRoleRequest;
+use App\Http\Requests\Collections\RejectCollectionItemRequest;
+use App\Http\Requests\Collections\ScheduleCollectionItemRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
@@ -40,7 +46,6 @@ use App\Services\Collections\LivePreviewAsOfResolverService;
 use App\Services\Collections\LivePreviewUrlBuilderService;
 use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\SafeReturnUrl;
-use App\Support\Validation\SearchQueryRules;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -66,7 +71,7 @@ class ItemController extends Controller
     private const KANBAN_PER_PAGE = 30;
 
     /** Hard cap for one calendar month fetch (visible grid + overflow notice). */
-    private const CALENDAR_MAX_PER_PAGE = 500;
+    private const CALENDAR_MAX_PER_PAGE = ListCalendarMonthItemsRequest::MAX_PER_PAGE;
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
@@ -247,24 +252,11 @@ class ItemController extends Controller
     /**
      * Items for one calendar date range (same filters/search/permissions as the list).
      */
-    public function calendarMonth(Request $request, Collection $collection): JsonResponse
+    public function calendarMonth(ListCalendarMonthItemsRequest $request, Collection $collection): JsonResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
-        abort_if($collection->is_singleton, 404);
-
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
 
-        $validated = $request->validate([
-            'field' => ['required', 'string', 'max:64'],
-            'from' => ['required', 'date_format:Y-m-d'],
-            'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::CALENDAR_MAX_PER_PAGE],
-        ]);
+        $validated = $request->validated();
 
         $fieldName = $validated['field'];
         $field = $collection->fields->firstWhere('name', $fieldName);
@@ -314,23 +306,11 @@ class ItemController extends Controller
     /**
      * Paginate one kanban column (same filters/search/permissions as the list).
      */
-    public function kanbanColumn(Request $request, Collection $collection): JsonResponse
+    public function kanbanColumn(ListKanbanColumnItemsRequest $request, Collection $collection): JsonResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
-        abort_if($collection->is_singleton, 404);
-
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
 
-        $validated = $request->validate([
-            'field' => ['required', 'string', 'max:64'],
-            'value' => ['nullable', 'string', 'max:255'],
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $fieldName = $validated['field'];
         $field = $collection->fields->firstWhere('name', $fieldName);
@@ -632,21 +612,9 @@ class ItemController extends Controller
     /**
      * Preview item field data as seen by a role (including public).
      */
-    public function previewAsRole(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function previewAsRole(PreviewCollectionItemAsRoleRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
-        $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
-        abort_unless($this->userCanPreviewAsRole($request->user()), 403);
-
-        $validated = $request->validate([
-            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
-            'as_public' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $asPublic = (bool) ($validated['as_public'] ?? false);
         if (! $asPublic && empty($validated['role_id'])) {
@@ -668,27 +636,9 @@ class ItemController extends Controller
     /**
      * Build a Live Preview frontend URL (signed token; no API key in the link).
      */
-    public function livePreviewUrl(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function livePreviewUrl(BuildLivePreviewUrlRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
-        $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
-
-        if ($this->livePreviewUrlBuilder->templateFor($collection) === null) {
-            return response()->json([
-                'message' => 'Configure a Live Preview URL on this collection (or Project settings default).',
-            ], 422);
-        }
-
-        $validated = $request->validate([
-            'version' => ['nullable', 'string', 'in:draft,published'],
-            'locale' => ['nullable', 'string', 'max:16'],
-            'as_of' => ['nullable', 'string', 'max:64'],
-        ]);
+        $validated = $request->validated();
 
         $version = (string) ($validated['version'] ?? 'published');
         $locale = isset($validated['locale']) && is_string($validated['locale']) && $validated['locale'] !== ''
@@ -1214,19 +1164,9 @@ class ItemController extends Controller
     /**
      * Reject a draft that is in review (note required).
      */
-    public function reject(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    public function reject(RejectCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
-        $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
-
-        $validated = $request->validate([
-            'rejection_note' => ['required', 'string', 'max:5000'],
-        ]);
+        $validated = $request->validated();
 
         /** @var User $user */
         $user = $request->user();
@@ -1242,22 +1182,9 @@ class ItemController extends Controller
     /**
      * Schedule publish and/or unpublish for a versioned item.
      */
-    public function schedule(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    public function schedule(ScheduleCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
-        $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
-        abort_unless($collection->versioning, 422);
-
-        $validated = $request->validate([
-            'publish_at' => ['nullable', 'date'],
-            'unpublish_at' => ['nullable', 'date'],
-            'clear' => ['sometimes', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $version = $request->query('version', 'draft');
         if (! in_array($version, ['published', 'draft'], true)) {
@@ -1504,22 +1431,9 @@ class ItemController extends Controller
      *
      * ponytail: renamed from `options` because Wayfinder codegen shadows RouteQueryOptions.
      */
-    public function fieldOptions(Request $request, Collection $collection): JsonResponse
+    public function fieldOptions(ListCollectionFieldOptionsRequest $request, Collection $collection): JsonResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
-
-        $validated = $request->validate([
-            'field_id' => ['required', 'integer'],
-            'related_collection_id' => ['nullable', 'integer', 'exists:collections,id'],
-            'display_field' => ['nullable', 'string', 'max:64'],
-            'search' => SearchQueryRules::search(),
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $validated = $request->validated();
 
         $field = CollectionField::query()
             ->where('collection_id', $collection->id)
@@ -2084,7 +1998,7 @@ class ItemController extends Controller
     private function previewRoles(Request $request): array
     {
         $user = $request->user();
-        if (! $this->userCanPreviewAsRole($user)) {
+        if (! PreviewCollectionItemAsRoleRequest::canPreviewAsRole($user)) {
             return [];
         }
 
@@ -2101,18 +2015,6 @@ class ItemController extends Controller
             ])
             ->values()
             ->all();
-    }
-
-    private function userCanPreviewAsRole(mixed $user): bool
-    {
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $names = $this->permissionResolver->roleNamesFor($user);
-
-        return in_array(RoleEnum::SuperAdmin->value, $names, true)
-            || in_array(RoleEnum::Admin->value, $names, true);
     }
 
     /**

@@ -11,6 +11,16 @@ use App\Events\ItemChatMessageDeletedEvent;
 use App\Events\ItemChatMessageUpdatedEvent;
 use App\Events\ItemChatReactionToggledEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\FindChatAttachmentUploadRequest;
+use App\Http\Requests\Chat\InitChatAttachmentUploadRequest;
+use App\Http\Requests\Chat\ListChatMessagesRequest;
+use App\Http\Requests\Chat\PinChatMessageRequest;
+use App\Http\Requests\Chat\ReactToChatMessageRequest;
+use App\Http\Requests\Chat\StoreChatAttachmentRequest;
+use App\Http\Requests\Chat\StoreChatMessageRequest;
+use App\Http\Requests\Chat\UpdateChatMessageRequest;
+use App\Http\Requests\Chat\UpdateChatNotifyRequest;
+use App\Http\Requests\Chat\UploadChatAttachmentChunkRequest;
 use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -47,10 +57,6 @@ use Throwable;
  */
 class ChatMessageController extends Controller
 {
-    private const DEFAULT_PER_PAGE = 20;
-
-    private const MAX_PER_PAGE = 100;
-
     private const SETTINGS_GROUP = 'item_chat';
 
     private const SETTINGS_KEY = 'notify';
@@ -68,18 +74,13 @@ class ChatMessageController extends Controller
         private CollectionLocaleResolver $localeResolver,
     ) {}
 
-    public function index(Request $request, Chat $chat): JsonResponse
+    public function index(ListChatMessagesRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-
-        $validated = $request->validate([
-            'before_id' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-        ]);
+        $validated = $request->validated();
 
         $perPage = min(
-            max((int) ($validated['per_page'] ?? self::DEFAULT_PER_PAGE), 1),
-            self::MAX_PER_PAGE,
+            max((int) ($validated['per_page'] ?? ListChatMessagesRequest::DEFAULT_PER_PAGE), 1),
+            ListChatMessagesRequest::MAX_PER_PAGE,
         );
         $beforeId = isset($validated['before_id']) ? (int) $validated['before_id'] : null;
 
@@ -132,19 +133,16 @@ class ChatMessageController extends Controller
     /**
      * Empty payload used by the item alias before a thread exists.
      */
-    public function emptyIndex(Request $request, Collection $collection): JsonResponse
+    public function emptyIndex(ListChatMessagesRequest $request, Collection $collection): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'before_id' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-        ]);
+        $validated = $request->validated();
 
         $perPage = min(
-            max((int) ($validated['per_page'] ?? self::DEFAULT_PER_PAGE), 1),
-            self::MAX_PER_PAGE,
+            max((int) ($validated['per_page'] ?? ListChatMessagesRequest::DEFAULT_PER_PAGE), 1),
+            ListChatMessagesRequest::MAX_PER_PAGE,
         );
 
         return response()->json([
@@ -162,21 +160,12 @@ class ChatMessageController extends Controller
         ]);
     }
 
-    public function store(Request $request, Chat $chat): JsonResponse
+    public function store(StoreChatMessageRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'body' => ['nullable', 'string', 'max:20000'],
-            'mentioned_user_ids' => ['sometimes', 'array'],
-            'mentioned_user_ids.*' => ['integer', 'exists:users,id'],
-            'attachment_ids' => ['sometimes', 'array'],
-            'attachment_ids.*' => ['uuid'],
-            'reply_to_id' => ['nullable', 'integer', 'exists:chat_messages,id'],
-        ]);
+        $validated = $request->validated();
 
         $body = trim((string) ($validated['body'] ?? ''));
         $attachmentIds = array_values(array_unique($validated['attachment_ids'] ?? []));
@@ -256,22 +245,14 @@ class ChatMessageController extends Controller
     }
 
     public function update(
-        Request $request,
+        UpdateChatMessageRequest $request,
         Chat $chat,
         CollectionItemChatMessage $message,
     ): JsonResponse {
-        $this->chats->assertAccessible($request, $chat);
-        $this->assertMessageOnChat($message, $chat);
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless((int) $message->user_id === (int) $user->id, 403);
 
-        $validated = $request->validate([
-            'body' => ['required', 'string', 'max:20000'],
-            'mentioned_user_ids' => ['sometimes', 'array'],
-            'mentioned_user_ids.*' => ['integer', 'exists:users,id'],
-        ]);
+        $validated = $request->validated();
 
         $message->body = trim((string) $validated['body']);
         $this->assertCollectionMentions($request, $message->body);
@@ -325,19 +306,14 @@ class ChatMessageController extends Controller
     }
 
     public function pin(
-        Request $request,
+        PinChatMessageRequest $request,
         Chat $chat,
         CollectionItemChatMessage $message,
     ): JsonResponse {
-        $this->chats->assertAccessible($request, $chat);
-        $this->assertMessageOnChat($message, $chat);
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'pinned' => ['required', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $message->pinned_at = $validated['pinned'] ? now() : null;
         $message->save();
@@ -350,19 +326,14 @@ class ChatMessageController extends Controller
     }
 
     public function react(
-        Request $request,
+        ReactToChatMessageRequest $request,
         Chat $chat,
         CollectionItemChatMessage $message,
     ): JsonResponse {
-        $this->chats->assertAccessible($request, $chat);
-        $this->assertMessageOnChat($message, $chat);
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'emoji' => ['required', 'string', 'max:16'],
-        ]);
+        $validated = $request->validated();
 
         $emoji = $validated['emoji'];
         if (! in_array($emoji, CollectionItemChatReaction::ALLOWED, true)) {
@@ -428,17 +399,12 @@ class ChatMessageController extends Controller
         ]);
     }
 
-    public function updateNotify(Request $request, Chat $chat): JsonResponse
+    public function updateNotify(UpdateChatNotifyRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-        abort_unless($chat->isItem() && $chat->collection_id !== null, 422);
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'notify' => ['required', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $ids = $this->subscribedCollectionIds($user);
         $collectionId = (int) $chat->collection_id;
@@ -462,14 +428,12 @@ class ChatMessageController extends Controller
         return response()->json(['notify' => $validated['notify']]);
     }
 
-    public function storeAttachment(Request $request): JsonResponse
+    public function storeAttachment(StoreChatAttachmentRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'file' => ['required', 'file'],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
@@ -478,17 +442,12 @@ class ChatMessageController extends Controller
         return response()->json(['attachment' => $attachment->toApiArray()], 201);
     }
 
-    public function initAttachmentUpload(Request $request): JsonResponse
+    public function initAttachmentUpload(InitChatAttachmentUploadRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'file_name' => ['required', 'string', 'max:255'],
-            'total_size' => ['required', 'integer', 'min:1'],
-            'total_chunks' => ['required', 'integer', 'min:1'],
-            'mime_type' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $upload = $this->chatUploads->init(
             $user,
@@ -504,16 +463,12 @@ class ChatMessageController extends Controller
         ], 201);
     }
 
-    public function uploadAttachmentChunk(Request $request): Response
+    public function uploadAttachmentChunk(UploadChatAttachmentChunkRequest $request): Response
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'upload_id' => ['required', 'string', 'max:64'],
-            'chunk_index' => ['required', 'integer', 'min:0'],
-            'chunk' => ['required', 'file'],
-        ]);
+        $validated = $request->validated();
 
         $this->chatUploads->uploadChunk(
             $user,
@@ -525,28 +480,24 @@ class ChatMessageController extends Controller
         return response()->noContent();
     }
 
-    public function completeAttachmentUpload(Request $request): JsonResponse
+    public function completeAttachmentUpload(FindChatAttachmentUploadRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'upload_id' => ['required', 'string', 'max:64'],
-        ]);
+        $validated = $request->validated();
 
         $attachment = $this->chatUploads->complete($user, $validated['upload_id']);
 
         return response()->json(['attachment' => $attachment->toApiArray()], 201);
     }
 
-    public function attachmentUploadStatus(Request $request): JsonResponse
+    public function attachmentUploadStatus(FindChatAttachmentUploadRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'upload_id' => ['required', 'string', 'max:64'],
-        ]);
+        $validated = $request->validated();
 
         $status = $this->chatUploads->status($user, $validated['upload_id']);
 
@@ -703,38 +654,48 @@ class ChatMessageController extends Controller
         ]);
     }
 
-    public function storeAttachmentOnChat(Request $request, Chat $chat): JsonResponse
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function storeAttachmentOnChat(StoreChatAttachmentRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-
         return $this->storeAttachment($request);
     }
 
-    public function initAttachmentUploadOnChat(Request $request, Chat $chat): JsonResponse
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function initAttachmentUploadOnChat(InitChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-
         return $this->initAttachmentUpload($request);
     }
 
-    public function uploadAttachmentChunkOnChat(Request $request, Chat $chat): Response
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function uploadAttachmentChunkOnChat(UploadChatAttachmentChunkRequest $request, Chat $chat): Response
     {
-        $this->chats->assertAccessible($request, $chat);
-
         return $this->uploadAttachmentChunk($request);
     }
 
-    public function completeAttachmentUploadOnChat(Request $request, Chat $chat): JsonResponse
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function completeAttachmentUploadOnChat(FindChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-
         return $this->completeAttachmentUpload($request);
     }
 
-    public function attachmentUploadStatusOnChat(Request $request, Chat $chat): JsonResponse
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function attachmentUploadStatusOnChat(FindChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
     {
-        $this->chats->assertAccessible($request, $chat);
-
         return $this->attachmentUploadStatus($request);
     }
 
