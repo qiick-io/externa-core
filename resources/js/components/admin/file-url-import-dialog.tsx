@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -38,13 +38,18 @@ export function FileUrlImportDialog({
     const [urlError, setUrlError] = useState<string | null>(null);
     const urlErrorId = useId();
 
-    useEffect(() => {
+    const [wasOpen, setWasOpen] = useState(open);
+
+    // Reset during render when the dialog closes (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
         if (!open) {
             setUrl('');
             setBusy(false);
             setUrlError(null);
         }
-    }, [open]);
+    }
 
     const submit = async (): Promise<void> => {
         const trimmed = url.trim();

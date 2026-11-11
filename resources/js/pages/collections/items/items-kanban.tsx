@@ -173,7 +173,12 @@ export function ItemsKanban({
         columnsRef.current = columns;
     });
 
-    useEffect(() => {
+    const [previousBoard, setPreviousBoard] = useState(board);
+
+    // Reload the columns during render when Inertia sends a new board (React's
+    // "adjust state on prop change" pattern); the epoch bump remounts Sortable.
+    if (previousBoard !== board) {
+        setPreviousBoard(board);
         setColumns(
             (board?.columns ?? []).map((column) => ({
                 ...column,
@@ -181,7 +186,7 @@ export function ItemsKanban({
             })),
         );
         setSortableEpoch((epoch) => epoch + 1);
-    }, [board]);
+    }
 
     const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 

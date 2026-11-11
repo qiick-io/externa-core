@@ -469,9 +469,8 @@ export function FileFieldInput({
     const canReplaceFile = can(PermissionEnum.CanReplaceFiles);
 
     useEffect(() => {
+        // Clearing the field already resets the preview in `clear`; nothing to fetch.
         if (fileId === null) {
-            setPreview(null);
-
             return;
         }
 
