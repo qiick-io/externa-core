@@ -7,14 +7,17 @@ namespace App\Http\Requests\Concerns;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Policies\CollectionItemPolicy;
+use App\Policies\CollectionPolicy;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Collection ACL gates for admin form requests bound to `{collection}` (and `{item}`) routes.
  *
  * The item controllers used to run these checks before `$request->validate()`. A form request
  * validates before the controller body, so the same checks run in `authorize()` instead: callers
- * keep getting 403 / 404 (not 422) when they may not touch the collection or the item.
+ * keep getting 403 / 404 (not 422) when they may not touch the collection or the item. The rules
+ * live in {@see CollectionPolicy} and {@see CollectionItemPolicy}.
  */
 trait AuthorizesCollectionRouteAccessTrait
 {
@@ -45,38 +48,33 @@ trait AuthorizesCollectionRouteAccessTrait
      */
     protected function authorizeCollectionAction(CollectionPermissionActionEnum $action): void
     {
-        app(CollectionPermissionEnforcerService::class)->assertCollectionAction(
-            $this,
-            $this->routeCollection(),
-            $action,
-        );
+        Gate::forUser($this->user())->authorize($action->itemsAbility(), $this->routeCollection());
     }
 
     /**
-     * Collection read grant, item in the collection (404) and item inside the read filter (404).
+     * Collection read grant (403), then item in the collection and inside the read filter (404).
+     *
+     * `abort_unless` keeps the empty 404 message: the policy's not-found denial would render
+     * "Not Found" instead.
      */
     protected function authorizeItemRead(): void
     {
         $this->authorizeCollectionAction(CollectionPermissionActionEnum::Read);
-        abort_if($this->routeItem()->collection_id !== $this->routeCollection()->id, 404);
-        app(CollectionPermissionEnforcerService::class)->assertItemReadable(
-            $this,
-            $this->routeCollection(),
-            $this->routeItem(),
+        abort_unless(
+            Gate::forUser($this->user())->allows('view', [$this->routeItem(), $this->routeCollection()]),
+            404,
         );
     }
 
     /**
-     * Collection update grant, item in the collection (404) and item inside the write filter (403).
+     * Collection update grant (403), item in the collection (404) and item inside the write filter (403).
+     *
+     * The collection membership check stays an `abort_if` for the same empty 404 message.
      */
     protected function authorizeItemWrite(): void
     {
         $this->authorizeCollectionAction(CollectionPermissionActionEnum::Update);
         abort_if($this->routeItem()->collection_id !== $this->routeCollection()->id, 404);
-        app(CollectionPermissionEnforcerService::class)->assertItemWritable(
-            $this,
-            $this->routeCollection(),
-            $this->routeItem(),
-        );
+        Gate::forUser($this->user())->authorize('update', [$this->routeItem(), $this->routeCollection()]);
     }
 }
