@@ -321,8 +321,6 @@ export default defineConfig({
             // checks (204 findings at the switch). Off until fixed and turned on one by one in
             // externa-core#671, so this PR changes the toolchain and not the code.
             'typescript/no-base-to-string': 'off',
-            'typescript/no-floating-promises': 'off',
-            'typescript/no-misused-spread': 'off',
             'jsx-a11y/prefer-tag-over-role': 'off',
             'jsx-a11y/role-has-required-aria-props': 'off',
             'react/refs': 'off',
@@ -641,6 +639,14 @@ export default defineConfig({
                 jsPlugins: ['./scripts/eslint/no-literal-ui-prop.mjs'],
                 rules: {
                     'externa/no-literal-ui-prop': 'off',
+                },
+            },
+            {
+                // Registry copy of the AI Elements code block (@qiick, drift-checked): it must stay
+                // byte-identical to upstream, so its fire-and-forget highlight promise is not edited here.
+                files: ['resources/js/components/ai-elements/code-block.tsx'],
+                rules: {
+                    'typescript/no-floating-promises': 'off',
                 },
             },
             {

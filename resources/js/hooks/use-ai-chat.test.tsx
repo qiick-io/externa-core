@@ -97,7 +97,9 @@ async function typeAndSend(
     result: { current: ReturnType<typeof useAiChat> },
     text: string,
 ): Promise<void> {
-    act(() => result.current.setComposer(text));
+    act(() => {
+        result.current.setComposer(text);
+    });
     await act(async () => {
         await result.current.handleSend();
     });
@@ -197,7 +199,9 @@ describe('useAiChat', () => {
         const calls = scriptStream((handlers) => handlers.onDone?.('Done'));
         const { result } = renderAiChat();
 
-        act(() => result.current.setDryRunMode(true));
+        act(() => {
+            result.current.setDryRunMode(true);
+        });
         await typeAndSend(result, 'Delete old items');
 
         expect(calls[0]?.message).toMatch(/^\[SIMULATION MODE\]/);
@@ -215,14 +219,18 @@ describe('useAiChat', () => {
         });
         const { result } = renderAiChat();
 
-        act(() => result.current.setComposer('Long question'));
+        act(() => {
+            result.current.setComposer('Long question');
+        });
         let sending: Promise<void> = Promise.resolve();
         act(() => {
             sending = result.current.handleSend();
         });
         await waitFor(() => expect(result.current.isStreaming).toBe(true));
 
-        act(() => result.current.handleStop());
+        act(() => {
+            result.current.handleStop();
+        });
         releaseStream();
         await act(async () => {
             await sending;
@@ -289,7 +297,9 @@ describe('useAiChat', () => {
         });
         const { result } = renderAiChat();
 
-        act(() => result.current.setComposer('Find items'));
+        act(() => {
+            result.current.setComposer('Find items');
+        });
         let sending: Promise<void> = Promise.resolve();
         act(() => {
             sending = result.current.handleSend();
@@ -396,9 +406,13 @@ describe('useAiChat', () => {
             initialMessages: persistedConversation,
         });
 
-        act(() => result.current.startEditing(persistedConversation[0]!));
+        act(() => {
+            result.current.startEditing(persistedConversation[0]!);
+        });
         expect(result.current.editingMessageId).toBe('11');
-        act(() => result.current.setEditingDraft('Edited question'));
+        act(() => {
+            result.current.setEditingDraft('Edited question');
+        });
         await act(async () => {
             await result.current.handleResendEdited('11');
         });
@@ -420,8 +434,12 @@ describe('useAiChat', () => {
             initialMessages: persistedConversation,
         });
 
-        act(() => result.current.startEditing(persistedConversation[0]!));
-        act(() => result.current.setEditingDraft('   '));
+        act(() => {
+            result.current.startEditing(persistedConversation[0]!);
+        });
+        act(() => {
+            result.current.setEditingDraft('   ');
+        });
         await act(async () => {
             await result.current.handleResendEdited('11');
         });
@@ -438,7 +456,9 @@ describe('useAiChat', () => {
             initialMessages: persistedConversation,
         });
 
-        act(() => result.current.startNewDraft('Explain this row'));
+        act(() => {
+            result.current.startNewDraft('Explain this row');
+        });
 
         expect(result.current.messages).toEqual([]);
         expect(result.current.conversationId).toBeNull();
@@ -449,12 +469,18 @@ describe('useAiChat', () => {
         const { result } = renderAiChat();
         const entry = { kind: 'item' as const, id: 4, label: 'Item 4' };
 
-        act(() => result.current.addContextAttachments([entry]));
-        act(() => result.current.addContextAttachments([entry]));
+        act(() => {
+            result.current.addContextAttachments([entry]);
+        });
+        act(() => {
+            result.current.addContextAttachments([entry]);
+        });
 
         expect(result.current.pendingContextAttachments).toHaveLength(1);
 
-        act(() => result.current.removePendingContextAttachment('item', 4));
+        act(() => {
+            result.current.removePendingContextAttachment('item', 4);
+        });
         expect(result.current.pendingContextAttachments).toEqual([]);
     });
 
@@ -476,11 +502,15 @@ describe('useAiChat', () => {
         mocks.getSpeechRecognitionConstructor.mockReturnValue(FakeRecognition);
         const { result } = renderAiChat();
 
-        act(() => result.current.setComposer('Hello'));
-        act(() => result.current.toggleVoiceInput());
+        act(() => {
+            result.current.setComposer('Hello');
+        });
+        act(() => {
+            result.current.toggleVoiceInput();
+        });
         expect(result.current.isListening).toBe(true);
 
-        act(() =>
+        act(() => {
             listeners.result?.({
                 resultIndex: 0,
                 results: [
@@ -488,9 +518,11 @@ describe('useAiChat', () => {
                         isFinal: true,
                     }),
                 ],
-            }),
-        );
-        act(() => listeners.end?.({}));
+            });
+        });
+        act(() => {
+            listeners.end?.({});
+        });
 
         expect(result.current.composer).toBe('Hello from voice');
         expect(result.current.isListening).toBe(false);
@@ -506,23 +538,27 @@ describe('useAiChat', () => {
         });
         const { result } = renderAiChat();
 
-        act(() => result.current.setComposer('Hi'));
+        act(() => {
+            result.current.setComposer('Hi');
+        });
         let sending: Promise<void> = Promise.resolve();
         act(() => {
             sending = result.current.handleSend();
         });
         await waitFor(() => expect(result.current.isStreaming).toBe(true));
 
-        act(() => result.current.loadConversation([], 'other'));
+        act(() => {
+            result.current.loadConversation([], 'other');
+        });
         expect(result.current.messages).toHaveLength(2);
 
         releaseStream();
         await act(async () => {
             await sending;
         });
-        act(() =>
-            result.current.loadConversation(persistedConversation, 'other'),
-        );
+        act(() => {
+            result.current.loadConversation(persistedConversation, 'other');
+        });
         expect(result.current.messages).toEqual(persistedConversation);
         expect(result.current.conversationId).toBe('other');
     });
@@ -589,7 +625,7 @@ describe('useAiChat answer parts', () => {
     it('rebuilds the parts of a stored turn on load', () => {
         const { result } = renderAiChat();
 
-        act(() =>
+        act(() => {
             result.current.loadConversation(
                 [
                     {
@@ -610,8 +646,8 @@ describe('useAiChat answer parts', () => {
                     },
                 ],
                 'conversation-1',
-            ),
-        );
+            );
+        });
 
         expect(
             result.current.messages[0]?.parts?.map((part) => part.type),
