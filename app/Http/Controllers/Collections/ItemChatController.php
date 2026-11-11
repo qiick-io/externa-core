@@ -21,12 +21,12 @@ use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -39,7 +39,6 @@ class ItemChatController extends Controller
         private ChatHubController $hub,
         private ChatService $chats,
         private ChatUnreadService $unread,
-        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     public function index(ListChatMessagesRequest $request, Collection $collection, CollectionItem $item): JsonResponse
@@ -234,7 +233,7 @@ class ItemChatController extends Controller
     private function assertItemContext(Request $request, Collection $collection, CollectionItem $item): void
     {
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+        abort_unless(Gate::forUser($request->user())->allows('view', [$item, $collection]), 404);
     }
 
     private function chatForItem(Request $request, Collection $collection, CollectionItem $item): Chat
