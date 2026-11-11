@@ -1164,7 +1164,7 @@ export function DynamicItemFields({
 
     // Stable loaded values for Undo (ignore later parent identity churn)
     const [initialDefaults] = useState<Record<string, unknown>>(() => ({
-        ...(defaults ?? {}),
+        ...defaults,
     }));
     const [valueOverrides, setValueOverrides] = useState<
         Record<string, unknown>
@@ -1179,7 +1179,7 @@ export function DynamicItemFields({
     );
 
     const [formValues, setFormValues] = useState<Record<string, unknown>>(
-        () => ({ ...(defaults ?? {}) }),
+        () => ({ ...defaults }),
     );
 
     const layout = useMemo(

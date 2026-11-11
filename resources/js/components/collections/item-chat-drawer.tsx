@@ -1208,7 +1208,8 @@ export function ItemChatDrawer({
 
                 const attachmentIds: string[] = [];
 
-                for (const file of [...snapshot.files]) {
+                // applySnapshot replaces the array (never mutates it), so this iterates the files as they were.
+                for (const file of snapshot.files) {
                     if (abort.signal.aborted) {
                         throw new DOMException('Upload aborted', 'AbortError');
                     }

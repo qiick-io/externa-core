@@ -233,7 +233,7 @@ export function BlocksFieldInput({
         setSiblingValues((current) => ({
             ...current,
             [blockId]: {
-                ...(current[blockId] ?? {}),
+                ...current[blockId],
                 [fieldName]: value,
             },
         }));
