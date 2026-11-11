@@ -170,6 +170,10 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:standards
 
+      - name: .env.example lists every config env() key
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run lint:env
+
       - name: Frontend unit tests (Vitest)
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run test:unit
