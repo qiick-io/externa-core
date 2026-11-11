@@ -18,15 +18,19 @@ const hits: ChatMentionHit[] = [
     { type: 'collection', id: 4, name: 'Journal' },
 ];
 
+/** A keyboard event stub plus its `preventDefault` mock, kept apart so assertions never read an unbound method. */
 function keyEvent(key: string, init: Partial<KeyboardEvent> = {}) {
-    return {
+    const preventDefault = vi.fn();
+    const event = {
         key,
         shiftKey: false,
         metaKey: false,
         ctrlKey: false,
-        preventDefault: vi.fn(),
+        preventDefault,
         ...init,
     } as unknown as KeyboardEvent<HTMLTextAreaElement>;
+
+    return { event, preventDefault };
 }
 
 function menu(
@@ -48,7 +52,7 @@ describe('handleMentionMenuKeyDown', () => {
         const state = menu();
         const up = keyEvent('ArrowUp');
 
-        expect(handleMentionMenuKeyDown(up, state)).toBe(true);
+        expect(handleMentionMenuKeyDown(up.event, state)).toBe(true);
         expect(up.preventDefault).toHaveBeenCalled();
         expect(state.onHighlightChange).toHaveBeenCalledWith(1);
     });
@@ -57,7 +61,7 @@ describe('handleMentionMenuKeyDown', () => {
         const state = menu({ highlightIndex: 1 });
         const enter = keyEvent('Enter');
 
-        handleMentionMenuKeyDown(enter, state);
+        handleMentionMenuKeyDown(enter.event, state);
 
         expect(enter.preventDefault).toHaveBeenCalled();
         expect(state.onPick).toHaveBeenCalledWith(hits[1]);
@@ -66,7 +70,7 @@ describe('handleMentionMenuKeyDown', () => {
     it('closes on Escape', () => {
         const state = menu();
 
-        handleMentionMenuKeyDown(keyEvent('Escape'), state);
+        handleMentionMenuKeyDown(keyEvent('Escape').event, state);
 
         expect(state.onDismiss).toHaveBeenCalled();
     });
@@ -75,10 +79,10 @@ describe('handleMentionMenuKeyDown', () => {
         const closed = keyEvent('Enter');
         const shiftEnter = keyEvent('Enter', { shiftKey: true });
 
-        expect(handleMentionMenuKeyDown(closed, menu({ isOpen: false }))).toBe(
-            false,
-        );
-        expect(handleMentionMenuKeyDown(shiftEnter, menu())).toBe(false);
+        expect(
+            handleMentionMenuKeyDown(closed.event, menu({ isOpen: false })),
+        ).toBe(false);
+        expect(handleMentionMenuKeyDown(shiftEnter.event, menu())).toBe(false);
         expect(closed.preventDefault).not.toHaveBeenCalled();
         expect(shiftEnter.preventDefault).not.toHaveBeenCalled();
     });

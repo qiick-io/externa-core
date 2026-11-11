@@ -66,7 +66,7 @@ export function readFieldRawFromForm(
     form: HTMLFormElement,
     fieldName: string,
     locale?: string | null,
-): unknown | undefined {
+): unknown {
     const base =
         locale != null && locale !== ''
             ? `data[${fieldName}][${locale}]`
