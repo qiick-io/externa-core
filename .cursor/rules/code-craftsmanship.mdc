@@ -9,6 +9,26 @@ alwaysApply: true
 
 Every qiick app runs the same stack, so code, rules and registry items move between apps unchanged. A new app starts here; an existing app that differs converges on it, one PR per change. Steps from an empty repo to a green CI: https://github.com/qiick-io/app-ui/blob/develop/docs/new-product.md
 
+## Runtime defaults
+
+- **Database:** SQLite by default (install, tests, CI); MySQL 8 and PostgreSQL 17 supported and tested in CI. No vendor-specific SQL outside a driver check.
+- **Queue:** the `database` driver by default; **Horizon** (`laravel/horizon`) when Redis is configured. Slow work (mail, AI, imports, webhooks) is a queued `*Job`.
+- **Realtime:** **Reverb** (`laravel/reverb`) with `laravel-echo` + `pusher-js`; broadcasting is optional and the UI works without it (realtime badge grey).
+- **Cache / session:** `database` by default, Redis when configured.
+- **Locales:** `en`, `it`, `de` from the first commit: every UI string through `t('…')`, every key in all three locale files.
+- **Self-hosting:** an app is installed with `composer create-project` and `php artisan <app>:install`, updated with `<app>:upgrade` (see the distribution rules).
+
+## Frontend toolchain
+
+**Vite+** (`vite-plus`: `vp dev`, `vp build`, `vp check` with Oxlint and Oxfmt), as the Laravel React starter kit ships it. excubia-app is the reference and sets the lint rules: an app that differs converges on it, never the other way round, and no app moves from Vite+ back to plain Vite, ESLint or Prettier. externa-core still runs ESLint + Prettier and moves to Vite+ in 1.5.0 (externa-core#609).
+
+## Local development
+
+**Laravel Herd** serves the app at `https://<app>.test` (`herd link`, `herd secure`); `composer run dev` starts Vite, the queue worker and Pail. No Sail or Docker for day-to-day work: Docker is the distribution image, not the dev environment.
+
+- **One database per app**, named after it (`externa_core`, `excubia_app`). Local data is disposable: for a clean state, empty and re-seed it (`php artisan migrate:fresh --seed`); never create per-version or per-branch copies. Before dropping a database, check which `.env` files use it. Production databases only when the maintainer says so.
+- **Clean up after a task.** Worktrees, clones, Herd sites or workspaces and extra databases are fine while a task needs them; when its PR is merged or the work is dropped, remove them (`git worktree remove`, `herd unlink`, drop the database) after checking for unpushed work.
+
 ## Bootstrap
 
 ```bash
@@ -38,24 +58,14 @@ Composer and npm keep caret ranges inside the pinned major; Dependabot (or Renov
 
 ## One lint and format toolchain
 
-**ESLint 9 (flat config) + Prettier 3** for TypeScript / React, **Pint** (`laravel` preset) and **Larastan** for PHP. ESLint loads the pack's `qiick-standards.eslint.js` (`"eslint": true` in `qiick-standards.json`), `typescript-eslint`, `eslint-plugin-react`, `react-hooks`, `jsx-a11y`, `import`, `@stylistic` and `i18next`; Prettier uses `prettier-plugin-tailwindcss`. externa-core is the reference (`eslint.config.js`, `.prettierrc`).
+**Vite+** for TypeScript / React (`vp check`: Oxlint and Oxfmt), **Pint** (`laravel` preset) and **Larastan** for PHP. A new app keeps the starter kit's Vite+ setup as it is (decision of 2026-11-09: a standard that fights the official starter kit costs every new product); an existing app upgrades to it. excubia-app is the reference (`vite.config.ts`, `.oxlintrc.standards.json`, `.oxlintrc.i18n.json`).
 
-Why ESLint and not oxlint / Vite+ `vp check`: the shared rules (boolean prefixes through type-aware `@typescript-eslint/naming-convention`, restricted imports, `padding-line-between-statements`, `jsx-a11y`, the i18n ratchet) exist and are tested in ESLint. A starter kit that ships Vite+ keeps `vite` for the build; lint and format run through ESLint and Prettier. excubia-app converges by replacing `vp check` / oxlint with this toolchain; externa-core converges on Inertia 3 and Pest 5 (it is on Inertia 2 and Pest 4).
+- **The pack's ratcheted rules** run in Oxlint from the synced `.oxlintrc.standards.json` (`"oxlint": true` in `qiick-standards.json`): `no-restricted-imports`, `no-restricted-properties` (`navigator.clipboard`), `id-length`, ratcheted by `qiick-ratchet.mjs lint --rule eslint/<rule>`. The i18n ratchet runs Oxlint with `eslint-plugin-i18next` as a JS plugin (`.oxlintrc.i18n.json`).
+- **Boolean prefixes** (type-aware `@typescript-eslint/naming-convention`) have no Oxlint equivalent and typescript-eslint does not support TypeScript 7 yet: the rule waits for typescript-eslint. Never downgrade TypeScript or the toolchain to run it.
+- **Apps still on ESLint + Prettier** (externa-core until 1.5.0) keep `qiick-standards.eslint.js` (`"eslint": true`) and `npm run lint:standards` with `QIICK_RATCHET=1`, until they move.
+- Externa catches up with excubia-app's packages (TypeScript 7, Vite+, Inertia 3, Pest 5 in 1.5.0); excubia-app is never held back to match it.
 
-The quality gate every app exposes as npm scripts: `lint` (ESLint `--max-warnings=0` + `check-ui-tokens`), `format:check`, `types:check` (`tsc --noEmit`), `knip`, `lint:i18n`; and in PHP `vendor/bin/pint --test`, `vendor/bin/phpstan analyse`, `php artisan test`.
-
-## Runtime defaults
-
-- **Database:** SQLite by default (install, tests, CI); MySQL 8 and PostgreSQL 17 supported and tested in CI. No vendor-specific SQL outside a driver check.
-- **Queue:** the `database` driver by default; **Horizon** (`laravel/horizon`) when Redis is configured. Slow work (mail, AI, imports, webhooks) is a queued `*Job`.
-- **Realtime:** **Reverb** (`laravel/reverb`) with `laravel-echo` + `pusher-js`; broadcasting is optional and the UI works without it (realtime badge grey).
-- **Cache / session:** `database` by default, Redis when configured.
-- **Locales:** `en`, `it`, `de` from the first commit: every UI string through `t('…')`, every key in all three locale files.
-- **Self-hosting:** an app is installed with `composer create-project` and `php artisan <app>:install`, updated with `<app>:upgrade` (see the distribution rules).
-
-## Local development
-
-**Laravel Herd** serves the app at `https://<app>.test` (`herd link`, `herd secure`); `composer run dev` starts Vite, the queue worker and Pail. No Sail or Docker for day-to-day work: Docker is the distribution image, not the dev environment.
+The quality gate every app exposes as npm scripts: `lint` (`vp check` + `check-ui-tokens`), `types:check` (`tsc --noEmit`), `knip`, `lint:i18n`, `lint:standards`; and in PHP `vendor/bin/pint --test`, `vendor/bin/phpstan analyse`, `php artisan test`.
 
 ## Code standard
 
@@ -71,21 +81,9 @@ Stop at the first rung that holds: YAGNI, standard library, platform, installed 
 - Never lazy about trust-boundary validation, data-loss prevention, security, accessibility, or anything explicitly requested.
 - Non-trivial logic leaves one runnable check behind (a test).
 
-### Casing
+### Current sources, not memory
 
-PHP / Laravel (Pint `laravel` preset, PSR-4, PER-CS):
-
-- Classes, interfaces, traits, enums and their `.php` files: `PascalCase` (`StoreCollectionItemRequest.php`, 1:1 with PSR-4).
-- Methods, functions, properties, variables: `camelCase` (`$authenticatedUser`, `resolveEffectivePermissions()`).
-- Enum cases: `PascalCase` (`CollectionStatusEnum::PendingReview`).
-- Database tables and columns, `config/*.php` keys: `snake_case` (`created_by_user_id`).
-- Artisan commands and URL slugs: `kebab-case` (`externa:sync-permissions`, `/collection-items`).
-
-React / TypeScript / Inertia:
-
-- Components, `type`, `interface` and `enum` names: `PascalCase` (`CollectionItemDrawer`, `CollectionItemProps`).
-- Functions, hooks, variables, props: `camelCase` (`useAccessibilityPreferences`, `handleSubmission`).
-- **Files and directories on disk: `kebab-case`** (`collection-item-form.tsx`, `use-accessibility-preferences.tsx`), so macOS (case-insensitive) and Linux / Docker (case-sensitive) never disagree. No barrel `index.ts` files that only re-export. CI checks the file names.
+Before writing framework or library code, or copying a component from an upstream registry (shadcn, AI Elements), read the current official page for the installed version. Training data and old copies go stale: until 2026-11-09 the registry's AI Elements were a superseded release, and nobody had compared them with the current pages. A file copied from upstream names its source page in its header comment, and the registry README records the source and date of every upstream item.
 
 ### Names: full words
 
@@ -93,40 +91,8 @@ React / TypeScript / Inertia:
 - `i`, `j`, `k` only as indices of tight numeric loops; prefer `foreach ($collectionItems as $collectionItem)`, `for...of`, `.map()`.
 - **Booleans** (variables, columns, custom props, boolean-returning methods) start with `is`, `has`, `can` or `should` (`$isEmailVerified`, `canManageCollection()`, `shouldBroadcastImmediately`). Exempt: names fixed by a framework or library contract (see [Contracts](#contracts-never-break-them)).
 - **Collections** use specific plurals (`$publishedArticles`) or explicit maps (`$usersIndexedById`), never `$data`, `$list`, `$arr`.
-
-### Role suffixes
-
-Only Eloquent models use bare domain nouns (`User`, `CollectionItem`). Every other class of our own ends with its role, so neither a human nor an agent mistakes a model for a request, enum, event or job:
-
-| Directory                         | Suffix         | Notes                                                   |
-| --------------------------------- | -------------- | ------------------------------------------------------- |
-| `app/Models/`                     | none           | Relationships, casts, accessors, scopes, constants only |
-| `app/Http/Controllers/`           | `Controller`   |                                                         |
-| `app/Http/Requests/`              | `Request`      | Validation and authorization                            |
-| `app/Http/Resources/`             | `Resource`     |                                                         |
-| `app/Http/Responses/`             | `Response`     |                                                         |
-| `app/Http/Middleware/`            | `Middleware`   |                                                         |
-| `app/Actions/`                    | `Action`       | One write / use case, one public `execute(...)`         |
-| `app/Services/`                   | `Service`      | Orchestration, complex reads, external integrations     |
-| `app/Data/`                       | `Data`         | `readonly class` DTOs and value objects                 |
-| `app/Enums/`                      | `Enum`         | Backed values never change without a data migration     |
-| `app/Policies/`                   | `Policy`       |                                                         |
-| `app/Jobs/`                       | `Job`          |                                                         |
-| `app/Console/Commands/`           | `Command`      |                                                         |
-| `app/Events/`                     | `Event`        | Keep `broadcastAs()` wire names stable                  |
-| `app/Listeners/`                  | `Listener`     |                                                         |
-| `app/Notifications/`              | `Notification` |                                                         |
-| `app/Observers/`                  | `Observer`     |                                                         |
-| `app/Rules/`                      | `Rule`         |                                                         |
-| `app/Exceptions/`                 | `Exception`    |                                                         |
-| `app/Builders/`                   | `Builder`      | Dedicated query builders when scopes grow large         |
-| `app/Contracts/`                  | `Contract`     | Interfaces                                              |
-| traits (one place: `app/Traits/`) | `Trait`        |                                                         |
-| `tests/`                          | `Test`         | `*Test.php`, `*.test.ts(x)`                             |
-
-Do not invent other role nouns (`...Normalizer`, `...Publisher`, `...Recorder`, `...Writer`) or split domain classes arbitrarily between `app/Services/` and `app/Support/`: a write is an `Action`, an orchestrator or read pipeline is a `Service`. Packages apply the same table to their own namespace (`Qiick\Excubia\...`); a package may add roles of its own (`Parser`, `Renderer`, `Check`), listed in its architecture test config.
-
-**Never rename framework or package scaffolding.** Files native to Laravel or published by a package keep their upstream names: Fortify actions (`app/Actions/Fortify/*`), starter-kit files (`HandleInertiaRequests`, `HandleAppearance`, `app/Concerns/*`), default service providers, vendor-published files (Spatie, Horizon, Telescope, Pennant, Passport), and frontend primitives (`shadcn/ui` files in `components/ui/`). They are listed in the repo's `tests/Arch/naming-architecture.php`, never renamed.
+- Every class of our own ends with its role suffix (`*Controller`, `*Action`, `*Service`, `*Data`, `*Enum`, `*Job`, …); only Eloquent models use bare nouns. The full table is in the details.
+- **Never rename framework or package scaffolding:** files native to Laravel or published by a package keep their upstream names: Fortify actions (`app/Actions/Fortify/*`), starter-kit files (`HandleInertiaRequests`, `HandleAppearance`, `app/Concerns/*`), default service providers, vendor-published files (Spatie, Horizon, Telescope, Pennant, Passport), and frontend primitives (`shadcn/ui` files in `components/ui/`). They are listed in the repo's `tests/Arch/naming-architecture.php`, never renamed.
 
 ### Architecture: five layers
 
@@ -165,6 +131,54 @@ This replaces the "comment only exceptionally complex logic" default of Laravel 
 4. **Wire formats stay stable** when a PHP class is renamed: REST JSON keys, GraphQL type and field names, webhook payloads, `broadcastAs()` names, Inertia page paths, named routes, morph maps (`Relation::enforceMorphMap`), queued job class names. Enum backing values stay identical.
 5. **Convention-driven directories** (`app/GraphQL/`, `app/Ai/`, MCP tools) keep the names their resolver expects unless the resolver mapping changes in the same PR.
 6. **Mechanical renames and behaviour changes never share a PR.** Land the `git mv` + import updates first with green tests, then extract or change logic in a separate PR.
+
+### Casing
+
+PHP / Laravel (Pint `laravel` preset, PSR-4, PER-CS):
+
+- Classes, interfaces, traits, enums and their `.php` files: `PascalCase` (`StoreCollectionItemRequest.php`, 1:1 with PSR-4).
+- Methods, functions, properties, variables: `camelCase` (`$authenticatedUser`, `resolveEffectivePermissions()`).
+- Enum cases: `PascalCase` (`CollectionStatusEnum::PendingReview`).
+- Database tables and columns, `config/*.php` keys: `snake_case` (`created_by_user_id`).
+- Artisan commands and URL slugs: `kebab-case` (`externa:sync-permissions`, `/collection-items`).
+
+React / TypeScript / Inertia:
+
+- Components, `type`, `interface` and `enum` names: `PascalCase` (`CollectionItemDrawer`, `CollectionItemProps`).
+- Functions, hooks, variables, props: `camelCase` (`useAccessibilityPreferences`, `handleSubmission`).
+- **Files and directories on disk: `kebab-case`** (`collection-item-form.tsx`, `use-accessibility-preferences.tsx`), so macOS (case-insensitive) and Linux / Docker (case-sensitive) never disagree. No barrel `index.ts` files that only re-export. CI checks the file names.
+
+### Role suffixes
+
+Only Eloquent models use bare domain nouns (`User`, `CollectionItem`). Every other class of our own ends with its role, so neither a human nor an agent mistakes a model for a request, enum, event or job:
+
+| Directory                         | Suffix         | Notes                                                   |
+| --------------------------------- | -------------- | ------------------------------------------------------- |
+| `app/Models/`                     | none           | Relationships, casts, accessors, scopes, constants only |
+| `app/Http/Controllers/`           | `Controller`   |                                                         |
+| `app/Http/Requests/`              | `Request`      | Validation and authorization                            |
+| `app/Http/Resources/`             | `Resource`     |                                                         |
+| `app/Http/Responses/`             | `Response`     |                                                         |
+| `app/Http/Middleware/`            | `Middleware`   |                                                         |
+| `app/Actions/`                    | `Action`       | One write / use case, one public `execute(...)`         |
+| `app/Services/`                   | `Service`      | Orchestration, complex reads, external integrations     |
+| `app/Data/`                       | `Data`         | `readonly class` DTOs and value objects                 |
+| `app/Enums/`                      | `Enum`         | Backed values never change without a data migration     |
+| `app/Policies/`                   | `Policy`       |                                                         |
+| `app/Jobs/`                       | `Job`          |                                                         |
+| `app/Console/Commands/`           | `Command`      |                                                         |
+| `app/Events/`                     | `Event`        | Keep `broadcastAs()` wire names stable                  |
+| `app/Listeners/`                  | `Listener`     |                                                         |
+| `app/Notifications/`              | `Notification` |                                                         |
+| `app/Observers/`                  | `Observer`     |                                                         |
+| `app/Rules/`                      | `Rule`         |                                                         |
+| `app/Exceptions/`                 | `Exception`    |                                                         |
+| `app/Builders/`                   | `Builder`      | Dedicated query builders when scopes grow large         |
+| `app/Contracts/`                  | `Contract`     | Interfaces                                              |
+| traits (one place: `app/Traits/`) | `Trait`        |                                                         |
+| `tests/`                          | `Test`         | `*Test.php`, `*.test.ts(x)`                             |
+
+Do not invent other role nouns (`...Normalizer`, `...Publisher`, `...Recorder`, `...Writer`) or split domain classes arbitrarily between `app/Services/` and `app/Support/`: a write is an `Action`, an orchestrator or read pipeline is a `Service`. Packages apply the same table to their own namespace (`Qiick\Excubia\...`); a package may add roles of its own (`Parser`, `Renderer`, `Check`), listed in its architecture test config.
 
 ## Backend conventions
 
@@ -225,13 +239,13 @@ AI is off for writes by default: read-only tools only, write and destructive too
 
 ## Automated checks
 
-Machines enforce these in CI; keep them green, and never silence one to get green.
+Machines enforce these in CI; keep them green, and never silence one to get green. Fix the new finding; a baseline only shrinks.
 
 - **Dead code.** `knip` (unused files, exports, dependencies) runs in CI with the repo's committed `knip.json`. TypeScript has `noUnusedLocals` and `noUnusedParameters` on. Delete what is unused; prefix a parameter a signature forces on you with `_`. A knip `ignore*` entry needs a comment-worthy reason in the PR.
 - **Strict models.** Each app's `AppServiceProvider::boot()` calls `Model::shouldBeStrict(! app()->isProduction())`: lazy loading, silently discarded attributes and missing attributes throw outside production. Fix the query (eager load, `$fillable`, select the column), never turn it off.
 - **Larastan ratchet.** Each repo runs Larastan one level above where it started. Its `phpstan-baseline.neon` may only shrink: `scripts/qiick-ratchet.mjs phpstan` fails CI when the baseline holds more errors than on the base branch (only the PR that raises `level:` may baseline that level's errors). Never add to the baseline; fix the new error.
 - **Theme tokens only.** In apps with the qiick UI, `scripts/check-ui-tokens.mjs` (synced by the pack, part of `npm run lint`) fails on arbitrary font sizes (`text-[11px]`) and on raw palette / `#hex` classes beyond `scripts/ui-token-baseline.txt`; the baseline only shrinks. The reusable `ui-quality.yml` runs it with the WCAG 2.2 AA contrast check of the installed theme and the app's axe smoke browser test (light, dark, high contrast).
-- **Ratcheted code rules (ESLint repos).** `qiickRatchetedRules()` from `qiick-standards.eslint.js` turns prose rules into checks: only `lucide-react` icons and shadcn primitives (`no-restricted-imports` on other icon and component libraries), toasts only through `@/lib/toast` (not `sonner`), the clipboard only through `@/lib/clipboard` (`no-restricted-properties` on `navigator.clipboard`), booleans prefixed `is` / `has` / `can` / `should` (`@typescript-eslint/naming-convention`, type-aware; destructured contract names exempt), no single-letter names (`id-length`; `i`, `j`, `k`, `t`, `_` allowed). They run only in `npm run lint:standards` (`QIICK_RATCHET=1`), ratcheted per file and rule against `qiick-lint-baseline.json`: existing debt is listed, new findings fail, paid debt must be removed (`--update`).
+- **Ratcheted code rules.** In Vite+ apps the synced `.oxlintrc.standards.json` runs them in Oxlint (`npm run lint:standards`, `--rule eslint/<rule>`); in repos still on ESLint, `qiickRatchetedRules()` from `qiick-standards.eslint.js` does. They turn prose rules into checks: only `lucide-react` icons and shadcn primitives (`no-restricted-imports` on other icon and component libraries), toasts only through `@/lib/toast` (not `sonner`), the clipboard only through `@/lib/clipboard` (`no-restricted-properties` on `navigator.clipboard`), booleans prefixed `is` / `has` / `can` / `should` (`@typescript-eslint/naming-convention`, type-aware; destructured contract names exempt), no single-letter names (`id-length`; `i`, `j`, `k`, `t`, `_` allowed). They run only in `npm run lint:standards` (`QIICK_RATCHET=1`), ratcheted per file and rule against `qiick-lint-baseline.json`: existing debt is listed, new findings fail, paid debt must be removed (`--update`).
 - **Thin controllers.** The architecture test fails on a controller with more than five public methods of its own; controllers that already have more are listed with their count in `tests/Arch/naming-architecture.php` (`controllerPublicMethods`), and the test fails when a count grows or when it shrinks without the entry being lowered.
 - **No hard-coded UI strings.** `i18next/no-literal-string` (JSX text only, not attributes such as `className` or `data-*`) flags visible text that bypasses translations: use `t('…')` with keys in every locale file. Existing debt is in `i18n-literal-baseline.json`; `scripts/qiick-ratchet.mjs lint` fails when a file's count grows, and when a count shrinks without the baseline being lowered (`--update`).
 
@@ -241,14 +255,17 @@ Machines enforce these in CI; keep them green, and never silence one to get gree
 - **Conventional Commits:** `type(scope): summary` in the imperative, lower case, no trailing period. Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `ci`, `build`, `security`. `!` or a `BREAKING CHANGE:` footer for breaking changes. commitlint checks PR titles in CI through the reusable `qiick-io/app-ui/.github/workflows/pr-title.yml` (check `pr-title / commitlint`), which every repo calls on `pull_request` with the `edited` type.
 - **One issue, one branch, one pull request.** Branch from `develop` as `<type>/<issue>-<kebab-slug>` (`feat/42-project-registration`). Never commit directly to `develop` or `main`.
 - Pull requests target `develop` and are **squash-merged**, so the PR title becomes the commit: make it a valid Conventional Commit. The body says what changed, why, and `Closes #<issue>`.
+- **Every issue and pull request gets its metadata when it is created:** assignee (the maintainer), labels from the repo's set, the milestone of the release it belongs to, and the repo's GitHub project when it has one.
+- **Branch protection** (every public repo): `develop` and `main` change only through a pull request with green required checks; admins are not exempt. When a PR is behind its base, update the branch (`gh pr update-branch`) and wait for the checks again. `main` takes **merge commits** only (a ruleset): release PRs, and the merge of `main` back into `develop` after a tag, which is a pull request too.
 - Never force-push a shared branch, never `--no-verify`, never `--admin` or any branch-protection bypass.
 - No attribution or `Co-authored-by` trailers for tools or agents.
 - Never commit `.env`, secrets, tokens, personal phone numbers or email addresses; only `.env.example`.
+- Nothing personal in tracked files: no absolute local paths (`/Users/…`), no one's own editor or agent configuration (keep it in `.gitignore`), and "the maintainer" instead of people's names in code, comments and docs. Describe what code does rather than which product it imitates; naming a product is fine where it is an integration (an importer, a compatible endpoint).
 - Ask the maintainer before: a new dependency, anything outside the issue's scope, repo settings (branch protection, required checks, secrets), paid services or accounts.
 
 ## Self-hosted app distribution
 
-For apps a customer installs (not for Composer packages, which ship with plain `composer require` / `update`). externa-core is the reference implementation.
+For apps a customer installs (not for Composer packages, which ship with plain `composer require` / `update`). externa-core is the reference implementation. In short: install with `composer create-project qiick/<app>` and `php artisan <app>:install`, update with `php artisan <app>:upgrade` (never `create-project`).
 
 1. **Install from Packagist:** `composer create-project qiick/<app>`. `create-project` only copies `.env` and runs `key:generate`: no migrate, seed or database assumption.
 2. **First run:** `php artisan <app>:install`, interactive (database, name / URL, stack profile, optional seed, frontend build), with a non-interactive mode for CI (`--no-interaction --force`).

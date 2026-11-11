@@ -2918,5 +2918,10 @@
         "goToPage": "Go to page {{page}}",
         "goToPreviousPage": "Go to previous page",
         "goToNextPage": "Go to next page"
+    },
+    "dateRangePicker": {
+        "startTime": "Start time",
+        "endTime": "End time",
+        "apply": "Apply"
     }
 }
