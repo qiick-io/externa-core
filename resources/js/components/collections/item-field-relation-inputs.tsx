@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseRelationFieldSettings } from '@/lib/collection-field-types';
 import type { FieldDef } from '@/types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 type DefaultValue =
     | string
@@ -56,7 +57,7 @@ function parseM2mLinks(value: DefaultValue): M2mLink[] {
             meta[key] =
                 metaValue === null || metaValue === undefined
                     ? ''
-                    : String(metaValue);
+                    : scalarToString(metaValue);
         }
 
         links.push({ related_item_id: id, meta });
@@ -86,9 +87,10 @@ function relationOptionsQuery(field: FieldDef): string {
         params.set('related_collection_id', String(relatedId));
     }
 
-    const displayField = String(
+    const displayField = scalarToString(
         (field.settings as { display_field?: unknown } | null | undefined)
-            ?.display_field ?? '',
+            ?.display_field,
+        '',
     ).trim();
 
     if (displayField !== '') {

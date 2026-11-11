@@ -8,10 +8,10 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Settings\Concerns\LogsProjectSettingsUpdateTrait;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Settings\UpdateAiToolSettingsRequest;
 use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,14 +51,12 @@ class AiToolSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    /**
+     * Persist the enabled mutating tools; the request checks the settings permission before validating.
+     */
+    public function update(UpdateAiToolSettingsRequest $request): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanManageProjectSettings->value);
-
-        $validated = $request->validate([
-            'write_tools' => ['nullable', 'array'],
-            'write_tools.*' => ['string', 'max:128'],
-        ]);
+        $validated = $request->validated();
 
         $allowedNames = collect($this->registry->all())
             ->filter(fn ($definition): bool => $definition->kind()->isMutating())
