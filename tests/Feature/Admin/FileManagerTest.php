@@ -1371,6 +1371,25 @@ test('folders cannot be replaced', function () {
         ->assertJsonValidationErrors(['file']);
 });
 
+test('the folder guard runs before replace payload validation', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanReplaceFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Docs',
+        'path' => '/Docs',
+        'disk' => 'assets',
+    ]);
+
+    $this->postJson(route('files.replace', $folder), [])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['file' => 'Only files can be replaced.']);
+});
+
 test('replace rejects uploads with a different extension', function () {
     $user = grantFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
