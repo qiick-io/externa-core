@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Models\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -13,14 +15,12 @@ use Illuminate\Validation\Rule;
  */
 class DuplicateRoleRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-
     /**
      * Require permission to create roles.
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanCreateRoles->value);
+        abort_unless(Gate::allows('create', Role::class), 403);
 
         return true;
     }
