@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import { CheckCircle2, ChevronDown, ChevronUp, X, XCircle } from 'lucide-react';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -143,11 +143,17 @@ export function FileUploadIndicator({
         [uploads],
     );
 
-    useEffect(() => {
+    const [previousActiveCount, setPreviousActiveCount] = useState(activeCount);
+
+    // Re-expand during render when the active upload count changes (React's
+    // "adjust state on prop change" pattern).
+    if (previousActiveCount !== activeCount) {
+        setPreviousActiveCount(activeCount);
+
         if (activeCount > 0) {
             setExpanded(true);
         }
-    }, [activeCount]);
+    }
 
     if (uploads.length === 0) {
         return null;

@@ -24,6 +24,7 @@ use App\Support\Api\PublicItemSortParser;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Public CMS API: CRUD for collection items gated by collection_permissions.
@@ -165,7 +166,7 @@ class CollectionItemController extends Controller
                 abort(404);
             }
 
-            $this->permissionEnforcer->assertItemReadable($request, $collection, $model);
+            abort_unless(Gate::forUser($request->user())->allows('view', [$model, $collection]), 404);
 
             return [
                 'data' => (new CollectionItemResource($model))->toArray($request),
@@ -214,7 +215,7 @@ class CollectionItemController extends Controller
             abort(404);
         }
 
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $model);
+        Gate::forUser($request->user())->authorize('update', [$model, $collection]);
 
         $data = $request->input('data', []);
         if (! is_array($data)) {
@@ -252,7 +253,7 @@ class CollectionItemController extends Controller
             abort(404);
         }
 
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $model);
+        Gate::forUser($request->user())->authorize('delete', [$model, $collection]);
 
         $model->delete();
 

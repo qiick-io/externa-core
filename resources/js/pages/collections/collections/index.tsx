@@ -231,11 +231,28 @@ export default function CollectionsIndex({
         [direction, isTrashed, pagination.per_page, search, sort],
     );
 
-    useEffect(() => {
+    const [previousFilters, setPreviousFilters] = useState({
+        search: filters.search,
+        sort: filters.sort,
+        direction: filters.direction,
+    });
+
+    // Adopt the server filters during render after a visit (React's "adjust
+    // state on prop change" pattern).
+    if (
+        previousFilters.search !== filters.search ||
+        previousFilters.sort !== filters.sort ||
+        previousFilters.direction !== filters.direction
+    ) {
+        setPreviousFilters({
+            search: filters.search,
+            sort: filters.sort,
+            direction: filters.direction,
+        });
         setSearch(filters.search ?? '');
         setSort(filters.sort ?? 'name');
         setDirection(filters.direction ?? 'asc');
-    }, [filters.search, filters.sort, filters.direction]);
+    }
 
     const onDebouncedSearch = useCallback(
         (value: string): void => {
@@ -246,9 +263,13 @@ export default function CollectionsIndex({
 
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
-    useEffect(() => {
+    const [previousIsTrashed, setPreviousIsTrashed] = useState(isTrashed);
+
+    // Clear the selection during render when switching to or from the trash.
+    if (previousIsTrashed !== isTrashed) {
+        setPreviousIsTrashed(isTrashed);
         setSelected([]);
-    }, [isTrashed]);
+    }
 
     const toggleAll = (checked: boolean): void => {
         setSelected(checked ? collections.map((c) => c.id) : []);

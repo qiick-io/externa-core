@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Ai;
 
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Models\Conversation;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,14 +21,12 @@ class TruncateAiConversationRequest extends FormRequest
 
     public function authorize(): bool
     {
-        /** @var User $user */
-        $user = $this->user();
+        $conversation = Conversation::query()->find((string) $this->route('conversation'));
 
-        $conversation = $user->conversations()
-            ->where('id', (string) $this->route('conversation'))
-            ->first();
-
-        abort_if($conversation === null, Response::HTTP_NOT_FOUND);
+        abort_unless(
+            $conversation instanceof Conversation && Gate::allows('update', $conversation),
+            Response::HTTP_NOT_FOUND,
+        );
 
         $this->ownedConversation = $conversation;
 
