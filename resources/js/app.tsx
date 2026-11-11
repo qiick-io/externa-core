@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import type { ResolvedComponent } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -51,7 +52,10 @@ createInertiaApp({
     resolve: (name) =>
         resolvePageComponent(
             `./pages/${name}.tsx`,
-            import.meta.glob('./pages/**/*.tsx'),
+            // Each page module's default export, typed as Inertia 3's resolver expects.
+            import.meta.glob<ResolvedComponent>('./pages/**/*.tsx', {
+                import: 'default',
+            }),
         ),
     setup({ el, App, props }) {
         const locale =
