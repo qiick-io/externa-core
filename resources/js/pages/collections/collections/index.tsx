@@ -541,7 +541,7 @@ export default function CollectionsIndex({
                             docsHref={
                                 hasActiveFilters || isTrashed
                                     ? undefined
-                                    : 'https://docs.externa.qiick.io'
+                                    : 'https://docs.qiick.io/externa'
                             }
                             docsLabel={
                                 hasActiveFilters || isTrashed

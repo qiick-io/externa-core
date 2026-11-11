@@ -19,7 +19,7 @@ describe('PageEmptyState', () => {
                         {'Create your first collection'}
                     </button>
                 }
-                docsHref="https://docs.externa.qiick.io"
+                docsHref="https://docs.qiick.io/externa"
                 docsLabel="Learn more"
             />,
         );
@@ -36,6 +36,6 @@ describe('PageEmptyState', () => {
         ).toBeInTheDocument();
         expect(
             screen.getByRole('link', { name: /Learn more/i }),
-        ).toHaveAttribute('href', 'https://docs.externa.qiick.io');
+        ).toHaveAttribute('href', 'https://docs.qiick.io/externa');
     });
 });

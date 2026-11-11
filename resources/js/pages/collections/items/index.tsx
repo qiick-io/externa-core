@@ -1198,7 +1198,7 @@ export default function ItemsIndex({
                         docsHref={
                             hasActiveFilters || isTrashed
                                 ? undefined
-                                : 'https://docs.externa.qiick.io'
+                                : 'https://docs.qiick.io/externa'
                         }
                         docsLabel={
                             hasActiveFilters || isTrashed
