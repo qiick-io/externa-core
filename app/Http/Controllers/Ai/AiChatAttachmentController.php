@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\StoreAiChatAttachmentRequest;
 use App\Models\AiChatAttachment;
 use App\Models\User;
 use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Support\Uploads\MimeTypeValidator;
 use App\Support\Uploads\SafeUploadMime;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -27,14 +27,12 @@ class AiChatAttachmentController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAiChatAttachmentRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'file' => ['required', 'file', 'max:'.(AiChatAttachment::MAX_BYTES / 1024)],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
