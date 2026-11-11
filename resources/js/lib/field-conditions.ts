@@ -1,3 +1,4 @@
+import { scalarToString } from '@/lib/scalar-to-string';
 /** Field form conditions (mirrors PHP FieldConditionEvaluatorService). */
 
 export type FieldConditionOperator =
@@ -118,7 +119,12 @@ function valuesEqual(actual: unknown, expected: unknown): boolean {
         return actualBool === expectedBool;
     }
 
-    return String(actual) === String(expected);
+    // Arrays are handled above; an object never equals a scalar condition value.
+    if (typeof actual === 'object') {
+        return false;
+    }
+
+    return scalarToString(actual) === String(expected);
 }
 
 function contains(actual: unknown, expected: unknown): boolean {
@@ -127,14 +133,14 @@ function contains(actual: unknown, expected: unknown): boolean {
     }
 
     if (Array.isArray(actual)) {
-        return actual.map(String).includes(String(expected));
+        return actual.map(String).includes(scalarToString(expected));
     }
 
     if (actual === null || actual === undefined) {
         return false;
     }
 
-    return String(actual).includes(String(expected));
+    return scalarToString(actual).includes(scalarToString(expected));
 }
 
 function toComparable(value: unknown): number | string | null {
@@ -191,7 +197,7 @@ function compareOrdered(
 
     if (typeof left !== typeof right) {
         left = String(actual);
-        right = String(expected);
+        right = scalarToString(expected);
     }
 
     switch (operator) {
@@ -215,7 +221,7 @@ function normalizeList(expected: unknown): string[] {
         return [];
     }
 
-    return String(expected)
+    return scalarToString(expected)
         .split(/\s*,\s*/)
         .filter((part) => part !== '');
 }
@@ -235,7 +241,7 @@ function inList(actual: unknown, expected: unknown): boolean {
         return false;
     }
 
-    return haystack.includes(String(actual));
+    return haystack.includes(scalarToString(actual));
 }
 
 function singleRuleMatches(
@@ -305,13 +311,13 @@ export function parseFieldConditions(
         }
 
         const rule = entry as Record<string, unknown>;
-        const field = String(rule.field ?? '').trim();
+        const field = scalarToString(rule.field, '').trim();
 
         if (field === '') {
             continue;
         }
 
-        const operatorRaw = String(rule.operator ?? 'equals');
+        const operatorRaw = scalarToString(rule.operator, 'equals');
         const operator: FieldConditionOperator =
             FIELD_CONDITION_OPERATORS.includes(
                 operatorRaw as FieldConditionOperator,
@@ -332,7 +338,7 @@ export function parseFieldConditions(
         return null;
     }
 
-    const logicRaw = String(record.logic ?? 'and').toLowerCase();
+    const logicRaw = scalarToString(record.logic, 'and').toLowerCase();
     const conditions: FieldConditions = {
         logic: logicRaw === 'or' ? 'or' : 'and',
         rules,

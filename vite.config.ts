@@ -320,7 +320,6 @@ export default defineConfig({
             // ponytail: rules ESLint never ran here, new with Oxlint's type-aware and React Compiler
             // checks (204 findings at the switch). Off until fixed and turned on one by one in
             // externa-core#671, so this PR changes the toolchain and not the code.
-            'typescript/no-base-to-string': 'off',
             'jsx-a11y/prefer-tag-over-role': 'off',
             'jsx-a11y/role-has-required-aria-props': 'off',
             'react/refs': 'off',

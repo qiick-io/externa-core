@@ -20,6 +20,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 
+- qiick standards pack and `@qiick` registry pinned to app-ui v0.4.0 (core and optional UI patterns; none adopted yet); the `confirmation` and `reasoning` overrides are gone, as both files match the registry again (#666).
 - `.env.example` now documents every Externa setting read by `config/` (first super-admin, CORS origins, security headers, activity log, Git export author, hosted AI provider keys, …), and CI checks that new `env()` keys are documented (`npm run lint:env`) (#291).
 - The frontend toolchain is Vite+ (`vite-plus` 1.4.0): `vp dev` / `vp build`, Oxlint for lint (the same rules as before, including jsx-a11y and externa's own rules for hard-coded UI text and admin paths) and Oxfmt for formatting, replacing ESLint and Prettier (#609). The qiick ratcheted rules run in Oxlint (`npm run lint:standards`, new `qiick-lint-baseline.json`). Contributors: run `npm ci` after pulling; editors use the Oxc extension instead of the ESLint and Prettier ones.
 - `spatie/laravel-permission` 8 (from 7.4). Its only breaking change is that the `Role` and `Permission` contracts accept a `BackedEnum` in `findByName()` / `findOrCreate()`; externa's `Role` model does not override them, and the migrations and config are unchanged (#667). Run `composer install` after pulling.
@@ -29,6 +30,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 
+- Field forms, item table cells and field conditions no longer turn an object-valued setting or option into the text "[object Object]": non-scalar values fall back to the field's default (#671).
 - Converting a field type on a large collection keeps only ids and values between the read and write phases, and writes chunk by chunk, instead of holding every item with its relations in memory (#441).
 - The AI import status poll retries a failed check with backoff (4 s up to 30 s, five attempts) instead of stopping for good at the first network error (#441).
 - The TypeScript SDK package builds itself on `npm pack` / `npm publish` (`prepack`) and declares its repository, so it can no longer be published without `dist/` (#441).

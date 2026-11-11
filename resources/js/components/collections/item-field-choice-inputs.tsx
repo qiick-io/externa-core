@@ -68,6 +68,7 @@ import {
     fieldOpenBorder,
 } from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 /** Radix Select forbids empty string values — map allowNone ↔ sentinel. */
 const SELECT_NONE_VALUE = '__none__';
@@ -93,7 +94,7 @@ export function toDateInputValue(value: DefaultValue): string {
         return '';
     }
 
-    const stringValue = String(value);
+    const stringValue = scalarToString(value);
 
     if (/^\d{4}-\d{2}-\d{2}/.test(stringValue)) {
         return stringValue.slice(0, 10);
@@ -118,7 +119,7 @@ export function toTimeInputValue(
         return '';
     }
 
-    const stringValue = String(value);
+    const stringValue = scalarToString(value);
 
     if (/^\d{2}:\d{2}/.test(stringValue)) {
         return includeSeconds
@@ -433,9 +434,13 @@ export function ApiAutocompleteInput({
 
                 const next = rows
                     .map((row) => {
-                        const text = String(getPathValue(row, textPath) ?? '');
-                        const value = String(
-                            getPathValue(row, valuePath) ?? text,
+                        const text = scalarToString(
+                            getPathValue(row, textPath),
+                            '',
+                        );
+                        const value = scalarToString(
+                            getPathValue(row, valuePath),
+                            text,
                         );
 
                         if (!text && !value) {
@@ -1194,7 +1199,7 @@ export function CheckboxGroupTreeInput({
     readonly: boolean;
 }) {
     const treeOptions = parseFieldTreeOptions(settings);
-    const valueCombining = String(settings?.value_combining ?? 'all');
+    const valueCombining = scalarToString(settings?.value_combining, 'all');
     const [selectedValues, setSelectedValues] =
         useState<string[]>(defaultValues);
     const [expandedKeys, setExpandedKeys] = useState(

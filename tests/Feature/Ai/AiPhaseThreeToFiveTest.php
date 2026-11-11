@@ -288,3 +288,16 @@ test('daily prompt quota rejects the next prompt', function () {
         ->assertTooManyRequests()
         ->assertJsonPath('message', 'Daily AI prompt limit reached.');
 });
+
+test('daily prompt quota answers 429 before validating the prompt payload', function () {
+    config()->set('ai.daily_prompt_limit', 1);
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    AiActivityLogger::prompt($user, 'First prompt');
+
+    $this->actingAs($user)
+        ->postJson(route('ai.chat'), ['message' => ''])
+        ->assertTooManyRequests()
+        ->assertJsonPath('message', 'Daily AI prompt limit reached.');
+});
