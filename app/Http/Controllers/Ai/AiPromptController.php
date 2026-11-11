@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Ai;
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\SearchAiPickerRequest;
 use App\Http\Requests\Ai\StoreAiPromptRequest;
 use App\Http\Requests\Ai\UpdateAiPromptRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\AiPrompt;
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolverService;
-use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,11 +25,9 @@ class AiPromptController extends Controller
     /**
      * List saved prompts for the attach picker (any CanUseAi user).
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchAiPickerRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'search' => SearchQueryRules::search(),
-        ]);
+        $validated = $request->validated();
 
         $search = isset($validated['search']) ? trim((string) $validated['search']) : '';
 

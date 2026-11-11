@@ -1,3 +1,4 @@
+import { scalarToString } from '@/lib/scalar-to-string';
 /** Collection form layout presentation metadata (not a field type). */
 
 export type FormLayoutLabel = Record<string, string>;
@@ -43,7 +44,7 @@ export function parseCollectionFormLayout(
         }
 
         const tab = entry as Record<string, unknown>;
-        const id = String(tab.id ?? '').trim();
+        const id = scalarToString(tab.id, '').trim();
 
         if (id === '' || tabIds.has(id)) {
             continue;
@@ -66,9 +67,12 @@ export function parseCollectionFormLayout(
 
         const section = entry as Record<string, unknown>;
         const id =
-            String(section.id ?? '').trim() || `section-${sections.length + 1}`;
+            scalarToString(section.id, '').trim() ||
+            `section-${sections.length + 1}`;
         let tabId =
-            section.tab_id == null ? null : String(section.tab_id).trim();
+            section.tab_id == null
+                ? null
+                : scalarToString(section.tab_id).trim();
 
         if (tabId === '' || (tabId !== null && !tabIds.has(tabId))) {
             tabId = null;

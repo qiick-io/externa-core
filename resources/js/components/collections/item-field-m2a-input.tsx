@@ -11,6 +11,7 @@ import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { moveItem, newListItemId } from '@/lib/list-items';
 import type { FieldDef } from '@/types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 type M2aBlock = {
     id: string;
@@ -83,9 +84,10 @@ export function M2aFieldInput({
         m2aSettings.allowedCollectionIds.includes(collection.id),
     );
     const displayField =
-        String(
+        scalarToString(
             (field.settings as { display_field?: unknown } | null | undefined)
-                ?.display_field ?? 'title',
+                ?.display_field,
+            'title',
         ).trim() || 'title';
 
     const [blocks, setBlocks] = useState<M2aBlock[]>(() =>

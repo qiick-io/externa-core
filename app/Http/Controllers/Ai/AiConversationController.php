@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\BulkDestroyAiConversationsRequest;
+use App\Http\Requests\Ai\SearchAiConversationsRequest;
+use App\Http\Requests\Ai\StoreAiConversationRequest;
+use App\Http\Requests\Ai\TruncateAiConversationRequest;
 use App\Models\User;
 use App\Services\Ai\AiConversationMessagePresenterService;
 use App\Services\Ai\AiConversationMutationService;
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -28,14 +30,12 @@ class AiConversationController extends Controller
     /**
      * Paginate the authenticated user's conversations with pinned items first.
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchAiConversationsRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
-        ]);
+        $validated = $request->validated();
         $search = trim((string) ($validated['q'] ?? ''));
         $perPage = min(max($request->integer('per_page', 25), 1), 100);
 
@@ -76,14 +76,12 @@ class AiConversationController extends Controller
     /**
      * Create a new conversation for the authenticated user.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAiConversationRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'title' => ['nullable', 'string', 'max:100'],
-        ]);
+        $validated = $request->validated();
 
         $conversationId = (string) Str::uuid7();
         $title = filled($validated['title'] ?? null)
@@ -117,15 +115,12 @@ class AiConversationController extends Controller
     /**
      * Delete multiple owned conversations in one transaction.
      */
-    public function bulkDestroy(Request $request): JsonResponse
+    public function bulkDestroy(BulkDestroyAiConversationsRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1', 'max:100'],
-            'ids.*' => ['required', 'string', 'uuid'],
-        ]);
+        $validated = $request->validated();
 
         $ids = array_values(array_unique($validated['ids']));
 
@@ -162,14 +157,14 @@ class AiConversationController extends Controller
 
     /**
      * Delete a message and every message that follows it in the conversation.
+     *
+     * Ownership is resolved (404) by the request before validation runs.
      */
-    public function truncate(Request $request, string $conversation): JsonResponse
+    public function truncate(TruncateAiConversationRequest $request): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $request->conversation();
 
-        $validated = $request->validate([
-            'from_message_id' => ['required', 'string', 'uuid'],
-        ]);
+        $validated = $request->validated();
 
         $anchor = ConversationMessage::query()
             ->where('conversation_id', $owned->id)
