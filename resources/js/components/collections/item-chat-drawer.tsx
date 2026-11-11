@@ -596,7 +596,7 @@ export function ItemChatDrawer({
             load();
         }
         // scopeKey covers scope identity; load is intentionally omitted.
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when thread changes
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- reload only when thread changes
     }, [open, scopeKey]);
 
     useEffect(() => {

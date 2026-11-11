@@ -89,7 +89,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
             form.clearErrors();
             setSlugManual(false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `form` omitted: Inertia useForm identity can change every render
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- `form` omitted: Inertia useForm identity can change every render
     }, [open, editing]);
 
     const title = editing ? 'Edit collection' : 'New collection';

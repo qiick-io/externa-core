@@ -72,7 +72,7 @@ export default function ResetPassword({ token, email }: Props) {
                                 name="password"
                                 autoComplete="new-password"
                                 className="mt-1"
-                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                                 placeholder={t('common.password')}
                                 aria-invalid={

@@ -49,7 +49,7 @@ export default function Register() {
                                     id="first_name"
                                     type="text"
                                     required
-                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                    // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
                                     autoComplete="given-name"
                                     name="first_name"

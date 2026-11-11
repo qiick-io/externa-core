@@ -65,7 +65,7 @@ export default function Profile({
             notificationSounds.sound_notifications_enabled,
         );
         setNotificationSoundPrefs(notificationSounds);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from primitive sound prefs only
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- sync from primitive sound prefs only
     }, [
         notificationSounds.sound_chat_enabled,
         notificationSounds.sound_notifications_enabled,

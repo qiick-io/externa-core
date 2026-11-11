@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
     DEFAULT_COLLECTION_ICON,
     LucideIconPicker,
@@ -45,6 +45,7 @@ describe('resolveCollectionIconName', () => {
 describe('LucideIconPicker', () => {
     afterEach(cleanup);
 
+    // Renders every Lucide icon option, so it needs more than the default 5 s on a busy runner.
     it('names every icon option and announces the selected one', () => {
         const onChange = vi.fn();
 
@@ -68,7 +69,7 @@ describe('LucideIconPicker', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Accessibility' }));
         expect(onChange).toHaveBeenCalledWith('Accessibility');
-    });
+    }, 15_000);
 
     it('shows an announced empty state when no icon matches', () => {
         render(

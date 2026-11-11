@@ -1480,7 +1480,9 @@ function SortableFieldsList({
 
             if (Number.isFinite(activeId) && activeItem) {
                 const original = evt.originalEvent as
-                    MouseEvent | TouchEvent | undefined;
+                    | MouseEvent
+                    | TouchEvent
+                    | undefined;
                 const endPoint = clientPointFromEvent(original);
                 const move = lastMoveRef.current;
                 const clientX = endPoint.clientX || move?.clientX || 0;

@@ -74,7 +74,8 @@ type ConversationSummary = AiConversationSummary;
 
 type Props = {
     conversations:
-        LaravelPaginated<ConversationSummary> | Paginated<ConversationSummary>;
+        | LaravelPaginated<ConversationSummary>
+        | Paginated<ConversationSummary>;
     selectedConversation: ConversationSummary | null;
     messages: AiChatMessage[];
 };
@@ -298,7 +299,7 @@ export default function AiIndexPage({
         setListLastPage(nextPage.last_page);
         lastSelectedIndexRef.current = null;
         // conversationsSyncKey is a content fingerprint of conversationsProp
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid resetting on prop identity alone
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- avoid resetting on prop identity alone
     }, [conversationsSyncKey]);
 
     const conversationSections = useMemo(

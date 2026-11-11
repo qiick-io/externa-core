@@ -165,7 +165,8 @@ export function MapCoordinateInput({
             markersRef.current.forEach((marker) => marker.remove());
             markersRef.current = [];
             const map = mapRef.current as
-                (LeafletMap & { __externaRo?: ResizeObserver }) | null;
+                | (LeafletMap & { __externaRo?: ResizeObserver })
+                | null;
             map?.__externaRo?.disconnect();
             map?.remove();
             mapRef.current = null;
@@ -173,7 +174,7 @@ export function MapCoordinateInput({
             setMapReady(false);
         };
         // Init once; markers sync in the next effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only map bootstrap
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- mount-only map bootstrap
     }, []);
 
     useEffect(() => {

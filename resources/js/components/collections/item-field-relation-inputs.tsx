@@ -76,7 +76,9 @@ function relationOptionsQuery(field: FieldDef): string {
     const relatedId = Number(
         (
             field.settings as
-                { related_collection_id?: unknown } | null | undefined
+                | { related_collection_id?: unknown }
+                | null
+                | undefined
         )?.related_collection_id,
     );
 
@@ -155,7 +157,7 @@ export function ManyToManyFieldInput({
                 setInitialOptions(options);
             })
             .catch(() => undefined);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch labels only when the selected ids change, not on meta edits
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- refetch labels only when the selected ids change, not on meta edits
     }, [collectionId, optionsQuery, selectedIds.join(',')]);
 
     const onChangeIds = (nextIds: number[]): void => {

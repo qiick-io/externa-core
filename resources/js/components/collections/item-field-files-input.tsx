@@ -702,7 +702,7 @@ export function MultipleFilesFieldInput({
         return () => {
             cancelled = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- fileIdsKey tracks fileIds
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- fileIdsKey tracks fileIds
     }, [fileIdsKey]);
 
     const addFiles = (incoming: AdminFileRow[]): void => {

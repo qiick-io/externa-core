@@ -548,7 +548,8 @@ export function BlocksFieldInput({
                                     );
                                     const nestedDefault =
                                         (block.data[nestedField.name] as
-                                            DefaultValue | undefined) ?? '';
+                                            | DefaultValue
+                                            | undefined) ?? '';
                                     const fieldReadonly =
                                         readonly || flags.readonly;
 

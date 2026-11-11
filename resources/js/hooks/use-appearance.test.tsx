@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { initializeTheme, teardownTheme } from './use-appearance';
 
 describe('initializeTheme media-query listener', () => {

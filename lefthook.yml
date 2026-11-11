@@ -6,16 +6,16 @@ pre-commit:
   parallel: true
   commands:
     pint:
-      glob: "*.php"
+      glob: '*.php'
       run: vendor/bin/pint {staged_files}
       stage_fixed: true
-    eslint:
-      glob: "resources/js/**/*.{js,jsx,ts,tsx}"
-      # --no-warn-ignored: staged shadcn primitives (components/ui) are ESLint-ignored by design.
-      run: npx eslint {staged_files} --max-warnings=0 --no-warn-ignored
-    prettier:
-      glob: "resources/**/*.{js,jsx,ts,tsx,css}"
-      run: npx prettier --write {staged_files}
+    oxlint:
+      glob: 'resources/js/**/*.{js,jsx,ts,tsx}'
+      # Ignored paths (shadcn primitives in components/ui) come from vite.config.ts.
+      run: npx vp lint {staged_files} --max-warnings=0
+    oxfmt:
+      glob: 'resources/**/*.{js,jsx,ts,tsx,css}'
+      run: npx vp fmt {staged_files}
       stage_fixed: true
 
 commit-msg:
@@ -28,6 +28,6 @@ pre-push:
   commands:
     pint-test:
       run: vendor/bin/pint --parallel --test
-    eslint:
-      run: npm run lint:check -- --max-warnings=0
+    oxlint:
+      run: npm run lint:check
     # Skip full Pest / browser suite — CI owns that.

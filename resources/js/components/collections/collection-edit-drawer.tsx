@@ -74,7 +74,12 @@ export function CollectionEditButton({
     collectionForm: ReturnType<typeof useCollections>;
     collection: CollectionEditSource;
     variant?:
-        'outline' | 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
+        | 'outline'
+        | 'default'
+        | 'secondary'
+        | 'ghost'
+        | 'link'
+        | 'destructive';
 }) {
     const { t } = useTranslation();
     const { can } = useCan();

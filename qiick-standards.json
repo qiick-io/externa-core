@@ -4,6 +4,6 @@
     "uiPreset": "Teal",
     "php": true,
     "frontendRoots": ["resources/js"],
-    "eslint": true,
-    "app": true
+    "app": true,
+    "oxlint": true
 }

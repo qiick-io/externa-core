@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { visit } = vi.hoisted(() => ({
     visit: vi.fn(),

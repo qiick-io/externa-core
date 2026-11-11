@@ -72,7 +72,8 @@ export default function AdminActivityLogsIndex({
     exportRowLimit = 10000,
 }: {
     activityLogs:
-        LaravelPaginated<AdminActivityLogRow> | Paginated<AdminActivityLogRow>;
+        | LaravelPaginated<AdminActivityLogRow>
+        | Paginated<AdminActivityLogRow>;
     users: Array<
         Pick<AdminUserRow, 'id' | 'first_name' | 'last_name' | 'email'>
     >;

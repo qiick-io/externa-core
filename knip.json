@@ -17,9 +17,11 @@
         "resources/js/components/admin/date-range-picker.tsx"
     ],
     "ignoreDependencies": [
-        "concurrently",
+        "@codemirror/language",
         "@commitlint/types",
         "@inertiajs/core",
-        "@codemirror/language"
-    ]
+        "concurrently",
+        "oxlint"
+    ],
+    "ignoreBinaries": ["oxlint"]
 }
