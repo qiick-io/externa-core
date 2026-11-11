@@ -20,6 +20,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 
+- `.env.example` now documents every Externa setting read by `config/` (first super-admin, CORS origins, security headers, activity log, Git export author, hosted AI provider keys, …), and CI checks that new `env()` keys are documented (`npm run lint:env`) (#291).
 - The frontend toolchain is Vite+ (`vite-plus` 1.4.0): `vp dev` / `vp build`, Oxlint for lint (the same rules as before, including jsx-a11y and externa's own rules for hard-coded UI text and admin paths) and Oxfmt for formatting, replacing ESLint and Prettier (#609). The qiick ratcheted rules run in Oxlint (`npm run lint:standards`, new `qiick-lint-baseline.json`). Contributors: run `npm ci` after pulling; editors use the Oxc extension instead of the ESLint and Prettier ones.
 - `spatie/laravel-permission` 8 (from 7.4). Its only breaking change is that the `Role` and `Permission` contracts accept a `BackedEnum` in `findByName()` / `findOrCreate()`; externa's `Role` model does not override them, and the migrations and config are unchanged (#667). Run `composer install` after pulling.
 - Tests run on Pest 5 (PHPUnit 13), with the Laravel and browser plugins at 5. Contributors: `composer install` after pulling (#611).
