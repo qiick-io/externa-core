@@ -44,7 +44,7 @@ Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activit
 
 | Requirement | Notes |
 | --- | --- |
-| **PHP 8.4.27+** | Pinned in `.php-version` / `composer.json` (`^8.4.27`). Herd PHP 8.4 recommended on macOS. Required for CVE-2026-109618 / CVE-2026-109619. |
+| **PHP 8.4.27+** | `composer.json` requires `^8.4.27`; `.php-version` selects the PHP 8.4 line for Herd and other version managers. Herd PHP 8.4 recommended on macOS. Required for CVE-2026-109618 / CVE-2026-109619. |
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
 | **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 15+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |

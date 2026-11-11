@@ -228,7 +228,7 @@ Run the narrowest tests while iterating; before each PR:
 vendor/bin/pint --test
 composer analyse
 npm run lint:check && npm run format:check && npm run types:check   # Oxlint, Oxfmt (Vite+), tsc
-npm run knip && npm run lint:i18n && npm run lint:standards   # dead code, hard-coded UI strings, qiick rules (ratchets)
+npm run knip && npm run lint:i18n && npm run lint:standards && npm run lint:env   # dead code, hard-coded UI strings, qiick rules (ratchets), .env.example keys
 npm run test:unit
 node scripts/qiick-ratchet.mjs phpstan   # Larastan baseline only shrinks
 php artisan test
