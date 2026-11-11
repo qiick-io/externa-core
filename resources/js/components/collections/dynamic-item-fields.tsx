@@ -102,6 +102,7 @@ import {
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow, FieldDef } from '@/types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 const ITEM_FORM_ID = 'collection-item-form';
 
@@ -302,7 +303,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     min={numberSettings.min ?? undefined}
                     max={numberSettings.max ?? undefined}
                     name={name}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     placeholder={placeholder}
                     readOnly={readonly}
                     aria-invalid={hasError}
@@ -327,7 +328,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     style={{
                         minHeight: `calc(${textareaSettings.rows}lh + 1rem)`,
                     }}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     placeholder={resolveTranslatedText(
                         textareaSettings.placeholder,
                         locales,
@@ -345,7 +346,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     name={name}
                     settings={field.settings}
                     locales={locales}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                     placeholder={placeholder}
                 />
@@ -357,7 +358,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     name={name}
                     settings={field.settings}
                     locales={locales}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                     placeholder={placeholder}
                     mode={markdownMode}
@@ -371,7 +372,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     id={id}
                     name={name}
                     settings={field.settings}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                 />
             );
@@ -383,7 +384,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     id={id}
                     name={name}
                     options={options}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                     allowNone={selectSettings.allowNone}
                     allowOther={selectSettings.allowOther}
@@ -432,7 +433,7 @@ function renderFieldControl(context: FieldRenderContext) {
                 <RadioWithOtherInput
                     name={name}
                     options={options}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                     allowOther={selectSettings.allowOther}
                 />
@@ -469,7 +470,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     id={id}
                     name={name}
                     settings={field.settings}
-                    defaultValue={String(defaultValue ?? '#000000')}
+                    defaultValue={scalarToString(defaultValue, '#000000')}
                     readonly={readonly}
                 />
             );
@@ -487,7 +488,7 @@ function renderFieldControl(context: FieldRenderContext) {
                 <HashFieldInput
                     id={id}
                     name={name}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     settings={field.settings}
                     readonly={readonly}
                 />
@@ -499,7 +500,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     name={name}
                     settings={field.settings}
                     locales={locales}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                 />
             );
@@ -510,7 +511,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     name={name}
                     settings={field.settings}
                     locales={locales}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     readonly={readonly}
                 />
             );
@@ -532,7 +533,7 @@ function renderFieldControl(context: FieldRenderContext) {
                                   : 'text'
                         }
                         name={name}
-                        defaultValue={String(defaultValue ?? '')}
+                        defaultValue={scalarToString(defaultValue, '')}
                         placeholder={placeholder}
                         maxLength={stringSettings.maxLength ?? undefined}
                         readOnly={readonly}
@@ -642,7 +643,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     id={id}
                     type="text"
                     name={name}
-                    defaultValue={String(defaultValue ?? '')}
+                    defaultValue={scalarToString(defaultValue, '')}
                     placeholder={placeholder}
                     readOnly={readonly}
                     aria-invalid={hasError}

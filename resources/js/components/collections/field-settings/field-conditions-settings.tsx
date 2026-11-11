@@ -10,6 +10,7 @@ import type {
     FieldConditionOperator,
     FieldConditions,
 } from '@/lib/field-conditions';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 type FieldConditionsSettingsProps = {
     settings?: Record<string, unknown> | null;
@@ -236,7 +237,7 @@ export function FieldConditionsSettings({
                                           )}
                                 </FieldLabel>
                                 <Input
-                                    value={String(rule.value ?? '')}
+                                    value={scalarToString(rule.value, '')}
                                     placeholder={
                                         rule.operator === 'in' ||
                                         rule.operator === 'not_in'
