@@ -43,7 +43,7 @@ return [
         'App\Http\Controllers\Collections\ContentCollectionController' => 11,
         'App\Http\Controllers\Collections\FieldController' => 12,
         'App\Http\Controllers\Collections\ItemChatController' => 20,
-        'App\Http\Controllers\Collections\ItemController' => 22,
+        'App\Http\Controllers\Collections\ItemController' => 16,
         'App\Http\Controllers\Settings\ProjectIntegrationsSettingsController' => 6,
     ],
 ];

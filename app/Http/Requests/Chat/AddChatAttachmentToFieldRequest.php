@@ -9,9 +9,9 @@ use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Chat\ChatAttachmentAccessService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Validates putting a chat attachment into a field of the thread's item.
@@ -38,7 +38,9 @@ class AddChatAttachmentToFieldRequest extends FormRequest
         $collection = $chat->collection;
         $item = $chat->item;
         abort_unless($collection instanceof Collection && $item instanceof CollectionItem, 404);
-        app(CollectionPermissionEnforcerService::class)->assertItemWritable($this, $collection, $item);
+
+        $writeDecision = Gate::forUser($this->user())->inspect('update', [$item, $collection]);
+        abort_if($writeDecision->denied(), $writeDecision->status() ?? 403, (string) $writeDecision->message());
 
         $this->itemChat = $chat;
 

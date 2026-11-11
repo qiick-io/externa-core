@@ -26,7 +26,9 @@ import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import ItemApprovalController from '@/actions/App/Http/Controllers/Collections/ItemApprovalController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import ItemWorkflowController from '@/actions/App/Http/Controllers/Collections/ItemWorkflowController';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
@@ -1225,7 +1227,7 @@ export default function ItemsForm({
                                                 onClick={() => {
                                                     setApproving(true);
                                                     router.post(
-                                                        ItemController.approve.url(
+                                                        ItemApprovalController.approve.url(
                                                             {
                                                                 collection:
                                                                     collection.id,
@@ -1292,7 +1294,7 @@ export default function ItemsForm({
                                                 onClick={() => {
                                                     setSubmittingReview(true);
                                                     router.post(
-                                                        ItemController.submitForReview.url(
+                                                        ItemApprovalController.submitForReview.url(
                                                             {
                                                                 collection:
                                                                     collection.id,
@@ -2213,7 +2215,7 @@ export default function ItemsForm({
 
                         setRejecting(true);
                         router.post(
-                            ItemController.reject.url({
+                            ItemApprovalController.reject.url({
                                 collection: collection.id,
                                 item: item.id,
                             }),
@@ -2242,7 +2244,7 @@ export default function ItemsForm({
                     onConfirm={() => {
                         setPublishing(true);
                         router.post(
-                            ItemController.publish.url({
+                            ItemWorkflowController.publish.url({
                                 collection: collection.id,
                                 item: item.id,
                             }),
@@ -2271,7 +2273,7 @@ export default function ItemsForm({
                     onConfirm={() => {
                         setDiscardingDraft(true);
                         router.post(
-                            ItemController.discardDraft.url({
+                            ItemWorkflowController.discardDraft.url({
                                 collection: collection.id,
                                 item: item.id,
                             }),

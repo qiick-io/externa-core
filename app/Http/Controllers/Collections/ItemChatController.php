@@ -29,7 +29,6 @@ use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatAttachmentAccessService;
 use App\Services\Chat\ChatAttachmentUploadService;
@@ -42,6 +41,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -58,7 +58,6 @@ class ItemChatController extends Controller
         private ChatMessageFeedService $feed,
         private ChatMentionService $mentionOptions,
         private ChatNotificationService $notifications,
-        private CollectionPermissionEnforcerService $permissionEnforcer,
         private EffectivePermissionResolverService $permissionResolver,
     ) {}
 
@@ -120,7 +119,7 @@ class ItemChatController extends Controller
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless((int) $message->user_id === (int) $user->id, 403);
+        abort_unless(Gate::forUser($user)->allows('delete', $message), 403);
 
         $deleteChatMessage->execute($chat, $message, $user);
 
@@ -381,7 +380,7 @@ class ItemChatController extends Controller
     private function assertItemContext(Request $request, Collection $collection, CollectionItem $item): void
     {
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+        abort_unless(Gate::forUser($request->user())->allows('view', [$item, $collection]), 404);
     }
 
     private function chatForItem(Request $request, Collection $collection, CollectionItem $item): Chat

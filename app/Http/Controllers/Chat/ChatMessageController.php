@@ -40,6 +40,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -101,7 +102,7 @@ class ChatMessageController extends Controller
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless((int) $message->user_id === (int) $user->id, 403);
+        abort_unless(Gate::forUser($user)->allows('delete', $message), 403);
 
         $deleteChatMessage->execute($chat, $message, $user);
 
