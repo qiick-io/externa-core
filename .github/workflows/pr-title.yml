@@ -1,0 +1,14 @@
+name: PR title
+
+# The PR title becomes the squash commit on develop: it must be a Conventional Commit (#610).
+# `edited` reruns the check when the title changes. Check name: `pr-title / commitlint`.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    uses: qiick-io/app-ui/.github/workflows/pr-title.yml@v0.3.0
