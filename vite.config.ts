@@ -649,6 +649,14 @@ export default defineConfig({
                 },
             },
             {
+                // Registry copy (@qiick, drift-checked): resets its typed confirmation in an effect
+                // when the dialog closes; the fix belongs upstream in app-ui, not in this copy.
+                files: ['resources/js/components/confirm-destructive-dialog.tsx'],
+                rules: {
+                    'react/set-state-in-effect': 'off',
+                },
+            },
+            {
                 // Last, so it wins over the jsx-a11y overrides above (see the ponytail in `rules`).
                 files: ['**/*'],
                 rules: {

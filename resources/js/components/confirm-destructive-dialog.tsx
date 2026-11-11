@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     AlertDialog,
@@ -50,16 +50,11 @@ export function ConfirmDestructiveDialog({
     const inputId = useId();
     const [typedValue, setTypedValue] = useState('');
 
-    const [wasOpen, setWasOpen] = useState(open);
-
-    // Reset during render when the dialog closes (React's "adjust state on prop change" pattern).
-    if (wasOpen !== open) {
-        setWasOpen(open);
-
+    useEffect(() => {
         if (!open) {
             setTypedValue('');
         }
-    }
+    }, [open]);
 
     const requiresTypedConfirmation =
         typeof typedConfirmation === 'string' && typedConfirmation.length > 0;
