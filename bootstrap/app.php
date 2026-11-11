@@ -12,11 +12,13 @@ use App\Http\Middleware\SetLocaleMiddleware;
 use App\Http\Middleware\SetSecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
 use App\Support\Auth\HomePath;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -76,5 +78,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 $exception,
                 $request,
             ),
+        );
+        // A policy's denyAsNotFound() reaches the handler as a plain HttpException(404)
+        // (prepareException runs before these callbacks), so render it like any other 404.
+        $exceptions->renderable(
+            fn (HttpException $exception, Request $request) => $exception->getStatusCode() === 404
+                && $exception->getPrevious() instanceof AuthorizationException
+                    ? RenderNotFoundResponse::render($exception, $request)
+                    : null,
         );
     })->create();
