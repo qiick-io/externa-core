@@ -15,6 +15,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - `spatie/laravel-permission` 8 (from 7.4). Its only breaking change is that the `Role` and `Permission` contracts accept a `BackedEnum` in `findByName()` / `findOrCreate()`; externa's `Role` model does not override them, and the migrations and config are unchanged (#667). Run `composer install` after pulling.
 - Tests run on Pest 5 (PHPUnit 13), with the Laravel and browser plugins at 5. Contributors: `composer install` after pulling (#611).
 - Inertia 3 (`inertiajs/inertia-laravel` 3, `@inertiajs/react` 3). `config/inertia.php` follows the v3 layout (page settings under `pages`); the root template marks the title with `data-inertia`. `php artisan externa:upgrade` already clears the compiled views the new `@inertia` output needs. If you customised `config/inertia.php` or `resources/views/app.blade.php`, re-apply your changes on the new files (#611).
+- TypeScript 7 (the Go-native compiler); `npm run types:check` is about ten times faster. Contributors: `npm ci` after pulling (#611).
 
 ## [1.4.0] - 2026-11-10
 
