@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useId, useRef } from 'react';
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useId,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import type {
     UnsavedChangesDialogCopy,
     UnsavedChangesScope,
@@ -57,21 +65,23 @@ export function useRegisterUnsavedChanges({
     dialogCopy,
 }: RegisterUnsavedChangesOptions): void {
     const { register } = useUnsavedChanges();
+    // Written right after each commit (not during render), before any navigation event,
+    // so requestLeave never reads a stale value.
     const isDirtyRef = useRef(isDirty);
+    useLayoutEffect(() => {
+        isDirtyRef.current = isDirty;
+    });
     const onDiscardRef = useRef(onDiscard);
+    useLayoutEffect(() => {
+        onDiscardRef.current = onDiscard;
+    });
     const dialogCopyRef = useRef(dialogCopy);
+    useLayoutEffect(() => {
+        dialogCopyRef.current = dialogCopy;
+    });
 
     const reactId = useId();
-    const stableIdRef = useRef<symbol | null>(null);
-
-    if (!stableIdRef.current) {
-        stableIdRef.current = Symbol(`unsavedChanges-${reactId}`);
-    }
-
-    // Sync during render so requestLeave never reads a stale pre-effect ref.
-    isDirtyRef.current = isDirty;
-    onDiscardRef.current = onDiscard;
-    dialogCopyRef.current = dialogCopy;
+    const [stableId] = useState(() => Symbol(`unsavedChanges-${reactId}`));
 
     useEffect(() => {
         notifyUnsavedChangesRegistry();
@@ -83,11 +93,11 @@ export function useRegisterUnsavedChanges({
         }
 
         return register({
-            id: stableIdRef.current!,
+            id: stableId,
             isDirty: () => isDirtyRef.current,
             onDiscard: () => onDiscardRef.current?.(),
             scope,
             dialogCopy: dialogCopyRef.current,
         });
-    }, [enabled, register, scope, dialogCopy]);
+    }, [enabled, register, scope, dialogCopy, stableId]);
 }
