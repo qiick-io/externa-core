@@ -646,6 +646,14 @@ export default defineConfig({
                 },
             },
             {
+                // Registry copy of the AI Elements code block (@qiick, drift-checked): it must stay
+                // byte-identical to upstream, so its fire-and-forget highlight promise is not edited here.
+                files: ['resources/js/components/ai-elements/code-block.tsx'],
+                rules: {
+                    'typescript/no-floating-promises': 'off',
+                },
+            },
+            {
                 // Last, so it wins over the jsx-a11y overrides above (see the ponytail in `rules`).
                 files: ['**/*'],
                 rules: {
