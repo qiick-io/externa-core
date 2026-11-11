@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers\Chat;
 
-use App\Actions\Collections\UpdateCollectionItemAction;
-use App\Data\Collections\CollectionItemWriteData;
-use App\Enums\FieldTypeEnum;
+use App\Actions\Chat\AddChatAttachmentToFieldAction;
+use App\Actions\Chat\DeleteChatMessageAction;
+use App\Actions\Chat\PinChatMessageAction;
+use App\Actions\Chat\SendChatMessageAction;
+use App\Actions\Chat\ToggleChatReactionAction;
+use App\Actions\Chat\TransferChatAttachmentToFileAction;
+use App\Actions\Chat\UpdateChatMessageAction;
+use App\Data\Chat\SendChatMessageData;
 use App\Enums\PermissionEnum;
-use App\Events\ItemChatMessageCreatedEvent;
-use App\Events\ItemChatMessageDeletedEvent;
-use App\Events\ItemChatMessageUpdatedEvent;
-use App\Events\ItemChatReactionToggledEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\AddChatAttachmentToFieldRequest;
 use App\Http\Requests\Chat\FindChatAttachmentUploadRequest;
 use App\Http\Requests\Chat\InitChatAttachmentUploadRequest;
 use App\Http\Requests\Chat\ListChatMessagesRequest;
@@ -23,223 +25,52 @@ use App\Http\Requests\Chat\UpdateChatNotifyRequest;
 use App\Http\Requests\Chat\UploadChatAttachmentChunkRequest;
 use App\Models\Chat;
 use App\Models\Collection;
-use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
-use App\Models\CollectionItemChatReaction;
-use App\Models\File;
-use App\Models\Setting;
 use App\Models\User;
-use App\Notifications\ItemChatNotification;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Chat\ChatAttachmentAccessService;
 use App\Services\Chat\ChatAttachmentUploadService;
+use App\Services\Chat\ChatMentionService;
+use App\Services\Chat\ChatMessageFeedService;
+use App\Services\Chat\ChatNotificationService;
 use App\Services\Chat\ChatService;
-use App\Services\Chat\ChatUnreadService;
-use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Services\FileService;
-use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Collections\CollectionLocaleResolver;
-use App\Support\Http\UserContentResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Throwable;
 
 /**
  * JSON chat API keyed by unified Chat UUID.
  */
 class ChatMessageController extends Controller
 {
-    private const SETTINGS_GROUP = 'item_chat';
-
-    private const SETTINGS_KEY = 'notify';
-
     public function __construct(
         private ChatService $chats,
-        private ChatUnreadService $unread,
         private ChatAttachmentUploadService $chatUploads,
-        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private ChatAttachmentAccessService $attachmentAccess,
+        private ChatMessageFeedService $feed,
+        private ChatMentionService $mentionOptions,
+        private ChatNotificationService $notifications,
         private EffectivePermissionResolverService $permissionResolver,
-        private SettingsRepositoryService $settings,
-        private FileService $fileService,
-        private CollectionItemValuesAssemblerService $assembler,
-        private UpdateCollectionItemAction $updateCollectionItemAction,
-        private CollectionLocaleResolver $localeResolver,
     ) {}
 
     public function index(ListChatMessagesRequest $request, Chat $chat): JsonResponse
     {
-        $validated = $request->validated();
-
-        $perPage = min(
-            max((int) ($validated['per_page'] ?? ListChatMessagesRequest::DEFAULT_PER_PAGE), 1),
-            ListChatMessagesRequest::MAX_PER_PAGE,
-        );
-        $beforeId = isset($validated['before_id']) ? (int) $validated['before_id'] : null;
-
-        $query = CollectionItemChatMessage::query()
-            ->where('chat_id', $chat->id)
-            ->with($this->messageRelations())
-            ->orderByDesc('id');
-
-        if ($beforeId !== null) {
-            $query->where('id', '<', $beforeId);
-        }
-
-        $page = $query->limit($perPage + 1)->get();
-        $hasMore = $page->count() > $perPage;
-        $messages = $page->take($perPage)->reverse()->values();
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $pinned = CollectionItemChatMessage::query()
-            ->where('chat_id', $chat->id)
-            ->whereNotNull('pinned_at')
-            ->with(['user:id,first_name,last_name,email', 'user.roles:id,name'])
-            ->orderByDesc('pinned_at')
-            ->get();
-
-        $collectionId = $chat->collection_id !== null ? (int) $chat->collection_id : null;
-
-        return response()->json([
-            'messages' => $messages
-                ->map(fn (CollectionItemChatMessage $message): array => $this->serializeMessage($message, $user))
-                ->values()
-                ->all(),
-            'pinned' => $pinned
-                ->map(fn (CollectionItemChatMessage $message): array => $this->serializePinned($message))
-                ->values()
-                ->all(),
-            'meta' => [
-                'total' => CollectionItemChatMessage::query()->where('chat_id', $chat->id)->count(),
-                'has_more' => $hasMore,
-                'per_page' => $perPage,
-                'notify' => $collectionId !== null ? $this->isSubscribed($user, $collectionId) : false,
-                'chat_id' => $chat->id,
-                'kind' => $chat->kind,
-                'visibility_hint' => $chat->isItem(),
-            ],
-        ]);
+        return response()->json($this->feed->page($chat, $user, $request->validated()));
     }
 
-    /**
-     * Empty payload used by the item alias before a thread exists.
-     */
-    public function emptyIndex(ListChatMessagesRequest $request, Collection $collection): JsonResponse
+    public function store(StoreChatMessageRequest $request, Chat $chat, SendChatMessageAction $sendChatMessage): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validated();
-
-        $perPage = min(
-            max((int) ($validated['per_page'] ?? ListChatMessagesRequest::DEFAULT_PER_PAGE), 1),
-            ListChatMessagesRequest::MAX_PER_PAGE,
-        );
-
-        return response()->json([
-            'messages' => [],
-            'pinned' => [],
-            'meta' => [
-                'total' => 0,
-                'has_more' => false,
-                'per_page' => $perPage,
-                'notify' => $this->isSubscribed($user, (int) $collection->id),
-                'chat_id' => null,
-                'kind' => Chat::KIND_ITEM,
-                'visibility_hint' => true,
-            ],
-        ]);
-    }
-
-    public function store(StoreChatMessageRequest $request, Chat $chat): JsonResponse
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        $validated = $request->validated();
-
-        $body = trim((string) ($validated['body'] ?? ''));
-        $attachmentIds = array_values(array_unique($validated['attachment_ids'] ?? []));
-
-        if ($body === '' && $attachmentIds === []) {
-            throw ValidationException::withMessages([
-                'body' => __('Message body or an attachment is required.'),
-            ]);
-        }
-
-        $mentionedIds = $this->validatedMentionIds($request, $chat, $validated['mentioned_user_ids'] ?? []);
-        $this->assertCollectionMentions($request, $body);
-        $replyToId = $this->validatedReplyToId($chat, isset($validated['reply_to_id']) ? (int) $validated['reply_to_id'] : null);
-
-        /** @var array{0: CollectionItemChatMessage, 1: list<CollectionItemChatAttachment>} $written */
-        $written = CollectionItemChatMessage::query()->getConnection()->transaction(function () use ($chat, $user, $body, $mentionedIds, $replyToId, $attachmentIds): array {
-            $attachments = $this->claimOrphanAttachments($user, $attachmentIds);
-
-            $message = CollectionItemChatMessage::query()->create([
-                'chat_id' => $chat->id,
-                'user_id' => $user->id,
-                'body' => $body,
-                'mentioned_user_ids' => $mentionedIds,
-                'reply_to_id' => $replyToId,
-            ]);
-
-            foreach ($attachments as $attachment) {
-                $attachment->message_id = $message->id;
-                $attachment->expires_at = null;
-                $attachment->save();
-            }
-
-            $chat->touch();
-            $this->chats->unarchiveDirectChatForRecipients($chat, $user);
-
-            return [$message, $attachments];
-        });
-
-        [$message, $attachments] = $written;
-        $message->load($this->messageRelations());
-        $payload = $this->serializeMessage($message, $user);
-
-        // Side effects after commit; broadcast failures must not 500 a saved write.
-        try {
-            $this->notifyRecipients($chat, $message, $user, $mentionedIds);
-        } catch (Throwable $e) {
-            report($e);
-        }
-
-        try {
-            $this->unread->afterMessageCreated($chat, $message, $user, $mentionedIds);
-        } catch (Throwable $e) {
-            report($e);
-        }
-
-        try {
-            event(new ItemChatMessageCreatedEvent($chat->id, $payload));
-        } catch (Throwable $e) {
-            report($e);
-        }
-
-        activity()
-            ->causedBy($user)
-            ->performedOn($message)
-            ->useLog('chat')
-            ->event('chat_message')
-            ->withProperties([
-                'chat_id' => $chat->id,
-                'body_preview' => Str::limit($body, 120),
-                'attachment_count' => count($attachments),
-                'mentioned_count' => count($mentionedIds),
-                'reply_to_id' => $replyToId,
-            ])
-            ->log('Chat message sent');
+        $payload = $sendChatMessage->execute(SendChatMessageData::fromValidated($chat, $user, $request->validated()));
 
         return response()->json(['message' => $payload], 201);
     }
@@ -248,24 +79,13 @@ class ChatMessageController extends Controller
         UpdateChatMessageRequest $request,
         Chat $chat,
         CollectionItemChatMessage $message,
+        UpdateChatMessageAction $updateChatMessage,
     ): JsonResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
         $validated = $request->validated();
-
-        $message->body = trim((string) $validated['body']);
-        $this->assertCollectionMentions($request, $message->body);
-        $message->mentioned_user_ids = $this->validatedMentionIds(
-            $request,
-            $chat,
-            $validated['mentioned_user_ids'] ?? $message->mentionedIds(),
-        );
-        $message->save();
-
-        $message->load($this->messageRelations());
-        $payload = $this->serializeMessage($message, $user);
-        event(new ItemChatMessageUpdatedEvent($chat->id, $payload));
+        $payload = $updateChatMessage->execute($chat, $message, $user, (string) $validated['body'], $validated['mentioned_user_ids'] ?? null);
 
         return response()->json(['message' => $payload]);
     }
@@ -274,33 +94,16 @@ class ChatMessageController extends Controller
         Request $request,
         Chat $chat,
         CollectionItemChatMessage $message,
+        DeleteChatMessageAction $deleteChatMessage,
     ): JsonResponse {
         $this->chats->assertAccessible($request, $chat);
-        $this->assertMessageOnChat($message, $chat);
+        abort_unless((string) $message->chat_id === (string) $chat->id, 404);
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         abort_unless((int) $message->user_id === (int) $user->id, 403);
 
-        $messageId = (int) $message->id;
-        $chatId = (int) $chat->id;
-        $attachmentCount = $message->attachments()->count();
-        $bodyPreview = Str::limit((string) $message->body, 120);
-
-        $message->delete();
-        event(new ItemChatMessageDeletedEvent($chat->id, $messageId));
-
-        activity()
-            ->causedBy($user)
-            ->useLog('chat')
-            ->event('chat_message_deleted')
-            ->withProperties([
-                'chat_id' => $chatId,
-                'message_id' => $messageId,
-                'body_preview' => $bodyPreview,
-                'attachment_count' => $attachmentCount,
-            ])
-            ->log('Chat message deleted');
+        $deleteChatMessage->execute($chat, $message, $user);
 
         return response()->json(['ok' => true]);
     }
@@ -309,18 +112,12 @@ class ChatMessageController extends Controller
         PinChatMessageRequest $request,
         Chat $chat,
         CollectionItemChatMessage $message,
+        PinChatMessageAction $pinChatMessage,
     ): JsonResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validated();
-
-        $message->pinned_at = $validated['pinned'] ? now() : null;
-        $message->save();
-
-        $message->load($this->messageRelations());
-        $payload = $this->serializeMessage($message, $user);
-        event(new ItemChatMessageUpdatedEvent($chat->id, $payload));
+        $payload = $pinChatMessage->execute($chat, $message, $user, (bool) $request->validated()['pinned']);
 
         return response()->json(['message' => $payload]);
     }
@@ -329,74 +126,19 @@ class ChatMessageController extends Controller
         ReactToChatMessageRequest $request,
         Chat $chat,
         CollectionItemChatMessage $message,
+        ToggleChatReactionAction $toggleChatReaction,
     ): JsonResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validated();
-
-        $emoji = $validated['emoji'];
-        if (! in_array($emoji, CollectionItemChatReaction::ALLOWED, true)) {
-            throw ValidationException::withMessages([
-                'emoji' => __('Unsupported reaction.'),
-            ]);
-        }
-
-        $existing = CollectionItemChatReaction::query()
-            ->where('message_id', $message->id)
-            ->where('user_id', $user->id)
-            ->where('emoji', $emoji)
-            ->first();
-
-        $added = $existing === null;
-        if ($existing instanceof CollectionItemChatReaction) {
-            $existing->delete();
-        } else {
-            CollectionItemChatReaction::query()->create([
-                'message_id' => $message->id,
-                'user_id' => $user->id,
-                'emoji' => $emoji,
-            ]);
-        }
-
-        event(new ItemChatReactionToggledEvent(
-            $chat->id,
-            (int) $message->id,
-            (int) $user->id,
-            $this->displayName($user),
-            $emoji,
-            $added,
-        ));
-
-        $message->load($this->messageRelations());
-
-        return response()->json([
-            'message_id' => $message->id,
-            'emoji' => $emoji,
-            'added' => $added,
-            'reactions' => $this->serializeReactions($message, $user),
-        ]);
+        return response()->json($toggleChatReaction->execute($chat, $message, $user, $request->validated()['emoji']));
     }
 
     public function mentions(Request $request, Chat $chat): JsonResponse
     {
         $this->chats->assertAccessible($request, $chat);
 
-        if (! $this->chats->allowsMentions($chat)) {
-            return response()->json([
-                'users' => [],
-                'collections' => [],
-            ]);
-        }
-
-        $q = trim((string) $request->query('q', ''));
-        $users = $this->mentionUsers($request, $chat, $q);
-        $collections = $chat->isItem() ? $this->mentionCollections($request, $q) : [];
-
-        return response()->json([
-            'users' => $users,
-            'collections' => $collections,
-        ]);
+        return response()->json($this->mentionOptions->options($request, $chat, trim((string) $request->query('q', ''))));
     }
 
     public function updateNotify(UpdateChatNotifyRequest $request, Chat $chat): JsonResponse
@@ -405,44 +147,55 @@ class ChatMessageController extends Controller
         abort_unless($user instanceof User, 401);
 
         $validated = $request->validated();
-
-        $ids = $this->subscribedCollectionIds($user);
-        $collectionId = (int) $chat->collection_id;
-
-        if ($validated['notify']) {
-            if (! in_array($collectionId, $ids, true)) {
-                $ids[] = $collectionId;
-            }
-        } else {
-            $ids = array_values(array_filter($ids, fn (int $id): bool => $id !== $collectionId));
-        }
-
-        $this->settings->set(
-            SettingsRepositoryService::SCOPE_USER,
-            self::SETTINGS_GROUP,
-            self::SETTINGS_KEY,
-            $ids,
-            $user->id,
-        );
+        $this->notifications->setNotifyForCollection($user, (int) $chat->collection_id, (bool) $validated['notify']);
 
         return response()->json(['notify' => $validated['notify']]);
     }
 
-    public function storeAttachment(StoreChatAttachmentRequest $request): JsonResponse
+    public function addToField(
+        AddChatAttachmentToFieldRequest $request,
+        Chat $chat,
+        CollectionItemChatAttachment $attachment,
+        AddChatAttachmentToFieldAction $addChatAttachmentToField,
+    ): JsonResponse {
+        $collection = $chat->collection;
+        $item = $chat->item;
+        abort_unless($collection instanceof Collection && $item instanceof CollectionItem, 404);
+
+        $added = $addChatAttachmentToField->execute($request, $collection, $item, $attachment, $request->validated()['field']);
+
+        return response()->json([
+            'attachment' => $attachment->fresh()?->toApiArray(),
+            'file' => [
+                'id' => $added['file']->id,
+                'name' => $added['file']->name,
+            ],
+            'field' => $added['field'],
+            'value' => $added['value'],
+        ]);
+    }
+
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function storeAttachmentOnChat(StoreChatAttachmentRequest $request, Chat $chat): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validated();
-
         /** @var UploadedFile $uploaded */
-        $uploaded = $validated['file'];
+        $uploaded = $request->validated()['file'];
         $attachment = $this->chatUploads->storeSingle($user, $uploaded);
 
         return response()->json(['attachment' => $attachment->toApiArray()], 201);
     }
 
-    public function initAttachmentUpload(InitChatAttachmentUploadRequest $request): JsonResponse
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function initAttachmentUploadOnChat(InitChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
@@ -463,7 +216,11 @@ class ChatMessageController extends Controller
         ], 201);
     }
 
-    public function uploadAttachmentChunk(UploadChatAttachmentChunkRequest $request): Response
+    /**
+     * Thread-scoped route: the request asserts access to `{chat}`, which
+     * stays in the signature so route model binding resolves it.
+     */
+    public function uploadAttachmentChunkOnChat(UploadChatAttachmentChunkRequest $request, Chat $chat): Response
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
@@ -480,214 +237,18 @@ class ChatMessageController extends Controller
         return response()->noContent();
     }
 
-    public function completeAttachmentUpload(FindChatAttachmentUploadRequest $request): JsonResponse
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        $validated = $request->validated();
-
-        $attachment = $this->chatUploads->complete($user, $validated['upload_id']);
-
-        return response()->json(['attachment' => $attachment->toApiArray()], 201);
-    }
-
-    public function attachmentUploadStatus(FindChatAttachmentUploadRequest $request): JsonResponse
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        $validated = $request->validated();
-
-        $status = $this->chatUploads->status($user, $validated['upload_id']);
-
-        if ($status === null) {
-            return response()->json(['message' => 'Upload not found or expired'], 404);
-        }
-
-        return response()->json($status);
-    }
-
-    public function showAttachment(
-        Request $request,
-        ?Chat $chat,
-        CollectionItemChatAttachment $attachment,
-    ): StreamedResponse {
-        $this->assertAttachmentAccessible($request, $chat, $attachment);
-        abort_if($attachment->isExpired(), 404);
-        abort_unless(Storage::disk($attachment->disk)->exists($attachment->path), 404);
-
-        return UserContentResponse::fromDisk(
-            Storage::disk($attachment->disk),
-            $attachment->path,
-            (string) $attachment->original_name,
-            $attachment->mime_type,
-        );
-    }
-
-    public function showAttachmentPreview(
-        Request $request,
-        ?Chat $chat,
-        CollectionItemChatAttachment $attachment,
-    ): StreamedResponse {
-        $this->assertAttachmentAccessible($request, $chat, $attachment);
-        abort_if($attachment->isExpired(), 404);
-        abort_unless($attachment->hasPreview(), 404);
-        abort_unless(Storage::disk($attachment->disk)->exists($attachment->preview_path), 404);
-
-        $mime = is_string($attachment->preview_mime) && $attachment->preview_mime !== ''
-            ? $attachment->preview_mime
-            : 'image/jpeg';
-
-        return UserContentResponse::fromDisk(
-            Storage::disk($attachment->disk),
-            $attachment->preview_path,
-            'preview-'.$attachment->original_name,
-            $mime,
-        );
-    }
-
-    public function destroyAttachment(
-        Request $request,
-        ?Chat $chat,
-        CollectionItemChatAttachment $attachment,
-    ): Response {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        // Orphan cancel only — claimed attachments stay with the message
-        abort_unless($attachment->message_id === null, 403);
-        abort_unless((int) $attachment->user_id === (int) $user->id, 403);
-
-        if ($chat !== null) {
-            $this->chats->assertAccessible($request, $chat);
-        }
-
-        $attachment->delete();
-
-        return response()->noContent();
-    }
-
-    public function saveToFiles(
-        Request $request,
-        ?Chat $chat,
-        CollectionItemChatAttachment $attachment,
-    ): JsonResponse {
-        $this->assertAttachmentAccessible($request, $chat, $attachment);
-
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-        abort_unless(
-            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateFiles->value),
-            403,
-        );
-
-        $file = $this->transferToFilePool($attachment);
-
-        return response()->json([
-            'attachment' => $attachment->fresh()?->toApiArray(),
-            'file' => [
-                'id' => $file->id,
-                'name' => $file->name,
-            ],
-        ]);
-    }
-
-    public function addToField(
-        Request $request,
-        Chat $chat,
-        CollectionItemChatAttachment $attachment,
-    ): JsonResponse {
-        $this->chats->assertAccessible($request, $chat);
-        abort_unless($chat->isItem(), 422);
-        $this->assertAttachmentAccessible($request, $chat, $attachment);
-
-        $collection = $chat->collection;
-        $item = $chat->item;
-        abort_unless($collection instanceof Collection && $item instanceof CollectionItem, 404);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
-
-        $validated = $request->validate([
-            'field' => ['required', 'string'],
-        ]);
-
-        $collection->load(['fields' => fn ($q) => $q->ordered()]);
-        $field = $collection->fields->first(
-            fn (CollectionField $row): bool => $row->name === $validated['field'],
-        );
-        abort_unless($field instanceof CollectionField, 404);
-
-        $allowedTypes = [FieldTypeEnum::Image, FieldTypeEnum::Files];
-        abort_unless(in_array($field->type, $allowedTypes, true), 422);
-
-        $file = $this->transferToFilePool($attachment);
-        $fileId = (int) $file->id;
-
-        $this->permissionEnforcer->assertWritableFields(
-            $request,
-            $collection,
-            [$field->name => $field->type === FieldTypeEnum::Files ? [$fileId] : $fileId],
-            'update',
-        );
-
-        $assembled = $this->assembler->assemble($item);
-        $assembled[$field->name] = $this->mergedFieldValue($field, $assembled[$field->name] ?? null, $fileId);
-        $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
-            collection: $collection,
-            data: $assembled,
-            item: $item,
-            creating: false,
-            version: $collection->versioning ? 'draft' : 'published',
-            shouldValidate: false,
-            shouldMergeIncoming: false,
-            shouldEnforceVersioningGuard: false,
-        ));
-
-        return response()->json([
-            'attachment' => $attachment->fresh()?->toApiArray(),
-            'file' => [
-                'id' => $file->id,
-                'name' => $file->name,
-            ],
-            'field' => $field->name,
-            'value' => $assembled[$field->name],
-        ]);
-    }
-
-    /**
-     * Thread-scoped route: the request asserts access to `{chat}`, which
-     * stays in the signature so route model binding resolves it.
-     */
-    public function storeAttachmentOnChat(StoreChatAttachmentRequest $request, Chat $chat): JsonResponse
-    {
-        return $this->storeAttachment($request);
-    }
-
-    /**
-     * Thread-scoped route: the request asserts access to `{chat}`, which
-     * stays in the signature so route model binding resolves it.
-     */
-    public function initAttachmentUploadOnChat(InitChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
-    {
-        return $this->initAttachmentUpload($request);
-    }
-
-    /**
-     * Thread-scoped route: the request asserts access to `{chat}`, which
-     * stays in the signature so route model binding resolves it.
-     */
-    public function uploadAttachmentChunkOnChat(UploadChatAttachmentChunkRequest $request, Chat $chat): Response
-    {
-        return $this->uploadAttachmentChunk($request);
-    }
-
     /**
      * Thread-scoped route: the request asserts access to `{chat}`, which
      * stays in the signature so route model binding resolves it.
      */
     public function completeAttachmentUploadOnChat(FindChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
     {
-        return $this->completeAttachmentUpload($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $attachment = $this->chatUploads->complete($user, $request->validated()['upload_id']);
+
+        return response()->json(['attachment' => $attachment->toApiArray()], 201);
     }
 
     /**
@@ -696,7 +257,16 @@ class ChatMessageController extends Controller
      */
     public function attachmentUploadStatusOnChat(FindChatAttachmentUploadRequest $request, Chat $chat): JsonResponse
     {
-        return $this->attachmentUploadStatus($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $status = $this->chatUploads->status($user, $request->validated()['upload_id']);
+
+        if ($status === null) {
+            return response()->json(['message' => 'Upload not found or expired'], 404);
+        }
+
+        return response()->json($status);
     }
 
     public function showAttachmentOnChat(
@@ -706,7 +276,7 @@ class ChatMessageController extends Controller
     ): StreamedResponse {
         $this->chats->assertAccessible($request, $chat);
 
-        return $this->showAttachment($request, $chat, $attachment);
+        return $this->attachmentAccess->download($request, $chat, $attachment);
     }
 
     public function showAttachmentPreviewOnChat(
@@ -716,7 +286,7 @@ class ChatMessageController extends Controller
     ): StreamedResponse {
         $this->chats->assertAccessible($request, $chat);
 
-        return $this->showAttachmentPreview($request, $chat, $attachment);
+        return $this->attachmentAccess->preview($request, $chat, $attachment);
     }
 
     public function destroyAttachmentOnChat(
@@ -724,586 +294,36 @@ class ChatMessageController extends Controller
         Chat $chat,
         CollectionItemChatAttachment $attachment,
     ): Response {
-        return $this->destroyAttachment($request, $chat, $attachment);
+        $this->attachmentAccess->assertCancellable($request, $chat, $attachment);
+        $attachment->delete();
+
+        return response()->noContent();
     }
 
     public function saveToFilesOnChat(
         Request $request,
         Chat $chat,
         CollectionItemChatAttachment $attachment,
+        TransferChatAttachmentToFileAction $transferChatAttachmentToFile,
     ): JsonResponse {
         $this->chats->assertAccessible($request, $chat);
+        $this->attachmentAccess->assertAccessible($request, $chat, $attachment);
 
-        return $this->saveToFiles($request, $chat, $attachment);
-    }
-
-    private function assertMessageOnChat(CollectionItemChatMessage $message, Chat $chat): void
-    {
-        abort_unless((string) $message->chat_id === (string) $chat->id, 404);
-    }
-
-    private function assertAttachmentAccessible(
-        Request $request,
-        ?Chat $chat,
-        CollectionItemChatAttachment $attachment,
-    ): void {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-
-        if ($attachment->message_id === null) {
-            abort_unless((int) $attachment->user_id === (int) $user->id, 404);
-
-            return;
-        }
-
-        $parent = $attachment->message;
-        abort_unless($parent instanceof CollectionItemChatMessage, 404);
-
-        if ($chat instanceof Chat) {
-            abort_unless((string) $parent->chat_id === (string) $chat->id, 404);
-            $this->chats->assertAccessible($request, $chat);
-
-            return;
-        }
-
-        $parentChat = $parent->chat;
-        abort_unless($parentChat instanceof Chat, 404);
-        $this->chats->assertAccessible($request, $parentChat);
-    }
-
-    /**
-     * @param  list<mixed>  $rawIds
-     * @return list<int>
-     */
-    private function validatedMentionIds(Request $request, Chat $chat, array $rawIds): array
-    {
-        $ids = array_values(array_unique(array_map('intval', $rawIds)));
-        if ($ids === []) {
-            return [];
-        }
-
-        if (! $this->chats->allowsMentions($chat)) {
-            throw ValidationException::withMessages([
-                'mentioned_user_ids' => __('Mentions are not available in one-to-one chats.'),
-            ]);
-        }
-
-        if ($chat->isDirect()) {
-            $allowed = $this->chats->mentionableUserIds($chat);
-            $denied = array_values(array_diff($ids, $allowed));
-            if ($denied !== []) {
-                throw ValidationException::withMessages([
-                    'mentioned_user_ids' => __('Mentions in private chats are limited to participants.'),
-                ]);
-            }
-
-            return $ids;
-        }
-
-        $collection = $chat->collection;
-        abort_unless($collection instanceof Collection, 404);
-
-        $users = User::query()
-            ->whereIn('id', $ids)
-            ->where('is_active', true)
-            ->get();
-
-        $allowed = [];
-        foreach ($users as $candidate) {
-            if ($this->chats->canUserReadCollection($candidate, $collection)) {
-                $allowed[] = (int) $candidate->id;
-            }
-        }
-
-        $denied = array_values(array_diff($ids, $allowed));
-        if ($denied !== []) {
-            throw ValidationException::withMessages([
-                'mentioned_user_ids' => __('One or more mentioned users cannot read this collection.'),
-            ]);
-        }
-
-        return $allowed;
-    }
-
-    private function assertCollectionMentions(Request $request, string $body): void
-    {
-        if (! preg_match_all('/@\[collection:(\d+)\]/', $body, $matches)) {
-            return;
-        }
-
-        $ids = array_values(array_unique(array_map('intval', $matches[1])));
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        $found = Collection::query()->whereIn('id', $ids)->get()->keyBy('id');
-        foreach ($ids as $id) {
-            $collection = $found->get($id);
-            if (! $collection instanceof Collection || ! $this->chats->canUserReadCollection($user, $collection)) {
-                throw ValidationException::withMessages([
-                    'body' => __('One or more mentioned collections are invalid.'),
-                ]);
-            }
-        }
-    }
-
-    /**
-     * @param  list<string>  $ids
-     * @return list<CollectionItemChatAttachment>
-     */
-    private function claimOrphanAttachments(User $user, array $ids): array
-    {
-        if ($ids === []) {
-            return [];
-        }
-
-        $attachments = CollectionItemChatAttachment::query()
-            ->whereIn('id', $ids)
-            ->where('user_id', $user->id)
-            ->whereNull('message_id')
-            ->lockForUpdate()
-            ->get();
-
-        if ($attachments->count() !== count($ids)) {
-            throw ValidationException::withMessages([
-                'attachment_ids' => __('One or more attachments are invalid.'),
-            ]);
-        }
-
-        foreach ($attachments as $attachment) {
-            if ($attachment->isExpired()) {
-                throw ValidationException::withMessages([
-                    'attachment_ids' => __('One or more attachments have expired.'),
-                ]);
-            }
-        }
-
-        return $attachments->all();
-    }
-
-    /**
-     * @return list<array{id: int, name: string, email: string}>
-     */
-    private function mentionUsers(Request $request, Chat $chat, string $q): array
-    {
-        $query = User::query()->where('is_active', true);
-
-        if ($chat->isDirect()) {
-            $ids = $this->chats->mentionableUserIds($chat);
-            $query->whereIn('id', $ids === [] ? [0] : $ids);
-        }
-
-        $users = $query
-            ->when($q !== '', function ($inner) use ($q): void {
-                $like = '%'.$q.'%';
-                $inner->where(function ($nested) use ($like): void {
-                    $nested->where('first_name', 'like', $like)
-                        ->orWhere('last_name', 'like', $like)
-                        ->orWhere('email', 'like', $like);
-                });
-            })
-            ->orderBy('first_name')
-            ->limit(40)
-            ->get(['id', 'first_name', 'last_name', 'email', 'is_active']);
-
-        if ($chat->isItem()) {
-            $collection = $chat->collection;
-            abort_unless($collection instanceof Collection, 404);
-            $users = $users->filter(
-                fn (User $candidate): bool => $this->chats->canUserReadCollection($candidate, $collection),
-            );
-        }
-
-        return $users
-            ->take(20)
-            ->map(fn (User $candidate): array => [
-                'id' => $candidate->id,
-                'name' => $this->displayName($candidate),
-                'email' => $candidate->email,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id: int, name: string}>
-     */
-    private function mentionCollections(Request $request, string $q): array
-    {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        $collections = Collection::query()
-            ->when($q !== '', fn ($query) => $query->where('name', 'like', '%'.$q.'%'))
-            ->orderBy('name')
-            ->limit(40)
-            ->get(['id', 'name']);
-
-        return $collections
-            ->filter(fn (Collection $collection): bool => $this->chats->canUserReadCollection($user, $collection))
-            ->take(20)
-            ->map(fn (Collection $collection): array => [
-                'id' => (int) $collection->id,
-                'name' => $collection->name,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @param  list<int>  $mentionedIds
-     */
-    private function notifyRecipients(
-        Chat $chat,
-        CollectionItemChatMessage $comment,
-        User $author,
-        array $mentionedIds,
-    ): void {
-        $subscriberIds = [];
-        if ($chat->isItem() && $chat->collection_id !== null) {
-            $collectionId = (int) $chat->collection_id;
-            // Indexed (scope, group, key) — only notify rows, then membership in PHP
-            // (sqlite whereJsonContains misses numeric JSON elements; keep driver-neutral).
-            $subscriberIds = Setting::query()
-                ->where('scope', SettingsRepositoryService::SCOPE_USER)
-                ->where('group', self::SETTINGS_GROUP)
-                ->where('key', self::SETTINGS_KEY)
-                ->whereNotNull('scope_id')
-                ->get(['scope_id', 'value'])
-                ->filter(function (Setting $row) use ($collectionId): bool {
-                    $ids = is_array($row->value) ? array_map('intval', $row->value) : [];
-
-                    return in_array($collectionId, $ids, true);
-                })
-                ->map(fn (Setting $row): int => (int) $row->scope_id)
-                ->all();
-        }
-
-        $recipientIds = array_values(array_unique(array_filter(
-            array_merge($mentionedIds, $subscriberIds),
-            fn (int $id): bool => $id !== (int) $author->id,
-        )));
-
-        if ($recipientIds === []) {
-            return;
-        }
-
-        $excerpt = Str::limit(trim(preg_replace('/@\[(?:user|collection):\d+\]/', '', $comment->body) ?? ''), 180);
-        $authorName = $this->displayName($author);
-        $mentionedSet = array_fill_keys($mentionedIds, true);
-
-        $recipients = User::query()
-            ->whereIn('id', $recipientIds)
-            ->where('is_active', true)
-            ->get();
-
-        foreach ($recipients as $recipient) {
-            $recipient->notify(new ItemChatNotification(
-                chatId: $chat->id,
-                collectionId: $chat->collection_id !== null ? (int) $chat->collection_id : null,
-                itemId: $chat->collection_item_id !== null ? (int) $chat->collection_item_id : null,
-                messageId: (int) $comment->id,
-                authorName: $authorName,
-                excerpt: $excerpt !== '' ? $excerpt : 'New message',
-                mentioned: isset($mentionedSet[(int) $recipient->id]),
-            ));
-        }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function messageRelations(): array
-    {
-        return [
-            'user:id,first_name,last_name,email',
-            'user.roles:id,name',
-            'attachments',
-            'reactions.user:id,first_name,last_name,email',
-            'replyTo.user:id,first_name,last_name,email',
-            'replyTo.user.roles:id,name',
-        ];
-    }
-
-    private function validatedReplyToId(Chat $chat, ?int $replyToId): ?int
-    {
-        if ($replyToId === null) {
-            return null;
-        }
-
-        $target = CollectionItemChatMessage::query()->find($replyToId);
-        abort_unless($target instanceof CollectionItemChatMessage, 404);
-        abort_unless((string) $target->chat_id === (string) $chat->id, 422);
-
-        return (int) $target->id;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializePinned(CollectionItemChatMessage $message): array
-    {
-        $author = $message->user;
-        $mentions = $this->serializeMentions($message);
-
-        return [
-            'id' => $message->id,
-            'body' => trim($message->body),
-            'user' => $author ? $this->serializeChatUser($author) : null,
-            'mentioned_users' => $mentions['mentioned_users'],
-            'mentioned_collections' => $mentions['mentioned_collections'],
-        ];
-    }
-
-    /**
-     * @return array{mentioned_users: list<array{id: int, name: string, role: string|null}>, mentioned_collections: list<array{id: int, name: string}>}
-     */
-    private function serializeMentions(CollectionItemChatMessage $comment): array
-    {
-        $mentionedIds = $comment->mentionedIds();
-        $mentionedUsers = $mentionedIds === []
-            ? collect()
-            : User::query()->whereIn('id', $mentionedIds)->with('roles:id,name')
-                ->get(['id', 'first_name', 'last_name', 'email']);
-
-        preg_match_all('/@\[collection:(\d+)\]/', $comment->body, $collectionMatches);
-        $collectionIds = array_values(array_unique(array_map('intval', $collectionMatches[1] ?? [])));
-        $mentionedCollections = $collectionIds === []
-            ? collect()
-            : Collection::query()->whereIn('id', $collectionIds)->get(['id', 'name']);
-
-        return [
-            'mentioned_users' => $mentionedUsers
-                ->map(fn (User $user): array => $this->serializeChatUser($user))
-                ->values()
-                ->all(),
-            'mentioned_collections' => $mentionedCollections
-                ->map(fn (Collection $collection): array => [
-                    'id' => (int) $collection->id,
-                    'name' => $collection->name,
-                ])
-                ->values()
-                ->all(),
-        ];
-    }
-
-    /**
-     * @return list<array{emoji: string, count: int, reacted: bool, users: list<array{id: int, name: string}>}>
-     */
-    private function serializeReactions(CollectionItemChatMessage $message, User $viewer): array
-    {
-        $grouped = $message->reactions->groupBy('emoji');
-        $out = [];
-
-        foreach ($grouped as $emoji => $rows) {
-            $users = $rows
-                ->map(function (CollectionItemChatReaction $reaction): ?array {
-                    $author = $reaction->user;
-                    if (! $author instanceof User) {
-                        return null;
-                    }
-
-                    return [
-                        'id' => (int) $author->id,
-                        'name' => $this->displayName($author),
-                    ];
-                })
-                ->filter()
-                ->values()
-                ->all();
-
-            $out[] = [
-                'emoji' => (string) $emoji,
-                'count' => count($users),
-                'reacted' => $rows->contains(
-                    fn (CollectionItemChatReaction $reaction): bool => (int) $reaction->user_id === (int) $viewer->id,
-                ),
-                'users' => $users,
-            ];
-        }
-
-        return $out;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function serializeReplyTo(CollectionItemChatMessage $message): ?array
-    {
-        $replyTo = $message->replyTo;
-        if (! $replyTo instanceof CollectionItemChatMessage) {
-            return null;
-        }
-
-        $author = $replyTo->user;
-
-        return [
-            'id' => $replyTo->id,
-            'body' => Str::limit(trim($replyTo->body), 120),
-            'user' => $author ? $this->serializeChatUser($author) : null,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function serializeMessage(CollectionItemChatMessage $comment, User $viewer): array
-    {
-        $author = $comment->user;
-        $mentionedIds = $comment->mentionedIds();
-        $mentions = $this->serializeMentions($comment);
-
-        $isAuthor = $author !== null && (int) $author->id === (int) $viewer->id;
-
-        return [
-            'id' => $comment->id,
-            'body' => $comment->body,
-            'mentioned_user_ids' => $mentionedIds,
-            'mentioned_users' => $mentions['mentioned_users'],
-            'mentioned_collections' => $mentions['mentioned_collections'],
-            'user' => $author ? $this->serializeChatUser($author) : null,
-            'attachments' => $comment->attachments
-                ->map(fn (CollectionItemChatAttachment $attachment): array => $attachment->toApiArray())
-                ->values()
-                ->all(),
-            'reply_to' => $this->serializeReplyTo($comment),
-            'is_pinned' => $comment->isPinned(),
-            'pinned_at' => $comment->pinned_at?->toIso8601String(),
-            'reactions' => $this->serializeReactions($comment, $viewer),
-            'created_at' => $comment->created_at?->toIso8601String(),
-            'updated_at' => $comment->updated_at?->toIso8601String(),
-            'can_edit' => $isAuthor,
-            'can_delete' => $isAuthor,
-        ];
-    }
-
-    /**
-     * A chat participant as the thread shows them: name and role, for the
-     * user hover card on author names and mentions.
-     *
-     * @return array{id: int, name: string, role: string|null}
-     */
-    private function serializeChatUser(User $user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $this->displayName($user),
-            'role' => $user->getRoleNames()->first(),
-        ];
-    }
-
-    private function displayName(User $user): string
-    {
-        $name = trim($user->name);
-
-        return $name !== '' ? $name : $user->email;
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function subscribedCollectionIds(User $user): array
-    {
-        $value = $this->settings->get(
-            SettingsRepositoryService::SCOPE_USER,
-            self::SETTINGS_GROUP,
-            self::SETTINGS_KEY,
-            $user->id,
-            [],
+        abort_unless(
+            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateFiles->value),
+            403,
         );
 
-        if (! is_array($value)) {
-            return [];
-        }
+        $file = $transferChatAttachmentToFile->execute($attachment);
 
-        return array_values(array_unique(array_map('intval', $value)));
-    }
-
-    private function isSubscribed(User $user, int $collectionId): bool
-    {
-        return in_array($collectionId, $this->subscribedCollectionIds($user), true);
-    }
-
-    public function isUserSubscribed(User $user, int $collectionId): bool
-    {
-        return $this->isSubscribed($user, $collectionId);
-    }
-
-    public function setNotifyForCollection(User $user, int $collectionId, bool $notify): void
-    {
-        $ids = $this->subscribedCollectionIds($user);
-
-        if ($notify) {
-            if (! in_array($collectionId, $ids, true)) {
-                $ids[] = $collectionId;
-            }
-        } else {
-            $ids = array_values(array_filter($ids, fn (int $id): bool => $id !== $collectionId));
-        }
-
-        $this->settings->set(
-            SettingsRepositoryService::SCOPE_USER,
-            self::SETTINGS_GROUP,
-            self::SETTINGS_KEY,
-            $ids,
-            $user->id,
-        );
-    }
-
-    private function transferToFilePool(CollectionItemChatAttachment $attachment): File
-    {
-        if ($attachment->transferred_file_id !== null) {
-            $existing = $attachment->transferredFile;
-            abort_unless($existing instanceof File, 404);
-
-            return $existing;
-        }
-
-        abort_if($attachment->isExpired(), 404);
-        abort_unless(Storage::disk($attachment->disk)->exists($attachment->path), 404);
-
-        $uploaded = new UploadedFile(
-            $attachment->absolutePath(),
-            $attachment->original_name,
-            $attachment->mime_type,
-            null,
-            true,
-        );
-
-        $file = $this->fileService->uploadFile($uploaded);
-        $attachment->transferred_file_id = $file->id;
-        $attachment->save();
-
-        return $file;
-    }
-
-    /**
-     * Merge a file id into an image/file/files field value (append for files).
-     */
-    private function mergedFieldValue(CollectionField $field, mixed $current, int $fileId): mixed
-    {
-        $locale = $this->localeResolver->resolve();
-
-        if ($field->translatable) {
-            $map = is_array($current) ? $current : [];
-            $map[$locale] = $this->mergeScalarOrList($field, $map[$locale] ?? null, $fileId);
-
-            return $map;
-        }
-
-        return $this->mergeScalarOrList($field, $current, $fileId);
-    }
-
-    private function mergeScalarOrList(CollectionField $field, mixed $current, int $fileId): mixed
-    {
-        if (! $field->hasArrayStorage()) {
-            return $fileId;
-        }
-
-        $list = is_array($current) ? array_map('intval', $current) : [];
-        if (! in_array($fileId, $list, true)) {
-            $list[] = $fileId;
-        }
-
-        return array_values($list);
+        return response()->json([
+            'attachment' => $attachment->fresh()?->toApiArray(),
+            'file' => [
+                'id' => $file->id,
+                'name' => $file->name,
+            ],
+        ]);
     }
 }

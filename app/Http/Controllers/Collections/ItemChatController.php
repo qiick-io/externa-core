@@ -2,9 +2,17 @@
 
 namespace App\Http\Controllers\Collections;
 
-use App\Http\Controllers\Chat\ChatHubController;
-use App\Http\Controllers\Chat\ChatMessageController;
+use App\Actions\Chat\AddChatAttachmentToFieldAction;
+use App\Actions\Chat\DeleteChatMessageAction;
+use App\Actions\Chat\PinChatMessageAction;
+use App\Actions\Chat\SendChatMessageAction;
+use App\Actions\Chat\ToggleChatReactionAction;
+use App\Actions\Chat\TransferChatAttachmentToFileAction;
+use App\Actions\Chat\UpdateChatMessageAction;
+use App\Data\Chat\SendChatMessageData;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\AddChatAttachmentToFieldRequest;
 use App\Http\Requests\Chat\FindChatAttachmentUploadRequest;
 use App\Http\Requests\Chat\InitChatAttachmentUploadRequest;
 use App\Http\Requests\Chat\ListChatMessagesRequest;
@@ -22,44 +30,64 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Chat\ChatAttachmentAccessService;
+use App\Services\Chat\ChatAttachmentUploadService;
+use App\Services\Chat\ChatMentionService;
+use App\Services\Chat\ChatMessageFeedService;
+use App\Services\Chat\ChatNotificationService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Item-form chat alias: resolve/create the item thread, then reuse ChatMessageController.
+ * Item-form chat alias: resolve/create the item thread, then run the same
+ * chat Actions and Services as the hub routes (`ChatMessageController`).
  */
 class ItemChatController extends Controller
 {
     public function __construct(
-        private ChatMessageController $messages,
-        private ChatHubController $hub,
         private ChatService $chats,
         private ChatUnreadService $unread,
+        private ChatAttachmentUploadService $chatUploads,
+        private ChatAttachmentAccessService $attachmentAccess,
+        private ChatMessageFeedService $feed,
+        private ChatMentionService $mentionOptions,
+        private ChatNotificationService $notifications,
         private CollectionPermissionEnforcerService $permissionEnforcer,
+        private EffectivePermissionResolverService $permissionResolver,
     ) {}
 
     public function index(ListChatMessagesRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
         $chat = $this->chats->findItemChat($item);
 
         if (! $chat instanceof Chat) {
-            return $this->messages->emptyIndex($request, $collection);
+            return response()->json($this->feed->emptyPage((int) $collection->id, $user, $request->validated()));
         }
 
-        return $this->messages->index($request, $chat);
+        return response()->json($this->feed->page($chat, $user, $request->validated()));
     }
 
-    public function store(StoreChatMessageRequest $request, Collection $collection, CollectionItem $item): JsonResponse
-    {
+    public function store(
+        StoreChatMessageRequest $request,
+        Collection $collection,
+        CollectionItem $item,
+        SendChatMessageAction $sendChatMessage,
+    ): JsonResponse {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         $chat = $this->chats->findOrCreateItemChat($user, $collection, $item);
 
-        return $this->messages->store($request, $chat);
+        $payload = $sendChatMessage->execute(SendChatMessageData::fromValidated($chat, $user, $request->validated()));
+
+        return response()->json(['message' => $payload], 201);
     }
 
     public function update(
@@ -67,8 +95,16 @@ class ItemChatController extends Controller
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
+        UpdateChatMessageAction $updateChatMessage,
     ): JsonResponse {
-        return $this->messages->update($request, $this->existingItemChat($item), $message);
+        $chat = $this->existingItemChat($item);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validated();
+        $payload = $updateChatMessage->execute($chat, $message, $user, (string) $validated['body'], $validated['mentioned_user_ids'] ?? null);
+
+        return response()->json(['message' => $payload]);
     }
 
     public function destroy(
@@ -76,8 +112,19 @@ class ItemChatController extends Controller
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
+        DeleteChatMessageAction $deleteChatMessage,
     ): JsonResponse {
-        return $this->messages->destroy($request, $this->chatForItem($request, $collection, $item), $message);
+        $chat = $this->chatForItem($request, $collection, $item);
+        $this->chats->assertAccessible($request, $chat);
+        abort_unless((string) $message->chat_id === (string) $chat->id, 404);
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless((int) $message->user_id === (int) $user->id, 403);
+
+        $deleteChatMessage->execute($chat, $message, $user);
+
+        return response()->json(['ok' => true]);
     }
 
     public function pin(
@@ -85,8 +132,15 @@ class ItemChatController extends Controller
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
+        PinChatMessageAction $pinChatMessage,
     ): JsonResponse {
-        return $this->messages->pin($request, $this->existingItemChat($item), $message);
+        $chat = $this->existingItemChat($item);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $payload = $pinChatMessage->execute($chat, $message, $user, (bool) $request->validated()['pinned']);
+
+        return response()->json(['message' => $payload]);
     }
 
     public function react(
@@ -94,8 +148,13 @@ class ItemChatController extends Controller
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
+        ToggleChatReactionAction $toggleChatReaction,
     ): JsonResponse {
-        return $this->messages->react($request, $this->existingItemChat($item), $message);
+        $chat = $this->existingItemChat($item);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        return response()->json($toggleChatReaction->execute($chat, $message, $user, $request->validated()['emoji']));
     }
 
     public function mentions(Request $request, Collection $collection, CollectionItem $item): JsonResponse
@@ -104,8 +163,9 @@ class ItemChatController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         $chat = $this->chats->findOrCreateItemChat($user, $collection, $item);
+        $this->chats->assertAccessible($request, $chat);
 
-        return $this->messages->mentions($request, $chat);
+        return response()->json($this->mentionOptions->options($request, $chat, trim((string) $request->query('q', ''))));
     }
 
     public function updateNotify(UpdateChatNotifyRequest $request, Collection $collection, CollectionItem $item): JsonResponse
@@ -115,7 +175,7 @@ class ItemChatController extends Controller
 
         $validated = $request->validated();
 
-        $this->messages->setNotifyForCollection($user, (int) $collection->id, $validated['notify']);
+        $this->notifications->setNotifyForCollection($user, (int) $collection->id, $validated['notify']);
 
         return response()->json(['notify' => $validated['notify']]);
     }
@@ -124,15 +184,16 @@ class ItemChatController extends Controller
     {
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chats->findItemChat($item);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
-        if (! $chat instanceof Chat) {
-            $user = $request->user();
-            abort_unless($user instanceof User, 401);
-
-            return response()->json($this->unread->shared($user));
+        if ($chat instanceof Chat) {
+            $this->chats->assertAccessible($request, $chat);
+            $this->unread->markRead($chat, $user);
+            $this->unread->broadcast($user, $chat);
         }
 
-        return $this->hub->markRead($request, $chat);
+        return response()->json($this->unread->shared($user));
     }
 
     public function stopViewing(Request $request, Collection $collection, CollectionItem $item): JsonResponse
@@ -140,36 +201,88 @@ class ItemChatController extends Controller
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chats->findItemChat($item);
 
-        if (! $chat instanceof Chat) {
-            return response()->json(['ok' => true]);
+        if ($chat instanceof Chat) {
+            $user = $request->user();
+            abort_unless($user instanceof User, 401);
+            $this->chats->assertAccessible($request, $chat);
+            $this->unread->forgetViewer($chat, $user);
         }
 
-        return $this->hub->stopViewing($request, $chat);
+        return response()->json(['ok' => true]);
     }
 
     public function storeAttachment(StoreChatAttachmentRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        return $this->messages->storeAttachment($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        /** @var UploadedFile $uploaded */
+        $uploaded = $request->validated()['file'];
+        $attachment = $this->chatUploads->storeSingle($user, $uploaded);
+
+        return response()->json(['attachment' => $attachment->toApiArray()], 201);
     }
 
     public function initAttachmentUpload(InitChatAttachmentUploadRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        return $this->messages->initAttachmentUpload($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validated();
+
+        $upload = $this->chatUploads->init(
+            $user,
+            $validated['file_name'],
+            (int) $validated['total_size'],
+            (int) $validated['total_chunks'],
+            $validated['mime_type'] ?? null,
+        );
+
+        return response()->json([
+            'upload_id' => $upload->upload_id,
+            'expires_at' => $upload->expires_at->toIso8601String(),
+        ], 201);
     }
 
     public function uploadAttachmentChunk(UploadChatAttachmentChunkRequest $request, Collection $collection, CollectionItem $item): Response
     {
-        return $this->messages->uploadAttachmentChunk($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validated();
+
+        $this->chatUploads->uploadChunk(
+            $user,
+            $validated['upload_id'],
+            (int) $validated['chunk_index'],
+            $validated['chunk'],
+        );
+
+        return response()->noContent();
     }
 
     public function completeAttachmentUpload(FindChatAttachmentUploadRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        return $this->messages->completeAttachmentUpload($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $attachment = $this->chatUploads->complete($user, $request->validated()['upload_id']);
+
+        return response()->json(['attachment' => $attachment->toApiArray()], 201);
     }
 
     public function attachmentUploadStatus(FindChatAttachmentUploadRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        return $this->messages->attachmentUploadStatus($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $status = $this->chatUploads->status($user, $request->validated()['upload_id']);
+
+        if ($status === null) {
+            return response()->json(['message' => 'Upload not found or expired'], 404);
+        }
+
+        return response()->json($status);
     }
 
     public function showAttachment(
@@ -181,7 +294,7 @@ class ItemChatController extends Controller
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chatFromAttachment($item, $attachment);
 
-        return $this->messages->showAttachment($request, $chat, $attachment);
+        return $this->attachmentAccess->download($request, $chat, $attachment);
     }
 
     public function showAttachmentPreview(
@@ -193,7 +306,7 @@ class ItemChatController extends Controller
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chatFromAttachment($item, $attachment);
 
-        return $this->messages->showAttachmentPreview($request, $chat, $attachment);
+        return $this->attachmentAccess->preview($request, $chat, $attachment);
     }
 
     public function destroyAttachment(
@@ -205,7 +318,10 @@ class ItemChatController extends Controller
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chatFromAttachment($item, $attachment);
 
-        return $this->messages->destroyAttachment($request, $chat, $attachment);
+        $this->attachmentAccess->assertCancellable($request, $chat, $attachment);
+        $attachment->delete();
+
+        return response()->noContent();
     }
 
     public function saveToFiles(
@@ -213,22 +329,53 @@ class ItemChatController extends Controller
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatAttachment $attachment,
+        TransferChatAttachmentToFileAction $transferChatAttachmentToFile,
     ): JsonResponse {
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chatFromAttachment($item, $attachment);
+        $this->attachmentAccess->assertAccessible($request, $chat, $attachment);
 
-        return $this->messages->saveToFiles($request, $chat, $attachment);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless(
+            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateFiles->value),
+            403,
+        );
+
+        $file = $transferChatAttachmentToFile->execute($attachment);
+
+        return response()->json([
+            'attachment' => $attachment->fresh()?->toApiArray(),
+            'file' => [
+                'id' => $file->id,
+                'name' => $file->name,
+            ],
+        ]);
     }
 
     public function addToField(
-        Request $request,
+        AddChatAttachmentToFieldRequest $request,
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatAttachment $attachment,
+        AddChatAttachmentToFieldAction $addChatAttachmentToField,
     ): JsonResponse {
-        $chat = $this->chatForItem($request, $collection, $item);
+        $chat = $request->itemChat();
+        $chatCollection = $chat->collection;
+        $chatItem = $chat->item;
+        abort_unless($chatCollection instanceof Collection && $chatItem instanceof CollectionItem, 404);
 
-        return $this->messages->addToField($request, $chat, $attachment);
+        $added = $addChatAttachmentToField->execute($request, $chatCollection, $chatItem, $attachment, $request->validated()['field']);
+
+        return response()->json([
+            'attachment' => $attachment->fresh()?->toApiArray(),
+            'file' => [
+                'id' => $added['file']->id,
+                'name' => $added['file']->name,
+            ],
+            'field' => $added['field'],
+            'value' => $added['value'],
+        ]);
     }
 
     private function assertItemContext(Request $request, Collection $collection, CollectionItem $item): void

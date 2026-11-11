@@ -17,7 +17,7 @@ use App\Services\Chat\ChatService;
  *
  * Chat endpoints are reached two ways: the hub routes (`chat/{chat}/...`) and
  * the item-form alias (`collections/{collection}/items/{item}/chat/...`), which
- * resolves the item's thread and then reuses the hub controller actions. Both
+ * resolves the item's thread and then runs the same chat Actions. Both
  * checked access before validating the payload, so these checks run in
  * `authorize()`: a user without access keeps getting 401 / 403 / 404, never a
  * 422 that would reveal the payload shape of a thread they cannot see.
