@@ -9,6 +9,8 @@ use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\ApplyCollectionPackRequest;
 use App\Http\Requests\Collections\BulkCollectionActionRequest;
+use App\Http\Requests\Collections\CheckCollectionSlugRequest;
+use App\Http\Requests\Collections\ListContentCollectionsRequest;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
@@ -22,13 +24,11 @@ use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
-use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,16 +38,6 @@ use Inertia\Response;
 class ContentCollectionController extends Controller
 {
     use ValidatesListPerPageTrait;
-
-    /**
-     * @var list<string>
-     */
-    private const SORTABLE_COLUMNS = [
-        'name',
-        'slug',
-        'status',
-        'updated_at',
-    ];
 
     public function __construct(
         private CreateCollectionItemAction $createCollectionItemAction,
@@ -61,14 +51,9 @@ class ContentCollectionController extends Controller
     /**
      * List collections, optionally including soft-deleted records.
      */
-    public function index(Request $request): Response
+    public function index(ListContentCollectionsRequest $request): Response
     {
-        $validated = $request->validate([
-            'trashed' => ['sometimes', 'boolean'],
-            'search' => SearchQueryRules::search(),
-            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
-            'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
-        ]);
+        $validated = $request->validated();
 
         $trashed = $request->boolean('trashed');
         $search = isset($validated['search'])
@@ -128,12 +113,9 @@ class ContentCollectionController extends Controller
     /**
      * Check whether a collection slug is available (unique), optionally excluding one id.
      */
-    public function checkSlug(Request $request): JsonResponse
+    public function checkSlug(CheckCollectionSlugRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'slug' => ['required', 'string', 'max:255'],
-            'exclude' => ['nullable', 'integer'],
-        ]);
+        $validated = $request->validated();
 
         $slug = Str::slug((string) $validated['slug']);
         $excludeId = isset($validated['exclude']) ? (int) $validated['exclude'] : null;

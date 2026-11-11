@@ -13,6 +13,7 @@ import type {
 } from './catalog';
 import { parseTranslatedText, serializeTranslatedText } from './display';
 import type { TranslatedText } from './display';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 function settingsFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1';
@@ -103,7 +104,7 @@ export function parseFieldOptions(
 
     return raw.map((row) => {
         const option = row as { value?: unknown; label?: unknown };
-        const value = String(option.value ?? '');
+        const value = scalarToString(option.value, '');
         let label = option.label;
 
         // ponytail: translatable labels are objects like {en: "Label"}, extract first value
@@ -116,7 +117,7 @@ export function parseFieldOptions(
 
         return {
             value,
-            label: String(label ?? value),
+            label: scalarToString(label, value),
         };
     });
 }
@@ -142,7 +143,7 @@ export function parseFieldTreeOptions(
             label?: unknown;
             children?: unknown;
         };
-        const value = String(option.value ?? '');
+        const value = scalarToString(option.value, '');
         let label = option.label;
 
         // ponytail: translatable labels are objects like {en: "Label"}, extract first value
@@ -159,7 +160,7 @@ export function parseFieldTreeOptions(
 
         return {
             value,
-            label: String(label ?? value),
+            label: scalarToString(label, value),
             children,
         };
     };
@@ -187,7 +188,7 @@ export type StringFieldSettings = {
 export function parseStringFieldSettings(
     settings?: Record<string, unknown> | null,
 ): StringFieldSettings {
-    const inputType = String(settings?.input_type ?? 'string');
+    const inputType = scalarToString(settings?.input_type, 'string');
     const maxLengthRaw = settings?.max_length;
 
     return {
@@ -197,8 +198,8 @@ export function parseStringFieldSettings(
             ? inputType
             : 'string',
         placeholder: parseTranslatedText(settings?.placeholder),
-        iconLeft: String(settings?.icon_left ?? ''),
-        iconRight: String(settings?.icon_right ?? ''),
+        iconLeft: scalarToString(settings?.icon_left, ''),
+        iconRight: scalarToString(settings?.icon_right, ''),
         maxLength:
             maxLengthRaw !== undefined &&
             maxLengthRaw !== null &&
@@ -213,7 +214,7 @@ export function parseStringFieldSettings(
             settings?.default_value === null ||
             settings?.default_value === undefined
                 ? ''
-                : String(settings.default_value),
+                : scalarToString(settings.default_value),
     };
 }
 
@@ -338,7 +339,7 @@ export type DateFieldSettings = {
 export function parseDateFieldSettings(
     settings?: Record<string, unknown> | null,
 ): DateFieldSettings {
-    const modeRaw = String(settings?.date_mode ?? 'datetime');
+    const modeRaw = scalarToString(settings?.date_mode, 'datetime');
     const mode: DateFieldMode =
         modeRaw === 'date' || modeRaw === 'time' ? modeRaw : 'datetime';
 
@@ -368,22 +369,22 @@ export type ApiAutocompleteFieldSettings = {
 export function parseApiAutocompleteFieldSettings(
     settings?: Record<string, unknown> | null,
 ): ApiAutocompleteFieldSettings {
-    const trigger = String(settings?.trigger ?? 'debounce');
+    const trigger = scalarToString(settings?.trigger, 'debounce');
     // null from ConvertEmptyStringsToNull must not become the string "null"
     const urlRaw = settings?.url;
 
     return {
         url: typeof urlRaw === 'string' ? urlRaw : '',
-        resultsPath: String(settings?.results_path ?? 'data'),
-        textPath: String(settings?.text_path ?? 'label'),
-        valuePath: String(settings?.value_path ?? 'value'),
+        resultsPath: scalarToString(settings?.results_path, 'data'),
+        textPath: scalarToString(settings?.text_path, 'label'),
+        valuePath: scalarToString(settings?.value_path, 'value'),
         trigger: trigger === 'throttle' ? 'throttle' : 'debounce',
         rate: Number.isFinite(Number(settings?.rate))
             ? Math.max(0, Number(settings?.rate))
             : 300,
         placeholder: parseTranslatedText(settings?.placeholder),
-        iconLeft: String(settings?.icon_left ?? ''),
-        iconRight: String(settings?.icon_right ?? ''),
+        iconLeft: scalarToString(settings?.icon_left, ''),
+        iconRight: scalarToString(settings?.icon_right, ''),
     };
 }
 
@@ -466,7 +467,7 @@ export function parseTagFieldSettings(
         allowOther: settings?.allow_other !== false,
         lowercase: settingsFlag(settings?.lowercase),
         alphabetize: settingsFlag(settings?.alphabetize),
-        separator: String(settings?.separator ?? ','),
+        separator: scalarToString(settings?.separator, ','),
     };
 }
 
@@ -486,10 +487,10 @@ export function parseCodeFieldSettings(
     settings?: Record<string, unknown> | null,
 ): CodeFieldSettings {
     return {
-        language: String(settings?.language ?? 'javascript'),
+        language: scalarToString(settings?.language, 'javascript'),
         lineNumbers: settings?.line_numbers !== false,
         lineWrapping: settingsFlag(settings?.line_wrapping),
-        template: String(settings?.template ?? ''),
+        template: scalarToString(settings?.template, ''),
     };
 }
 
@@ -624,7 +625,7 @@ function parseJunctionFields(
             }
 
             const row = entry as Record<string, unknown>;
-            const name = String(row.name ?? '').trim();
+            const name = scalarToString(row.name, '').trim();
 
             if (name === '') {
                 return null;
@@ -632,7 +633,7 @@ function parseJunctionFields(
 
             return {
                 name,
-                type: String(row.type ?? 'string').trim() || 'string',
+                type: scalarToString(row.type, 'string').trim() || 'string',
             };
         })
         .filter((entry): entry is JunctionFieldDefinition => entry !== null);
@@ -645,14 +646,17 @@ function parseJunctionFields(
 export function parseRelationFieldSettings(
     settings?: Record<string, unknown> | null,
 ): RelationFieldSettings {
-    const layout = String(settings?.layout ?? 'list');
+    const layout = scalarToString(settings?.layout, 'list');
     const filter = settings?.filter;
     const junctionFields = parseJunctionFields(settings);
 
     return {
-        relatedCollectionId: String(settings?.related_collection_id ?? ''),
-        displayField: String(settings?.display_field ?? 'title'),
-        displayTemplate: String(settings?.display_template ?? ''),
+        relatedCollectionId: scalarToString(
+            settings?.related_collection_id,
+            '',
+        ),
+        displayField: scalarToString(settings?.display_field, 'title'),
+        displayTemplate: scalarToString(settings?.display_template, ''),
         filterJson:
             filter && typeof filter === 'object' && !Array.isArray(filter)
                 ? JSON.stringify(filter, null, 2)
@@ -712,8 +716,8 @@ export function parseBlocksFieldSettings(
                 };
 
                 return {
-                    key: String(block.key ?? ''),
-                    label: String(block.label ?? ''),
+                    key: scalarToString(block.key, ''),
+                    label: scalarToString(block.label, ''),
                     fields: Array.isArray(block.fields)
                         ? block.fields
                               .filter(
@@ -728,8 +732,8 @@ export function parseBlocksFieldSettings(
                                   };
 
                                   return {
-                                      name: String(nested.name ?? ''),
-                                      type: String(nested.type ?? ''),
+                                      name: scalarToString(nested.name, ''),
+                                      type: scalarToString(nested.type, ''),
                                       translatable:
                                           nested.translatable === true ||
                                           nested.translatable === 1 ||

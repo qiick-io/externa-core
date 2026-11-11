@@ -1,3 +1,4 @@
+import { scalarToString } from '@/lib/scalar-to-string';
 /**
  * Parse / serialize collection item list filters for CollectionItemQueryService dialect.
  * URL shape: filter[field][_eq]=…, filter[title]=hello (bare → _contains).
@@ -98,7 +99,7 @@ export function parseFiltersFromProps(
         if (typeof raw !== 'object' || Array.isArray(raw)) {
             const value = Array.isArray(raw)
                 ? raw.map(String).join(',')
-                : String(raw);
+                : scalarToString(raw);
             rules.push({
                 id: newFilterRuleId(),
                 field,
@@ -141,7 +142,7 @@ export function parseFiltersFromProps(
                     id: newFilterRuleId(),
                     field,
                     operator: op,
-                    value: operand == null ? '' : String(operand),
+                    value: operand == null ? '' : scalarToString(operand),
                 });
             }
         }

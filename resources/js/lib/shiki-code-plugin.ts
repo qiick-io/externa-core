@@ -5,6 +5,7 @@ import type {
     HighlightResult,
     ThemeInput,
 } from 'streamdown';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 const THEMES: [ThemeInput, ThemeInput] = ['github-light', 'github-dark'];
 const MAX_CACHED_RESULTS = 200;
@@ -17,7 +18,7 @@ function cacheKey(
     code: string,
     themes: [ThemeInput, ThemeInput],
 ): string {
-    return `${String(themes[0])}|${String(themes[1])}|${language}|${code}`;
+    return `${scalarToString(themes[0])}|${scalarToString(themes[1])}|${language}|${code}`;
 }
 
 /**

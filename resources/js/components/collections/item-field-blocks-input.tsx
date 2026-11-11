@@ -34,6 +34,7 @@ import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { moveItem, newListItemId } from '@/lib/list-items';
 import { cn } from '@/lib/utils';
 import type { FieldDef } from '@/types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 const SUMMARY_TEXT_TYPES = new Set([
     'string',
@@ -123,7 +124,7 @@ function blockSummary(
         raw = first ?? '';
     }
 
-    const text = String(raw ?? '')
+    const text = scalarToString(raw, '')
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
