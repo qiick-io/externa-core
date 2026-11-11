@@ -7,7 +7,14 @@ import {
     ChevronsRight,
     GripVertical,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
@@ -287,7 +294,9 @@ export function ItemsCalendar({
     const boardRef = useRef<HTMLDivElement | null>(null);
     const [sortableEpoch, setSortableEpoch] = useState(0);
     const itemsRef = useRef(items);
-    itemsRef.current = items;
+    useLayoutEffect(() => {
+        itemsRef.current = items;
+    });
 
     const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 
@@ -446,7 +455,9 @@ export function ItemsCalendar({
     }, [fieldName, items]);
 
     const byDayRef = useRef(byDay);
-    byDayRef.current = byDay;
+    useLayoutEffect(() => {
+        byDayRef.current = byDay;
+    });
 
     const persistMove = useCallback(
         (itemId: number, dayKey: string) => {
@@ -561,7 +572,8 @@ export function ItemsCalendar({
         persistMove,
     ]);
 
-    const todayKey = formatDayKey(new Date());
+    // Read once per mount: Date is impure, and a page left open past midnight is fine with it.
+    const [todayKey] = useState(() => formatDayKey(new Date()));
     const monthDays = useMemo(() => visibleDaysForMonth(cursor), [cursor]);
     const weekDays = useMemo(() => weekDaysFor(focusDay), [focusDay]);
     const weekCount = Math.max(1, Math.ceil(monthDays.length / 7));
