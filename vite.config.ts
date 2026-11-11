@@ -286,8 +286,6 @@ export default defineConfig({
             'react/immutability': 'error',
             'react/globals': 'error',
             'react/refs': 'error',
-            // ponytail: was off in ESLint too (react-hooks/set-state-in-effect); 47 sync setState-in-effect call sites to refactor first.
-            'react/set-state-in-effect': 'off',
             'react/error-boundaries': 'error',
             'react/purity': 'error',
             'react/set-state-in-render': 'error',

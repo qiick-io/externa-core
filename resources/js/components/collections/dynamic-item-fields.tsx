@@ -1,5 +1,5 @@
 import { Asterisk, ChevronDown } from 'lucide-react';
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RequiredMarker } from '@/components/a11y/required-marker';
@@ -743,20 +743,19 @@ function TranslatableItemField({
     const note = getFieldNote(field.settings, locales);
     const isMarkdown = field.type === 'markdown';
 
-    // Sync per-field flag only when toolbar locale value changes —
-    // not when Inertia replaces `locales` array identity after draft save.
-    const prevSharedLocaleRef = useRef(shared.locale);
-    useEffect(() => {
-        if (prevSharedLocaleRef.current === shared.locale) {
-            return;
-        }
+    // Sync the per-field flag during render only when the toolbar locale value
+    // changes — not when Inertia replaces `locales` array identity after draft save.
+    const [previousSharedLocale, setPreviousSharedLocale] = useState(
+        shared.locale,
+    );
 
-        prevSharedLocaleRef.current = shared.locale;
+    if (previousSharedLocale !== shared.locale) {
+        setPreviousSharedLocale(shared.locale);
 
         if (locales.includes(shared.locale)) {
             setFieldLocale(shared.locale);
         }
-    }, [shared.locale, locales]);
+    }
 
     const resolveCurrent = (): unknown => {
         const form = document.getElementById(

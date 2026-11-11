@@ -70,7 +70,7 @@ export function ItemRevisionsDrawer({
     const [dateTo, setDateTo] = useState('');
     const [appliedFrom, setAppliedFrom] = useState('');
     const [appliedTo, setAppliedTo] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(open);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [hardRestoreId, setHardRestoreId] = useState<number | null>(null);
@@ -81,20 +81,16 @@ export function ItemRevisionsDrawer({
         revisionsRef.current = revisions;
     });
 
-    const fetchPage = useCallback(
+    /**
+     * Network half of a page load: the caller has already flagged the loading
+     * state, so the open effect below can start it without a synchronous setState.
+     */
+    const requestPage = useCallback(
         (
             page: number,
             filters: { date_from: string; date_to: string },
             append: boolean,
         ): void => {
-            if (append) {
-                setLoadingMore(true);
-            } else {
-                setLoading(true);
-            }
-
-            setError(null);
-
             const params = new URLSearchParams({
                 json: '1',
                 page: String(page),
@@ -151,17 +147,51 @@ export function ItemRevisionsDrawer({
         [collectionId, itemId],
     );
 
+    const fetchPage = (
+        page: number,
+        filters: { date_from: string; date_to: string },
+        append: boolean,
+    ): void => {
+        if (append) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
+
+        setError(null);
+        requestPage(page, filters, append);
+    };
+
+    const [previousOpenState, setPreviousOpenState] = useState({
+        open,
+        requestPage,
+    });
+
+    // Clear the filters and flag the first page as loading during render when
+    // the drawer opens (React's "adjust state on prop change" pattern).
+    if (
+        previousOpenState.open !== open ||
+        previousOpenState.requestPage !== requestPage
+    ) {
+        setPreviousOpenState({ open, requestPage });
+
+        if (open) {
+            setDateFrom('');
+            setDateTo('');
+            setAppliedFrom('');
+            setAppliedTo('');
+            setLoading(true);
+            setError(null);
+        }
+    }
+
     useEffect(() => {
         if (!open) {
             return;
         }
 
-        setDateFrom('');
-        setDateTo('');
-        setAppliedFrom('');
-        setAppliedTo('');
-        fetchPage(1, { date_from: '', date_to: '' }, false);
-    }, [open, fetchPage]);
+        requestPage(1, { date_from: '', date_to: '' }, false);
+    }, [open, requestPage]);
 
     const applyFilter = (): void => {
         setAppliedFrom(dateFrom);
