@@ -1,0 +1,5 @@
+# Commits git blame skips: mechanical reformatting with no behaviour change.
+# Use locally with: git config blame.ignoreRevsFile .git-blame-ignore-revs (GitHub reads it automatically).
+
+# chore(dx): move the frontend toolchain to Vite+ (Oxlint, Oxfmt) (#672): Oxfmt reformat of resources/js
+ca142b00eb7eeb6bd2090f0da918a4ad4c87ac23
