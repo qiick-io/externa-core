@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
@@ -11,6 +13,7 @@ use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
@@ -208,7 +211,7 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: User not found.';
         }
 
-        if ($error = $this->superAdminTargetError($user) ?? $this->superAdminGrantError($request)) {
+        if ($error = $this->superAdminTargetError('update', $user) ?? $this->superAdminGrantError($request)) {
             return $error;
         }
 
@@ -294,7 +297,7 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: User not found.';
         }
 
-        if ($error = $this->superAdminTargetError($user)) {
+        if ($error = $this->superAdminTargetError('delete', $user)) {
             return $error;
         }
 
@@ -321,7 +324,7 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: Trashed user not found.';
         }
 
-        if ($error = $this->superAdminTargetError($user)) {
+        if ($error = $this->superAdminTargetError('restore', $user)) {
             return $error;
         }
 
@@ -343,7 +346,7 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: User not found.';
         }
 
-        if ($error = $this->superAdminTargetError($user)) {
+        if ($error = $this->superAdminTargetError('forceDelete', $user)) {
             return $error;
         }
 
@@ -359,11 +362,14 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
     }
 
     /**
-     * Only super-admins may modify, delete, or restore a super-admin account.
+     * Only super-admins may modify, delete, or restore a super-admin account (UserPolicy).
+     *
+     * Runs after requirePermission() has checked the ability's permission, so a denial
+     * here is the super-admin protection.
      */
-    private function superAdminTargetError(User $user): ?string
+    private function superAdminTargetError(string $ability, User $user): ?string
     {
-        if (app(SuperAdminGuardService::class)->isProtectedFrom($this->authenticatedUser(), $user)) {
+        if (Gate::forUser($this->authenticatedUser())->inspect($ability, $user)->denied()) {
             return 'Error: Only a super-admin can modify a super-admin account.';
         }
 

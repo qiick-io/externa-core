@@ -1,22 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,7 +25,6 @@ use Inertia\Response;
  */
 class UserController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
     use ValidatesListPerPageTrait;
     use ValidatesSearchQueryTrait;
 
@@ -48,7 +47,7 @@ class UserController extends Controller
      */
     public function index(Request $request): Response|JsonResponse
     {
-        $this->authorizePermission(PermissionEnum::CanShowUsers->value);
+        abort_unless(Gate::allows('viewAny', User::class), 403);
 
         $search = $this->validatedSearch($request);
         $wantsJson = $request->expectsJson();
@@ -158,8 +157,7 @@ class UserController extends Controller
      */
     public function destroy(User $user): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanDeleteUsers->value);
-        $this->abortIfSuperAdminProtected($user);
+        abort_unless(Gate::allows('delete', $user), 403);
 
         $user->delete();
 
@@ -173,8 +171,7 @@ class UserController extends Controller
      */
     public function restore(User $user): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanRestoreUsers->value);
-        $this->abortIfSuperAdminProtected($user);
+        abort_unless(Gate::allows('restore', $user), 403);
 
         $user->restore();
 
@@ -188,8 +185,7 @@ class UserController extends Controller
      */
     public function forceDelete(User $user): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanForceDeleteUsers->value);
-        $this->abortIfSuperAdminProtected($user);
+        abort_unless(Gate::allows('forceDelete', $user), 403);
 
         $user->forceDelete();
 
@@ -248,13 +244,5 @@ class UserController extends Controller
                 ->withProperties(['group_ids' => $groupIds])
                 ->log('User groups synced');
         }
-    }
-
-    /**
-     * Only super-admins may delete, restore, or force-delete a super-admin account.
-     */
-    private function abortIfSuperAdminProtected(User $user): void
-    {
-        abort_if(app(SuperAdminGuardService::class)->isProtectedFrom(auth()->user(), $user), 403);
     }
 }
