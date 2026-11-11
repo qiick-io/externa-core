@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Enums\FilePermissionActionEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
+use App\Models\File;
 use App\Support\Files\FilesDisk;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -15,14 +15,12 @@ use Illuminate\Validation\Rule;
  */
 class StoreFileRequest extends FormRequest
 {
-    use AuthorizesFileAccessTrait;
-
     /**
      * Role file ACL ∩ key scopes must allow creating files (403), before the upload is validated.
      */
     public function authorize(): bool
     {
-        $this->authorizeFile($this, FilePermissionActionEnum::Create);
+        Gate::authorize('create', File::class);
 
         return true;
     }
