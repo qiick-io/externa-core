@@ -40,7 +40,7 @@
             }
         </style>
 
-        <title inertia>{{ $projectName ?? config('app.name', 'Laravel') }}</title>
+        <title data-inertia>{{ $projectName ?? config('app.name', 'Laravel') }}</title>
 
         @if (! empty($projectFaviconUrl))
             <link rel="icon" href="{{ $projectFaviconUrl }}">
