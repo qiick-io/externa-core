@@ -84,7 +84,6 @@
         "cmdk": "^1.1.1",
         "concurrently": "^10.0.5",
         "country-flag-icons": "^1.6.20",
-        "date-fns": "^4.4.0",
         "embla-carousel-react": "^8.6.0",
         "globals": "^17.14.0",
         "i18next": "^26.7.1",
