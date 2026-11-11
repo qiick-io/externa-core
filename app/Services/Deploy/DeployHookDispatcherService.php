@@ -14,6 +14,12 @@ class DeployHookDispatcherService
 
     public const SOURCE_PUBLISH = 'publish';
 
+    /**
+     * Publish-triggered builds wait this long, so a burst of publishes (a scheduled batch,
+     * a bulk publish) collapses into one queued delivery per hook (#441).
+     */
+    public const PUBLISH_DEBOUNCE_SECONDS = 30;
+
     public function __construct(
         private readonly ProjectSettingsService $projectSettings,
     ) {}
@@ -50,6 +56,10 @@ class DeployHookDispatcherService
                 $source,
                 $hookIds,
             );
+
+            if ($source === self::SOURCE_PUBLISH) {
+                $pending->delay(now()->addSeconds(self::PUBLISH_DEBOUNCE_SECONDS));
+            }
 
             if (! app()->runningUnitTests()) {
                 $pending->afterCommit();
