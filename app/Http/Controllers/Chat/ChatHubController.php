@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Chat;
 
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\AddChatParticipantsRequest;
 use App\Http\Requests\Chat\ListChatDirectoryRequest;
@@ -16,12 +15,12 @@ use App\Models\CollectionItem;
 use App\Models\User;
 use App\Models\UserGroup;
 use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Collections\CollectionItemOptionsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Hub JSON: thread list, create item/direct chats, option search.
@@ -32,7 +31,6 @@ class ChatHubController extends Controller
         private ChatService $chats,
         private ChatUnreadService $unread,
         private CollectionPermissionEnforcerService $permissionEnforcer,
-        private EffectivePermissionResolverService $permissionResolver,
         private CollectionItemOptionsService $itemOptions,
     ) {}
 
@@ -103,10 +101,7 @@ class ChatHubController extends Controller
                 'per_page' => $perPage,
                 'current_page' => $page,
                 'last_page' => max((int) ceil($total / $perPage), 1),
-                'can_create_direct' => $this->permissionResolver->hasPermission(
-                    $user,
-                    PermissionEnum::CanCreateDirectChats->value,
-                ),
+                'can_create_direct' => Gate::forUser($user)->allows('createDirect', Chat::class),
                 'unread_count' => $totals['unread_count'],
                 'unread_private' => $totals['unread_private'],
                 'unread_collection' => $totals['unread_collection'],
@@ -151,10 +146,7 @@ class ChatHubController extends Controller
         $validated = $request->validated();
 
         if ($validated['kind'] === Chat::KIND_DIRECT) {
-            abort_unless(
-                $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateDirectChats->value),
-                403,
-            );
+            abort_unless(Gate::forUser($user)->allows('createDirect', Chat::class), 403);
 
             $chat = $this->chats->findOrCreateDirectChat(
                 $user,
@@ -176,12 +168,7 @@ class ChatHubController extends Controller
 
         $collection = Collection::query()->findOrFail($validated['collection_id']);
         $item = CollectionItem::query()->findOrFail($validated['item_id']);
-        abort_unless((int) $item->collection_id === (int) $collection->id, 404);
-        abort_unless(
-            $this->permissionResolver->hasPermission($user, PermissionEnum::CanShowCollections->value),
-            404,
-        );
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+        abort_unless(Gate::forUser($user)->allows('createForItem', [Chat::class, $collection, $item]), 404);
 
         $chat = $this->chats->findOrCreateItemChat($user, $collection, $item);
         $chat->load(['collection:id,name', 'item']);
@@ -193,10 +180,7 @@ class ChatHubController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless(
-            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateDirectChats->value),
-            403,
-        );
+        abort_unless(Gate::forUser($user)->allows('createDirect', Chat::class), 403);
 
         $q = trim((string) $request->query('q', ''));
         $rows = User::query()
@@ -227,10 +211,7 @@ class ChatHubController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless(
-            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateDirectChats->value),
-            403,
-        );
+        abort_unless(Gate::forUser($user)->allows('createDirect', Chat::class), 403);
 
         $q = trim((string) $request->query('q', ''));
         $rows = UserGroup::query()

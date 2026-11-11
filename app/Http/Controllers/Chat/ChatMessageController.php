@@ -46,6 +46,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -280,7 +281,7 @@ class ChatMessageController extends Controller
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless((int) $message->user_id === (int) $user->id, 403);
+        abort_unless(Gate::forUser($user)->allows('delete', $message), 403);
 
         $messageId = (int) $message->id;
         $chatId = (int) $chat->id;
@@ -556,8 +557,7 @@ class ChatMessageController extends Controller
         abort_unless($user instanceof User, 401);
 
         // Orphan cancel only — claimed attachments stay with the message
-        abort_unless($attachment->message_id === null, 403);
-        abort_unless((int) $attachment->user_id === (int) $user->id, 403);
+        abort_unless(Gate::forUser($user)->allows('delete', $attachment), 403);
 
         if ($chat !== null) {
             $this->chats->assertAccessible($request, $chat);
@@ -750,25 +750,15 @@ class ChatMessageController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        if ($attachment->message_id === null) {
-            abort_unless((int) $attachment->user_id === (int) $user->id, 404);
-
-            return;
-        }
-
-        $parent = $attachment->message;
-        abort_unless($parent instanceof CollectionItemChatMessage, 404);
-
-        if ($chat instanceof Chat) {
+        // A claimed attachment reached through a thread route must sit on that thread.
+        if ($attachment->message_id !== null && $chat instanceof Chat) {
+            $parent = $attachment->message;
+            abort_unless($parent instanceof CollectionItemChatMessage, 404);
             abort_unless((string) $parent->chat_id === (string) $chat->id, 404);
-            $this->chats->assertAccessible($request, $chat);
-
-            return;
         }
 
-        $parentChat = $parent->chat;
-        abort_unless($parentChat instanceof Chat, 404);
-        $this->chats->assertAccessible($request, $parentChat);
+        $decision = Gate::forUser($user)->inspect('view', $attachment);
+        abort_if($decision->denied(), $decision->status() ?? 403);
     }
 
     /**
