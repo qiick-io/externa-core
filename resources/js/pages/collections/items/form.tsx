@@ -561,7 +561,7 @@ export default function ItemsForm({
         clearItemDraft(collection.id, draftItemKey);
         setDraftBanner(false);
         setFormKey((key) => key + 1);
-    }, [collection.id, draftItemKey]);
+    }, [collection.id, draftItemKey, setIsDirty]);
 
     const submitSave = useCallback((action: ItemSaveAction) => {
         setItemSaveAction(action)?.requestSubmit();

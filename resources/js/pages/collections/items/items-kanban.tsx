@@ -1,7 +1,14 @@
 import { Link, router } from '@inertiajs/react';
 import type { TFunction } from 'i18next';
 import { Columns3, GripVertical } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Badge } from '@/components/ui/badge';
@@ -162,7 +169,9 @@ export function ItemsKanban({
     // Bump after onEnd destroy so Sortable remounts on a React-owned tree.
     const [sortableEpoch, setSortableEpoch] = useState(0);
     const columnsRef = useRef(columns);
-    columnsRef.current = columns;
+    useLayoutEffect(() => {
+        columnsRef.current = columns;
+    });
 
     useEffect(() => {
         setColumns(
