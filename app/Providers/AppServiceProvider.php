@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\Ai\LogAiToolApprovalEventsListener;
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Policies\AiConversationPolicy;
 use App\Services\Ai\AiToolApprovalService;
 use App\Services\Ai\AiToolArgumentRedactorService;
 use App\Services\Ai\AiToolExecutorService;
@@ -31,6 +32,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Ai\Events\ToolApprovalRequested;
 use Laravel\Ai\Events\ToolApprovalResolved;
+use Laravel\Ai\Models\Conversation;
 use Spatie\Activitylog\Facades\Activity;
 use Throwable;
 
@@ -124,6 +126,9 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureAuthorization(): void
     {
+        // laravel/ai's model is outside App\Models, so policy auto-discovery cannot find it.
+        Gate::policy(Conversation::class, AiConversationPolicy::class);
+
         // Super-admin bypass for permission-name and string abilities only. Model policies
         // decide for themselves (they keep invariants that bind super-admins too), and API
         // actors never bypass: an MCP key owned by a super-admin keeps its key scopes.

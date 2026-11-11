@@ -1,18 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Ai;
 
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Ai\SearchAiPickerRequest;
 use App\Http\Requests\Ai\StoreAiPromptRequest;
 use App\Http\Requests\Ai\UpdateAiPromptRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\AiPrompt;
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -20,8 +20,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AiPromptController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
-
     /**
      * List saved prompts for the attach picker (any CanUseAi user).
      */
@@ -95,7 +93,7 @@ class AiPromptController extends Controller
      */
     public function destroy(Request $request, AiPrompt $prompt): JsonResponse
     {
-        $this->authorizePermission(PermissionEnum::CanManageAiPrompts->value);
+        abort_unless(Gate::allows('delete', $prompt), Response::HTTP_FORBIDDEN);
 
         $prompt->delete();
 
@@ -122,7 +120,6 @@ class AiPromptController extends Controller
             return false;
         }
 
-        return app(EffectivePermissionResolverService::class)
-            ->hasPermission($user, PermissionEnum::CanManageAiPrompts->value);
+        return Gate::forUser($user)->allows('create', AiPrompt::class);
     }
 }

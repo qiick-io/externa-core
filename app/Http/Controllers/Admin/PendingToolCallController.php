@@ -12,9 +12,9 @@ use App\Models\PendingToolCall;
 use App\Models\User;
 use App\Services\Ai\AiToolApprovalService;
 use App\Services\Ai\AiToolExecutorService;
-use App\Services\Ai\AiToolRegistryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
@@ -30,7 +30,6 @@ class PendingToolCallController extends Controller
     public function __construct(
         private readonly AiToolApprovalService $approvals,
         private readonly AiToolExecutorService $executor,
-        private readonly AiToolRegistryService $registry,
     ) {}
 
     public function index(Request $request): Response
@@ -76,13 +75,7 @@ class PendingToolCallController extends Controller
             abort(403);
         }
 
-        $definition = $this->registry->get($pendingToolCall->tool);
-
-        if ($definition === null || ! $this->registry->actorPassesAbilities(
-            $definition,
-            $user,
-            is_array($pendingToolCall->arguments) ? $pendingToolCall->arguments : [],
-        )) {
+        if (Gate::forUser($user)->denies('approve', $pendingToolCall)) {
             return redirect()->back()->with('error', __('You do not have permission to approve this tool call.'));
         }
 
@@ -113,15 +106,7 @@ class PendingToolCallController extends Controller
 
         // Rejecting needs the same tool ability as approving; the requester may always withdraw
         // their own call (#441).
-        $definition = $this->registry->get($pendingToolCall->tool);
-        $isRequester = $pendingToolCall->requested_by !== null && $pendingToolCall->requested_by === $user->id;
-        $canDecide = $definition !== null && $this->registry->actorPassesAbilities(
-            $definition,
-            $user,
-            is_array($pendingToolCall->arguments) ? $pendingToolCall->arguments : [],
-        );
-
-        if (! $isRequester && ! $canDecide) {
+        if (Gate::forUser($user)->denies('reject', $pendingToolCall)) {
             return redirect()->back()->with('error', __('You do not have permission to reject this tool call.'));
         }
 
