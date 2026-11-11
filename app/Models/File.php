@@ -6,7 +6,9 @@ use App\Enums\FileAccessEnum;
 use App\Enums\FileTypeEnum;
 use App\Services\Files\FileEffectiveAccessService;
 use App\Traits\LogsApplicationActivityTrait;
+use Database\Factories\FileFactory;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -56,6 +58,9 @@ use Spatie\Tags\HasTags;
  */
 class File extends Model
 {
+    /** @use HasFactory<FileFactory> */
+    use HasFactory;
+
     use HasTags;
     use LogsApplicationActivityTrait;
     use SoftDeletes;
