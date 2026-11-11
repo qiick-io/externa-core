@@ -168,3 +168,66 @@ it('writes an audit entry for denied and pending MCP paths', function (): void {
 
     expect(Activity::query()->inLog('ai')->forEvent('ai_tool')->count())->toBeGreaterThan(0);
 });
+
+it('approves a call only once when two approvals race (#441)', function (): void {
+    $approver = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+    $pending = PendingToolCall::factory()->create([
+        'tool' => 'ManageCollections',
+        'arguments' => ['action' => 'list'],
+    ]);
+
+    // Both requests passed their pending check; the first one wins the conditional update.
+    $first = PendingToolCall::query()->findOrFail($pending->id);
+    $second = PendingToolCall::query()->findOrFail($pending->id);
+    $resolveOnce = new ReflectionMethod(AiToolApprovalService::class, 'resolveOnce');
+    $approvals = app(AiToolApprovalService::class);
+
+    $resolveOnce->invoke($approvals, $first, PendingToolCallStatusEnum::Approved, $approver, 'approved');
+
+    expect(fn () => $resolveOnce->invoke($approvals, $second, PendingToolCallStatusEnum::Approved, $approver, 'approved'))
+        ->toThrow(InvalidArgumentException::class, 'no longer awaiting approval');
+});
+
+it('refuses a reject from a user who could not approve the call', function (): void {
+    $actor = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+    $bystander = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    $pending = PendingToolCall::factory()->create([
+        'tool' => 'ManageCollections',
+        'arguments' => ['action' => 'list'],
+        'requested_by' => $actor->id,
+    ]);
+
+    $this->actingAs($bystander)
+        ->from(route('pending-tool-calls.index'))
+        ->post(route('pending-tool-calls.reject', $pending))
+        ->assertRedirect(route('pending-tool-calls.index'))
+        ->assertSessionHas('error');
+
+    expect($pending->refresh()->status)->toBe(PendingToolCallStatusEnum::Pending);
+});
+
+it('lets the requester withdraw their own call', function (): void {
+    $requester = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    $pending = PendingToolCall::factory()->create([
+        'tool' => 'ManageCollections',
+        'arguments' => ['action' => 'list'],
+        'requested_by' => $requester->id,
+    ]);
+
+    $this->actingAs($requester)
+        ->post(route('pending-tool-calls.reject', $pending))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($pending->refresh()->status)->toBe(PendingToolCallStatusEnum::Rejected);
+});

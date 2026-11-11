@@ -27,6 +27,7 @@ use Illuminate\Support\Str;
  * @property Carbon|null $resolved_at
  * @property string|null $result
  * @property string|null $decision_note
+ * @property int|null $api_key_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -45,6 +46,7 @@ class PendingToolCall extends Model
         'arguments',
         'status',
         'requested_by',
+        'api_key_id',
         'resolved_by',
         'expires_at',
         'resolved_at',
@@ -80,6 +82,16 @@ class PendingToolCall extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /**
+     * The API key an MCP call came through; its role and scopes apply when the call runs.
+     *
+     * @return BelongsTo<ApiKey, $this>
+     */
+    public function apiKey(): BelongsTo
+    {
+        return $this->belongsTo(ApiKey::class);
     }
 
     /**

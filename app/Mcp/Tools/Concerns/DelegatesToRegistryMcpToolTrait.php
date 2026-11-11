@@ -117,9 +117,9 @@ trait DelegatesToRegistryMcpToolTrait
      * `collection_slugs`, `files_scope`, owner ceiling). Session callers return null; the
      * tool re-checks their permissions when it runs.
      *
-     * ponytail: an approved pending call re-runs later as the key owner (approver ceiling)
-     * without the key's `apiAccess`, so key scopes are enforced here, at request time.
-     * Upgrade path: persist `api_key_id` on `pending_tool_calls` and rebuild ApiAccess on approval.
+     * The approved call runs again under the same key (`pending_tool_calls.api_key_id`,
+     * rebuilt by `AiToolExecutorService::approveAndExecute()`), so its scopes apply twice:
+     * here before it is parked, and when it runs.
      *
      * @param  array<string, mixed>  $arguments
      */

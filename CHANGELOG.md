@@ -9,6 +9,12 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Security
+
+- AI tool approvals: two concurrent approve or reject clicks can no longer both decide (and run) the same call; the decision is one conditional update (#441).
+- An approved MCP call runs under the API key that asked for it (new `pending_tool_calls.api_key_id`), so the key's role, `collection_slugs`, read-only and files scope still apply, and a key revoked or narrowed while the call waited cannot run it (#441).
+- Rejecting a pending tool call needs the same tool permission as approving it; the requester can still withdraw their own call (#441).
+
 ### Changed
 
 - The frontend toolchain is Vite+ (`vite-plus` 1.4.0): `vp dev` / `vp build`, Oxlint for lint (the same rules as before, including jsx-a11y and externa's own rules for hard-coded UI text and admin paths) and Oxfmt for formatting, replacing ESLint and Prettier (#609). The qiick ratcheted rules run in Oxlint (`npm run lint:standards`, new `qiick-lint-baseline.json`). Contributors: run `npm ci` after pulling; editors use the Oxc extension instead of the ESLint and Prettier ones.
