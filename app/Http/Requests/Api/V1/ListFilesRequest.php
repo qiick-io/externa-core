@@ -4,23 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Enums\FilePermissionActionEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
+use App\Models\File;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Validates `GET /api/v1/files`: folder, search and paging (page size capped by `api.max_per_page`).
  */
 class ListFilesRequest extends FormRequest
 {
-    use AuthorizesFileAccessTrait;
-
     /**
      * Role file ACL ∩ key scopes must allow reading files (403), before the query is validated.
      */
     public function authorize(): bool
     {
-        $this->authorizeFile($this, FilePermissionActionEnum::Read);
+        Gate::authorize('viewAny', File::class);
 
         return true;
     }

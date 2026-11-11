@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Api;
 
 use App\Enums\CollectionPermissionActionEnum;
@@ -197,17 +199,33 @@ class CollectionPermissionEnforcerService
 
     public function assertItemWritable(Request $request, Collection $collection, CollectionItem $item): void
     {
+        $denialMessage = $this->itemWriteDenialMessage($request, $collection, $item);
+        if ($denialMessage !== null) {
+            abort(403, $denialMessage);
+        }
+    }
+
+    /**
+     * Soft write check behind {@see assertItemWritable()}: the 403 message, or null when the item is writable.
+     *
+     * ACL-scoped actors without rules for the collection fail closed; everyone else must keep
+     * the item inside their item_filter.
+     */
+    public function itemWriteDenialMessage(Request $request, Collection $collection, CollectionItem $item): ?string
+    {
         $rules = $this->resolveRules($request, $collection);
         if ($rules === null) {
-            $this->abortIfAclScopedWithoutRules($request);
-
-            return;
+            return $this->isAclScopedActor($request)
+                ? __('This action is unauthorized for the collection.')
+                : null;
         }
 
         $data = $this->assembler->assemble($item);
         if (! $this->rulesService->isMatchingMergedItem($rules, $data)) {
-            abort(403, __('This item is outside your permission filter.'));
+            return __('This item is outside your permission filter.');
         }
+
+        return null;
     }
 
     /**
@@ -299,15 +317,23 @@ class CollectionPermissionEnforcerService
      */
     private function abortIfAclScopedWithoutRules(Request $request): void
     {
-        $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($this->isAclScopedActor($request)) {
             abort(403, __('This action is unauthorized for the collection.'));
+        }
+    }
+
+    /**
+     * API role actors, and admin users holding at least one collection_permissions grant.
+     */
+    private function isAclScopedActor(Request $request): bool
+    {
+        if ($request->attributes->get('apiAccess') instanceof ApiAccess) {
+            return true;
         }
 
         $user = $request->user();
-        if ($user instanceof User && $this->userHasAnyCollectionGrant($user)) {
-            abort(403, __('This action is unauthorized for the collection.'));
-        }
+
+        return $user instanceof User && $this->userHasAnyCollectionGrant($user);
     }
 
     private function userHasAnyCollectionGrant(User $user): bool

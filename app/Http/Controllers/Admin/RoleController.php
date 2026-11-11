@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkRoleActionRequest;
 use App\Http\Requests\Admin\DuplicateRoleRequest;
@@ -20,6 +21,7 @@ use App\Support\Authorization\PermissionGrouper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
@@ -45,7 +47,7 @@ class RoleController extends Controller
      */
     public function index(Request $request): Response|JsonResponse
     {
-        $this->authorizePermission(PermissionEnum::CanShowRoles->value);
+        abort_unless(Gate::allows('viewAny', Role::class), 403);
 
         $search = $this->validatedSearch($request);
 
@@ -95,7 +97,7 @@ class RoleController extends Controller
      */
     public function create(): Response
     {
-        $this->authorizePermission(PermissionEnum::CanCreateRoles->value);
+        abort_unless(Gate::allows('create', Role::class), 403);
 
         return Inertia::render('admin/roles/form', $this->roleFormProps());
     }
@@ -137,9 +139,7 @@ class RoleController extends Controller
      */
     public function duplicate(DuplicateRoleRequest $request, Role $role): RedirectResponse
     {
-        if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
-            abort(403, __('This role cannot be duplicated.'));
-        }
+        Gate::authorize('duplicate', $role);
 
         $data = $request->validated();
         $guard = config('auth.defaults.guard', 'web');
@@ -192,6 +192,9 @@ class RoleController extends Controller
 
     /**
      * Render the edit-role form for the given role.
+     *
+     * Permission only: RolePolicy::update() refuses any super-admin role update that
+     * does not repeat its name (UpdateRoleRequest's rule), so the form cannot reuse it.
      */
     public function edit(Role $role): Response
     {
@@ -213,11 +216,9 @@ class RoleController extends Controller
     {
         $data = $request->validated();
 
-        if ($role->isLockedSystemRole()) {
-            if (array_key_exists('name', $data) && $data['name'] !== $role->name) {
-                abort(403, __('System roles cannot be renamed.'));
-            }
-        } elseif (array_key_exists('name', $data)) {
+        Gate::authorize('update', [$role, $data['name'] ?? null]);
+
+        if (! $role->isLockedSystemRole() && array_key_exists('name', $data)) {
             $role->update(['name' => $data['name']]);
         }
 
@@ -245,11 +246,7 @@ class RoleController extends Controller
      */
     public function destroy(Role $role): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanDeleteRoles->value);
-
-        if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
-            abort(403, __('This role cannot be deleted.'));
-        }
+        Gate::authorize('delete', $role);
 
         $role->delete();
 
