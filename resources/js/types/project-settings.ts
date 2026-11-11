@@ -90,7 +90,8 @@ type DeployHookFormEntry = {
 export type DeployLastRun = {
     hook_id: string;
     hook_name: string;
-    outcome: 'success' | 'failed' | string;
+    /** `success` or `failed`; kept as string because older stored rows may hold other values. */
+    outcome: string;
     status: number | null;
     message: string | null;
     source: string;

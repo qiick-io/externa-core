@@ -9,7 +9,10 @@ globalThis.ResizeObserver ??= class {
     unobserve(): void {}
     disconnect(): void {}
 };
-Element.prototype.scrollIntoView ??= function scrollIntoView(): void {};
+
+if (!('scrollIntoView' in Element.prototype)) {
+    Element.prototype.scrollIntoView = function scrollIntoView(): void {};
+}
 
 const options = [
     { value: 'auth', label: 'Authentication' },

@@ -170,7 +170,7 @@ export function serializeFilterRules(
 
         if (!operatorNeedsValue(rule.operator)) {
             out[rule.field] = {
-                ...(out[rule.field] ?? {}),
+                ...out[rule.field],
                 [rule.operator]: '1',
             };
             continue;
@@ -183,7 +183,7 @@ export function serializeFilterRules(
         }
 
         out[rule.field] = {
-            ...(out[rule.field] ?? {}),
+            ...out[rule.field],
             [rule.operator]: value,
         };
     }
