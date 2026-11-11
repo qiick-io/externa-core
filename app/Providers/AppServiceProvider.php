@@ -12,6 +12,7 @@ use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Settings\ProjectSettingsService;
+use App\Support\Authorization\RequestActorResolver;
 use App\Support\Http\CurlSseStreamer;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -123,8 +124,19 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureAuthorization(): void
     {
-        Gate::before(function (?User $user): ?bool {
+        // Super-admin bypass for permission-name and string abilities only. Model policies
+        // decide for themselves (they keep invariants that bind super-admins too), and API
+        // actors never bypass: an MCP key owned by a super-admin keeps its key scopes.
+        Gate::before(function (?User $user, string $ability, array $arguments): ?bool {
             if ($user === null) {
+                return null;
+            }
+
+            if (app(RequestActorResolver::class)->hasApiAccess()) {
+                return null;
+            }
+
+            if ($arguments !== [] && Gate::getPolicyFor($arguments[0]) !== null) {
                 return null;
             }
 
