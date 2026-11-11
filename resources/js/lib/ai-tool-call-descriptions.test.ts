@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import { describe, expect, it } from 'vite-plus/test';
 import { describeAssistantToolCall } from '@/lib/ai-tool-call-descriptions';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 const LABELS: Record<string, string> = {
     'ai.toolCalls.ManageCollections.list': 'List collections',
@@ -13,7 +14,7 @@ const translate = ((key: string, options?: Record<string, unknown>) =>
     LABELS[key] ??
     (options && 'defaultValue' in options
         ? options.defaultValue
-        : `${key}:${String(options?.tool ?? '')}`)) as unknown as TFunction;
+        : `${key}:${scalarToString(options?.tool, '')}`)) as unknown as TFunction;
 
 describe('describeAssistantToolCall', () => {
     it('labels a tool action and names the record it touches', () => {

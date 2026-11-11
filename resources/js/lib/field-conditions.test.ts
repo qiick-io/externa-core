@@ -179,3 +179,20 @@ test('show-when still hides when OR rules miss', () => {
 
     expect(flags.hidden).toBe(true);
 });
+
+test('equals matches one value of a multi-value field and never an object (#671)', () => {
+    const requiredWhen = (value: unknown, data: Record<string, unknown>) =>
+        evaluateFieldFlags(
+            {
+                conditions: {
+                    logic: 'and',
+                    rules: [{ field: 'a', operator: 'equals', value }],
+                    required: true,
+                },
+            },
+            data,
+        ).required;
+
+    expect(requiredWhen('x', { a: ['x', 'y'] })).toBe(true);
+    expect(requiredWhen('', { a: { nested: true } })).toBe(false);
+});
