@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Ai;
 
 use App\Ai\Agents\AppAssistant;
@@ -12,8 +14,10 @@ use App\Models\AiChatAttachment;
 use App\Models\User;
 use App\Services\Ai\AiConversationContextService;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Files\File;
+use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
@@ -44,11 +48,12 @@ class AiChatController extends Controller
         $conversationId = $validated['conversation_id'] ?? null;
 
         if (is_string($conversationId) && $conversationId !== '') {
-            $owned = $user->conversations()
-                ->where('id', $conversationId)
-                ->exists();
+            $conversation = Conversation::query()->find($conversationId);
 
-            abort_unless($owned, Response::HTTP_NOT_FOUND);
+            abort_unless(
+                $conversation instanceof Conversation && Gate::allows('update', $conversation),
+                Response::HTTP_NOT_FOUND,
+            );
         }
 
         if (! app()->runningUnitTests()) {

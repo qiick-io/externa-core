@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Enums\FilePermissionActionEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Models\File;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Validates `PATCH /api/v1/files/{id}`: a partial update of the name and descriptive metadata.
@@ -16,8 +15,6 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateFileRequest extends FormRequest
 {
-    use AuthorizesFileAccessTrait;
-
     private ?File $targetFile = null;
 
     /**
@@ -25,7 +22,7 @@ class UpdateFileRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $this->authorizeFile($this, FilePermissionActionEnum::Update);
+        Gate::authorize('update', File::class);
 
         $file = File::query()->find((int) $this->route('id'));
         if ($file === null) {

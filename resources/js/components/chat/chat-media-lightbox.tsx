@@ -92,25 +92,41 @@ function ChatMediaLightboxImage({
     );
     const [waitingImg, setWaitingImg] = useState(!needsFullFetch);
     const [failed, setFailed] = useState(false);
+    const [previousSource, setPreviousSource] = useState({
+        attachmentId: attachment.id,
+        fullUrl,
+        needsFullFetch,
+        previewUrl,
+    });
 
-    useEffect(() => {
+    // Reset the loading state during render when another image is shown
+    // (React's "adjust state on prop change" pattern); the effect below fetches it.
+    if (
+        previousSource.attachmentId !== attachment.id ||
+        previousSource.fullUrl !== fullUrl ||
+        previousSource.needsFullFetch !== needsFullFetch ||
+        previousSource.previewUrl !== previewUrl
+    ) {
+        setPreviousSource({
+            attachmentId: attachment.id,
+            fullUrl,
+            needsFullFetch,
+            previewUrl,
+        });
         setFailed(false);
         setWaitingImg(!needsFullFetch);
+        setDisplayUrl(needsFullFetch ? previewUrl : fullUrl);
+        setLoadingFullRes(needsFullFetch);
+        setProgress(needsFullFetch ? 0 : null);
+    }
 
+    useEffect(() => {
         if (!needsFullFetch) {
-            setDisplayUrl(fullUrl);
-            setLoadingFullRes(false);
-            setProgress(null);
-
             return;
         }
 
         const controller = new AbortController();
         let blobUrl: string | null = null;
-
-        setDisplayUrl(previewUrl);
-        setLoadingFullRes(true);
-        setProgress(0);
 
         void (async () => {
             try {
@@ -234,12 +250,23 @@ export function ChatMediaLightbox({
         Math.max(count - 1, 0),
     );
     const [index, setIndex] = useState(startIndex);
+    const [previousOpenState, setPreviousOpenState] = useState({
+        open,
+        startIndex,
+    });
 
-    useEffect(() => {
+    // Jump back to the clicked item during render when the lightbox opens
+    // (React's "adjust state on prop change" pattern).
+    if (
+        previousOpenState.open !== open ||
+        previousOpenState.startIndex !== startIndex
+    ) {
+        setPreviousOpenState({ open, startIndex });
+
         if (open) {
             setIndex(startIndex);
         }
-    }, [open, startIndex]);
+    }
 
     useEffect(() => {
         if (!api) {

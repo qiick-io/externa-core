@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/components/admin/data-table';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
@@ -54,14 +54,24 @@ export default function AdminRolesIndex({
     const duplicateRole = rows.find((role) => role.id === duplicateRoleId);
     const pageErrors = page.props.errors as Record<string, string> | undefined;
 
-    useEffect(() => {
-        if (duplicateRoleId === null || !pageErrors?.name) {
-            return;
-        }
+    const [previousDuplicateState, setPreviousDuplicateState] = useState({
+        duplicateRoleId,
+        pageErrors,
+    });
 
-        setDuplicateError(pageErrors.name);
-        setDuplicating(false);
-    }, [duplicateRoleId, pageErrors]);
+    // Show a failed duplicate's validation error during render (React's
+    // "adjust state on prop change" pattern).
+    if (
+        previousDuplicateState.duplicateRoleId !== duplicateRoleId ||
+        previousDuplicateState.pageErrors !== pageErrors
+    ) {
+        setPreviousDuplicateState({ duplicateRoleId, pageErrors });
+
+        if (duplicateRoleId !== null && pageErrors?.name) {
+            setDuplicateError(pageErrors.name);
+            setDuplicating(false);
+        }
+    }
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [

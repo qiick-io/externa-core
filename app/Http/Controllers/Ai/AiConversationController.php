@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
@@ -8,10 +10,12 @@ use App\Http\Requests\Ai\SearchAiConversationsRequest;
 use App\Http\Requests\Ai\StoreAiConversationRequest;
 use App\Http\Requests\Ai\TruncateAiConversationRequest;
 use App\Models\User;
+use App\Policies\AiConversationPolicy;
 use App\Services\Ai\AiConversationMessagePresenterService;
 use App\Services\Ai\AiConversationMutationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
@@ -55,7 +59,7 @@ class AiConversationController extends Controller
      */
     public function show(Request $request, string $conversation): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $this->ownedConversation($conversation, 'view');
 
         $messages = ConversationMessage::query()
             ->where('conversation_id', $owned->id)
@@ -105,7 +109,7 @@ class AiConversationController extends Controller
      */
     public function destroy(Request $request, string $conversation): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $this->ownedConversation($conversation, 'delete');
 
         $this->mutations->deleteConversation($owned);
 
@@ -144,7 +148,7 @@ class AiConversationController extends Controller
      */
     public function togglePin(Request $request, string $conversation): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $this->ownedConversation($conversation, 'update');
 
         $owned->pinned_at = $owned->pinned_at === null ? now() : null;
         $owned->save();
@@ -184,18 +188,17 @@ class AiConversationController extends Controller
     }
 
     /**
-     * Resolve a conversation owned by the authenticated user or abort with 404.
+     * Resolve a conversation the authenticated user may act on ({@see AiConversationPolicy}), or
+     * abort with an empty 404 so a foreign conversation looks like a missing one.
      */
-    private function ownedConversation(Request $request, string $conversationId): Conversation
+    private function ownedConversation(string $conversationId, string $ability): Conversation
     {
-        /** @var User $user */
-        $user = $request->user();
+        $conversation = Conversation::query()->find($conversationId);
 
-        $conversation = $user->conversations()
-            ->where('id', $conversationId)
-            ->first();
-
-        abort_if($conversation === null, Response::HTTP_NOT_FOUND);
+        abort_unless(
+            $conversation instanceof Conversation && Gate::allows($ability, $conversation),
+            Response::HTTP_NOT_FOUND,
+        );
 
         return $conversation;
     }
