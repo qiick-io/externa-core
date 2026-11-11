@@ -157,66 +157,91 @@ export function PaginatedMultiSelect({
         });
     }, [value, options, initialOptions]);
 
-    const fetchPage = useCallback(
-        async (targetPage: number, reset: boolean) => {
+    /**
+     * Network half of a page load: callers raise the loading flag first, so the
+     * open effect below can start it without a synchronous setState.
+     */
+    const requestPage = useCallback(
+        (targetPage: number, reset: boolean): void => {
             if (fetchingRef.current) {
                 return;
             }
 
             fetchingRef.current = true;
-            setLoading(true);
 
-            try {
-                const params = new URLSearchParams({
-                    page: String(targetPage),
-                    per_page: String(perPage),
-                });
+            const params = new URLSearchParams({
+                page: String(targetPage),
+                per_page: String(perPage),
+            });
 
-                if (debouncedSearch) {
-                    params.set('search', debouncedSearch);
-                }
-
-                const separator = fetchUrl.includes('?') ? '&' : '?';
-                const response = await fetch(
-                    `${fetchUrl}${separator}${params.toString()}`,
-                    {
-                        headers: {
-                            Accept: 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                    },
-                );
-
-                if (!response.ok) {
-                    return;
-                }
-
-                const raw: unknown = await response.json();
-                const json = mapResponse(raw);
-
-                setOptions((prev) =>
-                    reset ? json.data : [...prev, ...json.data],
-                );
-                setHasMore(json.current_page < json.last_page);
-                setPage(json.current_page);
-            } catch {
-                // leave options as-is; loading cleared in finally
-            } finally {
-                fetchingRef.current = false;
-                setLoading(false);
+            if (debouncedSearch) {
+                params.set('search', debouncedSearch);
             }
+
+            const separator = fetchUrl.includes('?') ? '&' : '?';
+
+            void fetch(`${fetchUrl}${separator}${params.toString()}`, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            })
+                .then(async (response) => {
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const raw: unknown = await response.json();
+                    const json = mapResponse(raw);
+
+                    setOptions((prev) =>
+                        reset ? json.data : [...prev, ...json.data],
+                    );
+                    setHasMore(json.current_page < json.last_page);
+                    setPage(json.current_page);
+                })
+                .catch(() => {
+                    // leave options as-is; loading cleared in finally
+                })
+                .finally(() => {
+                    fetchingRef.current = false;
+                    setLoading(false);
+                });
         },
         [debouncedSearch, fetchUrl, perPage],
     );
+
+    const [previousRequest, setPreviousRequest] = useState({
+        open,
+        debouncedSearch,
+        fetchUrl,
+        perPage,
+    });
+
+    // Raise the loading flag during render for the first page the effect below
+    // requests when the popover opens or the search settles (the same inputs
+    // `requestPage` depends on).
+    if (
+        previousRequest.open !== open ||
+        previousRequest.debouncedSearch !== debouncedSearch ||
+        previousRequest.fetchUrl !== fetchUrl ||
+        previousRequest.perPage !== perPage
+    ) {
+        setPreviousRequest({ open, debouncedSearch, fetchUrl, perPage });
+
+        if (open) {
+            setLoading(true);
+        }
+    }
 
     useEffect(() => {
         if (!open) {
             return;
         }
 
-        void fetchPage(1, true);
-    }, [open, debouncedSearch, fetchPage]);
+        requestPage(1, true);
+    }, [open, requestPage]);
 
     const toggle = (id: number): void => {
         if (!multiple) {
@@ -239,7 +264,8 @@ export function PaginatedMultiSelect({
         }
 
         if (list.scrollTop + list.clientHeight >= list.scrollHeight - 24) {
-            void fetchPage(page + 1, false);
+            setLoading(true);
+            requestPage(page + 1, false);
         }
     };
 

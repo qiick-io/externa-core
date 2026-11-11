@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Http\Controllers\Controller;
@@ -21,6 +20,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -71,7 +71,7 @@ class FileController extends Controller
             abort(404);
         }
 
-        $this->authorizeFileRead($request, $file);
+        Gate::authorize('view', $file);
 
         return response()->json([
             'data' => (new FileResource($file))->toArray($request),
@@ -85,7 +85,7 @@ class FileController extends Controller
             abort(404);
         }
 
-        $this->authorizeFileRead($request, $file);
+        Gate::authorize('view', $file);
 
         if (! Storage::disk($file->disk)->exists($file->storage_path)) {
             abort(404);
@@ -109,7 +109,7 @@ class FileController extends Controller
             abort(404);
         }
 
-        $this->authorizeFileRead($request, $file);
+        Gate::authorize('view', $file);
 
         try {
             if (preg_match('/^size-(\d+)$/', $key, $matches) === 1) {
@@ -174,7 +174,7 @@ class FileController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Delete);
+        Gate::authorize('delete', File::class);
 
         $file = File::query()->find($id);
         if ($file === null) {

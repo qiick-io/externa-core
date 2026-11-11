@@ -145,7 +145,12 @@ export function FilePickerDrawer({
         [parentId, search],
     );
 
-    useEffect(() => {
+    const [wasOpen, setWasOpen] = useState(open);
+
+    // Reset during render when the drawer closes (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
         if (!open) {
             setParentId(null);
             setBreadcrumbs([]);
@@ -154,7 +159,11 @@ export function FilePickerDrawer({
             setLastPage(1);
             setFiles([]);
             setSelected([]);
+        }
+    }
 
+    useEffect(() => {
+        if (!open) {
             return;
         }
 
