@@ -99,12 +99,23 @@ test('items can be filtered by translatable field', function () {
     ]);
     app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 
-    $response = $this->get(route('collections.items.index', [
-        'collection' => $collection->id,
-        'filter' => ['title' => 'uniquehello'],
+    $otherItem = CollectionItem::factory()->create([
+        'collection_id' => $collection->id,
+    ]);
+    app(CollectionItemValuesWriterService::class)->sync($otherItem, $collection, $normalizer->normalize($collection, [
+        'title' => ['en' => 'Unrelated', 'it' => 'Diverso'],
     ]));
 
-    $response->assertOk();
+    // The filter matches case-insensitively inside any locale and keeps only that item.
+    $this->get(route('collections.items.index', [
+        'collection' => $collection->id,
+        'filter' => ['title' => 'uniquehello'],
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/items/index')
+            ->has('items.data', 1)
+            ->where('items.data.0.id', $item->id));
 });
 
 test('item resource flattens translations for current locale', function () {

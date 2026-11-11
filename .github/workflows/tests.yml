@@ -280,6 +280,90 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: ./vendor/bin/pest --parallel
 
+  # Line coverage report (#288). Not a required check and never blocks: it runs with the full
+  # matrix (push, schedule, PR → main, toolchain PRs), writes the totals to the job summary and
+  # uploads Clover + text reports. A minimum threshold comes later, once the baseline is known.
+  coverage:
+    needs: [changes, assets]
+    if: needs.changes.outputs.mode == 'full' && needs.assets.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: pcov
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy Environment File
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Download built assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vite-build
+          path: public/build
+
+      - name: Tests with coverage
+        run: ./vendor/bin/pest --parallel --coverage-clover=coverage/clover.xml --coverage-text=coverage/coverage.txt
+
+      - name: Coverage summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f coverage/coverage.txt ]]; then
+            {
+              echo '### Line coverage (app/)'
+              echo
+              echo '```'
+              sed -n '1,12p' coverage/coverage.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No coverage report was produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
   # DB + browser jobs always run (required check names). Heavy work only when mode=full;
   # otherwise a step stub reports success. Services may still boot on stubs — cheap vs Pest.
 
