@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
 use App\Models\User;
-use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
@@ -18,7 +18,6 @@ use Illuminate\Validation\Validator;
  */
 class UpdateUserRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
     use GuardsSuperAdminGrantsTrait;
 
     /**
@@ -26,12 +25,10 @@ class UpdateUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanEditUsers->value);
-
         /** @var User $targetUser */
         $targetUser = $this->route('user');
 
-        abort_if(app(SuperAdminGuardService::class)->isProtectedFrom($this->user(), $targetUser), 403);
+        abort_unless(Gate::allows('update', $targetUser), 403);
 
         return true;
     }
