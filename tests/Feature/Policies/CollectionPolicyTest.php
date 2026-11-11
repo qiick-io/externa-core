@@ -112,3 +112,13 @@ it('caps an owned API key at its owner access', function (): void {
 it('denies a guest without an API actor', function (): void {
     expect(Gate::forUser(null)->allows('viewItems', $this->posts))->toBeFalse();
 });
+
+it('judges another gate user on their own grants during an API request', function (): void {
+    $auth = makeApiKeyForRole();
+    grantRoleActions($auth['role'], $this->posts, [CollectionPermissionActionEnum::Read]);
+    request()->attributes->set('apiAccess', new ApiAccess('api_key', $auth['role'], $auth['key']));
+    $pagesReader = collectionPolicyAclUser($this->pages, [CollectionPermissionActionEnum::Read]);
+
+    expect(Gate::forUser($pagesReader)->allows('viewItems', $this->pages))->toBeTrue()
+        ->and(Gate::forUser($pagesReader)->allows('viewItems', $this->posts))->toBeFalse();
+});

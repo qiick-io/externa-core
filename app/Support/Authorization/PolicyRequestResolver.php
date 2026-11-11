@@ -31,6 +31,9 @@ final class PolicyRequestResolver
 
         $actorRequest = $request->duplicate();
         $actorRequest->setUserResolver(static fn (): ?User => $user);
+        // The gate user is someone else than the request's actor: judge that user, not the
+        // request's API key.
+        $actorRequest->attributes->remove('apiAccess');
 
         return $actorRequest;
     }
