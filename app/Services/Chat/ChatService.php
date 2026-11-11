@@ -13,6 +13,7 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
 use App\Models\UserGroup;
+use App\Policies\ChatPolicy;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Authorization\EffectivePermissionResolverService;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -139,25 +141,17 @@ class ChatService
         });
     }
 
+    /**
+     * Abort unless the request's user may open the thread ({@see ChatPolicy::view()}): 401 without
+     * a user, 404 for an unreadable item thread, 403 outside a direct thread. The bodies stay empty.
+     */
     public function assertAccessible(Request $request, Chat $chat): void
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        if ($chat->isItem()) {
-            $collection = $chat->collection;
-            $item = $chat->item;
-            abort_unless($collection instanceof Collection && $item instanceof CollectionItem, 404);
-            abort_unless(
-                $this->permissionResolver->hasPermission($user, PermissionEnum::CanShowCollections->value),
-                404,
-            );
-            $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
-
-            return;
-        }
-
-        abort_unless($this->isParticipant($chat, $user), 403);
+        $decision = Gate::forUser($user)->inspect('view', $chat);
+        abort_if($decision->denied(), $decision->status() ?? 403);
     }
 
     public function isParticipant(Chat $chat, User $user): bool
@@ -376,7 +370,7 @@ class ChatService
     public function archiveDirectChat(Chat $chat, User $user): void
     {
         abort_unless($chat->isDirect(), 422);
-        abort_unless($this->isParticipant($chat, $user), 403);
+        abort_unless(Gate::forUser($user)->allows('participate', $chat), 403);
 
         ChatParticipant::query()
             ->where('chat_id', $chat->id)
@@ -388,7 +382,7 @@ class ChatService
     public function unarchiveDirectChat(Chat $chat, User $user): void
     {
         abort_unless($chat->isDirect(), 422);
-        abort_unless($this->isParticipant($chat, $user), 403);
+        abort_unless(Gate::forUser($user)->allows('participate', $chat), 403);
 
         ChatParticipant::query()
             ->where('chat_id', $chat->id)
@@ -630,7 +624,7 @@ class ChatService
     public function addDirectParticipants(Chat $chat, User $actor, array $userIds, array $groupIds): Chat
     {
         abort_unless($chat->isDirect(), 422);
-        abort_unless($this->isParticipant($chat, $actor), 403);
+        abort_unless(Gate::forUser($actor)->allows('participate', $chat), 403);
 
         $userIds = array_values(array_unique(array_map('intval', $userIds)));
         $groupIds = array_values(array_unique(array_map('intval', $groupIds)));
@@ -701,7 +695,7 @@ class ChatService
     public function leaveDirectChat(Chat $chat, User $user): void
     {
         abort_unless($chat->isDirect(), 422);
-        abort_unless($this->isParticipant($chat, $user), 403);
+        abort_unless(Gate::forUser($user)->allows('participate', $chat), 403);
 
         ChatParticipant::query()
             ->where('chat_id', $chat->id)
