@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\ApiKeyScopeEnum;
-use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Models\ApiKey;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -16,11 +18,9 @@ use Illuminate\Validation\Rule;
  */
 class StoreApiKeyRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanManageApiKeys->value);
+        abort_unless(Gate::allows('create', ApiKey::class), 403);
 
         return true;
     }

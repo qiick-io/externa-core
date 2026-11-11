@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
+use App\Models\UserGroup;
 use App\Support\Validation\StringLimits;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 /**
@@ -14,7 +16,6 @@ use Illuminate\Validation\Validator;
  */
 class StoreUserGroupRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
     use GuardsSuperAdminGrantsTrait;
 
     /**
@@ -30,7 +31,7 @@ class StoreUserGroupRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanCreateGroups->value);
+        abort_unless(Gate::allows('create', UserGroup::class), 403);
 
         return true;
     }
