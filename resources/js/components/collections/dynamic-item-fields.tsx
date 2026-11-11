@@ -1031,7 +1031,9 @@ function NonTranslatableItemField({
             onChange={(event) => {
                 onMarkDirty();
                 const target = event.target as
-                    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+                    | HTMLInputElement
+                    | HTMLSelectElement
+                    | HTMLTextAreaElement;
 
                 if (!target.name) {
                     return;
@@ -1275,7 +1277,7 @@ export function DynamicItemFields({
         for (const [fieldName, value] of Object.entries(revisionApply.values)) {
             applyFieldValue(fieldName, value);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- the nonce is the apply trigger; applyFieldValue is intentionally unstable
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- the nonce is the apply trigger; applyFieldValue is intentionally unstable
     }, [revisionApply?.nonce]);
 
     const undoFieldValue = (fieldName: string): void => {

@@ -50,7 +50,11 @@ import usersRoutes from '@/routes/users';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
 type UserSortField =
-    'first_name' | 'last_name' | 'email' | 'created_at' | 'updated_at';
+    | 'first_name'
+    | 'last_name'
+    | 'email'
+    | 'created_at'
+    | 'updated_at';
 type UserSortDirection = 'asc' | 'desc';
 
 const USER_SORT_FIELDS: readonly UserSortField[] = [

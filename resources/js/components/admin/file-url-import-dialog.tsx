@@ -93,7 +93,7 @@ export function FileUrlImportDialog({
                     value={url}
                     placeholder="https://"
                     aria-label={t('collections.fileField.importFromUrl')}
-                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                    // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                     autoFocus
                     disabled={busy}
                     aria-invalid={urlError !== null}

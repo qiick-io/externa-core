@@ -21,6 +21,10 @@ on:
       - .env.docker*
       - scripts/docker*
       - .github/workflows/docker.yml
+      # The image runs `npm ci` and `npm run build`: toolchain changes must build it too.
+      - package.json
+      - package-lock.json
+      - vite.config.ts
   workflow_dispatch:
     inputs:
       version:

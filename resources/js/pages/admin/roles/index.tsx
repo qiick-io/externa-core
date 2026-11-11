@@ -296,7 +296,7 @@ export default function AdminRolesIndex({
                         <Input
                             id="role-duplicate-name"
                             value={duplicateName}
-                            // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                            // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                             autoFocus
                             disabled={duplicating}
                             onChange={(event) =>

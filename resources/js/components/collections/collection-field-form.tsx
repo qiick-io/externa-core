@@ -224,7 +224,7 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
                 placeholder={t('collections.searchFieldTypes')}
                 aria-label={t('collections.searchFieldTypes')}
                 maxLength={STRING_LIMITS.SEARCH}
-                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                 autoFocus
             />
             <CommandList className="max-h-none overflow-visible">

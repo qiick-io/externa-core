@@ -187,7 +187,7 @@ export default function Login({
                                     type="email"
                                     name="email"
                                     required
-                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                    // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
                                     autoComplete="email"
                                     placeholder="email@example.com"

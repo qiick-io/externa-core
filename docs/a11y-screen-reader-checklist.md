@@ -34,7 +34,7 @@ See [`a11y-third-party-limits.md`](./a11y-third-party-limits.md) for TipTap, Cod
 
 ## Automation coverage (does not replace this pass)
 
-- `eslint-plugin-jsx-a11y` on shared React code (`npm run lint:check`)
+- Oxlint's `jsx-a11y` rules on shared React code (`npm run lint:check`)
 - Pest Browser axe smoke (`tests/Browser/A11ySmokeBrowserTest.php`) — critical/serious on key routes
 - Theme token contrast (`npm run a11y:contrast`)
 - `a11y.*` locale parity (`tests/Unit/I18nLocaleParityTest.php`)

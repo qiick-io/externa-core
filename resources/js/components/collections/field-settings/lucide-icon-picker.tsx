@@ -227,7 +227,7 @@ export function LucideIconPicker({
                                 onChange={(event) =>
                                     setQuery(event.target.value)
                                 }
-                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                             />
                             {query ? (

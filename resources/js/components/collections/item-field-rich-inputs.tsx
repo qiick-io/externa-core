@@ -258,7 +258,8 @@ function WysiwygLinkPopover({ editor }: { editor: Editor }) {
     const openChange = (next: boolean): void => {
         if (next) {
             const previous = editor.getAttributes('link').href as
-                string | undefined;
+                | string
+                | undefined;
             setUrl(previous ?? 'https://');
         }
 

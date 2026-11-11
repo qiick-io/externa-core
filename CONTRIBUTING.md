@@ -26,9 +26,9 @@ Docs: [Contributing](https://docs.externa.qiick.io/docs/contributing).
 
 | Hook | What runs |
 | --- | --- |
-| `pre-commit` | Pint on dirty PHP; ESLint + Prettier on staged JS/TS/CSS |
+| `pre-commit` | Pint on dirty PHP; Oxlint + Oxfmt (`vp lint` / `vp fmt`) on staged JS/TS/CSS |
 | `commit-msg` | commitlint (Conventional Commits) |
-| `pre-push` | `pint --test` + `eslint` — **not** full Pest |
+| `pre-push` | `pint --test` + `npm run lint:check` (Oxlint) — **not** full Pest |
 
 `npm` `prepare` runs `lefthook install` only when `.git` exists (clone/checkout). Docker/`npm ci` without a git checkout no-ops — image builds stay green.
 
@@ -96,7 +96,7 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Skip link first focusable → `#main-content`; exactly one `<main>` per page.
   - Test at 320px width and ~400% zoom; never set `maximum-scale` / `user-scalable=no` on the viewport meta.
   - One a11y concern per PR when practical (rules, landmarks, forms, tooling).
-  - Lint: `eslint-plugin-jsx-a11y` errors on `components/` / `layouts/` / `hooks/` (shadcn `components/ui/*` ignored — covered by axe); warnings elsewhere with `--max-warnings 0`.
+  - Lint: Oxlint's `jsx-a11y` rules (`vite.config.ts`) error on `components/` / `layouts/` / `hooks/` (shadcn `components/ui/*` ignored — covered by axe); warnings elsewhere, and warnings fail too (`denyWarnings`).
   - Axe smoke: `tests/Browser/A11ySmokeBrowserTest.php` (critical/serious) gates the `browser` CI check on code PRs.
   - Manual AT pass: [`docs/a11y-screen-reader-checklist.md`](./docs/a11y-screen-reader-checklist.md) before release.
   - Third-party limits (TipTap, CodeMirror, Leaflet, …): [`docs/a11y-third-party-limits.md`](./docs/a11y-third-party-limits.md) — labelled wrappers + keyboard alternatives, no forks.

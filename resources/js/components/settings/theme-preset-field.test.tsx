@@ -9,7 +9,7 @@ import {
     expect,
     it,
     vi,
-} from 'vitest';
+} from 'vite-plus/test';
 import { ThemePresetField } from '@/components/settings/theme-preset-field';
 import type { ThemePresetCatalogItem, ThemePresetSlug } from '@/types';
 

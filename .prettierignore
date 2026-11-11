@@ -1,6 +1,0 @@
-resources/js/components/ui/*
-resources/views/mail/*
-resources/css/shadcn-tailwind.css
-
-# Managed by the qiick standards pack (sync-standards)
-.qiick/

@@ -116,7 +116,7 @@ class SyncPermissionsCommand extends Command
         $lines[] = '}';
         $lines[] = '';
         $lines[] = '/** @deprecated Use PermissionEnum — kept for backwards compatibility */';
-        // ponytail: match Prettier printWidth so permissions:sync does not fail format:check
+        // ponytail: match the Oxfmt printWidth (80) so permissions:sync does not fail format:check
         $lines[] = 'export const PermissionEnumValues = Object.values(';
         $lines[] = '    PermissionEnum,';
         $lines[] = ') as PermissionEnum[];';

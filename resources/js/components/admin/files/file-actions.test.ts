@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { resolveFileActions } from '@/components/admin/files/file-actions';
 import type { FileActionPermissions } from '@/components/admin/files/file-actions';
 import type { AdminFileRow } from '@/types/files';

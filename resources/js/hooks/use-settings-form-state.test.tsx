@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import { UnsavedChangesContext } from '@/hooks/use-unsaved-changes';
 import type { UnsavedChangesContextValue } from '@/hooks/use-unsaved-changes';

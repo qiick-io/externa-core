@@ -166,6 +166,10 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:i18n
 
+      - name: qiick ratcheted rules (Oxlint)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run lint:standards
+
       - name: Frontend unit tests (Vitest)
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run test:unit
