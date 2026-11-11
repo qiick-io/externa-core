@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\Collections;
 
 use App\Http\Requests\Concerns\AuthorizesCollectionRouteAccessTrait;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Validates the item revision history query: paging and an optional date range.
@@ -24,10 +24,9 @@ class ListCollectionItemRevisionsRequest extends FormRequest
     public function authorize(): bool
     {
         abort_unless((int) $this->routeItem()->collection_id === (int) $this->routeCollection()->id, 404);
-        app(CollectionPermissionEnforcerService::class)->assertItemReadable(
-            $this,
-            $this->routeCollection(),
-            $this->routeItem(),
+        abort_unless(
+            Gate::forUser($this->user())->allows('view', [$this->routeItem(), $this->routeCollection()]),
+            404,
         );
 
         return true;

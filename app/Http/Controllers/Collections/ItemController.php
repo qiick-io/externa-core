@@ -52,6 +52,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -99,11 +100,7 @@ class ItemController extends Controller
      */
     public function index(Request $request, Collection $collection): Response|RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
+        Gate::forUser($request->user())->authorize('viewItems', $collection);
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
 
@@ -360,11 +357,7 @@ class ItemController extends Controller
      */
     public function export(Request $request, Collection $collection): StreamedResponse|RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
+        Gate::forUser($request->user())->authorize('viewItems', $collection);
 
         if ($collection->is_singleton) {
             return redirect()->route('collections.show', $collection);
@@ -411,11 +404,7 @@ class ItemController extends Controller
         UpdateCollectionListColumnsRequest $request,
         Collection $collection,
     ): RedirectResponse {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
+        Gate::forUser($request->user())->authorize('viewItems', $collection);
 
         $user = $request->user();
         abort_if($user === null, 403);
@@ -474,11 +463,7 @@ class ItemController extends Controller
      */
     public function newItem(Request $request, Collection $collection): Response|RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Create,
-        );
+        Gate::forUser($request->user())->authorize('createItems', $collection);
 
         if ($collection->is_singleton && $collection->items()->exists()) {
             abort(422, __('A singleton collection already has its content item.'));
@@ -507,11 +492,7 @@ class ItemController extends Controller
      */
     public function store(StoreCollectionItemRequest $request, Collection $collection): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Create,
-        );
+        Gate::forUser($request->user())->authorize('createItems', $collection);
 
         if ($collection->is_singleton && $collection->items()->exists()) {
             abort(422, __('A singleton collection already has its content item.'));
@@ -538,13 +519,9 @@ class ItemController extends Controller
      */
     public function show(Request $request, Collection $collection, CollectionItem $item): Response|RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
+        Gate::forUser($request->user())->authorize('viewItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+        abort_unless(Gate::forUser($request->user())->allows('view', [$item, $collection]), 404);
 
         if ($collection->is_singleton) {
             return redirect()->route('collections.show', $collection);
@@ -680,13 +657,9 @@ class ItemController extends Controller
      */
     public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
         $expectedUpdatedAt = $request->validated('expected_updated_at');
         if (is_string($expectedUpdatedAt) && $expectedUpdatedAt !== '' && $item->updated_at !== null) {
@@ -1075,13 +1048,9 @@ class ItemController extends Controller
      */
     public function publish(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
         abort_unless($collection->versioning, 422);
 
         if (! is_array($item->draft_data)) {
@@ -1118,13 +1087,9 @@ class ItemController extends Controller
      */
     public function submitForReview(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
         /** @var User $user */
         $user = $request->user();
@@ -1142,13 +1107,9 @@ class ItemController extends Controller
      */
     public function approve(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
         /** @var User $user */
         $user = $request->user();
@@ -1280,13 +1241,9 @@ class ItemController extends Controller
      */
     public function discardDraft(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
         abort_unless($collection->versioning, 422);
 
         if (! is_array($item->draft_data)) {
@@ -1324,13 +1281,9 @@ class ItemController extends Controller
      */
     public function destroy(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Delete,
-        );
+        Gate::forUser($request->user())->authorize('deleteItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('delete', [$item, $collection]);
 
         $item->delete();
 
@@ -1343,11 +1296,7 @@ class ItemController extends Controller
      */
     public function restore(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Update,
-        );
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
 
         $item->restore();
@@ -1363,13 +1312,9 @@ class ItemController extends Controller
      */
     public function forceDelete(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Delete,
-        );
+        Gate::forUser($request->user())->authorize('deleteItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        Gate::forUser($request->user())->authorize('delete', [$item, $collection]);
 
         $item->forceDelete();
 
@@ -1392,7 +1337,7 @@ class ItemController extends Controller
             'restore' => CollectionPermissionActionEnum::Update,
             default => CollectionPermissionActionEnum::Delete,
         };
-        $this->permissionEnforcer->assertCollectionAction($request, $collection, $collectionAction);
+        Gate::forUser($request->user())->authorize($collectionAction->itemsAbility(), $collection);
 
         $query = CollectionItem::query()
             ->where('collection_id', $collection->id)
@@ -1407,7 +1352,7 @@ class ItemController extends Controller
         // Authorize every selected item before mutating any (no partial apply on AuthZ fail).
         if ($action !== 'restore') {
             foreach ($items as $item) {
-                $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+                Gate::forUser($request->user())->authorize('delete', [$item, $collection]);
             }
         }
 
