@@ -327,9 +327,6 @@ export default defineConfig({
             // aria-controls at runtime (passing it ourselves would override Radix's own id).
             'jsx-a11y/prefer-tag-over-role': 'off',
             'jsx-a11y/role-has-required-aria-props': 'off',
-            'react/refs': 'off',
-            'react/purity': 'off',
-            'react/preserve-manual-memoization': 'off',
         },
         overrides: [
             {

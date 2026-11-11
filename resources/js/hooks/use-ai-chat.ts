@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import type { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -241,7 +247,9 @@ export function useAiChat(options: UseAiChatOptions = {}) {
     const inFlightTurnRef = useRef<InFlightTurn | null>(null);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const callbacksRef = useRef(options);
-    callbacksRef.current = options;
+    useLayoutEffect(() => {
+        callbacksRef.current = options;
+    });
 
     useEffect(() => {
         return () => {
