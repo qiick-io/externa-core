@@ -26,6 +26,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Inertia 3 (`inertiajs/inertia-laravel` 3, `@inertiajs/react` 3). `config/inertia.php` follows the v3 layout (page settings under `pages`); the root template marks the title with `data-inertia`. `php artisan externa:upgrade` already clears the compiled views the new `@inertia` output needs. If you customised `config/inertia.php` or `resources/views/app.blade.php`, re-apply your changes on the new files (#611).
 - TypeScript 7 (the Go-native compiler); `npm run types:check` is about ten times faster. Contributors: `npm ci` after pulling (#611).
 
+### Fixed
+
+- Converting a field type on a large collection keeps only ids and values between the read and write phases, and writes chunk by chunk, instead of holding every item with its relations in memory (#441).
+
 ## [1.4.0] - 2026-11-10
 
 ### Upgrade notes
