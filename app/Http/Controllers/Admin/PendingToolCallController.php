@@ -111,6 +111,20 @@ class PendingToolCallController extends Controller
             abort(403);
         }
 
+        // Rejecting needs the same tool ability as approving; the requester may always withdraw
+        // their own call (#441).
+        $definition = $this->registry->get($pendingToolCall->tool);
+        $isRequester = $pendingToolCall->requested_by !== null && $pendingToolCall->requested_by === $user->id;
+        $canDecide = $definition !== null && $this->registry->actorPassesAbilities(
+            $definition,
+            $user,
+            is_array($pendingToolCall->arguments) ? $pendingToolCall->arguments : [],
+        );
+
+        if (! $isRequester && ! $canDecide) {
+            return redirect()->back()->with('error', __('You do not have permission to reject this tool call.'));
+        }
+
         try {
             $this->approvals->reject($pendingToolCall, $user);
         } catch (InvalidArgumentException $e) {

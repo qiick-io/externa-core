@@ -6,9 +6,13 @@ namespace App\Services\Ai;
 
 use App\Ai\Support\AiActivityLogger;
 use App\Data\Ai\AiToolExecutionResultData;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\PendingToolCallStatusEnum;
+use App\Enums\RoleEnum;
+use App\Models\ApiKey;
 use App\Models\PendingToolCall;
 use App\Models\User;
+use App\Support\Api\ApiAccess;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 use Throwable;
@@ -143,7 +147,13 @@ class AiToolExecutorService
         }
 
         if ($isMutating && $surface === 'mcp' && $pendingId === null && ! $skipApproval) {
-            $pending = $this->approvals->createPending($name, $arguments, $surface, $actor);
+            $pending = $this->approvals->createPending(
+                $name,
+                $arguments,
+                $surface,
+                $actor,
+                apiKey: app()->bound(ApiAccess::class) ? app(ApiAccess::class)->apiKey : null,
+            );
 
             return $this->finish(
                 new AiToolExecutionResultData(
@@ -301,6 +311,7 @@ class AiToolExecutorService
     public function approveAndExecute(PendingToolCall $pending, User $approver): AiToolExecutionResultData
     {
         try {
+            $apiAccess = $this->apiAccessForApprovedCall($pending);
             $this->approvals->markApproved($pending, $approver);
         } catch (InvalidArgumentException $e) {
             return $this->finish(
@@ -322,7 +333,7 @@ class AiToolExecutorService
         $pending->refresh();
         $actor = $pending->requester;
 
-        return $this->execute(
+        return $this->withApiAccess($apiAccess, fn (): AiToolExecutionResultData => $this->execute(
             $pending->tool,
             is_array($pending->arguments) ? $pending->arguments : [],
             $actor,
@@ -332,7 +343,82 @@ class AiToolExecutorService
                 'approved_by' => $approver,
                 'include_write' => true,
             ],
-        );
+        ));
+    }
+
+    /**
+     * The API key access an approved MCP call runs under: the key's role and scopes (collection
+     * slugs, read-only, files scope), not the owner's full permissions (#441). Null for calls a
+     * session user made. The key is checked again, because it may have been revoked, expired or
+     * narrowed while the call waited.
+     *
+     * @throws InvalidArgumentException when the requesting key can no longer run a write
+     */
+    private function apiAccessForApprovedCall(PendingToolCall $pending): ?ApiAccess
+    {
+        if ($pending->api_key_id === null) {
+            return null;
+        }
+
+        $apiKey = ApiKey::query()->with(['role', 'owner'])->find($pending->api_key_id);
+        $owner = $apiKey?->owner;
+        $role = $apiKey?->role;
+
+        $isUsable = $apiKey !== null
+            && $apiKey->isActive()
+            && $apiKey->hasOwner()
+            && $owner instanceof User && $owner->is_active && ! $owner->trashed()
+            && $role !== null && $role->name !== RoleEnum::SuperAdmin->value
+            && (bool) config('ai.mcp.write_enabled', false)
+            && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite)
+            && ! $apiKey->read_only;
+
+        if (! $isUsable) {
+            throw new InvalidArgumentException('The API key that requested this call can no longer run writes.');
+        }
+
+        return new ApiAccess(actor: 'api_key', role: $role, apiKey: $apiKey);
+    }
+
+    /**
+     * Binds the API key access where the MCP middleware puts it (the `apiAccess` request attribute,
+     * read by the collection and file enforcers, and the container) while the callback runs, then
+     * restores what was there before.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $callback
+     * @return TReturn
+     */
+    private function withApiAccess(?ApiAccess $apiAccess, callable $callback): mixed
+    {
+        if ($apiAccess === null) {
+            return $callback();
+        }
+
+        $attributes = request()->attributes;
+        $hadAttribute = $attributes->has('apiAccess');
+        $previousAttribute = $attributes->get('apiAccess');
+        $previousBinding = app()->bound(ApiAccess::class) ? app(ApiAccess::class) : null;
+
+        $attributes->set('apiAccess', $apiAccess);
+        app()->instance(ApiAccess::class, $apiAccess);
+
+        try {
+            return $callback();
+        } finally {
+            if ($hadAttribute) {
+                $attributes->set('apiAccess', $previousAttribute);
+            } else {
+                $attributes->remove('apiAccess');
+            }
+
+            if ($previousBinding instanceof ApiAccess) {
+                app()->instance(ApiAccess::class, $previousBinding);
+            } else {
+                app()->forgetInstance(ApiAccess::class);
+            }
+        }
     }
 
     /**

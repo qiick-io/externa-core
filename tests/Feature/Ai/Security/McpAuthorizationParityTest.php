@@ -340,6 +340,56 @@ describe('write tools', function (): void {
             ->and($this->publicFile->fresh()->tags)->toHaveCount(0);
     });
 
+    it('stores the requesting key on the parked call', function (): void {
+        $key = mcpParityKey($this->owner, $this->role);
+
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+
+        expect(PendingToolCall::query()->sole()->api_key_id)
+            ->toBe(ApiKey::query()->where('key_hash', ApiKey::hashSecret($key))->value('id'));
+    });
+
+    it('runs an approved call under the key scopes, checked again at approval (#441)', function (): void {
+        $key = mcpParityKey($this->owner, $this->role, ['collection_slugs' => ['blog', 'news']]);
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->newsItem->id]);
+        $pending = PendingToolCall::query()->sole();
+
+        // The key is narrowed while the call waits; the owner's own role still reads news.
+        ApiKey::query()->whereKey($pending->api_key_id)->update(['collection_slugs' => json_encode(['blog'])]);
+
+        $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $this->owner);
+
+        // The tool runs, and the key's collection scope refuses it: the draft stays unpublished.
+        expect($outcome->result)->toContain('unauthorized for the collection')
+            ->and($this->newsItem->fresh()->draft_data)->not->toBeNull();
+    });
+
+    it('refuses to run an approved call whose key was revoked', function (): void {
+        $key = mcpParityKey($this->owner, $this->role);
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+        $pending = PendingToolCall::query()->sole();
+
+        ApiKey::query()->whereKey($pending->api_key_id)->update(['revoked_at' => now()]);
+
+        $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $this->owner);
+
+        expect($outcome->status)->toBe('denied')
+            ->and($outcome->message)->toContain('can no longer run writes')
+            ->and($pending->fresh()->status->value)->toBe('pending')
+            ->and($this->blogItem->fresh()->draft_data)->not->toBeNull();
+    });
+
+    it('still runs an approved in-scope call', function (): void {
+        $key = mcpParityKey($this->owner, $this->role);
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+        $pending = PendingToolCall::query()->sole();
+
+        $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $this->owner);
+
+        expect($outcome->isOk())->toBeTrue()
+            ->and($this->blogItem->fresh()->draft_data)->toBeNull();
+    });
+
     it('rejects out-of-scope publish_item before it reaches approval', function (): void {
         $key = mcpParityKey($this->owner, $this->role);
 

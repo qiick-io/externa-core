@@ -220,5 +220,6 @@
     "Webhook timestamp outside allowed skew.": "Timestamp del webhook fuori dalla tolleranza consentita.",
     "You cannot write fields: :fields": "Non puoi scrivere i campi: :fields",
     "You do not have permission to approve this tool call.": "Non hai il permesso di approvare questa chiamata strumento.",
+    "You do not have permission to reject this tool call.": "Non hai il permesso di rifiutare questa chiamata strumento.",
     "format must be csv or json.": "Il formato deve essere csv o json."
 }
