@@ -320,6 +320,11 @@ export default defineConfig({
             // ponytail: rules ESLint never ran here, new with Oxlint's type-aware and React Compiler
             // checks (204 findings at the switch). Off until fixed and turned on one by one in
             // externa-core#671, so this PR changes the toolchain and not the code.
+            // Off by decision (#671), not pending: prefer-tag-over-role would swap role="status" /
+            // "listitem" / "region" for <output> / <li> / <section> in ~46 places, which changes how
+            // screen readers announce them and diverges from the registry copies; excubia-app does not
+            // run jsx-a11y. role-has-required-aria-props misreads Radix triggers, which get
+            // aria-controls at runtime (passing it ourselves would override Radix's own id).
             'jsx-a11y/prefer-tag-over-role': 'off',
             'jsx-a11y/role-has-required-aria-props': 'off',
             'react/refs': 'off',
