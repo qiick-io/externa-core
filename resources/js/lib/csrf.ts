@@ -29,7 +29,7 @@ function getCsrfHeader(): CsrfHeader {
     };
 }
 
-function csrfHeaders(): HeadersInit {
+function csrfHeaders(): Record<string, string> {
     const csrfHeader = getCsrfHeader();
 
     return {
@@ -42,7 +42,7 @@ function csrfHeaders(): HeadersInit {
  *
  * @returns Headers for JSON API requests
  */
-export function jsonRequestHeaders(): HeadersInit {
+export function jsonRequestHeaders(): Record<string, string> {
     return {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ export function jsonRequestHeaders(): HeadersInit {
  *
  * @returns Headers for form uploads
  */
-export function formRequestHeaders(): HeadersInit {
+export function formRequestHeaders(): Record<string, string> {
     return {
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',

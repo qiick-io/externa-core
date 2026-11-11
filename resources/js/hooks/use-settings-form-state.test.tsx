@@ -37,12 +37,16 @@ describe('useSettingsFormState', () => {
 
         expect(hook.result.current.isDirty).toBe(false);
 
-        act(() => hook.result.current.setForm({ name: 'Renamed' }));
+        act(() => {
+            hook.result.current.setForm({ name: 'Renamed' });
+        });
         expect(hook.result.current.form.name).toBe('Renamed');
         expect(hook.result.current.isDirty).toBe(true);
         expect(registrations.at(-1)?.isDirty()).toBe(true);
 
-        act(() => hook.result.current.markSaved());
+        act(() => {
+            hook.result.current.markSaved();
+        });
         expect(hook.result.current.isDirty).toBe(false);
         expect(hook.result.current.form.name).toBe('Renamed');
     });
@@ -50,8 +54,12 @@ describe('useSettingsFormState', () => {
     it('restores the initial form when the guard discards', () => {
         const { hook, registrations } = renderSettingsForm();
 
-        act(() => hook.result.current.setForm({ name: 'Draft' }));
-        act(() => registrations.at(-1)?.onDiscard?.());
+        act(() => {
+            hook.result.current.setForm({ name: 'Draft' });
+        });
+        act(() => {
+            registrations.at(-1)?.onDiscard?.();
+        });
 
         expect(hook.result.current.form.name).toBe('Externa');
         expect(hook.result.current.isDirty).toBe(false);

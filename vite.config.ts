@@ -321,8 +321,6 @@ export default defineConfig({
             // checks (204 findings at the switch). Off until fixed and turned on one by one in
             // externa-core#671, so this PR changes the toolchain and not the code.
             'typescript/no-base-to-string': 'off',
-            'typescript/no-floating-promises': 'off',
-            'typescript/no-misused-spread': 'off',
             'typescript/unbound-method': 'off',
             'typescript/no-redundant-type-constituents': 'off',
             'jsx-a11y/prefer-tag-over-role': 'off',

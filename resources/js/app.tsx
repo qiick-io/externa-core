@@ -47,7 +47,7 @@ const resolveProjectDefaultAppearance = (
     return 'system';
 };
 
-createInertiaApp({
+void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     resolve: (name) =>
         resolvePageComponent(

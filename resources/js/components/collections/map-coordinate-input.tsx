@@ -99,7 +99,7 @@ export function MapCoordinateInput({
     useEffect(() => {
         let cancelled = false;
 
-        (async () => {
+        void (async () => {
             const leafletModule = await import('leaflet');
             const L = (leafletModule.default ??
                 leafletModule) as typeof LeafletNS;
