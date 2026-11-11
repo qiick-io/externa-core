@@ -12,9 +12,9 @@ import {
     fileCardsFromToolResults,
 } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
+import { useSpeechDictation } from '@/hooks/use-speech-dictation';
 import {
     awaitingApprovalContent,
-    getSpeechRecognitionConstructor,
     isAbortError,
     pickAiChatAttachmentFiles,
     stopSpeaking,
@@ -47,7 +47,6 @@ import type {
     AiStoredStep,
     AiUsage,
 } from '@/lib/ai-message-parts';
-import { speechRecognitionLang } from '@/lib/format';
 import i18n from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 
@@ -200,7 +199,8 @@ function createLocalMessageId(prefix: string): string {
  * The AI chat controller shared by the Assistant page and the Assistant panel:
  * composer draft, streaming over Externa's SSE (`streamAiChat`), Stop with
  * composer restore, regenerate, edit and resend, tool approvals, uploaded and
- * context attachments, dry-run and voice dictation. It renders nothing.
+ * context attachments, dry-run and voice dictation (`useSpeechDictation`).
+ * It renders nothing.
  *
  * Side effects: network calls through `lib/ai-chat`, toasts on errors, and
  * aborting the stream, the dictation and speech on unmount.
@@ -209,7 +209,7 @@ function createLocalMessageId(prefix: string): string {
  * @returns Chat state and the handlers the composer and message list call
  */
 export function useAiChat(options: UseAiChatOptions = {}) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const { isOffline = false } = options;
 
     const [composer, setComposer] = useState('');
@@ -234,10 +234,17 @@ export function useAiChat(options: UseAiChatOptions = {}) {
     >([]);
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
     const [dryRunMode, setDryRunMode] = useState(false);
-    const [isListening, setIsListening] = useState(false);
-    const [speechSupported] = useState(
-        () => getSpeechRecognitionConstructor() !== null,
-    );
+    const { isListening, speechSupported, toggleVoiceInput } =
+        useSpeechDictation({
+            onTranscript: (transcript) => {
+                setComposer((current) => {
+                    const prefix =
+                        current.trim() === '' ? '' : `${current.trim()} `;
+
+                    return `${prefix}${transcript}`;
+                });
+            },
+        });
 
     const conversationIdRef = useRef<string | null>(
         options.initialConversationId ?? null,
@@ -245,7 +252,6 @@ export function useAiChat(options: UseAiChatOptions = {}) {
     const isStreamingRef = useRef(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const inFlightTurnRef = useRef<InFlightTurn | null>(null);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const callbacksRef = useRef(options);
     useLayoutEffect(() => {
         callbacksRef.current = options;
@@ -254,7 +260,6 @@ export function useAiChat(options: UseAiChatOptions = {}) {
     useEffect(() => {
         return () => {
             abortControllerRef.current?.abort();
-            recognitionRef.current?.abort();
             stopSpeaking();
         };
     }, []);
@@ -1040,73 +1045,6 @@ export function useAiChat(options: UseAiChatOptions = {}) {
                     !(attachment.kind === kind && attachment.id === id),
             ),
         );
-    };
-
-    const toggleVoiceInput = (): void => {
-        const Recognition = getSpeechRecognitionConstructor();
-
-        if (!Recognition) {
-            toast.error(t('ai.dictationUnsupported'));
-
-            return;
-        }
-
-        if (isListening && recognitionRef.current) {
-            recognitionRef.current.stop();
-            setIsListening(false);
-
-            return;
-        }
-
-        const recognition = new Recognition();
-        recognition.lang = speechRecognitionLang(i18n.language);
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognitionRef.current = recognition;
-
-        recognition.addEventListener('result', (event) => {
-            let transcript = '';
-
-            for (
-                let index = event.resultIndex;
-                index < event.results.length;
-                index++
-            ) {
-                const result = event.results[index];
-
-                if (result?.isFinal) {
-                    transcript += result[0]?.transcript ?? '';
-                }
-            }
-
-            if (transcript.trim() !== '') {
-                setComposer((current) => {
-                    const prefix =
-                        current.trim() === '' ? '' : `${current.trim()} `;
-
-                    return `${prefix}${transcript.trim()}`;
-                });
-            }
-        });
-
-        recognition.addEventListener('error', () => {
-            setIsListening(false);
-            recognitionRef.current = null;
-            toast.error(t('ai.dictationError'));
-        });
-
-        recognition.addEventListener('end', () => {
-            setIsListening(false);
-            recognitionRef.current = null;
-        });
-
-        try {
-            recognition.start();
-            setIsListening(true);
-        } catch {
-            setIsListening(false);
-            toast.error(t('ai.unableStartDictation'));
-        }
     };
 
     return {
