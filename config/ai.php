@@ -77,6 +77,8 @@ return [
         // When false, write/mutating MCP tools are not registered (even if AI_WRITE_TOOLS is on).
         'write_enabled' => (bool) env('AI_MCP_WRITE_ENABLED', false),
         'rate_limit_per_minute' => (int) env('AI_MCP_RATE_LIMIT_PER_MINUTE', 60),
+        // Failed authentications per IP per minute before /mcp answers 429 (#441).
+        'auth_failures_per_minute' => (int) env('AI_MCP_AUTH_FAILURES_PER_MINUTE', 20),
     ],
 
     /*
