@@ -143,6 +143,7 @@ import { STRING_LIMITS } from '@/lib/string-limits';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
 import { resolveCollectionColor } from '@/types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 const FIELD_TYPE_ICONS: Record<
     string,
@@ -558,8 +559,11 @@ function NestedRelationSettings({
     onChange: (next: Record<string, unknown>) => void;
 }) {
     const { t } = useTranslation();
-    const relatedCollectionId = String(settings.related_collection_id ?? '');
-    const displayField = String(settings.display_field ?? 'title');
+    const relatedCollectionId = scalarToString(
+        settings.related_collection_id,
+        '',
+    );
+    const displayField = scalarToString(settings.display_field, 'title');
     const junctionJson = Array.isArray(settings.junction_fields)
         ? JSON.stringify(settings.junction_fields, null, 2)
         : typeof settings.junction_fields === 'string'
@@ -1904,10 +1908,10 @@ export function CollectionFieldFormDrawer({
         parseFieldTreeOptions(field?.settings),
     );
     const [relatedCollectionId, setRelatedCollectionId] = useState(() =>
-        String(field?.settings?.related_collection_id ?? ''),
+        scalarToString(field?.settings?.related_collection_id, ''),
     );
     const [displayField, setDisplayField] = useState(() =>
-        String(field?.settings?.display_field ?? 'title'),
+        scalarToString(field?.settings?.display_field, 'title'),
     );
     const [commonSettings, setCommonSettings] = useState<CommonFieldSettings>(
         () => parseCommonFieldSettings(field?.settings),
