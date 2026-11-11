@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreApiKeyRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Resources\Admin\ApiKeyResource;
 use App\Models\ApiKey;
@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,12 +23,11 @@ use Inertia\Response;
  */
 class ApiKeyController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
     use ValidatesListPerPageTrait;
 
     public function index(Request $request): Response
     {
-        $this->authorizePermission(PermissionEnum::CanShowApiKeys->value);
+        abort_unless(Gate::allows('viewAny', ApiKey::class), 403);
 
         $keys = ApiKey::query()
             ->with(['role:id,name', 'owner:id,first_name,last_name,email'])
@@ -92,7 +92,7 @@ class ApiKeyController extends Controller
 
     public function destroy(ApiKey $apiKey): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanManageApiKeys->value);
+        abort_unless(Gate::allows('delete', $apiKey), 403);
 
         $apiKey->forceFill(['revoked_at' => now()])->save();
 

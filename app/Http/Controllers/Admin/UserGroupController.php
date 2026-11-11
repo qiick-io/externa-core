@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\PermissionEnum;
@@ -13,10 +15,10 @@ use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
 use App\Models\UserGroup;
-use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,7 +42,7 @@ class UserGroupController extends Controller
      */
     public function index(Request $request): Response|JsonResponse
     {
-        $this->authorizePermission(PermissionEnum::CanShowGroups->value);
+        abort_unless(Gate::allows('viewAny', UserGroup::class), 403);
 
         $search = $this->validatedSearch($request);
         $sort = $request->string('sort')->toString();
@@ -176,8 +178,7 @@ class UserGroupController extends Controller
      */
     public function destroy(UserGroup $group): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanDeleteGroups->value);
-        $this->abortIfSuperAdminGroupProtected($group);
+        abort_unless(Gate::allows('delete', $group), 403);
 
         $group->delete();
 
@@ -187,6 +188,10 @@ class UserGroupController extends Controller
 
     /**
      * Restore a soft-deleted user group.
+     *
+     * Permission only: unlike UserGroupPolicy::restore() (used by the AI tool), the web
+     * route does not refuse groups that grant super-admin. Kept as-is in #599, which
+     * moves checks without changing behaviour.
      */
     public function restore(UserGroup $group): RedirectResponse
     {
@@ -204,8 +209,7 @@ class UserGroupController extends Controller
      */
     public function forceDelete(UserGroup $group): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanForceDeleteGroups->value);
-        $this->abortIfSuperAdminGroupProtected($group);
+        abort_unless(Gate::allows('forceDelete', $group), 403);
 
         $group->forceDelete();
 
@@ -231,19 +235,5 @@ class UserGroupController extends Controller
         return redirect()
             ->back()
             ->with('success', __('Bulk action completed.'));
-    }
-
-    /**
-     * Only super-admins may delete a group that grants the super-admin role.
-     */
-    private function abortIfSuperAdminGroupProtected(UserGroup $group): void
-    {
-        $superAdminGuard = app(SuperAdminGuardService::class);
-
-        abort_if(
-            ! $superAdminGuard->canManageSuperAdmins(auth()->user())
-                && $superAdminGuard->hasSuperAdminGroup([$group->id]),
-            403,
-        );
     }
 }
