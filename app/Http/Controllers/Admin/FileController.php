@@ -6,6 +6,23 @@ use App\Ai\Support\SafeRemoteFetcher;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Files\AttachFileRequest;
+use App\Http\Requests\Admin\Files\BulkFileActionRequest;
+use App\Http\Requests\Admin\Files\CopyFileRequest;
+use App\Http\Requests\Admin\Files\DetachFileRequest;
+use App\Http\Requests\Admin\Files\DownloadFilesRequest;
+use App\Http\Requests\Admin\Files\ImportFileFromUrlRequest;
+use App\Http\Requests\Admin\Files\InitChunkUploadRequest;
+use App\Http\Requests\Admin\Files\ListFilesRequest;
+use App\Http\Requests\Admin\Files\MoveFileRequest;
+use App\Http\Requests\Admin\Files\RenameFileRequest;
+use App\Http\Requests\Admin\Files\ReplaceFileRequest;
+use App\Http\Requests\Admin\Files\ResolveChunkUploadRequest;
+use App\Http\Requests\Admin\Files\ShowFileThumbnailRequest;
+use App\Http\Requests\Admin\Files\StoreFolderRequest;
+use App\Http\Requests\Admin\Files\SyncFileTagsRequest;
+use App\Http\Requests\Admin\Files\UploadChunkRequest;
+use App\Http\Requests\Admin\Files\UploadFileRequest;
 use App\Http\Requests\Admin\UpdateFileMetadataRequest;
 use App\Http\Resources\Admin\FileResource;
 use App\Jobs\DuplicateFilesJob;
@@ -18,7 +35,6 @@ use App\Services\FileTransformService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Support\Files\FilesDisk;
 use App\Support\Uploads\UploadSizeLimiter;
-use App\Support\Validation\SearchQueryRules;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -46,11 +62,6 @@ class FileController extends Controller
      * column count ends on a full row.
      */
     private const PAGE_SIZE = 48;
-
-    /**
-     * @var list<string>
-     */
-    private const SORTABLE_COLUMNS = ['name', 'size', 'created_at', 'updated_at'];
 
     public function __construct(
         protected FileService $fileService,
@@ -96,7 +107,7 @@ class FileController extends Controller
 
         $validated = $request->validate([
             'trashed' => ['nullable', 'string', Rule::in(['only', 'with'])],
-            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
+            'sort' => ['nullable', 'string', Rule::in(ListFilesRequest::SORTABLE_COLUMNS)],
             'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['integer', 'min:1'],
@@ -156,23 +167,9 @@ class FileController extends Controller
     /**
      * Return a paginated JSON listing of files for load-more requests.
      */
-    public function list(Request $request): JsonResponse
+    public function list(ListFilesRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'search' => SearchQueryRules::search(),
-            'trashed' => ['nullable', 'string', Rule::in(['only', 'with'])],
-            'page' => ['nullable', 'integer', 'min:1'],
-            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
-            'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
-            'tag_ids' => ['nullable', 'array'],
-            'tag_ids.*' => ['integer', 'min:1'],
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['string', 'max:100'],
-            // ponytail: field inputs resolve selected file previews by id (no parent scope).
-            'ids' => ['nullable', 'array', 'max:100'],
-            'ids.*' => ['integer', 'min:1'],
-        ]);
+        $validated = $request->validated();
 
         $ids = collect($validated['ids'] ?? [])
             ->map(static fn (mixed $id): int => (int) $id)
@@ -249,13 +246,9 @@ class FileController extends Controller
     /**
      * Create a folder in the file manager.
      */
-    public function createFolder(Request $request): JsonResponse
+    public function createFolder(StoreFolderRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
-        ]);
+        $validated = $request->validated();
 
         $folder = $this->fileService->createFolder(
             $validated['name'],
@@ -271,14 +264,9 @@ class FileController extends Controller
     /**
      * Upload a single file into the file manager.
      */
-    public function upload(Request $request): JsonResponse
+    public function upload(UploadFileRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'file' => ['required', 'file'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
-            'name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
@@ -302,13 +290,9 @@ class FileController extends Controller
     /**
      * Download a remote URL (SSRF-safe) and store it as a file manager asset.
      */
-    public function importFromUrl(Request $request): JsonResponse
+    public function importFromUrl(ImportFileFromUrlRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'url' => ['required', 'string', 'max:2048'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $url = trim($validated['url']);
 
@@ -420,20 +404,13 @@ class FileController extends Controller
     /**
      * Replace a file's binary content with a compatible upload.
      *
+     * Folder targets are rejected by {@see ReplaceFileRequest} before validation.
      *
      * @throws ValidationException
      */
-    public function replace(Request $request, File $file): JsonResponse
+    public function replace(ReplaceFileRequest $request, File $file): JsonResponse
     {
-        if (! $file->isFile()) {
-            throw ValidationException::withMessages([
-                'file' => [__('Only files can be replaced.')],
-            ]);
-        }
-
-        $validated = $request->validate([
-            'file' => ['required', 'file'],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $upload */
         $upload = $validated['file'];
@@ -447,11 +424,9 @@ class FileController extends Controller
     /**
      * Copy a file or folder synchronously or queue a background duplication job.
      */
-    public function copy(Request $request, File $file): JsonResponse
+    public function copy(CopyFileRequest $request, File $file): JsonResponse
     {
-        $validated = $request->validate([
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-        ]);
+        $validated = $request->validated();
 
         $targetParentId = $validated['parent_id'] ?? null;
 
@@ -495,12 +470,9 @@ class FileController extends Controller
     /**
      * Replace the tag set attached to a file.
      */
-    public function syncTags(Request $request, File $file): JsonResponse
+    public function syncTags(SyncFileTagsRequest $request, File $file): JsonResponse
     {
-        $validated = $request->validate([
-            'tags' => ['present', 'array'],
-            'tags.*' => ['string', 'max:100'],
-        ]);
+        $validated = $request->validated();
 
         $updated = $this->fileService->syncTags($file, $validated['tags']);
 
@@ -524,17 +496,12 @@ class FileController extends Controller
 
     /**
      * Stream a generated thumbnail for an image file.
+     *
+     * Non-image files are rejected with 422 by {@see ShowFileThumbnailRequest} before validation.
      */
-    public function thumbnail(Request $request, File $file): StreamedResponse|Response
+    public function thumbnail(ShowFileThumbnailRequest $request, File $file): StreamedResponse|Response
     {
-        if (! $this->fileTransformService->isImage($file)) {
-            abort(422, __('Thumbnails are only available for image files.'));
-        }
-
-        $validated = $request->validate([
-            'size' => ['nullable', 'integer', 'min:1', 'max:'.$this->fileTransformService->maxSize()],
-            'key' => ['nullable', 'string', 'max:64'],
-        ]);
+        $validated = $request->validated();
 
         try {
             $cachePath = isset($validated['key'])
@@ -556,12 +523,9 @@ class FileController extends Controller
     /**
      * Queue a background job to zip and prepare multiple files for download.
      */
-    public function downloadMany(Request $request): JsonResponse
+    public function downloadMany(DownloadFilesRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:files,id'],
-        ]);
+        $validated = $request->validated();
 
         $jobUuid = (string) Str::uuid();
 
@@ -606,26 +570,9 @@ class FileController extends Controller
     /**
      * Execute a bulk file action such as move, delete, tag, or copy.
      */
-    public function bulk(Request $request): JsonResponse|Response
+    public function bulk(BulkFileActionRequest $request): JsonResponse|Response
     {
-        $validated = $request->validate([
-            'action' => ['required', 'string', Rule::in([
-                'move',
-                'delete',
-                'restore',
-                'force_delete',
-                'favorite',
-                'unfavorite',
-                'tag',
-                'untag',
-                'copy',
-            ])],
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['string', 'max:100'],
-        ]);
+        $validated = $request->validated();
 
         $ids = $validated['ids'];
 
@@ -665,13 +612,9 @@ class FileController extends Controller
     /**
      * Move a file or folder to another parent or disk.
      */
-    public function move(Request $request, File $file): JsonResponse
+    public function move(MoveFileRequest $request, File $file): JsonResponse
     {
-        $validated = $request->validate([
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
-            'version' => ['nullable', 'date'],
-        ]);
+        $validated = $request->validated();
 
         $moved = $this->fileService->move(
             $file,
@@ -686,11 +629,9 @@ class FileController extends Controller
     /**
      * Rename a file or folder.
      */
-    public function rename(Request $request, File $file): JsonResponse
+    public function rename(RenameFileRequest $request, File $file): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $renamed = $this->fileService->rename($file, $validated['name']);
 
@@ -750,14 +691,9 @@ class FileController extends Controller
     /**
      * Attach a file to a polymorphic model with optional role and order.
      */
-    public function attach(Request $request, File $file): Response
+    public function attach(AttachFileRequest $request, File $file): Response
     {
-        $validated = $request->validate([
-            'model_type' => ['required', 'string'],
-            'model_id' => ['required', 'integer'],
-            'role' => ['nullable', 'string', 'max:255'],
-            'order' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $validated = $request->validated();
 
         $this->fileService->attachToModel(
             $file,
@@ -773,13 +709,9 @@ class FileController extends Controller
     /**
      * Detach a file from a polymorphic model.
      */
-    public function detach(Request $request, File $file): Response
+    public function detach(DetachFileRequest $request, File $file): Response
     {
-        $validated = $request->validate([
-            'model_type' => ['required', 'string'],
-            'model_id' => ['required', 'integer'],
-            'role' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $this->fileService->detachFromModel(
             $file,
@@ -794,16 +726,9 @@ class FileController extends Controller
     /**
      * Initialize a resumable chunked upload session.
      */
-    public function initChunkUpload(Request $request): JsonResponse
+    public function initChunkUpload(InitChunkUploadRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'file_name' => ['required', 'string', 'max:255'],
-            'total_size' => ['required', 'integer', 'min:1'],
-            'total_chunks' => ['required', 'integer', 'min:1'],
-            'mime_type' => ['nullable', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
-        ]);
+        $validated = $request->validated();
 
         UploadSizeLimiter::assertWithinCap(
             app(ProjectSettingsService::class)->filesMaxUploadBytes(),
@@ -829,13 +754,9 @@ class FileController extends Controller
     /**
      * Upload one chunk for an in-progress resumable upload.
      */
-    public function uploadChunk(Request $request): Response
+    public function uploadChunk(UploadChunkRequest $request): Response
     {
-        $validated = $request->validate([
-            'upload_id' => ['required', 'string', 'max:64'],
-            'chunk_index' => ['required', 'integer', 'min:0'],
-            'chunk' => ['required', 'file'],
-        ]);
+        $validated = $request->validated();
 
         $this->fileService->uploadChunk(
             $validated['upload_id'],
@@ -849,11 +770,9 @@ class FileController extends Controller
     /**
      * Finalize a chunked upload and create the file record.
      */
-    public function completeChunkUpload(Request $request): JsonResponse
+    public function completeChunkUpload(ResolveChunkUploadRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'upload_id' => ['required', 'string', 'max:64'],
-        ]);
+        $validated = $request->validated();
 
         $file = $this->fileService->completeChunkUpload($validated['upload_id']);
 
@@ -865,11 +784,9 @@ class FileController extends Controller
     /**
      * Return progress metadata for an in-progress chunked upload.
      */
-    public function uploadStatus(Request $request): JsonResponse
+    public function uploadStatus(ResolveChunkUploadRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'upload_id' => ['required', 'string', 'max:64'],
-        ]);
+        $validated = $request->validated();
 
         $status = $this->fileService->getUploadStatus($validated['upload_id']);
 
@@ -902,7 +819,7 @@ class FileController extends Controller
         string $direction = 'asc',
     ): Builder {
         $userId = $request->user()?->id;
-        $sortColumn = in_array($sort, self::SORTABLE_COLUMNS, true) ? $sort : 'name';
+        $sortColumn = in_array($sort, ListFilesRequest::SORTABLE_COLUMNS, true) ? $sort : 'name';
         $sortDirection = $direction === 'desc' ? 'desc' : 'asc';
 
         $query = File::query()
