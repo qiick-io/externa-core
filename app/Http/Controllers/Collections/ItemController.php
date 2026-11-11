@@ -1298,6 +1298,7 @@ class ItemController extends Controller
     {
         Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
         $item->restore();
 
@@ -1350,10 +1351,9 @@ class ItemController extends Controller
         $items = $query->get();
 
         // Authorize every selected item before mutating any (no partial apply on AuthZ fail).
-        if ($action !== 'restore') {
-            foreach ($items as $item) {
-                Gate::forUser($request->user())->authorize('delete', [$item, $collection]);
-            }
+        $itemAbility = $action === 'restore' ? 'update' : 'delete';
+        foreach ($items as $item) {
+            Gate::forUser($request->user())->authorize($itemAbility, [$item, $collection]);
         }
 
         CollectionItem::query()->getConnection()->transaction(function () use ($items, $action): void {

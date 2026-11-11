@@ -139,6 +139,7 @@ class ItemRevisionController extends Controller
         CollectionItem $item,
         CollectionItemRevision $revision,
     ): RedirectResponse {
+        Gate::forUser($request->user())->authorize('updateItems', $collection);
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
         abort_unless((int) $revision->item_id === (int) $item->id, 404);
         abort_unless(Gate::forUser($request->user())->allows('view', [$item, $collection]), 404);
