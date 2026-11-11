@@ -9,8 +9,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Chat\ChatService;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Chat access checks for chat form requests.
@@ -58,7 +58,7 @@ trait AuthorizesChatAccessTrait
         }
 
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
-        app(CollectionPermissionEnforcerService::class)->assertItemReadable($this, $collection, $item);
+        abort_unless(Gate::forUser($this->user())->allows('view', [$item, $collection]), 404);
 
         return true;
     }
@@ -118,6 +118,6 @@ trait AuthorizesChatAccessTrait
 
         $user = $this->user();
         abort_unless($user instanceof User, 401);
-        abort_unless((int) $message->user_id === (int) $user->id, 403);
+        abort_unless(Gate::forUser($user)->allows('update', $message), 403);
     }
 }
