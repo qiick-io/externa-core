@@ -341,34 +341,64 @@ export default function ItemsIndex({
         !isTrashed &&
         listLayout === 'table';
 
-    useEffect(() => {
-        setListColumns(listColumnsProp);
-    }, [listColumnsProp]);
+    const [previousServerProps, setPreviousServerProps] = useState({
+        listColumnsProp,
+        columnAlignsProp,
+        listLayoutProp,
+        kanbanFieldProp,
+        calendarFieldProp,
+        filters,
+    });
 
-    useEffect(() => {
-        setColumnAligns(columnAlignsProp);
-    }, [columnAlignsProp]);
+    // Adopt each server prop during render when Inertia sends a new value
+    // (React's "adjust state on prop change" pattern); local edits survive
+    // until then.
+    if (
+        previousServerProps.listColumnsProp !== listColumnsProp ||
+        previousServerProps.columnAlignsProp !== columnAlignsProp ||
+        previousServerProps.listLayoutProp !== listLayoutProp ||
+        previousServerProps.kanbanFieldProp !== kanbanFieldProp ||
+        previousServerProps.calendarFieldProp !== calendarFieldProp ||
+        previousServerProps.filters !== filters
+    ) {
+        setPreviousServerProps({
+            listColumnsProp,
+            columnAlignsProp,
+            listLayoutProp,
+            kanbanFieldProp,
+            calendarFieldProp,
+            filters,
+        });
 
-    useEffect(() => {
-        setListLayout(
-            listLayoutProp === 'kanban' || listLayoutProp === 'calendar'
-                ? listLayoutProp
-                : 'table',
-        );
-    }, [listLayoutProp]);
+        if (previousServerProps.listColumnsProp !== listColumnsProp) {
+            setListColumns(listColumnsProp);
+        }
 
-    useEffect(() => {
-        setKanbanField(kanbanFieldProp);
-    }, [kanbanFieldProp]);
+        if (previousServerProps.columnAlignsProp !== columnAlignsProp) {
+            setColumnAligns(columnAlignsProp);
+        }
 
-    useEffect(() => {
-        setCalendarField(calendarFieldProp);
-    }, [calendarFieldProp]);
+        if (previousServerProps.listLayoutProp !== listLayoutProp) {
+            setListLayout(
+                listLayoutProp === 'kanban' || listLayoutProp === 'calendar'
+                    ? listLayoutProp
+                    : 'table',
+            );
+        }
 
-    useEffect(() => {
-        setFilterTitle(titleContainsFromFilters(filters));
-        setFilterRules(advancedRulesFromFilters(filters));
-    }, [filters]);
+        if (previousServerProps.kanbanFieldProp !== kanbanFieldProp) {
+            setKanbanField(kanbanFieldProp);
+        }
+
+        if (previousServerProps.calendarFieldProp !== calendarFieldProp) {
+            setCalendarField(calendarFieldProp);
+        }
+
+        if (previousServerProps.filters !== filters) {
+            setFilterTitle(titleContainsFromFilters(filters));
+            setFilterRules(advancedRulesFromFilters(filters));
+        }
+    }
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
@@ -560,9 +590,19 @@ export default function ItemsIndex({
         ],
     );
 
-    useEffect(() => {
+    const [previousSelectionScope, setPreviousSelectionScope] = useState({
+        isTrashed,
+        collectionId: collection.id,
+    });
+
+    // Clear the selection during render when switching collection or trash view.
+    if (
+        previousSelectionScope.isTrashed !== isTrashed ||
+        previousSelectionScope.collectionId !== collection.id
+    ) {
+        setPreviousSelectionScope({ isTrashed, collectionId: collection.id });
         setSelected([]);
-    }, [isTrashed, collection.id]);
+    }
 
     const onDebouncedTitleSearch = useCallback(
         (value: string): void => {

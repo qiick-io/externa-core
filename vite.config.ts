@@ -286,8 +286,6 @@ export default defineConfig({
             'react/immutability': 'error',
             'react/globals': 'error',
             'react/refs': 'error',
-            // ponytail: was off in ESLint too (react-hooks/set-state-in-effect); 47 sync setState-in-effect call sites to refactor first.
-            'react/set-state-in-effect': 'off',
             'react/error-boundaries': 'error',
             'react/purity': 'error',
             'react/set-state-in-render': 'error',
@@ -648,6 +646,14 @@ export default defineConfig({
                 files: ['resources/js/components/ai-elements/code-block.tsx'],
                 rules: {
                     'typescript/no-floating-promises': 'off',
+                },
+            },
+            {
+                // Registry copy (@qiick, drift-checked): resets its typed confirmation in an effect
+                // when the dialog closes; the fix belongs upstream in app-ui, not in this copy.
+                files: ['resources/js/components/confirm-destructive-dialog.tsx'],
+                rules: {
+                    'react/set-state-in-effect': 'off',
                 },
             },
             {

@@ -232,6 +232,18 @@ function fromDatetimeLocalValue(local: string): string {
     return Number.isNaN(date.getTime()) ? local : date.toISOString();
 }
 
+/**
+ * Whether the page URL deep-links to the item chat (`?chat=1` or `?comments=1`).
+ */
+function isChatRequestedInUrl(pageUrl: string): boolean {
+    const query = pageUrl.includes('?')
+        ? pageUrl.slice(pageUrl.indexOf('?') + 1)
+        : '';
+    const params = new URLSearchParams(query);
+
+    return params.get('chat') === '1' || params.get('comments') === '1';
+}
+
 export default function ItemsForm({
     collection,
     item,
@@ -332,7 +344,9 @@ export default function ItemsForm({
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const [revisionsOpen, setRevisionsOpen] = useState(false);
-    const [chatOpen, setChatOpen] = useState(false);
+    const [chatOpen, setChatOpen] = useState(
+        () => !isNew && item !== null && isChatRequestedInUrl(page.url),
+    );
     const [chatCount, setChatCount] = useState(chatCountProp);
     const [compareRevision, setCompareRevision] =
         useState<RevisionSnapshot | null>(null);
@@ -476,14 +490,80 @@ export default function ItemsForm({
     const showCreateNew = !collection.is_singleton;
     const showCopy = !isNew && !collection.is_singleton && canCreateItem;
 
-    useEffect(() => {
-        setChatCount(chatCountProp);
-    }, [chatCountProp]);
+    const [previousItemProps, setPreviousItemProps] = useState({
+        chatCountProp,
+        updatedAt: item?.updated_at,
+        isDirty,
+        publishAt: item?.publish_at,
+        unpublishAt: item?.unpublish_at,
+        isNew,
+        item,
+        pageUrl: page.url,
+    });
 
+    // Adopt fresh server props during render (React's "adjust state on prop
+    // change" pattern), each one only when its own source changed.
+    if (
+        previousItemProps.chatCountProp !== chatCountProp ||
+        previousItemProps.updatedAt !== item?.updated_at ||
+        previousItemProps.isDirty !== isDirty ||
+        previousItemProps.publishAt !== item?.publish_at ||
+        previousItemProps.unpublishAt !== item?.unpublish_at ||
+        previousItemProps.isNew !== isNew ||
+        previousItemProps.item !== item ||
+        previousItemProps.pageUrl !== page.url
+    ) {
+        setPreviousItemProps({
+            chatCountProp,
+            updatedAt: item?.updated_at,
+            isDirty,
+            publishAt: item?.publish_at,
+            unpublishAt: item?.unpublish_at,
+            isNew,
+            item,
+            pageUrl: page.url,
+        });
+
+        if (previousItemProps.chatCountProp !== chatCountProp) {
+            setChatCount(chatCountProp);
+        }
+
+        if (
+            (previousItemProps.updatedAt !== item?.updated_at ||
+                previousItemProps.isDirty !== isDirty) &&
+            !isDirty
+        ) {
+            setExpectedUpdatedAt(item?.updated_at ?? '');
+        }
+
+        if (
+            previousItemProps.publishAt !== item?.publish_at ||
+            previousItemProps.unpublishAt !== item?.unpublish_at
+        ) {
+            setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
+            setUnpublishAtLocal(
+                toDatetimeLocalValue(item?.unpublish_at ?? null),
+            );
+        }
+
+        // Deep links (`?chat=1`, `?comments=1`) open the chat drawer.
+        if (
+            (previousItemProps.isNew !== isNew ||
+                previousItemProps.item !== item ||
+                previousItemProps.pageUrl !== page.url) &&
+            !isNew &&
+            item !== null &&
+            isChatRequestedInUrl(page.url)
+        ) {
+            setChatOpen(true);
+        }
+    }
+
+    // The stale-save guard reads this ref in a submit listener, so it follows
+    // the committed baseline, like `expectedUpdatedAt` above.
     useEffect(() => {
         if (!isDirty) {
             loadedUpdatedAtRef.current = item?.updated_at ?? null;
-            setExpectedUpdatedAt(item?.updated_at ?? '');
         }
     }, [item?.updated_at, isDirty]);
 
@@ -535,26 +615,6 @@ export default function ItemsForm({
             form.removeEventListener('submit', onSubmit, true);
         };
     }, [presence.remoteUpdatedAt]);
-
-    useEffect(() => {
-        setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
-        setUnpublishAtLocal(toDatetimeLocalValue(item?.unpublish_at ?? null));
-    }, [item?.publish_at, item?.unpublish_at]);
-
-    useEffect(() => {
-        if (isNew || item === null) {
-            return;
-        }
-
-        const query = page.url.includes('?')
-            ? page.url.slice(page.url.indexOf('?') + 1)
-            : '';
-        const params = new URLSearchParams(query);
-
-        if (params.get('chat') === '1' || params.get('comments') === '1') {
-            setChatOpen(true);
-        }
-    }, [isNew, item, page.url]);
 
     const discardItemChanges = useCallback(() => {
         setIsDirty(false);
@@ -796,6 +856,7 @@ export default function ItemsForm({
         }
 
         applyItemDraftToForm(form, initialDraft);
+        // oxlint-disable-next-line react/set-state-in-effect -- the draft is written into the uncontrolled DOM form first; dirty only once that form exists and holds it.
         setIsDirty(true);
     }, [draftBanner, initialDraft, formKey]);
 

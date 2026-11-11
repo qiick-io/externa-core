@@ -193,7 +193,9 @@ export function FileDetailPanel({
     const [tags, setTags] = useState(file.tags.map((tag) => tag.name));
     const [saving, setSaving] = useState(false);
     const [replacing, setReplacing] = useState(false);
-    const [whereUsedLoading, setWhereUsedLoading] = useState(false);
+    const [whereUsedLoading, setWhereUsedLoading] = useState(
+        file.type === 'file',
+    );
     const [whereUsedError, setWhereUsedError] = useState<string | null>(null);
     const [whereUsedRefs, setWhereUsedRefs] = useState<
         FileWhereUsedReference[] | null
@@ -220,7 +222,17 @@ export function FileDetailPanel({
         };
     }, [presentation, file.id]);
 
-    useEffect(() => {
+    const [previousFile, setPreviousFile] = useState(file);
+    const [previousWhereUsedScan, setPreviousWhereUsedScan] = useState({
+        fileId: file.id,
+        fileType: file.type,
+        t,
+    });
+
+    // Reload the form during render when another file (or a fresh copy) arrives
+    // (React's "adjust state on prop change" pattern).
+    if (previousFile !== file) {
+        setPreviousFile(file);
         setTitle(file.title ?? '');
         setDescription(file.description ?? '');
         setLocation(file.location ?? '');
@@ -230,7 +242,21 @@ export function FileDetailPanel({
         setTags(file.tags.map((tag) => tag.name));
         setWhereUsedRefs(null);
         setWhereUsedError(null);
-    }, [file]);
+    }
+
+    // Mark the where-used scan as loading for the render that starts it below.
+    if (
+        previousWhereUsedScan.fileId !== file.id ||
+        previousWhereUsedScan.fileType !== file.type ||
+        previousWhereUsedScan.t !== t
+    ) {
+        setPreviousWhereUsedScan({ fileId: file.id, fileType: file.type, t });
+
+        if (file.type === 'file') {
+            setWhereUsedLoading(true);
+            setWhereUsedError(null);
+        }
+    }
 
     useEffect(() => {
         if (file.type !== 'file') {
@@ -238,8 +264,6 @@ export function FileDetailPanel({
         }
 
         let cancelled = false;
-        setWhereUsedLoading(true);
-        setWhereUsedError(null);
 
         void fetchFileWhereUsed(file.id)
             .then((result) => {
