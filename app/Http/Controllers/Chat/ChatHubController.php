@@ -4,6 +4,12 @@ namespace App\Http\Controllers\Chat;
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\AddChatParticipantsRequest;
+use App\Http\Requests\Chat\ListChatDirectoryRequest;
+use App\Http\Requests\Chat\ListChatItemOptionsRequest;
+use App\Http\Requests\Chat\ListChatItemPickerRequest;
+use App\Http\Requests\Chat\ListChatThreadsRequest;
+use App\Http\Requests\Chat\StoreChatThreadRequest;
 use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -14,11 +20,8 @@ use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Collections\CollectionItemOptionsService;
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
  * Hub JSON: thread list, create item/direct chats, option search.
@@ -33,18 +36,12 @@ class ChatHubController extends Controller
         private CollectionItemOptionsService $itemOptions,
     ) {}
 
-    public function threads(Request $request): JsonResponse
+    public function threads(ListChatThreadsRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'tab' => ['nullable', Rule::in(['collection', 'private'])],
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
-            'collection_id' => ['nullable', 'integer', 'exists:collections,id'],
-            'archived' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $tab = $validated['tab'] ?? 'collection';
         $q = trim((string) ($validated['q'] ?? ''));
@@ -146,20 +143,12 @@ class ChatHubController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreChatThreadRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'kind' => ['required', Rule::in([Chat::KIND_ITEM, Chat::KIND_DIRECT])],
-            'collection_id' => ['required_if:kind,item', 'nullable', 'integer', 'exists:collections,id'],
-            'item_id' => ['required_if:kind,item', 'nullable', 'integer', 'exists:collections_items,id'],
-            'user_ids' => ['required_if:kind,direct', 'nullable', 'array'],
-            'user_ids.*' => ['integer', 'exists:users,id'],
-            'group_ids' => ['nullable', 'array'],
-            'group_ids.*' => ['integer', 'exists:user_groups,id'],
-        ]);
+        $validated = $request->validated();
 
         if ($validated['kind'] === Chat::KIND_DIRECT) {
             abort_unless(
@@ -283,15 +272,12 @@ class ChatHubController extends Controller
         ]);
     }
 
-    public function items(Request $request): JsonResponse
+    public function items(ListChatItemOptionsRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'collection_id' => ['required', 'integer', 'exists:collections,id'],
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
-        ]);
+        $validated = $request->validated();
 
         $collection = Collection::query()->findOrFail($validated['collection_id']);
         abort_unless($this->chats->canUserReadCollection($user, $collection), 404);
@@ -323,20 +309,12 @@ class ChatHubController extends Controller
         return response()->json(['items' => $data]);
     }
 
-    public function directory(Request $request): JsonResponse
+    public function directory(ListChatDirectoryRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless(
-            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateDirectChats->value),
-            403,
-        );
 
-        $validated = $request->validate([
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $q = trim((string) ($validated['q'] ?? ''));
         $page = (int) ($validated['page'] ?? 1);
@@ -394,16 +372,12 @@ class ChatHubController extends Controller
         return response()->json($this->paginateRows($rows, $page, $perPage));
     }
 
-    public function itemPicker(Request $request): JsonResponse
+    public function itemPicker(ListChatItemPickerRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $q = trim((string) ($validated['q'] ?? ''));
         $page = (int) ($validated['page'] ?? 1);
@@ -476,23 +450,12 @@ class ChatHubController extends Controller
         return response()->json($this->paginateRows($groups, $page, $perPage));
     }
 
-    public function addParticipants(Request $request, Chat $chat): JsonResponse
+    public function addParticipants(AddChatParticipantsRequest $request, Chat $chat): JsonResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless(
-            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateDirectChats->value),
-            403,
-        );
-        $this->chats->assertAccessible($request, $chat);
-        abort_unless($chat->isDirect(), 422);
 
-        $validated = $request->validate([
-            'user_ids' => ['nullable', 'array'],
-            'user_ids.*' => ['integer', 'exists:users,id'],
-            'group_ids' => ['nullable', 'array'],
-            'group_ids.*' => ['integer', 'exists:user_groups,id'],
-        ]);
+        $validated = $request->validated();
 
         $chat = $this->chats->addDirectParticipants(
             $chat,
