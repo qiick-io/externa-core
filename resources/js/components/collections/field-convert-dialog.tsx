@@ -65,15 +65,32 @@ export function FieldConvertDialog({
     const [preview, setPreview] = useState<ConvertPreview | null>(null);
     const [loading, setLoading] = useState(false);
     const [converting, setConverting] = useState(false);
+    const [previousOpenState, setPreviousOpenState] = useState({
+        open,
+        collectionId,
+        field,
+    });
+
+    // Reset the choices during render when the dialog opens or targets another
+    // field (React's "adjust state on prop change" pattern).
+    if (
+        previousOpenState.open !== open ||
+        previousOpenState.collectionId !== collectionId ||
+        previousOpenState.field !== field
+    ) {
+        setPreviousOpenState({ open, collectionId, field });
+
+        if (open) {
+            setToType(field.type);
+            setToTranslatable(field.translatable);
+            setPreview(null);
+        }
+    }
 
     useEffect(() => {
         if (!open) {
             return;
         }
-
-        setToType(field.type);
-        setToTranslatable(field.translatable);
-        setPreview(null);
 
         const url = FieldController.convertTargets.url({
             collection: collectionId,

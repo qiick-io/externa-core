@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,12 +42,24 @@ export function FileNameDialog({
     const [submitting, setSubmitting] = useState(false);
     const resolvedConfirmLabel = confirmLabel ?? t('common.save');
 
-    useEffect(() => {
+    const [previousOpenState, setPreviousOpenState] = useState({
+        open,
+        initialName,
+    });
+
+    // Reset during render when the dialog opens or its initial name changes
+    // (React's "adjust state on prop change" pattern).
+    if (
+        previousOpenState.open !== open ||
+        previousOpenState.initialName !== initialName
+    ) {
+        setPreviousOpenState({ open, initialName });
+
         if (open) {
             setName(initialName);
             setError(null);
         }
-    }, [initialName, open]);
+    }
 
     const submit = async (): Promise<void> => {
         const trimmedName = name.trim();

@@ -7,7 +7,6 @@ use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Support\Api\ApiAccess;
@@ -58,7 +57,7 @@ final class ItemQuery
                 return null;
             }
 
-            app(CollectionPermissionEnforcerService::class)->assertItemReadable($request, $collection, $item);
+            $this->authorizeItemRead($collection, $item);
 
             return (new CollectionItemResource($item))->toArray($request);
         });

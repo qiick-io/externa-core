@@ -9,7 +9,6 @@ use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcerService;
 
 final class UpdateItem
 {
@@ -33,8 +32,8 @@ final class UpdateItem
             abort(404);
         }
 
+        $this->authorizeItemWrite('update', $collection, $item);
         $request = request();
-        app(CollectionPermissionEnforcerService::class)->assertItemWritable($request, $collection, $item);
 
         $data = is_array($args['data'] ?? null) ? $args['data'] : [];
 
