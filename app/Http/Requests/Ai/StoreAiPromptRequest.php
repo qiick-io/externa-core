@@ -1,21 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Ai;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Models\AiPrompt;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Validate creating a project-level saved AI prompt.
  */
 class StoreAiPromptRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanManageAiPrompts->value);
+        abort_unless(Gate::allows('create', AiPrompt::class), Response::HTTP_FORBIDDEN);
 
         return true;
     }
