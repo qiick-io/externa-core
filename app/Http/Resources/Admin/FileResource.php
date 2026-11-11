@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Models\File;
 use App\Services\FileTransformService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -64,10 +65,11 @@ class FileResource extends JsonResource
             'translate_y' => $this->translate_y,
             'scale' => $this->scale,
             'is_favorited' => (bool) ($this->is_favorited ?? false),
-            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => [
-                'id' => $tag->id,
-                'name' => $tag->name,
-                'slug' => $tag->slug,
+            // spatie/laravel-tags types tags() as plain Model; name and slug are translated accessors.
+            'tags' => $this->whenLoaded('tags', fn (): array => $this->tags->map(fn (Model $tag): array => [
+                'id' => $tag->getKey(),
+                'name' => $tag->getAttribute('name'),
+                'slug' => $tag->getAttribute('slug'),
             ])->values()->all(), []),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

@@ -211,18 +211,6 @@ parameters:
 			path: app/Http/Controllers/Collections/ItemController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Collections/ItemRevisionController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Collections/ItemRevisionController.php
-
-		-
 			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -251,48 +239,6 @@ parameters:
 			identifier: method.unresolvableReturnType
 			count: 1
 			path: app/Http/Controllers/Collections/ItemRevisionController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\File\:\:\$bytes_added\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\File\:\:\$date\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\File\:\:\$files_count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\File\:\:\$files_size_sum\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Spatie\\Activitylog\\Models\\Activity\:\:\$activity_count\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Spatie\\Activitylog\\Models\\Activity\:\:\$date\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Spatie\\Activitylog\\Models\\Activity\:\:\$event_count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
 
 		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
@@ -385,86 +331,8 @@ parameters:
 			path: app/Http/Resources/Admin/ApiKeyResource.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
-			count: 1
-			path: app/Http/Resources/Admin/FileResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
-
-		-
 			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
-			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
-			count: 1
-			path: app/Http/Resources/Admin/UserResource.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
 			count: 1
 			path: app/Http/Resources/Admin/UserResource.php
 
@@ -545,18 +413,6 @@ parameters:
 			identifier: function.unresolvableReturnType
 			count: 1
 			path: app/Models/CollectionItemChatMessage.php
-
-		-
-			message: '#^Method App\\Models\\CollectionItemRevision\:\:item\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/CollectionItemRevision.php
-
-		-
-			message: '#^Method App\\Models\\CollectionItemRevision\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/CollectionItemRevision.php
 
 		-
 			message: '#^Method App\\Models\\File\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
@@ -689,48 +545,6 @@ parameters:
 			identifier: nullCoalesce.offset
 			count: 1
 			path: app/Services/Api/CollectionPermissionGuardService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:deniedWriteFields\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:isFieldAllowed\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:isMatchingItem\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:isMatchingMergedItem\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:merge\(\) has parameter \$sets with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:merge\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
-
-		-
-			message: '#^Method App\\Services\\Api\\CollectionPermissionRulesService\:\:stripUnreadableFields\(\) has parameter \$normalized with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Api/CollectionPermissionRulesService.php
 
 		-
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'

@@ -128,7 +128,7 @@ class DashboardController
                         return [
                             'id' => $userId,
                             'label' => $user?->name ?: ($user?->username ?: ($user?->email ?: (string) $userId)),
-                            'activity_count' => (int) $row->activity_count,
+                            'activity_count' => (int) $row->getAttribute('activity_count'),
                         ];
                     })
                     ->all();
@@ -244,8 +244,8 @@ class DashboardController
                         ->get()
                         ->map(fn ($row): array => [
                             'disk' => (string) $row->disk,
-                            'files_count' => (int) $row->files_count,
-                            'files_size_sum' => (int) $row->files_size_sum,
+                            'files_count' => (int) $row->getAttribute('files_count'),
+                            'files_size_sum' => (int) $row->getAttribute('files_size_sum'),
                         ])
                         ->all(),
                 ),
@@ -268,7 +268,7 @@ class DashboardController
                         ->groupBy('date')
                         ->orderBy('date')
                         ->get()
-                        ->mapWithKeys(fn ($row): array => [(string) $row->date => (int) $row->bytes_added])
+                        ->mapWithKeys(fn ($row): array => [(string) $row->getAttribute('date') => (int) $row->getAttribute('bytes_added')])
                         ->all();
 
                     $trend = [];
@@ -312,7 +312,7 @@ class DashboardController
                         ->groupBy('date')
                         ->orderBy('date')
                         ->get()
-                        ->mapWithKeys(fn ($row): array => [(string) $row->date => (int) $row->activity_count])
+                        ->mapWithKeys(fn ($row): array => [(string) $row->getAttribute('date') => (int) $row->getAttribute('activity_count')])
                         ->all();
 
                     $series = [];
@@ -341,7 +341,7 @@ class DashboardController
                         ->selectRaw('event, COUNT(*) as event_count')
                         ->groupBy('event')
                         ->get()
-                        ->mapWithKeys(fn ($row): array => [(string) $row->event => (int) $row->event_count])
+                        ->mapWithKeys(fn ($row): array => [(string) $row->event => (int) $row->getAttribute('event_count')])
                         ->all();
 
                     return [
