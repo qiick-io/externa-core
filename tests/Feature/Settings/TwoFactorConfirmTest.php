@@ -87,7 +87,7 @@ test('security edit revisits keep unconfirmed secret so scanned qr stays valid',
         ->get(route('security.edit'))
         ->assertOk();
 
-    sleep(2);
+    $this->travel(2)->seconds();
 
     // Previously Fortify ensureStateIsValid wiped this on the second visit.
     $this->actingAs($user)

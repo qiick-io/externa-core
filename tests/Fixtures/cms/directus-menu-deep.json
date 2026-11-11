@@ -1,0 +1,56 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "sort": 1,
+      "status": "published",
+      "translations": [
+        { "id": 101, "menu_id": 1, "languages_code": "it", "label": "Prodotti" },
+        { "id": 102, "menu_id": 1, "languages_code": "en", "label": "Products" }
+      ],
+      "link_rel": [
+        {
+          "id": 501,
+          "menu_id": 1,
+          "links_id": {
+            "id": 10,
+            "url": null,
+            "translations": [{ "id": 201, "links_id": 10, "languages_code": "it", "title": "Catalogo" }],
+            "pages_rel": [
+              {
+                "id": 601,
+                "pages_id": 30,
+                "translations": [{ "id": 301, "languages_code": "it", "slug": "catalogo" }]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "sort": 2,
+      "status": "published",
+      "translations": [{ "id": 103, "menu_id": 2, "languages_code": "it", "label": "Contatti" }],
+      "link_rel": []
+    },
+    {
+      "id": 3,
+      "sort": 3,
+      "status": "draft",
+      "translations": [],
+      "link_rel": [
+        {
+          "id": 502,
+          "menu_id": 3,
+          "links_id": {
+            "id": 11,
+            "url": "https://example.com/blog",
+            "translations": [],
+            "pages_rel": []
+          }
+        }
+      ]
+    }
+  ]
+}
