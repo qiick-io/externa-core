@@ -58,6 +58,7 @@ import {
     deleteAiConversation,
     fetchAiImportJobStatus,
     fetchAiConversationsPage,
+    nextImportPollDelay,
     toggleAiConversationPin,
 } from '@/lib/ai-chat';
 import type { AiConversationSummary, AiImportJobStatus } from '@/lib/ai-chat';
@@ -268,6 +269,7 @@ export default function AiIndexPage({
     const importPollTimeoutRef = useRef<number | null>(null);
     const importPollJobIdRef = useRef<string | null>(null);
     const importPollActiveRef = useRef(false);
+    const importPollFailuresRef = useRef(0);
 
     // Sync Inertia props when the selected conversation changes — never while streaming.
     useEffect(() => {
@@ -601,6 +603,13 @@ export default function AiIndexPage({
             return;
         }
 
+        const scheduleNextPoll = (delay: number): void => {
+            clearImportPoll();
+            importPollTimeoutRef.current = window.setTimeout(() => {
+                void runImportPollRef.current(jobId);
+            }, delay);
+        };
+
         try {
             const status = await fetchAiImportJobStatus(jobId);
 
@@ -608,20 +617,29 @@ export default function AiIndexPage({
                 return;
             }
 
+            importPollFailuresRef.current = 0;
             setImportJobStatus(status);
 
             if (status.status === 'queued' || status.status === 'running') {
-                clearImportPoll();
-                importPollTimeoutRef.current = window.setTimeout(() => {
-                    void runImportPollRef.current(jobId);
-                }, 2000);
+                scheduleNextPoll(nextImportPollDelay(0) ?? 2000);
             } else {
                 importPollActiveRef.current = false;
             }
         } catch {
-            if (importPollJobIdRef.current === jobId) {
+            if (importPollJobIdRef.current !== jobId) {
+                return;
+            }
+
+            // A failed check (network blip, deploy, 502) retries with backoff instead of
+            // stopping the poll for good; the last known status stays on screen (#441).
+            importPollFailuresRef.current += 1;
+            const delay = nextImportPollDelay(importPollFailuresRef.current);
+
+            if (delay === null) {
                 setImportJobStatus(null);
                 importPollActiveRef.current = false;
+            } else {
+                scheduleNextPoll(delay);
             }
         }
     };
@@ -630,6 +648,7 @@ export default function AiIndexPage({
         clearImportPoll();
         importPollJobIdRef.current = jobId;
         importPollActiveRef.current = true;
+        importPollFailuresRef.current = 0;
         void runImportPollRef.current(jobId);
     };
 

@@ -691,6 +691,26 @@ export type AiImportJobStatus = {
     result?: Record<string, unknown> | null;
 };
 
+/** Status checks that may fail in a row before the import poll gives up (#441). */
+export const IMPORT_POLL_MAX_FAILURES = 5;
+
+/**
+ * Delay before the next import status check: 2 s while the job runs, then doubling after each
+ * failed check (2, 4, 8, 16 s, capped at 30 s), or null once the poll should stop.
+ *
+ * @param consecutiveFailures - Failed status checks in a row (0 after a successful one)
+ * @returns Milliseconds to wait, or null to stop polling
+ */
+export function nextImportPollDelay(
+    consecutiveFailures: number,
+): number | null {
+    if (consecutiveFailures >= IMPORT_POLL_MAX_FAILURES) {
+        return null;
+    }
+
+    return Math.min(2000 * 2 ** consecutiveFailures, 30000);
+}
+
 /**
  * Polls the status of a background AI import job.
  *
