@@ -220,3 +220,46 @@ test('deploy on publish is a no-op when disabled', function () {
 
     Queue::assertNotPushed(DeliverDeployHookJob::class);
 });
+
+test('a burst of publishes queues one delayed delivery per hook (#441)', function () {
+    Queue::fake([DeliverDeployHookJob::class]);
+
+    configureDeployHooks([
+        ['id' => 'hook_a', 'name' => 'A', 'url' => 'https://example.com/a'],
+        ['id' => 'hook_b', 'name' => 'B', 'url' => 'https://example.com/b'],
+    ], deployOnPublish: true);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    foreach (['One', 'Two', 'Three'] as $title) {
+        $item = $collection->items()->create(['draft_data' => ['title' => $title]]);
+        app(CollectionItemPublisherService::class)->promote($item, $collection);
+    }
+
+    Queue::assertPushed(DeliverDeployHookJob::class, 2);
+    Queue::assertPushed(DeliverDeployHookJob::class, fn (DeliverDeployHookJob $job): bool => $job->delay !== null);
+});
+
+test('the delivery is pinned to the address the ssrf guard resolved (#441)', function () {
+    // A public IP literal: tests skip DNS, and the guard returns the literal as the resolved address.
+    configureDeployHooks([
+        ['id' => 'hook_prod', 'name' => 'Production', 'url' => 'https://93.184.215.14/v1/integrations/deploy/abc'],
+    ]);
+
+    $resolveOption = null;
+    Http::fake(function ($request, array $options) use (&$resolveOption) {
+        $resolveOption = $options['curl'][CURLOPT_RESOLVE] ?? null;
+
+        return Http::response(['job' => ['id' => '1']], 201);
+    });
+
+    (new DeliverDeployHookJob('hook_prod', 'Production', 'manual'))->handle(app(ProjectSettingsService::class));
+
+    expect($resolveOption)->toBeArray()
+        ->and($resolveOption)->toBe(['93.184.215.14:443:93.184.215.14']);
+});

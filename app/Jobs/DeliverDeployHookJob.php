@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Services\Deploy\DeployHookStatusService;
 use App\Services\Settings\ProjectSettingsService;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -14,10 +15,17 @@ use Throwable;
 
 /**
  * POSTs to a stored deploy-hook URL (Vercel / Netlify / Cloudflare Pages / Forge).
+ *
+ * One queued delivery per hook at a time (unique until it starts): a scheduled publish of N
+ * items queues one build per hook, not N. A publish that lands while a delivery is running
+ * queues the next one, so the last published state is always built (#441).
  */
-class DeliverDeployHookJob implements ShouldQueue
+class DeliverDeployHookJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
+
+    /** Safety net: the unique lock expires even if a queued delivery is lost. */
+    public int $uniqueFor = 600;
 
     public int $tries = 3;
 
@@ -32,6 +40,11 @@ class DeliverDeployHookJob implements ShouldQueue
         public readonly string $source,
         public readonly array $triggeredHookIds = [],
     ) {}
+
+    public function uniqueId(): string
+    {
+        return $this->hookId;
+    }
 
     /**
      * @return list<int>
@@ -48,7 +61,15 @@ class DeliverDeployHookJob implements ShouldQueue
             return;
         }
 
-        if ($ssrf = SafeRemoteUrlValidator::validateOutboundWebhook($hook->url)) {
+        // Validate and resolve once, then pin the connection to that address (CURLOPT_RESOLVE),
+        // so a DNS change between the check and the request cannot point it at a private host.
+        $inspected = SafeRemoteUrlValidator::inspect(
+            $hook->url,
+            allowPrivateHosts: (bool) config('webhooks.allow_private_hosts', false),
+            enforceHostAllowlist: false,
+        );
+
+        if ($ssrf = $inspected['error']) {
             Log::warning('Deploy hook delivery refused: SSRF guard', [
                 'hook_id' => $this->hookId,
                 'reason' => $ssrf,
@@ -65,9 +86,18 @@ class DeliverDeployHookJob implements ShouldQueue
             return;
         }
 
+        $curlResolve = SafeRemoteUrlValidator::curlResolveEntries(
+            (string) $inspected['host'],
+            (int) $inspected['port'],
+            $inspected['ips'],
+        );
+
         $response = Http::timeout(5)
             ->connectTimeout(3)
             ->withoutRedirecting()
+            ->withOptions([
+                'curl' => $curlResolve === [] ? [] : [CURLOPT_RESOLVE => $curlResolve],
+            ])
             ->withHeaders([
                 'User-Agent' => 'Externa-Deploy/1.0',
             ])
