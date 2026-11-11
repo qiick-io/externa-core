@@ -7,38 +7,52 @@ namespace App\Http\Middleware;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
-use App\Models\User;
 use App\Support\Api\ApiAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Authenticate MCP requests via owned API key (mcp:read) or session user.
+ * Authenticate MCP requests with an owned API key (mcp:read), sent as a Bearer token.
  *
  * Ownerless keys are rejected (#215). The key owner's permissions are the ceiling.
+ *
+ * `/mcp` is outside the `web` group and exempt from CSRF, so there is no session login: a
+ * session path would let any site drive the tools with a signed-in user's cookies (#441).
+ * Failed attempts are limited per IP here, before `throttle:mcp`, which needs the resolved key
+ * to apply its per-key limit.
  */
 class AuthenticateMcpRequestMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
+        $failureKey = 'mcp-auth-failures:'.$request->ip();
+        $maxFailures = max(1, (int) config('ai.mcp.auth_failures_per_minute', 20));
+
+        if (RateLimiter::tooManyAttempts($failureKey, $maxFailures)) {
+            abort(429, 'Too many failed MCP authentication attempts.');
+        }
+
         $bearer = $request->bearerToken();
 
-        if ($bearer !== null && $bearer !== '') {
+        if ($bearer === null || $bearer === '') {
+            RateLimiter::hit($failureKey, 60);
+
+            abort(401, 'MCP authentication required.');
+        }
+
+        try {
             return $this->authenticateApiKey($request, $bearer, $next);
+        } catch (HttpExceptionInterface $exception) {
+            if (in_array($exception->getStatusCode(), [401, 403], true)) {
+                RateLimiter::hit($failureKey, 60);
+            }
+
+            throw $exception;
         }
-
-        $user = $request->user();
-
-        if ($user instanceof User && $user->is_active && ! $user->trashed()) {
-            $request->attributes->set('mcp_can_write', (bool) config('ai.mcp.write_enabled', false));
-            $request->attributes->set('mcp_api_key', null);
-
-            return $next($request);
-        }
-
-        abort(401, 'MCP authentication required.');
     }
 
     /**

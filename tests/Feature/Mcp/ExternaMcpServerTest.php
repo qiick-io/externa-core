@@ -282,3 +282,22 @@ it('rate limits MCP requests per API key', function (): void {
     $this->postJson('/mcp', mcpJsonRpc('ping', id: 2), $headers)->assertSuccessful();
     $this->postJson('/mcp', mcpJsonRpc('ping', id: 3), $headers)->assertStatus(429);
 });
+
+it('does not accept a session user without an API key (#441)', function (): void {
+    $user = User::factory()->create(['is_active' => true]);
+
+    $this->actingAs($user)
+        ->postJson('/mcp', mcpJsonRpc('ping'), mcpHeaders('ping'))
+        ->assertUnauthorized();
+});
+
+it('limits failed MCP authentications per IP before the per-key throttle (#441)', function (): void {
+    config(['ai.mcp.auth_failures_per_minute' => 2]);
+    RateLimiter::clear('mcp-auth-failures:127.0.0.1');
+
+    $headers = [...mcpHeaders('ping'), 'Authorization' => 'Bearer not-a-key'];
+
+    $this->postJson('/mcp', mcpJsonRpc('ping', id: 1), $headers)->assertUnauthorized();
+    $this->postJson('/mcp', mcpJsonRpc('ping', id: 2), $headers)->assertUnauthorized();
+    $this->postJson('/mcp', mcpJsonRpc('ping', id: 3), $headers)->assertStatus(429);
+});

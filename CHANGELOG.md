@@ -16,6 +16,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Rejecting a pending tool call needs the same tool permission as approving it; the requester can still withdraw their own call (#441).
 - Public API cost budget: a batch create, update or delete is charged once per entry (`API_COST_MUTATION` × the number of `items` / `ids`), so a 100-item batch costs like 100 writes, not one (#441).
 - Deploy hooks: the delivery is pinned to the address the SSRF guard resolved (`CURLOPT_RESOLVE`), so a DNS change between the check and the request cannot reach a private host; publish-triggered builds wait 30 s and queue one delivery per hook, so a scheduled publish of N items no longer queues N builds per hook (#441).
+- MCP: `/mcp` accepts only an owned API key (Bearer). The session-user path is gone: `/mcp` is outside the `web` group and exempt from CSRF, so it was unreachable and would have been unsafe to wire. Failed authentications are limited per IP (`AI_MCP_AUTH_FAILURES_PER_MINUTE`, default 20) before the per-key `throttle:mcp` (#441).
 
 ### Changed
 
