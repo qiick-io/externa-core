@@ -20,7 +20,7 @@ composer install
 npm ci           # prepare installs Lefthook hooks when .git is present
 ```
 
-Docs: [Contributing](https://docs.externa.qiick.io/docs/contributing).
+Docs: [Contributing](https://docs.qiick.io/externa/contributing).
 
 ## Local git hooks (Lefthook)
 
@@ -107,4 +107,4 @@ Tracking issues: [#226](https://github.com/qiick-io/externa-core/issues/226) (qi
 
 **Do not auto-ship to `main`.** Opening a `develop` → `main` release PR (full body + assignee + milestone) is fine. **Maintainers** merge that PR, create the `vX.Y.Z` tag, and publish the GitHub Release.
 
-Agents must **not** merge the release PR, create git tags, or run `gh release create` unless the user explicitly asks. Docs: [Releasing & versions](https://docs.externa.qiick.io/docs/releasing).
+Agents must **not** merge the release PR, create git tags, or run `gh release create` unless the user explicitly asks. Docs: [Releasing & versions](https://docs.qiick.io/externa/releasing).
