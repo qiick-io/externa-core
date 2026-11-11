@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Http;
 use Laravel\Fortify\Features;
 
 /**
@@ -10,6 +13,17 @@ use Laravel\Fortify\Features;
  */
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Every outgoing HTTP call in a test must be faked: an unfaked request throws instead of
+     * reaching the network, so no test depends on (or calls) a live service (#288).
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Http::preventStrayRequests();
+    }
+
     /**
      * Skip the current test when the given Fortify feature flag is disabled.
      *
