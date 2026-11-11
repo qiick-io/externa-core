@@ -1,3 +1,4 @@
+import { scalarToString } from '@/lib/scalar-to-string';
 /**
  * Helpers for raw field value copy / paste / edit on item forms.
  */
@@ -15,7 +16,7 @@ export function stringifyFieldRawValue(value: unknown): string {
     try {
         return JSON.stringify(value, null, 2);
     } catch {
-        return String(value);
+        return scalarToString(value);
     }
 }
 

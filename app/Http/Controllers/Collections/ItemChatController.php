@@ -5,6 +5,16 @@ namespace App\Http\Controllers\Collections;
 use App\Http\Controllers\Chat\ChatHubController;
 use App\Http\Controllers\Chat\ChatMessageController;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\FindChatAttachmentUploadRequest;
+use App\Http\Requests\Chat\InitChatAttachmentUploadRequest;
+use App\Http\Requests\Chat\ListChatMessagesRequest;
+use App\Http\Requests\Chat\PinChatMessageRequest;
+use App\Http\Requests\Chat\ReactToChatMessageRequest;
+use App\Http\Requests\Chat\StoreChatAttachmentRequest;
+use App\Http\Requests\Chat\StoreChatMessageRequest;
+use App\Http\Requests\Chat\UpdateChatMessageRequest;
+use App\Http\Requests\Chat\UpdateChatNotifyRequest;
+use App\Http\Requests\Chat\UploadChatAttachmentChunkRequest;
 use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -32,9 +42,8 @@ class ItemChatController extends Controller
         private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
-    public function index(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function index(ListChatMessagesRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
         $chat = $this->chats->findItemChat($item);
 
         if (! $chat instanceof Chat) {
@@ -44,9 +53,8 @@ class ItemChatController extends Controller
         return $this->messages->index($request, $chat);
     }
 
-    public function store(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function store(StoreChatMessageRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         $chat = $this->chats->findOrCreateItemChat($user, $collection, $item);
@@ -55,12 +63,12 @@ class ItemChatController extends Controller
     }
 
     public function update(
-        Request $request,
+        UpdateChatMessageRequest $request,
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
     ): JsonResponse {
-        return $this->messages->update($request, $this->chatForItem($request, $collection, $item), $message);
+        return $this->messages->update($request, $this->existingItemChat($item), $message);
     }
 
     public function destroy(
@@ -73,21 +81,21 @@ class ItemChatController extends Controller
     }
 
     public function pin(
-        Request $request,
+        PinChatMessageRequest $request,
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
     ): JsonResponse {
-        return $this->messages->pin($request, $this->chatForItem($request, $collection, $item), $message);
+        return $this->messages->pin($request, $this->existingItemChat($item), $message);
     }
 
     public function react(
-        Request $request,
+        ReactToChatMessageRequest $request,
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatMessage $message,
     ): JsonResponse {
-        return $this->messages->react($request, $this->chatForItem($request, $collection, $item), $message);
+        return $this->messages->react($request, $this->existingItemChat($item), $message);
     }
 
     public function mentions(Request $request, Collection $collection, CollectionItem $item): JsonResponse
@@ -100,16 +108,12 @@ class ItemChatController extends Controller
         return $this->messages->mentions($request, $chat);
     }
 
-    public function updateNotify(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function updateNotify(UpdateChatNotifyRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
-
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $validated = $request->validate([
-            'notify' => ['required', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $this->messages->setNotifyForCollection($user, (int) $collection->id, $validated['notify']);
 
@@ -143,38 +147,28 @@ class ItemChatController extends Controller
         return $this->hub->stopViewing($request, $chat);
     }
 
-    public function storeAttachment(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function storeAttachment(StoreChatAttachmentRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
-
         return $this->messages->storeAttachment($request);
     }
 
-    public function initAttachmentUpload(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function initAttachmentUpload(InitChatAttachmentUploadRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
-
         return $this->messages->initAttachmentUpload($request);
     }
 
-    public function uploadAttachmentChunk(Request $request, Collection $collection, CollectionItem $item): Response
+    public function uploadAttachmentChunk(UploadChatAttachmentChunkRequest $request, Collection $collection, CollectionItem $item): Response
     {
-        $this->assertItemContext($request, $collection, $item);
-
         return $this->messages->uploadAttachmentChunk($request);
     }
 
-    public function completeAttachmentUpload(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function completeAttachmentUpload(FindChatAttachmentUploadRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
-
         return $this->messages->completeAttachmentUpload($request);
     }
 
-    public function attachmentUploadStatus(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    public function attachmentUploadStatus(FindChatAttachmentUploadRequest $request, Collection $collection, CollectionItem $item): JsonResponse
     {
-        $this->assertItemContext($request, $collection, $item);
-
         return $this->messages->attachmentUploadStatus($request);
     }
 
@@ -246,6 +240,16 @@ class ItemChatController extends Controller
     private function chatForItem(Request $request, Collection $collection, CollectionItem $item): Chat
     {
         $this->assertItemContext($request, $collection, $item);
+
+        return $this->existingItemChat($item);
+    }
+
+    /**
+     * The item's thread, 404 when it has none yet. Callers have checked the
+     * item context already (here or in the form request's `authorize()`).
+     */
+    private function existingItemChat(CollectionItem $item): Chat
+    {
         $chat = $this->chats->findItemChat($item);
         abort_unless($chat instanceof Chat, 404);
 

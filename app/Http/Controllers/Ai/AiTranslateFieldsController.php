@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Ai;
 
 use App\Ai\Agents\ContentTranslator;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\TranslateAiFieldsRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -17,14 +17,9 @@ class AiTranslateFieldsController extends Controller
     /**
      * Run ContentTranslator and return translated field values.
      */
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(TranslateAiFieldsRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'source_locale' => ['required', 'string', 'max:32'],
-            'target_locale' => ['required', 'string', 'max:32', 'different:source_locale'],
-            'fields' => ['required', 'array', 'min:1', 'max:50'],
-            'fields.*' => ['nullable', 'string', 'max:20000'],
-        ]);
+        $validated = $request->validated();
 
         /** @var array<string, string|null> $fields */
         $fields = $validated['fields'];
