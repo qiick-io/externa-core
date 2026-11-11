@@ -1,15 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Concerns;
 
 use App\Enums\FilePermissionActionEnum;
 use App\Models\File;
-use App\Models\User;
-use App\Services\Api\FilePermissionGuardService;
-use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Policies\FilePolicy;
+use App\Services\Api\FileAccessEnforcerService;
 use App\Support\Api\ApiAccess;
 use Illuminate\Http\Request;
 
+/**
+ * Files API gates for the request's API actor, aborting with 403. The rules live in
+ * {@see FileAccessEnforcerService}; record checks go through {@see FilePolicy}.
+ */
 trait AuthorizesFileAccessTrait
 {
     protected function apiAccess(Request $request): ApiAccess
@@ -23,53 +28,15 @@ trait AuthorizesFileAccessTrait
     }
 
     /**
-     * Role file ACL ∩ API key scopes ({@see ApiKey::allowsFileAction()}).
-     *
-     * {@see ApiKey::$collection_slugs} still does not gate `/api/v1/files`;
-     * use {@see ApiKey::$files_scope} instead.
+     * Role file ACL ∩ API key scopes ∩ owner ceiling.
      */
     protected function authorizeFile(
         Request $request,
         FilePermissionActionEnum $action,
     ): void {
-        $access = $this->apiAccess($request);
-        $allowed = app(FilePermissionGuardService::class)->allows(
-            $access->roleId(),
-            $action,
-        );
-
-        if (! $allowed) {
+        if (! app(FileAccessEnforcerService::class)->allowsFileAction($this->apiAccess($request), $action)) {
             abort(403, __('This action is unauthorized for files.'));
         }
-
-        $apiKey = $access->apiKey;
-        if ($apiKey !== null && ! $apiKey->allowsFileAction($action)) {
-            abort(403, __('This action is unauthorized for files.'));
-        }
-
-        if ($apiKey !== null && $apiKey->owner_id !== null) {
-            $owner = $apiKey->relationLoaded('owner') ? $apiKey->owner : $apiKey->owner()->first();
-            if (! $owner instanceof User || ! $this->ownerAllowsFileAction($owner, $action)) {
-                abort(403, __('This action is unauthorized for files.'));
-            }
-        }
-    }
-
-    private function ownerAllowsFileAction(User $owner, FilePermissionActionEnum $action): bool
-    {
-        $resolver = app(EffectivePermissionResolverService::class);
-        if ($resolver->isSuperAdmin($owner)) {
-            return true;
-        }
-
-        $guard = app(FilePermissionGuardService::class);
-        foreach ($resolver->effectiveRoleIds($owner) as $roleId) {
-            if ($guard->allows($roleId, $action)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -77,22 +44,8 @@ trait AuthorizesFileAccessTrait
      */
     protected function authorizeFileRead(Request $request, File $file): void
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Read);
-
-        $access = $this->apiAccess($request);
-        if (! app(FilePermissionGuardService::class)->canReadFile($access->roleId(), $file)) {
+        if (! app(FileAccessEnforcerService::class)->allowsFileRead($this->apiAccess($request), $file)) {
             abort(403, __('This action is unauthorized for files.'));
-        }
-
-        $apiKey = $access->apiKey;
-        if ($apiKey !== null && $apiKey->owner_id !== null && $file->isEffectivelyPrivate()) {
-            $owner = $apiKey->relationLoaded('owner') ? $apiKey->owner : $apiKey->owner()->first();
-            if (
-                ! $owner instanceof User
-                || ! $this->ownerAllowsFileAction($owner, FilePermissionActionEnum::ReadPrivate)
-            ) {
-                abort(403, __('This action is unauthorized for files.'));
-            }
         }
     }
 }
