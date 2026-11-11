@@ -10,9 +10,11 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
+use App\Http\Controllers\Collections\ItemApprovalController;
 use App\Http\Controllers\Collections\ItemChatController;
 use App\Http\Controllers\Collections\ItemController;
 use App\Http\Controllers\Collections\ItemRevisionController;
+use App\Http\Controllers\Collections\ItemWorkflowController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])
@@ -198,27 +200,27 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.react');
 
-        Route::post('collections/{collection}/items/{item}/publish', [ItemController::class, 'publish'])
+        Route::post('collections/{collection}/items/{item}/publish', [ItemWorkflowController::class, 'publish'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.publish');
 
-        Route::post('collections/{collection}/items/{item}/submit-for-review', [ItemController::class, 'submitForReview'])
+        Route::post('collections/{collection}/items/{item}/submit-for-review', [ItemApprovalController::class, 'submitForReview'])
             ->middleware('permission:'.PermissionEnum::CanSubmitCollections->value)
             ->name('collections.items.submit-for-review');
 
-        Route::post('collections/{collection}/items/{item}/approve', [ItemController::class, 'approve'])
+        Route::post('collections/{collection}/items/{item}/approve', [ItemApprovalController::class, 'approve'])
             ->middleware('permission:'.PermissionEnum::CanApproveCollections->value)
             ->name('collections.items.approve');
 
-        Route::post('collections/{collection}/items/{item}/reject', [ItemController::class, 'reject'])
+        Route::post('collections/{collection}/items/{item}/reject', [ItemApprovalController::class, 'reject'])
             ->middleware('permission:'.PermissionEnum::CanApproveCollections->value)
             ->name('collections.items.reject');
 
-        Route::post('collections/{collection}/items/{item}/discard-draft', [ItemController::class, 'discardDraft'])
+        Route::post('collections/{collection}/items/{item}/discard-draft', [ItemWorkflowController::class, 'discardDraft'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.discard-draft');
 
-        Route::post('collections/{collection}/items/{item}/schedule', [ItemController::class, 'schedule'])
+        Route::post('collections/{collection}/items/{item}/schedule', [ItemWorkflowController::class, 'schedule'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.schedule');
 

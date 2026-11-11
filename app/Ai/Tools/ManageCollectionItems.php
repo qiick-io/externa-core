@@ -275,7 +275,7 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsContract
     }
 
     /**
-     * Promote draft values to published, with the same gates as `ItemController::publish`
+     * Promote draft values to published, with the same gates as `ItemWorkflowController::publish`
      * (collection Update, item_filter, versioning). Fires publish side effects (deploy hooks).
      */
     private function publishItem(int $itemId): string
