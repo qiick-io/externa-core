@@ -128,20 +128,10 @@ function makePostsCollection(): Collection
  */
 function makeApiKeyForRole(?Role $role = null): array
 {
-    $role ??= Role::query()->create([
-        'name' => 'api-consumer-'.uniqid(),
-        'guard_name' => 'web',
-        'is_system' => false,
-        'is_assignable' => true,
-    ]);
+    $role ??= Role::factory()->create(['name' => 'api-consumer-'.uniqid()]);
 
     $secret = ApiKey::generateSecret();
-    $key = ApiKey::query()->create([
-        'name' => 'Partner',
-        'key_prefix' => $secret['prefix'],
-        'key_hash' => $secret['hash'],
-        'role_id' => $role->id,
-    ]);
+    $key = ApiKey::factory()->withSecret($secret)->for($role)->create(['name' => 'Partner']);
 
     return ['role' => $role, 'plain' => $secret['plain'], 'key' => $key];
 }
