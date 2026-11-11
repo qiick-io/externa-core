@@ -97,7 +97,7 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Test at 320px width and ~400% zoom; never set `maximum-scale` / `user-scalable=no` on the viewport meta.
   - One a11y concern per PR when practical (rules, landmarks, forms, tooling).
   - Lint: Oxlint's `jsx-a11y` rules (`vite.config.ts`) error on `components/` / `layouts/` / `hooks/` (shadcn `components/ui/*` ignored — covered by axe); warnings elsewhere, and warnings fail too (`denyWarnings`).
-  - Axe smoke: `tests/Browser/A11ySmokeBrowserTest.php` (critical/serious) gates the `browser` CI check on code PRs.
+  - Axe smoke: `tests/Browser/A11ySmokeBrowserTest.php` (critical/serious) gates the `browser` CI check on code PRs. A PR that changes a toolchain or stack file (`package.json`, lockfiles, `composer.json`, `vite.config.ts`, `vitest.config.ts`, `tsconfig.json`, `qiick-standards.json`) runs the full matrix and the whole browser suite instead (#669); for other UI changes, run `php artisan test tests/Browser` locally before merging.
   - Manual AT pass: [`docs/a11y-screen-reader-checklist.md`](./docs/a11y-screen-reader-checklist.md) before release.
   - Third-party limits (TipTap, CodeMirror, Leaflet, …): [`docs/a11y-third-party-limits.md`](./docs/a11y-third-party-limits.md) — labelled wrappers + keyboard alternatives, no forks.
 

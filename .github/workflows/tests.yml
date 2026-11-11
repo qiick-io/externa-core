@@ -24,6 +24,8 @@ concurrency:
 # - Required check NAMES stay: ci (8.4), ci (8.5), ci-mysql, ci-mariadb, ci-pgsql, browser
 #   (stubs report success when the heavy work is skipped so branch protection stays green).
 # - pull_request → develop (code): Pest on PHP 8.4 only; other PHP/DB stub; browser runs axe smoke.
+# - pull_request → develop that changes a toolchain / stack file (package.json, lockfiles, composer.json,
+#   vite / vitest / tsconfig, qiick-standards.json, this file): full matrix + full browser suite (#669).
 # - docs/md-only PR → develop: all Pest/browser stub.
 # - push → develop/main, PR → main, schedule: full matrix + full browser suite.
 # - Required jobs run with if: always() and fail first when changes/assets did not succeed,
@@ -82,6 +84,18 @@ jobs:
               else
                 MODE=lite
               fi
+
+              # Toolchain or stack changes run the full matrix and the whole browser suite even
+              # on a PR to develop: a stale browser assertion only failed on the 1.4.0 release PR (#631, #669).
+              for f in "${FILES[@]}"; do
+                case "$f" in
+                  package.json|package-lock.json|composer.json|composer.lock|vite.config.ts|vitest.config.ts|tsconfig.json|qiick-standards.json|.github/workflows/tests.yml)
+                    MODE=full
+                    echo "Stack file changed ($f): full mode"
+                    break
+                    ;;
+                esac
+              done
             fi
           fi
 
