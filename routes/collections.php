@@ -11,6 +11,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
 use App\Http\Controllers\Collections\ItemApprovalController;
+use App\Http\Controllers\Collections\ItemBoardController;
 use App\Http\Controllers\Collections\ItemChatController;
 use App\Http\Controllers\Collections\ItemController;
 use App\Http\Controllers\Collections\ItemRevisionController;
@@ -76,11 +77,11 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.field-options');
 
-        Route::get('collections/{collection}/items/kanban-column', [ItemController::class, 'kanbanColumn'])
+        Route::get('collections/{collection}/items/kanban-column', [ItemBoardController::class, 'kanbanColumn'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.kanban-column');
 
-        Route::get('collections/{collection}/items/calendar-month', [ItemController::class, 'calendarMonth'])
+        Route::get('collections/{collection}/items/calendar-month', [ItemBoardController::class, 'calendarMonth'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.calendar-month');
 

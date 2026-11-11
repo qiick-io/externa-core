@@ -10,6 +10,7 @@ import {
     useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import ItemBoardController from '@/actions/App/Http/Controllers/Collections/ItemBoardController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -218,15 +219,18 @@ export function ItemsKanban({
             );
 
             try {
-                const url = ItemController.kanbanColumn.url(collection.id, {
-                    query: {
-                        ...listQuery,
-                        field: fieldName,
-                        value: columnValue,
-                        page: nextPage,
-                        per_page: perPage,
+                const url = ItemBoardController.kanbanColumn.url(
+                    collection.id,
+                    {
+                        query: {
+                            ...listQuery,
+                            field: fieldName,
+                            value: columnValue,
+                            page: nextPage,
+                            per_page: perPage,
+                        },
                     },
-                });
+                );
                 const response = await fetch(url, {
                     headers: {
                         Accept: 'application/json',
