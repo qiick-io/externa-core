@@ -14,6 +14,7 @@ use App\Services\Collections\CollectionFieldConvertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -140,8 +141,8 @@ class ItemRevisionController extends Controller
     ): RedirectResponse {
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
         abort_unless((int) $revision->item_id === (int) $item->id, 404);
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
-        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        abort_unless(Gate::forUser($request->user())->allows('view', [$item, $collection]), 404);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
         $data = is_array($revision->data) ? $revision->data : [];
         $this->permissionEnforcer->assertWritableFields(
