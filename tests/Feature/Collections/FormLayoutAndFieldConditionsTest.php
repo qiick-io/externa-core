@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Collections\CollectionFormLayoutNormalizerService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\FieldConditionEvaluatorService;
+use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
@@ -77,6 +78,36 @@ test('form layout persists on collection and normalizes field ids', function () 
 
     expect($groups)->toHaveCount(1)
         ->and($groups[0]['field_ids'])->toBe([$title->id, $status->id]);
+});
+
+test('form layout string labels normalize under the default content locale', function () {
+    $this->mock(ProjectLocalizationSettingsService::class)
+        ->shouldReceive('defaultContentLocale')
+        ->andReturn('it');
+
+    $collection = Collection::factory()->create();
+    $title = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $normalized = app(CollectionFormLayoutNormalizerService::class)->normalize([
+        'tabs' => [
+            ['id' => 'main', 'label' => '  Main  '],
+        ],
+        'sections' => [
+            [
+                'id' => 'details',
+                'tab_id' => 'main',
+                'label' => 'Details',
+                'field_ids' => [$title->id],
+            ],
+        ],
+    ], $collection);
+
+    expect($normalized['tabs'][0]['label'])->toBe(['it' => 'Main'])
+        ->and($normalized['sections'][0]['label'])->toBe(['it' => 'Details']);
 });
 
 test('conditional required is enforced when rules match', function () {
