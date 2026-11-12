@@ -1647,7 +1647,9 @@
                 "key": "Chiave",
                 "nameHint": "Etichetta tradotta mostrata nell'interfaccia di amministrazione e nel modulo dell'elemento.",
                 "note": "Nota",
-                "noteHint": "Testo di aiuto facoltativo mostrato sotto il campo nel modulo dell'elemento."
+                "noteHint": "Testo di aiuto facoltativo mostrato sotto il campo nel modulo dell'elemento.",
+                "keyDuplicate": "In questa collection esiste già un campo con questa chiave.",
+                "updateSubtitle": "Aggiorna le impostazioni di {{name}}."
             },
             "blocks": {
                 "blockTypes": "Tipi di blocco",
