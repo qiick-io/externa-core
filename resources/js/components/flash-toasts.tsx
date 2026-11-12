@@ -5,10 +5,11 @@ import { toast } from '@/lib/toast';
 type FlashBag = {
     success?: string | null;
     error?: string | null;
+    warning?: string | null;
 };
 
 /**
- * Surfaces session flash success/error as toasts after Inertia redirects.
+ * Surfaces session flash success/error/warning as toasts after Inertia redirects.
  */
 export function FlashToasts() {
     const flash = (usePage().props as { flash?: FlashBag }).flash;
@@ -18,9 +19,11 @@ export function FlashToasts() {
         const success =
             typeof flash?.success === 'string' ? flash.success : null;
         const error = typeof flash?.error === 'string' ? flash.error : null;
-        const key = `${success ?? ''}|${error ?? ''}`;
+        const warning =
+            typeof flash?.warning === 'string' ? flash.warning : null;
+        const key = `${success ?? ''}|${error ?? ''}|${warning ?? ''}`;
 
-        if (!success && !error) {
+        if (!success && !error && !warning) {
             return;
         }
 
@@ -37,7 +40,11 @@ export function FlashToasts() {
         if (error) {
             toast.error(error);
         }
-    }, [flash?.success, flash?.error]);
+
+        if (warning) {
+            toast.warning(warning);
+        }
+    }, [flash?.success, flash?.error, flash?.warning]);
 
     return null;
 }

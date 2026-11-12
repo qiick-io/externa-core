@@ -831,7 +831,37 @@
             "killSwitchOff": "disabled (default)",
             "killSwitchHint": "Set AI_WRITE_TOOLS=true (or AI_TOOLS_WRITE_ENABLED=true) in the environment to allow any write tools.",
             "ttlHint": "MCP approvals expire after {{minutes}} minutes. Tool audit rows are retained for {{days}} days.",
-            "save": "Save"
+            "save": "Save",
+            "models": {
+                "title": "Models",
+                "description": "The models this install uses, set in the environment (config/ai.php). Models outside the catalog, such as LOCAL_AI_MODEL, stay allowed and show as unverified. Run php artisan ai:models for the same list.",
+                "catalogTitle": "Model catalog",
+                "catalogDescription": "Curated models per provider. Prefer a recommended model: small models may report tool calls that never ran.",
+                "deprecatedWarning": "Deprecated AI model in use: {{models}}. Switch to a recommended model.",
+                "usage": "Used for",
+                "provider": "Provider",
+                "model": "Model",
+                "capabilities": "Capabilities",
+                "statusLabel": "Status",
+                "usages": {
+                    "assistant": "Assistant",
+                    "default": "Default text",
+                    "translate": "Field translation",
+                    "item_drafts": "Item drafts",
+                    "embeddings": "Embeddings"
+                },
+                "capability": {
+                    "tools": "Tools",
+                    "vision": "Vision",
+                    "embeddings": "Embeddings"
+                },
+                "status": {
+                    "recommended": "Recommended",
+                    "supported": "Supported",
+                    "deprecated": "Deprecated",
+                    "unverified": "Unverified"
+                }
+            }
         }
     },
     "collections": {

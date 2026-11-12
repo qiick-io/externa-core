@@ -831,7 +831,37 @@
             "killSwitchOff": "disabilitato (default)",
             "killSwitchHint": "Imposta AI_WRITE_TOOLS=true (o AI_TOOLS_WRITE_ENABLED=true) nell’ambiente per consentire gli strumenti in scrittura.",
             "ttlHint": "Le approvazioni MCP scadono dopo {{minutes}} minuti. Le voci di audit degli strumenti sono conservate per {{days}} giorni.",
-            "save": "Salva"
+            "save": "Salva",
+            "models": {
+                "title": "Modelli",
+                "description": "I modelli usati da questa installazione, impostati nell'ambiente (config/ai.php). I modelli fuori dal catalogo, come LOCAL_AI_MODEL, restano consentiti e risultano non verificati. Esegui php artisan ai:models per lo stesso elenco.",
+                "catalogTitle": "Catalogo dei modelli",
+                "catalogDescription": "Modelli selezionati per provider. Preferisci un modello consigliato: i modelli piccoli possono riportare chiamate a strumenti mai eseguite.",
+                "deprecatedWarning": "Modello AI deprecato in uso: {{models}}. Passa a un modello consigliato.",
+                "usage": "Usato per",
+                "provider": "Provider",
+                "model": "Modello",
+                "capabilities": "Capacità",
+                "statusLabel": "Stato",
+                "usages": {
+                    "assistant": "Assistente",
+                    "default": "Testo predefinito",
+                    "translate": "Traduzione dei campi",
+                    "item_drafts": "Bozze degli elementi",
+                    "embeddings": "Embedding"
+                },
+                "capability": {
+                    "tools": "Strumenti",
+                    "vision": "Visione",
+                    "embeddings": "Embedding"
+                },
+                "status": {
+                    "recommended": "Consigliato",
+                    "supported": "Supportato",
+                    "deprecated": "Deprecato",
+                    "unverified": "Non verificato"
+                }
+            }
         }
     },
     "collections": {
