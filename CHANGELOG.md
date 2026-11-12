@@ -12,6 +12,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Added
 
 - Opt-in structured logging: `LOG_CHANNEL=structured` (or `structured` in `LOG_STACK`) writes one JSON object per line to stderr with `request_id`, `user_id` / `api_key_id`, route, queued job class and attempt, environment and app version, and redacts authorization headers, cookies, tokens, passwords and secrets. Every response now carries an `X-Request-Id` header (a valid incoming id is kept, otherwise one is generated); the default `stack` output is unchanged (#209).
+- Live Preview on the create form: the unsaved form state is validated, stripped by the field ACL and stashed for the preview token TTL (5 minutes) without creating an item; `GET /api/v1/preview` returns it like a draft item (`data.id` null, `meta.unsaved` true), and saving or leaving the form revokes the token (#368).
 
 ### Security
 

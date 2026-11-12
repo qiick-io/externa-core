@@ -36,6 +36,7 @@ use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Collections\LivePreviewAsOfResolverService;
+use App\Services\Collections\LivePreviewUnsavedDraftService;
 use App\Services\Collections\LivePreviewUrlBuilderService;
 use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\SafeReturnUrl;
@@ -73,6 +74,7 @@ class ItemController extends Controller
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
         private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
+        private LivePreviewUnsavedDraftService $unsavedLivePreviewDrafts,
         private EffectivePermissionResolverService $permissionResolver,
         private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
@@ -236,11 +238,15 @@ class ItemController extends Controller
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
             'previewRoles' => $this->previewRoles($request),
             'activityLogs' => null,
+            'livePreviewConfigured' => $this->livePreviewUrlBuilder->templateFor($collection) !== null,
         ]);
     }
 
     /**
      * Create a collection item from validated field data.
+     *
+     * Revokes the actor's unsaved create-form Live Preview for the collection: once the item exists,
+     * its own (item-bound) preview takes over.
      */
     public function store(StoreCollectionItemRequest $request, Collection $collection): RedirectResponse
     {
@@ -257,6 +263,11 @@ class ItemController extends Controller
         $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
 
         $item = $this->persistNewItem($collection, $data);
+
+        $user = $request->user();
+        if ($user instanceof User) {
+            $this->unsavedLivePreviewDrafts->forget($user, $collection);
+        }
 
         return $this->redirectAfterItemSave(
             $collection,

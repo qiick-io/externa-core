@@ -954,6 +954,17 @@ export default function ItemsForm({
                             }
                         />
                     )}
+                    {isNew &&
+                        hasFields &&
+                        canCreateItem &&
+                        livePreviewConfigured && (
+                            <ItemLivePreviewButton
+                                collectionId={collection.id}
+                                itemId={null}
+                                formId={COLLECTION_ITEM_FORM_ID}
+                                version="draft"
+                            />
+                        )}
                     {!isNew && item !== null && (
                         <HeaderIconButton
                             type="button"
