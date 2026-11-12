@@ -79,18 +79,6 @@ parameters:
 			path: app/GraphQL/Queries/CollectionsQuery.php
 
 		-
-			message: '#^Match expression does not handle remaining value\: mixed$#'
-			identifier: match.unhandled
-			count: 1
-			path: app/Http/Controllers/Admin/FileController.php
-
-		-
-			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
-			identifier: assign.propertyReadOnly
-			count: 3
-			path: app/Http/Controllers/Admin/FileController.php
-
-		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 3
@@ -101,6 +89,18 @@ parameters:
 			identifier: argument.templateType
 			count: 3
 			path: app/Http/Controllers/Admin/FileController.php
+
+		-
+			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
+			identifier: assign.propertyReadOnly
+			count: 2
+			path: app/Http/Controllers/Admin/FileFavoriteController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Admin/FileOrganizationController.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
@@ -689,6 +689,12 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 2
 			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
+			identifier: assign.propertyReadOnly
+			count: 1
+			path: app/Services/Files/FileFavoriteFlagService.php
 
 		-
 			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'

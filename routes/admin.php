@@ -10,7 +10,15 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApiKeyController;
+use App\Http\Controllers\Admin\FileAttachmentController;
+use App\Http\Controllers\Admin\FileChunkUploadController;
 use App\Http\Controllers\Admin\FileController;
+use App\Http\Controllers\Admin\FileDownloadController;
+use App\Http\Controllers\Admin\FileFavoriteController;
+use App\Http\Controllers\Admin\FileOrganizationController;
+use App\Http\Controllers\Admin\FileTagController;
+use App\Http\Controllers\Admin\FileTrashController;
+use App\Http\Controllers\Admin\FileUploadController;
 use App\Http\Controllers\Admin\JobMonitorController;
 use App\Http\Controllers\Admin\PendingToolCallController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -186,35 +194,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can.manage.files')->group(function () {
         Route::prefix('files')->name('files.')->group(function () {
             Route::get('list', [FileController::class, 'list'])->name('list');
-            Route::get('tags', [FileController::class, 'listTags'])->name('tags.index');
+            Route::get('tags', [FileTagController::class, 'listTags'])->name('tags.index');
             Route::post('folders', [FileController::class, 'createFolder'])->name('folders.store');
-            Route::post('upload', [FileController::class, 'upload'])->name('upload');
-            Route::post('import-url', [FileController::class, 'importFromUrl'])->name('import-url');
-            Route::post('bulk', [FileController::class, 'bulk'])->name('bulk');
-            Route::post('download', [FileController::class, 'downloadMany'])->name('download-many');
-            Route::get('zips/{jobId}', [FileController::class, 'downloadPreparedZip'])->name('zips.download');
-            Route::delete('trash', [FileController::class, 'emptyTrash'])->name('trash.empty');
+            Route::post('upload', [FileUploadController::class, 'upload'])->name('upload');
+            Route::post('import-url', [FileUploadController::class, 'importFromUrl'])->name('import-url');
+            Route::post('bulk', [FileOrganizationController::class, 'bulk'])->name('bulk');
+            Route::post('download', [FileDownloadController::class, 'downloadMany'])->name('download-many');
+            Route::get('zips/{jobId}', [FileDownloadController::class, 'downloadPreparedZip'])->name('zips.download');
+            Route::delete('trash', [FileTrashController::class, 'emptyTrash'])->name('trash.empty');
             Route::patch('{file}', [FileController::class, 'update'])->name('update');
-            Route::post('{file}/replace', [FileController::class, 'replace'])->name('replace');
-            Route::post('{file}/copy', [FileController::class, 'copy'])->name('copy');
-            Route::post('{file}/favorite', [FileController::class, 'favorite'])->name('favorite');
-            Route::delete('{file}/favorite', [FileController::class, 'unfavorite'])->name('unfavorite');
-            Route::put('{file}/tags', [FileController::class, 'syncTags'])->name('tags');
-            Route::get('{file}/download', [FileController::class, 'download'])->name('download');
-            Route::get('{file}/thumbnail', [FileController::class, 'thumbnail'])->name('thumbnail');
+            Route::post('{file}/replace', [FileUploadController::class, 'replace'])->name('replace');
+            Route::post('{file}/copy', [FileOrganizationController::class, 'copy'])->name('copy');
+            Route::post('{file}/favorite', [FileFavoriteController::class, 'favorite'])->name('favorite');
+            Route::delete('{file}/favorite', [FileFavoriteController::class, 'unfavorite'])->name('unfavorite');
+            Route::put('{file}/tags', [FileTagController::class, 'syncTags'])->name('tags');
+            Route::get('{file}/download', [FileDownloadController::class, 'download'])->name('download');
+            Route::get('{file}/thumbnail', [FileDownloadController::class, 'thumbnail'])->name('thumbnail');
             Route::get('{file}/where-used', [FileController::class, 'whereUsed'])->name('where-used');
-            Route::patch('{file}/move', [FileController::class, 'move'])->name('move');
-            Route::patch('{file}/rename', [FileController::class, 'rename'])->name('rename');
-            Route::delete('{file}', [FileController::class, 'destroy'])->name('destroy');
-            Route::post('{file}/restore', [FileController::class, 'restore'])->name('restore');
-            Route::delete('{file}/force', [FileController::class, 'forceDelete'])->name('force-delete');
-            Route::post('{file}/attach', [FileController::class, 'attach'])->name('attach');
-            Route::post('{file}/detach', [FileController::class, 'detach'])->name('detach');
+            Route::patch('{file}/move', [FileOrganizationController::class, 'move'])->name('move');
+            Route::patch('{file}/rename', [FileOrganizationController::class, 'rename'])->name('rename');
+            Route::delete('{file}', [FileTrashController::class, 'destroy'])->name('destroy');
+            Route::post('{file}/restore', [FileTrashController::class, 'restore'])->name('restore');
+            Route::delete('{file}/force', [FileTrashController::class, 'forceDelete'])->name('force-delete');
+            Route::post('{file}/attach', [FileAttachmentController::class, 'attach'])->name('attach');
+            Route::post('{file}/detach', [FileAttachmentController::class, 'detach'])->name('detach');
 
-            Route::post('uploads/init', [FileController::class, 'initChunkUpload'])->name('uploads.init');
-            Route::post('uploads/chunk', [FileController::class, 'uploadChunk'])->name('uploads.chunk');
-            Route::post('uploads/complete', [FileController::class, 'completeChunkUpload'])->name('uploads.complete');
-            Route::get('uploads/status', [FileController::class, 'uploadStatus'])->name('uploads.status');
+            Route::post('uploads/init', [FileChunkUploadController::class, 'initChunkUpload'])->name('uploads.init');
+            Route::post('uploads/chunk', [FileChunkUploadController::class, 'uploadChunk'])->name('uploads.chunk');
+            Route::post('uploads/complete', [FileChunkUploadController::class, 'completeChunkUpload'])->name('uploads.complete');
+            Route::get('uploads/status', [FileChunkUploadController::class, 'uploadStatus'])->name('uploads.status');
         });
 
         Route::get('files/{folder?}', [FileController::class, 'index'])

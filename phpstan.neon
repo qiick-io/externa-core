@@ -32,7 +32,7 @@ parameters:
                 - 'app/Services/Files/FileWhereUsedScannerService.php'
                 - 'app/Services/Chat/ChatUnreadService.php'
                 - 'app/Support/Health/ReadinessChecks.php'
-                - 'app/Http/Controllers/DashboardController.php'
+                - 'app/Services/Dashboard/DashboardOverviewMetricsService.php'
                 - 'app/Http/Controllers/Admin/FileController.php'
                 - 'app/Http/Controllers/Api/V1/FileController.php'
                 - 'app/Http/Controllers/Ai/AiPageController.php'

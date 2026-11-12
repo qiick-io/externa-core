@@ -31,7 +31,6 @@ return [
     // Thin controllers (app-ui v0.2.0): existing debt, a ratchet. Lower an entry when the
     // controller shrinks; never raise it.
     'controllerPublicMethods' => [
-        'App\Http\Controllers\Admin\FileController' => 30,
         'App\Http\Controllers\Admin\RoleController' => 8,
         'App\Http\Controllers\Admin\UserController' => 7,
         'App\Http\Controllers\Admin\UserGroupController' => 7,

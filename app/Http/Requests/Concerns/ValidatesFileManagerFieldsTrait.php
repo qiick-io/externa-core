@@ -26,6 +26,16 @@ trait ValidatesFileManagerFieldsTrait
     }
 
     /**
+     * The validated `parent_id` as an integer (form and query input arrive as strings).
+     */
+    public function validatedParentId(): ?int
+    {
+        $parentId = $this->validated('parent_id');
+
+        return $parentId === null ? null : (int) $parentId;
+    }
+
+    /**
      * Optional storage disk, limited to the disks the file manager may write to.
      *
      * @return list<mixed>
