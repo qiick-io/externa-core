@@ -8,211 +8,43 @@ use App\Actions\Collections\CreateCollectionItemAction;
 use App\Actions\Collections\MoveCollectionItemAction;
 use App\Actions\Collections\UpdateCollectionItemAction;
 use App\Data\Collections\CollectionItemWriteData;
-use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Collections\BuildLivePreviewUrlRequest;
-use App\Http\Requests\Collections\BulkItemActionRequest;
-use App\Http\Requests\Collections\ListCollectionFieldOptionsRequest;
-use App\Http\Requests\Collections\PreviewCollectionItemAsRoleRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
-use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
-use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
-use App\Http\Resources\Admin\ActivityLogResource;
-use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
-use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Models\Role;
 use App\Models\User;
-use App\Services\Ai\ItemDraftGeneratorService;
 use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Services\Authorization\EffectivePermissionResolverService;
-use App\Services\Collections\CollectionItemDataNormalizerService;
-use App\Services\Collections\CollectionItemExportService;
-use App\Services\Collections\CollectionItemListService;
-use App\Services\Collections\CollectionItemOptionsService;
-use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Services\Collections\FieldConditionEvaluatorService;
-use App\Services\Collections\ItemRolePreviewService;
-use App\Services\Collections\LivePreviewAsOfResolverService;
+use App\Services\Collections\CollectionItemFormPropsService;
+use App\Services\Collections\CollectionItemFormSaveService;
 use App\Services\Collections\LivePreviewUnsavedDraftService;
-use App\Services\Collections\LivePreviewUrlBuilderService;
 use App\Services\Http\SafeReturnUrlService;
-use App\Services\Settings\SettingsRepositoryService;
 use App\Traits\AssertsItemBelongsToCollectionTrait;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use InvalidArgumentException;
-use Spatie\Activitylog\Models\Activity;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * CRUD and relational field option endpoints for non-singleton collection items.
+ * The item editor of non-singleton collections: create form, store, edit form, update and
+ * soft delete. The list page is `ItemListController`, the trash `ItemTrashController`, the
+ * editor's previews `ItemPreviewController` and its relational pickers `ItemFieldOptionController`.
  */
 class ItemController extends Controller
 {
     use AssertsItemBelongsToCollectionTrait;
-    use ValidatesListPerPageTrait;
 
     public function __construct(
-        private CollectionItemListService $itemListService,
-        private CollectionItemDataNormalizerService $itemDataNormalizer,
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
         private MoveCollectionItemAction $moveCollectionItemAction,
-        private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
-        private CollectionItemOptionsService $collectionItemOptionsService,
-        private SettingsRepositoryService $settingsRepository,
         private CollectionPermissionEnforcerService $permissionEnforcer,
-        private CollectionItemExportService $itemExportService,
-        private ItemRolePreviewService $itemRolePreviewService,
-        private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
         private LivePreviewUnsavedDraftService $unsavedLivePreviewDrafts,
-        private EffectivePermissionResolverService $permissionResolver,
-        private FieldConditionEvaluatorService $fieldConditionEvaluator,
-        private ItemDraftGeneratorService $itemDraftGenerator,
+        private CollectionItemFormPropsService $formProps,
+        private CollectionItemFormSaveService $formSave,
     ) {}
-
-    /**
-     * List collection items or redirect singleton collections to their editor.
-     */
-    public function index(Request $request, Collection $collection): Response|RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('viewItems', $collection);
-
-        $collection->load(['fields' => fn ($q) => $q->ordered()]);
-
-        if ($collection->is_singleton) {
-            $first = $collection->items()->first();
-            if ($first !== null) {
-                return redirect()->to(
-                    route('collections.show', $collection).'?'.http_build_query(['item' => $first->id])
-                );
-            }
-
-            return redirect()->route('collections.show', $collection);
-        }
-
-        return Inertia::render('collections/items/index', $this->itemListService->indexProps(
-            $request,
-            $collection,
-            $this->validatedListPerPage($request),
-        ));
-    }
-
-    /**
-     * Download filtered collection items as CSV or JSON (capped).
-     */
-    public function export(Request $request, Collection $collection): StreamedResponse|RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('viewItems', $collection);
-
-        if ($collection->is_singleton) {
-            return redirect()->route('collections.show', $collection);
-        }
-
-        $format = strtolower((string) $request->query('format', 'csv'));
-        if (! in_array($format, ['csv', 'json'], true)) {
-            abort(422, __('format must be csv or json.'));
-        }
-
-        $filters = $request->query('filter', []);
-        if (! is_array($filters)) {
-            $filters = [];
-        }
-
-        /** @var array<string, mixed> $stringFilters */
-        $stringFilters = [];
-        foreach ($filters as $key => $value) {
-            if (! is_string($key) || $key === '') {
-                continue;
-            }
-            if (is_string($value) || is_numeric($value) || is_bool($value) || is_array($value) || $value === null) {
-                $stringFilters[$key] = $value;
-            }
-        }
-
-        $sortParam = $request->query('sort');
-        $directionParam = $request->query('direction');
-
-        return $this->itemExportService->download(
-            $collection,
-            $format,
-            $stringFilters,
-            is_string($sortParam) ? $sortParam : null,
-            is_string($directionParam) ? $directionParam : null,
-            $request,
-        );
-    }
-
-    /**
-     * Persist the current user's list column preferences for a collection.
-     */
-    public function updateListColumns(
-        UpdateCollectionListColumnsRequest $request,
-        Collection $collection,
-    ): RedirectResponse {
-        Gate::forUser($request->user())->authorize('viewItems', $collection);
-
-        $user = $request->user();
-        abort_if($user === null, 403);
-
-        $this->settingsRepository->set(
-            SettingsRepositoryService::SCOPE_USER,
-            'collection_list',
-            'collection_'.$collection->id,
-            $request->input('columns'),
-            $user->id,
-        );
-
-        $this->settingsRepository->set(
-            SettingsRepositoryService::SCOPE_USER,
-            'collection_list',
-            'collection_'.$collection->id.'_aligns',
-            $request->input('aligns', []),
-            $user->id,
-        );
-
-        if ($request->exists('layout')) {
-            $this->settingsRepository->set(
-                SettingsRepositoryService::SCOPE_USER,
-                'collection_list',
-                'collection_'.$collection->id.'_layout',
-                $request->input('layout') ?? 'table',
-                $user->id,
-            );
-        }
-
-        if ($request->exists('kanban_field')) {
-            $this->settingsRepository->set(
-                SettingsRepositoryService::SCOPE_USER,
-                'collection_list',
-                'collection_'.$collection->id.'_kanban_field',
-                $request->input('kanban_field'),
-                $user->id,
-            );
-        }
-
-        if ($request->exists('calendar_field')) {
-            $this->settingsRepository->set(
-                SettingsRepositoryService::SCOPE_USER,
-                'collection_list',
-                'collection_'.$collection->id.'_calendar_field',
-                $request->input('calendar_field'),
-                $user->id,
-            );
-        }
-
-        return redirect()->back();
-    }
 
     /**
      * Render the create-item form or redirect singleton collections.
@@ -231,18 +63,7 @@ class ItemController extends Controller
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
 
-        return Inertia::render('collections/items/form', [
-            'collection' => $collection,
-            'item' => null,
-            'rawData' => [],
-            'isNew' => true,
-            'relatedCollections' => $this->relatedCollectionsForSelect(),
-            'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
-            'previewRoles' => $this->previewRoles($request),
-            'activityLogs' => null,
-            'livePreviewConfigured' => $this->livePreviewUrlBuilder->templateFor($collection) !== null,
-            'canUseAiDrafts' => $this->itemDraftGenerator->canDraftFor($request->user(), $collection),
-        ]);
+        return Inertia::render('collections/items/form', $this->formProps->createProps($request, $collection));
     }
 
     /**
@@ -293,128 +114,7 @@ class ItemController extends Controller
             return redirect()->route('collections.show', $collection);
         }
 
-        $collection->load(['fields' => fn ($q) => $q->ordered()]);
-        $item->load([
-            'fieldValues',
-            'userCreated:id,first_name,last_name,email',
-            'userUpdated:id,first_name,last_name,email',
-            'collection.fields',
-        ]);
-
-        $rawPublished = $this->collectionItemValuesAssembler->assemble($item);
-        $version = $request->query('version', $collection->versioning ? 'draft' : 'published');
-        if (! in_array($version, ['published', 'draft'], true)) {
-            $version = 'published';
-        }
-        if (! $collection->versioning) {
-            $version = 'published';
-        }
-
-        $draftData = is_array($item->draft_data) ? $item->draft_data : null;
-        $rawData = ($version === 'draft' && $draftData !== null)
-            ? $draftData
-            : $rawPublished;
-
-        $activityLogs = Activity::query()
-            ->forSubject($item)
-            ->with(['causer', 'subject'])
-            ->latest('id')
-            ->paginate($request->integer('per_page', 10))
-            ->withQueryString();
-
-        $itemPayload = (new CollectionItemResource($item))->toArray($request);
-        $itemPayload['has_draft'] = $draftData !== null;
-        $itemPayload['draft_data'] = $draftData;
-        $itemPayload['publish_at'] = $item->publish_at?->toIso8601String();
-        $itemPayload['unpublish_at'] = $item->unpublish_at?->toIso8601String();
-        $itemPayload['published_at'] = $this->resolvePublishedAtIso($item);
-        $itemPayload['schedule_error'] = $item->schedule_error;
-        $itemPayload['schedule_failed_at'] = $item->schedule_failed_at?->toIso8601String();
-        $itemPayload['approval_status'] = $item->approval_status ?? 'draft';
-        $itemPayload['rejection_note'] = $item->rejection_note;
-        $itemPayload['submitted_by'] = $item->submitted_by;
-        $itemPayload['reviewed_by'] = $item->reviewed_by;
-        $itemPayload['reviewed_at'] = $item->reviewed_at?->toIso8601String();
-
-        return Inertia::render('collections/items/form', [
-            'collection' => $collection,
-            'item' => $itemPayload,
-            'rawData' => $rawData,
-            'publishedData' => $rawPublished,
-            'contentVersion' => $version,
-            'isNew' => false,
-            'relatedCollections' => $this->relatedCollectionsForSelect(),
-            'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
-            'previewRoles' => $this->previewRoles($request),
-            'activityLogs' => ActivityLogResource::collection($activityLogs),
-            'chat_count' => $item->chat?->messages()->count() ?? 0,
-            'livePreviewConfigured' => $this->livePreviewUrlBuilder->templateFor($collection) !== null,
-            'canUseAiDrafts' => $this->itemDraftGenerator->canDraftFor($request->user(), $collection),
-        ]);
-    }
-
-    /**
-     * Preview item field data as seen by a role (including public).
-     */
-    public function previewAsRole(PreviewCollectionItemAsRoleRequest $request, Collection $collection, CollectionItem $item): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $asPublic = (bool) ($validated['as_public'] ?? false);
-        if (! $asPublic && empty($validated['role_id'])) {
-            return response()->json(['message' => 'role_id or as_public is required.'], 422);
-        }
-
-        $role = $this->itemRolePreviewService->resolveRole(
-            isset($validated['role_id']) ? (int) $validated['role_id'] : null,
-            $asPublic,
-        );
-
-        $item->loadMissing(['collection.fields', 'fieldValues']);
-
-        return response()->json(
-            $this->itemRolePreviewService->preview($request, $collection, $item, $role),
-        );
-    }
-
-    /**
-     * Build a Live Preview frontend URL (signed token; no API key in the link).
-     */
-    public function livePreviewUrl(BuildLivePreviewUrlRequest $request, Collection $collection, CollectionItem $item): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $version = (string) ($validated['version'] ?? 'published');
-        $locale = isset($validated['locale']) && is_string($validated['locale']) && $validated['locale'] !== ''
-            ? $validated['locale']
-            : null;
-
-        $asOf = null;
-        $asOfRaw = isset($validated['as_of']) && is_string($validated['as_of'])
-            ? trim($validated['as_of'])
-            : '';
-        if ($asOfRaw !== '') {
-            try {
-                $asOf = app(LivePreviewAsOfResolverService::class)->parseBounded($asOfRaw);
-            } catch (InvalidArgumentException $exception) {
-                throw ValidationException::withMessages([
-                    'as_of' => [$exception->getMessage()],
-                ]);
-            }
-        }
-
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-
-        try {
-            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user, $asOf);
-        } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages([
-                'as_of' => [$exception->getMessage()],
-            ]);
-        }
-
-        return response()->json($built);
+        return Inertia::render('collections/items/form', $this->formProps->editProps($request, $collection, $item));
     }
 
     /**
@@ -428,17 +128,7 @@ class ItemController extends Controller
         $this->assertItemBelongsToCollection($collection, $item);
         Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
-        $expectedUpdatedAt = $request->validated('expected_updated_at');
-        if (is_string($expectedUpdatedAt) && $expectedUpdatedAt !== '' && $item->updated_at !== null) {
-            // Compare at second precision — ISO8601 round-trips can differ in microseconds.
-            if ($item->updated_at->getTimestamp() !== Carbon::parse($expectedUpdatedAt)->getTimestamp()) {
-                throw ValidationException::withMessages([
-                    'expected_updated_at' => [
-                        __('Someone else saved this item while you were editing. Reload the page and try again.'),
-                    ],
-                ]);
-            }
-        }
+        $this->formSave->assertUnchangedSince($item, $request->validated('expected_updated_at'));
 
         if ($request->boolean('board_move')) {
             $item = $this->moveCollectionItemAction->execute(
@@ -496,26 +186,7 @@ class ItemController extends Controller
                 ->with('error', __('Switch to Draft to edit, then Publish.'));
         }
 
-        $base = $version === 'draft' && is_array($item->draft_data)
-            ? $item->draft_data
-            : $this->collectionItemValuesAssembler->assemble($item);
-
-        $data = $base;
-
-        $incoming = $request->validated('data') ?? [];
-        if (is_array($incoming)) {
-            $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
-            $collection->loadMissing('fields');
-            // Preview = base + attempted write so conditional readonly sees sibling values.
-            $preview = array_replace($base, $incoming);
-            $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
-                $collection->fields,
-                $preview,
-                $incoming,
-            );
-
-            $data = $this->itemDataNormalizer->mergeIncoming($data, $incoming);
-        }
+        $data = $this->formSave->mergeFormInput($request, $collection, $item, $version, $request->validated('data') ?? []);
 
         $action = $this->itemSaveAction($request);
 
@@ -535,16 +206,7 @@ class ItemController extends Controller
             );
         }
 
-        $scheduleWarningDate = null;
-        if (
-            $version === 'draft'
-            && $collection->approvals_required
-            && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
-            && $item->publish_at !== null
-        ) {
-            $scheduleWarningDate = $item->publish_at->timezone(config('app.timezone'))
-                ->toDayDateTimeString();
-        }
+        $scheduleWarningDate = $this->formSave->scheduleWarningDate($collection, $item, $version);
 
         $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
             collection: $collection,
@@ -594,115 +256,6 @@ class ItemController extends Controller
 
         return redirect()->route('collections.items.index', $collection)
             ->with('success', __('Item deleted.'));
-    }
-
-    /**
-     * Restore a soft-deleted collection item.
-     */
-    public function restore(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('updateItems', $collection);
-        $this->assertItemBelongsToCollection($collection, $item);
-        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
-
-        $item->restore();
-
-        return redirect()->route('collections.items.index', [
-            'collection' => $collection,
-            'trashed' => 1,
-        ])->with('success', __('Item restored.'));
-    }
-
-    /**
-     * Permanently delete a collection item.
-     */
-    public function forceDelete(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('deleteItems', $collection);
-        $this->assertItemBelongsToCollection($collection, $item);
-        Gate::forUser($request->user())->authorize('delete', [$item, $collection]);
-
-        $item->forceDelete();
-
-        return redirect()->route('collections.items.index', [
-            'collection' => $collection,
-            'trashed' => 1,
-        ])->with('success', __('Item permanently deleted.'));
-    }
-
-    /**
-     * Run a bulk delete, restore, or force-delete action on selected items.
-     */
-    public function bulk(BulkItemActionRequest $request, Collection $collection): RedirectResponse
-    {
-        $action = $request->validated('action');
-        /** @var list<int> $ids */
-        $ids = $request->validated('ids');
-
-        $collectionAction = match ($action) {
-            'restore' => CollectionPermissionActionEnum::Update,
-            default => CollectionPermissionActionEnum::Delete,
-        };
-        Gate::forUser($request->user())->authorize($collectionAction->itemsAbility(), $collection);
-
-        $query = CollectionItem::query()
-            ->where('collection_id', $collection->id)
-            ->whereIn('id', $ids);
-
-        if ($action === 'restore' || $action === 'force_delete') {
-            $query->onlyTrashed();
-        }
-
-        $items = $query->get();
-
-        // Authorize every selected item before mutating any (no partial apply on AuthZ fail).
-        $itemAbility = $action === 'restore' ? 'update' : 'delete';
-        foreach ($items as $item) {
-            Gate::forUser($request->user())->authorize($itemAbility, [$item, $collection]);
-        }
-
-        CollectionItem::query()->getConnection()->transaction(function () use ($items, $action): void {
-            foreach ($items as $item) {
-                match ($action) {
-                    'delete' => $item->delete(),
-                    'restore' => $item->restore(),
-                    'force_delete' => $item->forceDelete(),
-                };
-            }
-        });
-
-        return redirect()
-            ->back()
-            ->with('success', __('Bulk action completed.'));
-    }
-
-    /**
-     * Paginate selectable options for a relational collection field.
-     *
-     * ponytail: renamed from `options` because Wayfinder codegen shadows RouteQueryOptions.
-     */
-    public function fieldOptions(ListCollectionFieldOptionsRequest $request, Collection $collection): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $field = CollectionField::query()
-            ->where('collection_id', $collection->id)
-            ->where('id', $validated['field_id'])
-            ->firstOrFail();
-
-        $relatedCollectionOverride = isset($validated['related_collection_id'])
-            ? (int) $validated['related_collection_id']
-            : null;
-
-        $paginator = $this->collectionItemOptionsService->paginateForField(
-            $field,
-            $validated['search'] ?? null,
-            $validated['per_page'] ?? 20,
-            $relatedCollectionOverride,
-            isset($validated['display_field']) ? (string) $validated['display_field'] : null,
-        );
-
-        return response()->json($paginator);
     }
 
     /**
@@ -757,64 +310,5 @@ class ItemController extends Controller
         return redirect()
             ->route('collections.items.show', $parameters)
             ->with('success', $success);
-    }
-
-    /**
-     * Load related collections for relational field pickers.
-     *
-     * @return list<array{id: int, name: string, slug: string}>
-     */
-    private function relatedCollectionsForSelect(): array
-    {
-        return $this->collectionItemOptionsService->collectionsForSelect();
-    }
-
-    /**
-     * Compact role list for the “Preview as…” dialog.
-     * Super-admin and admin only; omits roles the current user already holds.
-     *
-     * @return list<array{id: int, name: string, is_public: bool}>
-     */
-    private function previewRoles(Request $request): array
-    {
-        $user = $request->user();
-        if (! PreviewCollectionItemAsRoleRequest::canPreviewAsRole($user)) {
-            return [];
-        }
-
-        $ownIds = array_flip($this->permissionResolver->effectiveRoleIds($user));
-
-        return Role::query()
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->reject(static fn (Role $role): bool => isset($ownIds[(int) $role->id]))
-            ->map(static fn (Role $role): array => [
-                'id' => (int) $role->id,
-                'name' => (string) $role->name,
-                'is_public' => $role->isPublic(),
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Last promote time: published_at column, else legacy publish revision.
-     */
-    private function resolvePublishedAtIso(CollectionItem $item): ?string
-    {
-        if ($item->published_at !== null) {
-            return $item->published_at->toIso8601String();
-        }
-
-        $fromRevision = $item->revisions()
-            ->where('meta->source', 'publish')
-            ->latest('id')
-            ->value('created_at');
-
-        if ($fromRevision === null) {
-            return null;
-        }
-
-        return Carbon::parse($fromRevision)->toIso8601String();
     }
 }
