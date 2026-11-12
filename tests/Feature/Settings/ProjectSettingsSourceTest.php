@@ -43,7 +43,7 @@ it('reads stored secrets from the project group through the same helper', functi
     expect($projectSettings->storedSecret('webhook_secret'))->toBe('webhook-plain')
         ->and($projectSettings->integrations()->webhookSecret())->toBe('webhook-plain')
         ->and($projectSettings->integrations()->notifierTelegramBotToken())->toBeNull()
-        ->and($projectSettings->oidcClientSecret())->toBe('oidc-plain')
+        ->and($projectSettings->security()->oidcClientSecret())->toBe('oidc-plain')
         ->and($projectSettings->storedSecret('missing_secret'))->toBeNull();
 });
 
@@ -79,8 +79,7 @@ it('forgets the memoized raw bag when project settings are saved', function (): 
         true,
     );
 
-    expect($projectSettings->security()->isTwoFactorRequired())->toBeTrue()
-        ->and($projectSettings->isTwoFactorRequired())->toBeTrue();
+    expect($projectSettings->security()->isTwoFactorRequired())->toBeTrue();
 });
 
 it('reuses one reader instance per area', function (): void {

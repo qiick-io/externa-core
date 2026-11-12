@@ -183,7 +183,7 @@ test('authorized users can view and update project settings', function () {
     $project = app(ProjectSettingsService::class);
     expect($project->maxTransformSize())->toBe(800)
         ->and($project->transformPreset('hero')['fit'])->toBe('cover')
-        ->and($project->passwordPolicy())->toBe('strong')
+        ->and($project->security()->passwordPolicy())->toBe('strong')
         ->and($project->revisionRetentionCount())->toBe(50)
         ->and($project->revisionRetentionDays())->toBe(90)
         ->and($project->filesMaxUploadBytes())->toBe(20 * 1024 * 1024)

@@ -13,7 +13,6 @@ use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Resolves project-level settings for admin forms and runtime wiring.
@@ -220,84 +219,6 @@ class ProjectSettingsService
             'filesMaxUploadBytes' => $raw['files_max_upload_bytes'],
             'chatMaxUploadBytes' => $raw['chat_max_upload_bytes'],
         ];
-    }
-
-    public function isRegistrationEnabled(): bool
-    {
-        return $this->security()->isRegistrationEnabled();
-    }
-
-    public function isEmailVerificationRequired(): bool
-    {
-        return $this->security()->isEmailVerificationRequired();
-    }
-
-    public function isTwoFactorRequired(): bool
-    {
-        return $this->security()->isTwoFactorRequired();
-    }
-
-    public function defaultUserRole(): ?string
-    {
-        return $this->security()->defaultUserRole();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function allowedDomains(): array
-    {
-        return $this->security()->allowedDomains();
-    }
-
-    public function loginMaxAttempts(): int
-    {
-        return $this->security()->loginMaxAttempts();
-    }
-
-    public function passwordPolicy(): string
-    {
-        return $this->security()->passwordPolicy();
-    }
-
-    public function passwordRule(): Password
-    {
-        return $this->security()->passwordRule();
-    }
-
-    public function isOidcEnabled(): bool
-    {
-        return $this->security()->isOidcEnabled();
-    }
-
-    public function oidcIssuer(): ?string
-    {
-        return $this->security()->oidcIssuer();
-    }
-
-    public function oidcClientId(): ?string
-    {
-        return $this->security()->oidcClientId();
-    }
-
-    public function oidcButtonLabel(): ?string
-    {
-        return $this->security()->oidcButtonLabel();
-    }
-
-    public function isOidcJitProvisioningEnabled(): bool
-    {
-        return $this->security()->isOidcJitProvisioningEnabled();
-    }
-
-    public function isOidcLoginAvailable(): bool
-    {
-        return $this->security()->isOidcLoginAvailable();
-    }
-
-    public function oidcClientSecret(): ?string
-    {
-        return $this->security()->oidcClientSecret();
     }
 
     public static function encryptOidcClientSecret(string $plain): string

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Auth;
 
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
@@ -15,7 +17,7 @@ use Laravel\Socialite\Contracts\User as SocialiteUser;
 class OidcUserResolverService
 {
     public function __construct(
-        private readonly ProjectSettingsService $project,
+        private readonly ProjectSecuritySettingsService $securitySettings,
     ) {}
 
     public function resolve(SocialiteUser $socialiteUser): User
@@ -63,7 +65,7 @@ class OidcUserResolverService
             return $user;
         }
 
-        if (! $this->project->isOidcJitProvisioningEnabled()) {
+        if (! $this->securitySettings->isOidcJitProvisioningEnabled()) {
             throw ValidationException::withMessages([
                 'email' => __('No local account matches this SSO email. Ask an admin to create your user first.'),
             ]);
@@ -122,7 +124,7 @@ class OidcUserResolverService
 
     private function assertAllowedDomain(string $email): void
     {
-        $domains = $this->project->allowedDomains();
+        $domains = $this->securitySettings->allowedDomains();
         if ($domains === []) {
             return;
         }
@@ -157,7 +159,7 @@ class OidcUserResolverService
 
     private function assignDefaultRole(User $user): void
     {
-        $roleName = $this->project->defaultUserRole();
+        $roleName = $this->securitySettings->defaultUserRole();
         if ($roleName === null) {
             return;
         }

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Auth;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Auth\Oidc\GenericOidcProvider;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Two\AbstractProvider;
@@ -16,15 +18,15 @@ use RuntimeException;
 class OidcSocialiteFactoryService
 {
     public function __construct(
-        private readonly ProjectSettingsService $project,
+        private readonly ProjectSecuritySettingsService $securitySettings,
     ) {}
 
     public function isEnabled(): bool
     {
-        return $this->project->isOidcEnabled()
-            && $this->project->oidcIssuer() !== null
-            && $this->project->oidcClientId() !== null
-            && $this->project->oidcClientSecret() !== null;
+        return $this->securitySettings->isOidcEnabled()
+            && $this->securitySettings->oidcIssuer() !== null
+            && $this->securitySettings->oidcClientId() !== null
+            && $this->securitySettings->oidcClientSecret() !== null;
     }
 
     public function driver(): AbstractProvider
@@ -33,7 +35,7 @@ class OidcSocialiteFactoryService
             throw new RuntimeException('OIDC is not configured.');
         }
 
-        $issuer = rtrim((string) $this->project->oidcIssuer(), '/');
+        $issuer = rtrim((string) $this->securitySettings->oidcIssuer(), '/');
         $discovery = $this->discover($issuer);
         $discovery = $this->rewriteServerEndpoints($discovery);
 
@@ -53,8 +55,8 @@ class OidcSocialiteFactoryService
 
         return new GenericOidcProvider(
             request(),
-            (string) $this->project->oidcClientId(),
-            (string) $this->project->oidcClientSecret(),
+            (string) $this->securitySettings->oidcClientId(),
+            (string) $this->securitySettings->oidcClientSecret(),
             route('auth.oidc.callback'),
             [],
             $authUrl,
