@@ -66,7 +66,18 @@ return [
     'webhook_token_previous' => env('AI_WEBHOOK_TOKEN_PREVIOUS'),
     'webhook_token_previous_expires_at' => env('AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT'),
 
+    /*
+    | Per-user daily budget (#275), counted from midnight in the app timezone. 0 = off.
+    | The prompt cap and the token budget cover the chat and field translation. The `ai`
+    | rate limiter counts chat requests per minute and per day (per day 0 = off).
+    */
     'daily_prompt_limit' => (int) env('AI_DAILY_PROMPT_LIMIT', 0),
+    'daily_token_budget' => (int) env('AI_DAILY_TOKEN_BUDGET', 0),
+
+    'rate_limit' => [
+        'per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 30),
+        'per_day' => (int) env('AI_RATE_LIMIT_PER_DAY', 0),
+    ],
 
     'embeddings' => [
         'enabled' => (bool) env('AI_EMBEDDINGS_ENABLED', false),

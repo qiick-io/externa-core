@@ -22,6 +22,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Deploy hooks: the delivery is pinned to the address the SSRF guard resolved (`CURLOPT_RESOLVE`), so a DNS change between the check and the request cannot reach a private host; publish-triggered builds wait 30 s and queue one delivery per hook, so a scheduled publish of N items no longer queues N builds per hook (#441).
 - MCP: `/mcp` accepts only an owned API key (Bearer). The session-user path is gone: `/mcp` is outside the `web` group and exempt from CSRF, so it was unreachable and would have been unsafe to wire. Failed authentications are limited per IP (`AI_MCP_AUTH_FAILURES_PER_MINUTE`, default 20) before the per-key `throttle:mcp` (#441).
 - Collections: restoring a revision needs the collection Update grant (a Read grant was enough), and restoring a trashed item, alone or in bulk, needs the item inside the actor's write filter (#710).
+- AI daily budget: an optional per-user daily token budget (`AI_DAILY_TOKEN_BUDGET`, default 0 = off) next to the prompt cap (`AI_DAILY_PROMPT_LIMIT`); both now also cover field translation, which is logged as an AI prompt (field keys only) with its token usage, and today's usage shows under the AI composer when a limit is set. The chat route uses a named `ai` limiter (`AI_RATE_LIMIT_PER_MINUTE`, default 30; `AI_RATE_LIMIT_PER_DAY`, default 0 = off) (#275).
 
 ### Changed
 

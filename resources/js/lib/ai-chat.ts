@@ -118,6 +118,16 @@ export type AiStatus = {
     model?: string | null;
     /** Context window (tokens) of the assistant's provider, for the usage display. */
     context_window?: number | null;
+    /** The user's AI usage today; null when no daily prompt cap or token budget is set. */
+    daily_usage?: AiDailyUsage | null;
+};
+
+/** Today's prompts and tokens against the daily limits (a limit is null when off). */
+export type AiDailyUsage = {
+    prompts_used: number;
+    prompt_limit: number | null;
+    tokens_used: number;
+    token_budget: number | null;
 };
 
 /** Destructive tool call the paused assistant turn is waiting on (laravel/ai `tool_approval_request`). */
