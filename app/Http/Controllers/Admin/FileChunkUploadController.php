@@ -10,8 +10,8 @@ use App\Http\Requests\Admin\Files\InitChunkUploadRequest;
 use App\Http\Requests\Admin\Files\ResolveChunkUploadRequest;
 use App\Http\Requests\Admin\Files\UploadChunkRequest;
 use App\Http\Resources\Admin\FileResource;
+use App\Services\FileChunkUploadService;
 use App\Services\Files\FilesDiskService;
-use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
@@ -21,7 +21,7 @@ use Illuminate\Http\Response;
 class FileChunkUploadController extends Controller
 {
     public function __construct(
-        protected FileService $fileService,
+        protected FileChunkUploadService $chunkUploads,
         protected InitChunkUploadAction $initChunkUploadAction,
     ) {}
 
@@ -54,7 +54,7 @@ class FileChunkUploadController extends Controller
     {
         $validated = $request->validated();
 
-        $this->fileService->uploadChunk(
+        $this->chunkUploads->uploadChunk(
             $validated['upload_id'],
             (int) $validated['chunk_index'],
             $validated['chunk'],
@@ -70,7 +70,7 @@ class FileChunkUploadController extends Controller
     {
         $validated = $request->validated();
 
-        $file = $this->fileService->completeChunkUpload($validated['upload_id']);
+        $file = $this->chunkUploads->completeChunkUpload($validated['upload_id']);
 
         return (new FileResource($file->load('tags')))
             ->response()
@@ -84,7 +84,7 @@ class FileChunkUploadController extends Controller
     {
         $validated = $request->validated();
 
-        $status = $this->fileService->getUploadStatus($validated['upload_id']);
+        $status = $this->chunkUploads->getUploadStatus($validated['upload_id']);
 
         if (! $status) {
             return response()->json(['message' => 'Upload not found or expired'], 404);

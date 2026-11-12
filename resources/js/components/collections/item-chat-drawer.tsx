@@ -97,6 +97,8 @@ export function ItemChatDrawer({
     const olderAnchorIdRef = useRef<number | null>(null);
     const liveChatIdRef = useRef<string | null>(chatId);
     const chatCountRef = useRef(chatCount);
+    // Deleted message ids already taken off the count (by the delete reply or its echo).
+    const countedDeletionIdsRef = useRef<Set<number>>(new Set());
     const onChatCountChangeRef = useRef(onChatCountChange);
     const [addFieldFor, setAddFieldFor] = useState<ChatAttachment | null>(null);
     const [addFieldName, setAddFieldName] = useState('');
@@ -153,6 +155,7 @@ export function ItemChatDrawer({
         messages,
         liveChatIdRef,
         chatCountRef,
+        countedDeletionIdsRef,
         onChatCountChangeRef,
         forceScrollBottomRef,
         dropEchoedPending: pending.dropEchoedPending,
@@ -177,8 +180,9 @@ export function ItemChatDrawer({
         scopeKey,
         viewerId,
         viewerName,
-        chatCount,
         liveChatIdRef,
+        chatCountRef,
+        countedDeletionIdsRef,
         onChatCountChangeRef,
         textareaRef,
         setReplyTo: composer.setReplyTo,

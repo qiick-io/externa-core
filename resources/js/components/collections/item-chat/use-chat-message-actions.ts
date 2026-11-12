@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChatMessageActions } from '@/components/chat/chat-message-actions-menu';
@@ -29,8 +29,13 @@ type UseChatMessageActionsOptions = {
     scopeKey: string | null;
     viewerId: number;
     viewerName: string;
-    chatCount: number;
     liveChatIdRef: RefObject<string | null>;
+    chatCountRef: RefObject<number>;
+    /**
+     * Ids of deleted messages already taken off the count, shared with the realtime
+     * `MessageDeleted` listener so the reply and the echo lower it only once.
+     */
+    countedDeletionIdsRef: RefObject<Set<number>>;
     onChatCountChangeRef: RefObject<(count: number) => void>;
     textareaRef: RefObject<HTMLTextAreaElement | null>;
     setReplyTo: (message: ItemChatMessage | null) => void;
@@ -50,8 +55,9 @@ export function useChatMessageActions({
     scopeKey,
     viewerId,
     viewerName,
-    chatCount,
     liveChatIdRef,
+    chatCountRef,
+    countedDeletionIdsRef,
     onChatCountChangeRef,
     textareaRef,
     setReplyTo,
@@ -67,21 +73,30 @@ export function useChatMessageActions({
     const [editingDraft, setEditingDraft] = useState('');
     const [messagePendingDelete, setMessagePendingDelete] =
         useState<ItemChatMessage | null>(null);
+    const openThreadKey = `${String(open)}:${scopeKey}`;
+    const [editResetKey, setEditResetKey] = useState(openThreadKey);
 
-    useEffect(() => {
+    // Opening the drawer or switching thread leaves edit mode, during render
+    // (React's "adjust state on prop change" pattern).
+    if (editResetKey !== openThreadKey) {
+        setEditResetKey(openThreadKey);
+
         if (open) {
-            // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
             setEditingId(null);
         }
-    }, [open, scopeKey]);
+    }
 
     const saveEdit = (comment: ItemChatMessage): void => {
+        if (!scope) {
+            return;
+        }
+
         const { body, mentionedIds } = composeBodyForSubmit(
             editingDraft,
             comment.mentioned_users,
         );
 
-        void patchMessage(scope!, comment.id, {
+        void patchMessage(scope, comment.id, {
             body,
             mentioned_user_ids: mentionedIds,
         })
@@ -116,7 +131,14 @@ export function useChatMessageActions({
                     removeCachedMessage(id, comment.id);
                 }
 
-                onChatCountChangeRef.current(Math.max(0, chatCount - 1));
+                if (countedDeletionIdsRef.current.has(comment.id)) {
+                    return;
+                }
+
+                countedDeletionIdsRef.current.add(comment.id);
+                onChatCountChangeRef.current(
+                    Math.max(0, chatCountRef.current - 1),
+                );
             })
             .catch((err: unknown) => {
                 setError(

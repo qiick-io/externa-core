@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\FileTypeEnum;
 use App\Models\File;
 use App\Models\FileUpload;
+use App\Services\Files\FileTreeService;
+use App\Services\Files\FileUploadService;
 use App\Services\Security\PlainTextSanitizerService;
 use App\Services\Uploads\ForbiddenUploadExtensionService;
 use App\Services\Uploads\MimeTypeValidatorService;
@@ -19,12 +21,17 @@ use Illuminate\Support\Facades\Storage;
  */
 class FileChunkUploadService
 {
+    public function __construct(
+        private readonly FileUploadService $uploads,
+        private readonly FileTreeService $tree,
+    ) {}
+
     /**
      * Begin a chunked upload session and return tracking metadata.
      */
     public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, ?string $disk = null): FileUpload
     {
-        $disk = $this->files()->resolveUploadDisk($disk, $parentId);
+        $disk = $this->uploads->resolveUploadDisk($disk, $parentId);
 
         $fileName = PlainTextSanitizerService::sanitize($fileName) ?? '';
         ForbiddenUploadExtensionService::assertAllowed($fileName, 'file_name');
@@ -93,7 +100,6 @@ class FileChunkUploadService
      */
     public function completeChunkUpload(string $uploadId): File
     {
-        $files = $this->files();
         $fileUpload = FileUpload::query()->where('upload_id', $uploadId)->firstOrFail();
 
         ForbiddenUploadExtensionService::assertAllowed((string) $fileUpload->file_name, 'file_name');
@@ -166,14 +172,14 @@ class FileChunkUploadService
                 'file_name',
             );
 
-            [$width, $height, $meta] = $files->extractImageMeta(
+            [$width, $height, $meta] = $this->uploads->extractImageMeta(
                 $fileUpload->disk,
                 $tempFilePath,
                 $mimeType,
-                $files->imageMetaContent($fileUpload->disk, $tempFilePath),
+                $this->uploads->imageMetaContent($fileUpload->disk, $tempFilePath),
             );
 
-            $version = $files->resolveOrCreateVersion(
+            $version = $this->uploads->resolveOrCreateVersion(
                 $fileUpload->disk,
                 $tempFilePath,
                 $fileHash,
@@ -186,7 +192,7 @@ class FileChunkUploadService
                 fileName: $fileUpload->file_name
             );
 
-            $file = DB::transaction(function () use ($fileUpload, $fileHash, $width, $height, $meta, $version, $files, $mimeType) {
+            $file = DB::transaction(function () use ($fileUpload, $fileHash, $width, $height, $meta, $version, $mimeType) {
                 $file = File::query()->create([
                     'parent_id' => $fileUpload->parent_id,
                     'name' => $fileUpload->file_name,
@@ -207,7 +213,7 @@ class FileChunkUploadService
                 $version->save();
 
                 $file->current_version_id = $version->id;
-                $file->path = $files->calculatePath($file);
+                $file->path = $this->tree->calculatePath($file);
                 $file->save();
 
                 return $file;
@@ -216,7 +222,7 @@ class FileChunkUploadService
             $this->cleanupChunks($uploadId, $fileUpload->disk);
             $fileUpload->delete();
 
-            $files->dispatchThumbnailWarmup($file);
+            $this->uploads->dispatchThumbnailWarmup($file);
 
             return $file;
         } catch (\Throwable $e) {
@@ -276,14 +282,6 @@ class FileChunkUploadService
         }
 
         return $cleanedCount;
-    }
-
-    /**
-     * Lazy resolve to avoid circular constructor DI with FileService façade.
-     */
-    private function files(): FileService
-    {
-        return app(FileService::class);
     }
 
     private function getChunkPath(string $uploadId, int $chunkIndex): string
