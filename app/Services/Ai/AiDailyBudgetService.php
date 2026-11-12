@@ -14,13 +14,20 @@ use Spatie\Activitylog\Models\Activity;
  * (`ai.daily_token_budget`), both 0 = off.
  *
  * "Today" starts at midnight in the app timezone for both counters. Prompts are today's
- * `ai_prompt` activity rows (chat and field translation). Tokens are the input + output tokens
- * of today's assistant rows in `agent_conversation_messages` plus the usage recorded on
- * translation prompts, which keep no conversation.
+ * `ai_prompt` activity rows (chat, field translation and item drafts). Tokens are the input +
+ * output tokens of today's assistant rows in `agent_conversation_messages` plus the usage
+ * recorded on translation and item draft prompts, which keep no conversation.
  */
 class AiDailyBudgetService
 {
     public const SURFACE_TRANSLATE = 'translate';
+
+    public const SURFACE_ITEM_DRAFT = 'item_draft';
+
+    /**
+     * Prompt surfaces without a conversation: their token usage lives on the `ai_prompt` row.
+     */
+    private const array SURFACES_WITH_LOGGED_USAGE = [self::SURFACE_TRANSLATE, self::SURFACE_ITEM_DRAFT];
 
     public function promptLimit(): int
     {
@@ -89,12 +96,12 @@ class AiDailyBudgetService
             ->pluck('usage')
             ->sum(fn (mixed $usage): int => $this->totalTokens($usage));
 
-        $translateTokens = $this->todaysPrompts($user)
-            ->where('properties->surface', self::SURFACE_TRANSLATE)
+        $loggedPromptTokens = $this->todaysPrompts($user)
+            ->whereIn('properties->surface', self::SURFACES_WITH_LOGGED_USAGE)
             ->pluck('properties')
             ->sum(fn (mixed $properties): int => $this->totalTokens(data_get($properties, 'usage')));
 
-        return (int) $conversationTokens + (int) $translateTokens;
+        return (int) $conversationTokens + (int) $loggedPromptTokens;
     }
 
     /**

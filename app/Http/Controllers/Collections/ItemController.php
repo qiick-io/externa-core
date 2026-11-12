@@ -26,6 +26,7 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Ai\ItemDraftGeneratorService;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Collections\CollectionItemDataNormalizerService;
@@ -75,6 +76,7 @@ class ItemController extends Controller
         private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
         private EffectivePermissionResolverService $permissionResolver,
         private FieldConditionEvaluatorService $fieldConditionEvaluator,
+        private ItemDraftGeneratorService $itemDraftGenerator,
     ) {}
 
     /**
@@ -236,6 +238,7 @@ class ItemController extends Controller
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
             'previewRoles' => $this->previewRoles($request),
             'activityLogs' => null,
+            'canUseAiDrafts' => $this->itemDraftGenerator->canDraftFor($request->user(), $collection),
         ]);
     }
 
@@ -335,6 +338,7 @@ class ItemController extends Controller
             'activityLogs' => ActivityLogResource::collection($activityLogs),
             'chat_count' => $item->chat?->messages()->count() ?? 0,
             'livePreviewConfigured' => $this->livePreviewUrlBuilder->templateFor($collection) !== null,
+            'canUseAiDrafts' => $this->itemDraftGenerator->canDraftFor($request->user(), $collection),
         ]);
     }
 

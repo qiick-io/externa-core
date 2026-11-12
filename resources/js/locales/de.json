@@ -982,6 +982,22 @@
             "copy": "Als Kopie speichern",
             "discard": "Alle Änderungen verwerfen"
         },
+        "aiDraft": {
+            "button": "KI-Entwurf",
+            "title": "Mit KI entwerfen",
+            "description": "Beschreibe den Eintrag. Die KI schlägt Werte für die Textfelder vor; du prüfst sie, füllst das Formular und speicherst wie gewohnt.",
+            "prompt": "Briefing",
+            "promptPlaceholder": "z. B. Eine News zum Frühjahrs-Release, freundlicher Ton",
+            "locale": "Sprache",
+            "generate": "Erstellen",
+            "regenerate": "Erneut erstellen",
+            "preview": "Vorgeschlagene Werte",
+            "empty": "Die KI hat keine verwendbaren Werte vorgeschlagen. Versuche ein ausführlicheres Briefing.",
+            "dropped": "Weggelassen (entspricht nicht den Feldregeln)",
+            "apply": "Formular füllen",
+            "applied": "Entwurf ins Formular übernommen. Prüfe ihn und speichere, um ihn zu behalten.",
+            "error": "Der KI-Entwurf konnte nicht erstellt werden."
+        },
         "itemToolbar": {
             "previewAs": "Vorschau als…",
             "livePreview": "Live Preview",
