@@ -22,6 +22,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Activitylog\Models\Activity;
 
@@ -554,4 +555,25 @@ test('chat message create and delete write lean activity log entries', function 
     expect($deleted)->not->toBeNull()
         ->and($deleted->properties['message_id'] ?? null)->toBe($messageId)
         ->and($deleted->properties['body_preview'] ?? null)->toBe('Audit me please');
+});
+
+test('chat activity log entries record the uuid chat id', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
+    $this->actingAs($user);
+
+    $messageId = $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
+        'body' => 'Which chat am I in?',
+    ])->assertCreated()->json('message.id');
+
+    $chatId = (string) CollectionItemChatMessage::query()->findOrFail($messageId)->chat_id;
+    expect(Str::isUuid($chatId))->toBeTrue();
+
+    $this->deleteJson(route('collections.items.chat.destroy', [$collection, $item, $messageId]))
+        ->assertOk();
+
+    $created = Activity::query()->where('event', 'chat_message')->latest('id')->first();
+    $deleted = Activity::query()->where('event', 'chat_message_deleted')->latest('id')->first();
+
+    expect($created?->properties['chat_id'] ?? null)->toBe($chatId)
+        ->and($deleted?->properties['chat_id'] ?? null)->toBe($chatId);
 });

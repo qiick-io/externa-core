@@ -42,6 +42,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Converting a field type on a large collection keeps only ids and values between the read and write phases, and writes chunk by chunk, instead of holding every item with its relations in memory (#441).
 - The AI import status poll retries a failed check with backoff (4 s up to 30 s, five attempts) instead of stopping for good at the first network error (#441).
 - The TypeScript SDK package builds itself on `npm pack` / `npm publish` (`prepack`) and declares its repository, so it can no longer be published without `dist/` (#441).
+- Chat: deleting a message logs the chat's UUID as `chat_id` in the activity log instead of an integer cast of it (`0` or its leading digits) (#723).
 
 ## [1.4.0] - 2026-11-10
 
