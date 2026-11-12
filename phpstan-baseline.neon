@@ -79,18 +79,6 @@ parameters:
 			path: app/GraphQL/Queries/CollectionsQuery.php
 
 		-
-			message: '#^Match expression does not handle remaining value\: mixed$#'
-			identifier: match.unhandled
-			count: 1
-			path: app/Http/Controllers/Admin/FileController.php
-
-		-
-			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
-			identifier: assign.propertyReadOnly
-			count: 3
-			path: app/Http/Controllers/Admin/FileController.php
-
-		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 3
@@ -101,6 +89,18 @@ parameters:
 			identifier: argument.templateType
 			count: 3
 			path: app/Http/Controllers/Admin/FileController.php
+
+		-
+			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
+			identifier: assign.propertyReadOnly
+			count: 2
+			path: app/Http/Controllers/Admin/FileFavoriteController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Admin/FileOrganizationController.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
@@ -185,18 +185,6 @@ parameters:
 			identifier: identical.alwaysFalse
 			count: 2
 			path: app/Http/Controllers/Api/V1/CollectionItemController.php
-
-		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Chat/ChatMessageController.php
-
-		-
-			message: '#^Property App\\Models\\CollectionItemChatMessage\:\:\$mentioned_user_ids \(string\|null\) does not accept list\<int\>\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Http/Controllers/Chat/ChatMessageController.php
 
 		-
 			message: '#^Match expression does not handle remaining value\: mixed$#'
@@ -571,6 +559,12 @@ parameters:
 			path: app/Services/Api/RelationIncludeHydratorService.php
 
 		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/Chat/ChatMessageSerializerService.php
+
+		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 2
@@ -695,6 +689,12 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 2
 			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
+			identifier: assign.propertyReadOnly
+			count: 1
+			path: app/Services/Files/FileFavoriteFlagService.php
 
 		-
 			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'

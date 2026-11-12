@@ -17,6 +17,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import ItemBoardController from '@/actions/App/Http/Controllers/Collections/ItemBoardController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -428,14 +429,17 @@ export function ItemsCalendar({
 
         void (async () => {
             try {
-                const url = ItemController.calendarMonth.url(collection.id, {
-                    query: {
-                        ...listQuery,
-                        field: fieldName,
-                        from: range.from,
-                        to: range.to,
+                const url = ItemBoardController.calendarMonth.url(
+                    collection.id,
+                    {
+                        query: {
+                            ...listQuery,
+                            field: fieldName,
+                            from: range.from,
+                            to: range.to,
+                        },
                     },
-                });
+                );
                 const response = await fetch(url, {
                     headers: {
                         Accept: 'application/json',
