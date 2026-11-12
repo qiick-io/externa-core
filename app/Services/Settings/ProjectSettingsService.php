@@ -222,40 +222,6 @@ class ProjectSettingsService
         ];
     }
 
-    public function defaultLanguage(): string
-    {
-        return $this->localization()->defaultLanguage();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function contentLocales(): array
-    {
-        return $this->localization()->contentLocales();
-    }
-
-    public function defaultContentLocale(): string
-    {
-        return $this->localization()->defaultContentLocale();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function fallbackContentLocales(): array
-    {
-        return $this->localization()->fallbackContentLocales();
-    }
-
-    /**
-     * @return list<array{code: string, name: string, flag: string}>
-     */
-    public function contentLocaleMeta(): array
-    {
-        return $this->localization()->contentLocaleMeta();
-    }
-
     public function isRegistrationEnabled(): bool
     {
         return $this->security()->isRegistrationEnabled();

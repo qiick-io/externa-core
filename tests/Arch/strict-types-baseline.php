@@ -129,7 +129,6 @@ return [
     'App\Http\Middleware\EnsureTwoFactorIsEnabledMiddleware',
     'App\Http\Middleware\EnsureUserHasPermissionMiddleware',
     'App\Http\Middleware\ResolveApiAccessMiddleware',
-    'App\Http\Middleware\SetLocaleMiddleware',
     'App\Http\Middleware\SetSecurityHeadersMiddleware',
     'App\Http\Middleware\ThrottleAuthSensitiveMiddleware',
     'App\Http\Requests\Admin\BulkRoleActionRequest',
