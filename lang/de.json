@@ -221,5 +221,8 @@
     "You cannot write fields: :fields": "Sie können diese Felder nicht schreiben: :fields",
     "You do not have permission to approve this tool call.": "Sie haben keine Berechtigung, diesen Tool-Aufruf zu genehmigen.",
     "You do not have permission to reject this tool call.": "Sie haben keine Berechtigung, diesen Tool-Aufruf abzulehnen.",
-    "format must be csv or json.": "Das Format muss csv oder json sein."
+    "format must be csv or json.": "Das Format muss csv oder json sein.",
+    "This collection has no fields an AI draft can fill.": "Diese Sammlung hat keine Felder, die ein KI-Entwurf ausfüllen kann.",
+    "The value has the wrong type for this field.": "Der Wert hat für dieses Feld den falschen Typ.",
+    "The AI draft could not be generated. Try again later.": "Der KI-Entwurf konnte nicht erstellt werden. Versuche es später erneut."
 }

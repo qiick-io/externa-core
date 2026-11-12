@@ -68,6 +68,16 @@ return [
 
     'daily_prompt_limit' => (int) env('AI_DAILY_PROMPT_LIMIT', 0),
 
+    /*
+    | AI drafts for collection items (#210): off by default. The model falls back to the
+    | default provider's text model when empty; max_tokens caps one draft response.
+    */
+    'item_drafts' => [
+        'enabled' => (bool) env('AI_ITEM_DRAFTS', false),
+        'model' => env('AI_ITEM_DRAFTS_MODEL'),
+        'max_tokens' => (int) env('AI_ITEM_DRAFTS_MAX_TOKENS', 2000),
+    ],
+
     'embeddings' => [
         'enabled' => (bool) env('AI_EMBEDDINGS_ENABLED', false),
     ],

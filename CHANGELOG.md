@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Added
+
+- AI drafts in the item editor: an "AI draft" button turns a short brief into proposed values for the collection's text fields (structured output, checked against each field's rules; invalid values are left out and listed), previewed before they fill the unsaved form. Off by default (`AI_ITEM_DRAFTS`, `AI_ITEM_DRAFTS_MODEL`, `AI_ITEM_DRAFTS_MAX_TOKENS`); needs the new `ai.draft` permission plus create or update on the collection (#210).
+
 ### Security
 
 - AI tool approvals: two concurrent approve or reject clicks can no longer both decide (and run) the same call; the decision is one conditional update (#441).
