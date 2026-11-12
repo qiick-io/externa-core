@@ -255,7 +255,6 @@ return [
     'App\Services\Collections\CollectionItemOptionsService',
     'App\Services\Collections\CollectionItemPublisherService',
     'App\Services\Collections\CollectionItemQueryService',
-    'App\Services\Collections\CollectionItemRevisionPrunerService',
     'App\Services\Collections\CollectionItemRevisionRecorderService',
     'App\Services\Collections\CollectionItemValuesAssemblerService',
     'App\Services\Collections\CollectionItemValuesWriterService',

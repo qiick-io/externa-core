@@ -226,21 +226,6 @@ class ProjectSettingsService
         return self::encryptSecret($plain);
     }
 
-    public function previewUrlDefault(): ?string
-    {
-        return $this->content()->previewUrlDefault();
-    }
-
-    public function revisionRetentionCount(): ?int
-    {
-        return $this->content()->revisionRetentionCount();
-    }
-
-    public function revisionRetentionDays(): ?int
-    {
-        return $this->content()->revisionRetentionDays();
-    }
-
     /**
      * @return list<string>
      */
