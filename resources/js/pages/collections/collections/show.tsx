@@ -138,7 +138,7 @@ export default function CollectionsShow({
                                 </Link>
                             </Button>
                         }
-                        docsHref="https://docs.externa.qiick.io"
+                        docsHref="https://docs.qiick.io/externa"
                         docsLabel={t('common.learnMore')}
                     />
                 )}
