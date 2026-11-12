@@ -25,6 +25,27 @@ class CollectionItemDataRuleBuilderService
     ) {}
 
     /**
+     * False on the copy {@see withoutRequiredRules()} returns: presence rules are skipped.
+     */
+    private bool $isEnforcingRequired = true;
+
+    /**
+     * A copy that builds every type, format, length, option and unknown-key rule but no presence
+     * rule (static, conditional, `validation_rules` required, nested block fields).
+     *
+     * For previews of a half-filled form (unsaved Live Preview): saving keeps the full rules.
+     * A copy, not a flag on this instance, because the closures in the rules run later and
+     * capture the builder they were built by.
+     */
+    public function withoutRequiredRules(): static
+    {
+        $builder = clone $this;
+        $builder->isEnforcingRequired = false;
+
+        return $builder;
+    }
+
+    /**
      * Validation rules for the full data payload on create or update.
      *
      * @param  array<string, mixed>|null  $data  Current request data for conditional required
@@ -231,7 +252,7 @@ class CollectionItemDataRuleBuilderService
         ?int $excludeItemId,
     ): array {
         $presence = $required ? 'required' : 'nullable';
-        $extraRules = $this->validationRuleEvaluator->rulesForField($field, $prefix, $excludeItemId);
+        $extraRules = $this->extraRulesForField($field, $prefix, $excludeItemId);
 
         return match ($field->type) {
             FieldTypeEnum::Tag,
@@ -321,7 +342,7 @@ class CollectionItemDataRuleBuilderService
         ?int $excludeItemId,
     ): array {
         $presence = $required ? 'required' : 'nullable';
-        $extraRules = $this->validationRuleEvaluator->rulesForField($field, 'data.'.$field->name, $excludeItemId);
+        $extraRules = $this->extraRulesForField($field, 'data.'.$field->name, $excludeItemId);
 
         return match ($field->type) {
             FieldTypeEnum::String,
@@ -668,6 +689,10 @@ class CollectionItemDataRuleBuilderService
      */
     private function fieldIsEffectivelyRequired(CollectionField $field, array $data): bool
     {
+        if (! $this->isEnforcingRequired) {
+            return false;
+        }
+
         $flags = $this->conditionEvaluator->effectiveFlags($field, $data);
 
         if ($flags['hidden']) {
@@ -705,6 +730,10 @@ class CollectionItemDataRuleBuilderService
      */
     private function presenceRule(CollectionField $field, bool $creating, array $data): mixed
     {
+        if (! $this->isEnforcingRequired) {
+            return $creating ? 'nullable' : 'sometimes';
+        }
+
         if ($this->fieldIsStaticallyRequired($field)) {
             $flags = $this->conditionEvaluator->effectiveFlags($field, $data);
             if ($flags['hidden']) {
@@ -817,7 +846,7 @@ class CollectionItemDataRuleBuilderService
                 }
 
                 $nestedPrefix = 'data.'.$nestedField->name;
-                $required = $flags['required'];
+                $required = $this->isEnforcingRequired && $flags['required'];
 
                 if ($nestedField->translatable) {
                     $nestedRules = array_merge(
@@ -872,5 +901,23 @@ class CollectionItemDataRuleBuilderService
         }
 
         return $rules;
+    }
+
+    /**
+     * Rules from the field's `validation_rules` settings, minus `required` on a {@see withoutRequiredRules()} copy.
+     *
+     * @return list<string|ValidationRule>
+     */
+    private function extraRulesForField(CollectionField $field, string $prefix, ?int $excludeItemId): array
+    {
+        $extraRules = $this->validationRuleEvaluator->rulesForField($field, $prefix, $excludeItemId);
+        if ($this->isEnforcingRequired) {
+            return $extraRules;
+        }
+
+        return array_values(array_filter(
+            $extraRules,
+            static fn (mixed $rule): bool => $rule !== 'required',
+        ));
     }
 }

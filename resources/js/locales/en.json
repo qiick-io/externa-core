@@ -1001,6 +1001,7 @@
         "itemToolbar": {
             "previewAs": "Preview as…",
             "livePreview": "Live Preview",
+            "livePreviewUnsaved": "Live Preview (unsaved, nothing is created)",
             "livePreviewError": "Could not open Live Preview. Check the collection preview URL.",
             "livePreviewAt": "Preview at…",
             "livePreviewAtHint": "Render the item as it will look when scheduled changes go live (max 90 days ahead).",
