@@ -1647,7 +1647,9 @@
                 "key": "Schlüssel",
                 "nameHint": "Übersetzte Beschriftung in der Admin-Oberfläche und im Eintragsformular.",
                 "note": "Hinweis",
-                "noteHint": "Optionaler Hilfetext, der im Eintragsformular unter dem Feld angezeigt wird."
+                "noteHint": "Optionaler Hilfetext, der im Eintragsformular unter dem Feld angezeigt wird.",
+                "keyDuplicate": "In dieser Collection gibt es bereits ein Feld mit diesem Schlüssel.",
+                "updateSubtitle": "Einstellungen für {{name}} aktualisieren."
             },
             "blocks": {
                 "blockTypes": "Blocktypen",
@@ -1714,7 +1716,8 @@
                 "description": "Schreibgeschützte Ansicht der Felddaten nach Collection-ACL und Dateizugriffsregeln (einschließlich <code>access: denied</code>). Kein visueller Editor.",
                 "role": "Rolle",
                 "chooseRole": "Rolle wählen",
-                "notReadable": "Für diese Rolle nicht lesbar."
+                "notReadable": "Für diese Rolle nicht lesbar.",
+                "failed": "Vorschau fehlgeschlagen."
             },
             "compare": {
                 "title": "Revision vergleichen",

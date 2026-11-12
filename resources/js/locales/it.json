@@ -1647,7 +1647,9 @@
                 "key": "Chiave",
                 "nameHint": "Etichetta tradotta mostrata nell'interfaccia di amministrazione e nel modulo dell'elemento.",
                 "note": "Nota",
-                "noteHint": "Testo di aiuto facoltativo mostrato sotto il campo nel modulo dell'elemento."
+                "noteHint": "Testo di aiuto facoltativo mostrato sotto il campo nel modulo dell'elemento.",
+                "keyDuplicate": "In questa collection esiste già un campo con questa chiave.",
+                "updateSubtitle": "Aggiorna le impostazioni di {{name}}."
             },
             "blocks": {
                 "blockTypes": "Tipi di blocco",
@@ -1714,7 +1716,8 @@
                 "description": "Vista in sola lettura dei dati dei campi dopo le regole ACL della collection e di accesso ai file (incluso <code>access: denied</code>). Non è un editor visuale.",
                 "role": "Ruolo",
                 "chooseRole": "Scegli ruolo",
-                "notReadable": "Non leggibile per questo ruolo."
+                "notReadable": "Non leggibile per questo ruolo.",
+                "failed": "Anteprima non riuscita."
             },
             "compare": {
                 "title": "Confronta revisione",

@@ -303,7 +303,9 @@ export function CollectionFieldFormDrawer({
 
     const headerSubtitle =
         mode === 'edit' && field !== undefined
-            ? `Update settings for ${field.name}.`
+            ? t('collections.fieldSettings.form.updateSubtitle', {
+                  name: field.name,
+              })
             : undefined;
 
     return (
