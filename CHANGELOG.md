@@ -26,6 +26,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Collections: restoring a revision needs the collection Update grant (a Read grant was enough), and restoring a trashed item, alone or in bulk, needs the item inside the actor's write filter (#710).
 - AI daily budget: an optional per-user daily token budget (`AI_DAILY_TOKEN_BUDGET`, default 0 = off) next to the prompt cap (`AI_DAILY_PROMPT_LIMIT`); both now also cover field translation, which is logged as an AI prompt (field keys only) with its token usage, and today's usage shows under the AI composer when a limit is set. The chat route uses a named `ai` limiter (`AI_RATE_LIMIT_PER_MINUTE`, default 30; `AI_RATE_LIMIT_PER_DAY`, default 0 = off) (#275).
 - Chat: a user with a collection grant on some collections no longer sees the others in the chat pickers and mention lists, and can no longer be mentioned in their item chats; chat now uses the collection policy's Read rule, like the item list (#703).
+- Collections: "Save as copy" checks the create permission like creating an item: a `can-create-collections` inherited from a user group now counts (it gave a 403), and a role with collection grants needs the Create grant on the collection (an Update grant was enough) (#704).
 
 ### Changed
 
