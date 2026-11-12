@@ -2076,6 +2076,11 @@
         "assistantMessagePdfTitle": "Assistentennachricht",
         "callingTool": "{{tool}} wird aufgerufen…",
         "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "dailyUsage": {
+            "label": "Heute: {{usage}}",
+            "prompts": "{{used}} / {{limit}} Prompts",
+            "tokens": "{{used}} / {{limit}} Tokens"
+        },
         "importState": {
             "queued": "in Warteschlange",
             "running": "läuft",

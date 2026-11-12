@@ -54,6 +54,8 @@
     "Could not approve tool call: :message": "Tool-Aufruf konnte nicht genehmigt werden: :message",
     "Could not create a temporary file.": "Temporäre Datei konnte nicht erstellt werden.",
     "Could not retry job: :message": "Job konnte nicht erneut versucht werden: :message",
+    "Daily AI prompt limit reached.": "Tägliches KI-Prompt-Limit erreicht.",
+    "Daily AI token budget reached.": "Tägliches KI-Token-Budget aufgebraucht.",
     "Dashboard metrics cache flushed.": "Dashboard-Metrik-Cache geleert.",
     "Deploy queued for :count hook(s).": "Deploy queued for :count hook(s).",
     "Draft discarded.": "Entwurf verworfen.",
