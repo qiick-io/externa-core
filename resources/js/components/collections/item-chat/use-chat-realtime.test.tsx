@@ -90,6 +90,7 @@ function renderRealtime(
         messages: [] as ItemChatMessage[],
         liveChatIdRef: { current: 'chat-1' as string | null },
         chatCountRef: { current: 3 },
+        countedDeletionIdsRef: { current: new Set<number>() },
         onChatCountChangeRef: { current: vi.fn() },
         forceScrollBottomRef: { current: false },
         dropEchoedPending: vi.fn(),
@@ -184,6 +185,118 @@ describe('useChatRealtime', () => {
         expect(options.onChatCountChangeRef.current).toHaveBeenLastCalledWith(
             2,
         );
+    });
+
+    it('does not lower the count again for a deletion the delete reply counted', () => {
+        const { options } = renderRealtime();
+
+        act(() => {
+            fake.emit('.MessageCreated', { message: message() });
+        });
+        options.countedDeletionIdsRef.current.add(1);
+        act(() => {
+            fake.emit('.MessageDeleted', { id: 1 });
+        });
+
+        expect(
+            useChatStore.getState().messagesByChatId['chat-1']?.messages,
+        ).toEqual([]);
+        expect(options.onChatCountChangeRef.current).toHaveBeenCalledTimes(1);
+    });
+
+    it("applies a reaction from the viewer's other tab as the viewer's own", () => {
+        renderRealtime();
+
+        act(() => {
+            fake.emit('.MessageCreated', { message: message() });
+            fake.emit('.ReactionToggled', {
+                message_id: 1,
+                user_id: 1,
+                user_name: 'Viewer',
+                emoji: '👍',
+                added: true,
+            });
+        });
+
+        expect(
+            useChatStore.getState().messagesByChatId['chat-1']?.messages[0]
+                ?.reactions,
+        ).toEqual([
+            {
+                emoji: '👍',
+                count: 1,
+                reacted: true,
+                users: [{ id: 1, name: 'Viewer' }],
+            },
+        ]);
+
+        act(() => {
+            fake.emit('.ReactionToggled', {
+                message_id: 1,
+                user_id: 1,
+                user_name: 'Viewer',
+                emoji: '👍',
+                added: false,
+            });
+        });
+
+        expect(
+            useChatStore.getState().messagesByChatId['chat-1']?.messages[0]
+                ?.reactions,
+        ).toEqual([]);
+    });
+
+    it("applies someone else's reaction without marking it as the viewer's", () => {
+        renderRealtime();
+
+        act(() => {
+            fake.emit('.MessageCreated', { message: message() });
+            fake.emit('.ReactionToggled', {
+                message_id: 1,
+                user_id: 2,
+                user_name: 'Ada',
+                emoji: '👍',
+                added: true,
+            });
+        });
+
+        expect(
+            useChatStore.getState().messagesByChatId['chat-1']?.messages[0]
+                ?.reactions[0],
+        ).toMatchObject({ count: 1, reacted: false });
+    });
+
+    it('forgets who was typing when the drawer switches thread', () => {
+        const options = {
+            open: true,
+            realtimeOn: true,
+            liveChatId: 'chat-1',
+            scope: { mode: 'hub', chatId: 'chat-1' } as const,
+            viewerId: 1,
+            viewerName: 'Viewer',
+            messages: [] as ItemChatMessage[],
+            liveChatIdRef: { current: 'chat-1' as string | null },
+            chatCountRef: { current: 3 },
+            countedDeletionIdsRef: { current: new Set<number>() },
+            onChatCountChangeRef: { current: vi.fn() },
+            forceScrollBottomRef: { current: false },
+            dropEchoedPending: vi.fn(),
+        };
+        const { result, rerender } = renderHook(
+            ({ scopeKey }: { scopeKey: string }) =>
+                useChatRealtime({ ...options, scopeKey }),
+            { initialProps: { scopeKey: 'hub:chat-1' } },
+        );
+
+        act(() => {
+            fake.whisperFrom({ userId: 2, name: 'Ada' });
+        });
+
+        expect(result.current.typingNames).toEqual(['Ada']);
+
+        rerender({ scopeKey: 'hub:chat-2' });
+
+        expect(result.current.typingNames).toEqual([]);
     });
 
     it('shows who is typing and expires them after a few seconds', () => {

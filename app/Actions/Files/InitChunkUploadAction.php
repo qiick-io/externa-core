@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Files;
 
 use App\Models\FileUpload;
-use App\Services\FileService;
+use App\Services\FileChunkUploadService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Uploads\UploadSizeLimiterService;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 final class InitChunkUploadAction
 {
     public function __construct(
-        private FileService $fileService,
+        private FileChunkUploadService $chunkUploads,
         private ProjectSettingsService $projectSettings,
     ) {}
 
@@ -37,6 +37,6 @@ final class InitChunkUploadAction
             'total_size',
         );
 
-        return $this->fileService->initChunkUpload($fileName, $totalSize, $totalChunks, $mimeType, $parentId, $disk);
+        return $this->chunkUploads->initChunkUpload($fileName, $totalSize, $totalChunks, $mimeType, $parentId, $disk);
     }
 }

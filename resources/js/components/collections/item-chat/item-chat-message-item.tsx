@@ -201,10 +201,10 @@ export function ItemChatMessageItem({
                                                 />
                                             </div>
                                         ) : null}
-                                        {hasMedia ? (
+                                        {hasMedia && scope !== null ? (
                                             <ChatMediaGallery
                                                 items={mediaAttachments}
-                                                scope={scope!}
+                                                scope={scope}
                                                 canCreateFiles={canCreateFiles}
                                                 hasFileFields={hasFileFields}
                                                 onSaved={onAttachmentSaved}
@@ -257,7 +257,8 @@ export function ItemChatMessageItem({
                                                     )}
                                                 </div>
                                             ) : null}
-                                            {fileAttachments.length > 0 ? (
+                                            {fileAttachments.length > 0 &&
+                                            scope !== null ? (
                                                 <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-2 overflow-y-auto">
                                                     {fileAttachments.map(
                                                         (attachment) => (
@@ -272,7 +273,7 @@ export function ItemChatMessageItem({
                                                                         attachment
                                                                     }
                                                                     scope={
-                                                                        scope!
+                                                                        scope
                                                                     }
                                                                     canCreateFiles={
                                                                         canCreateFiles

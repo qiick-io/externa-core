@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Events\ItemChatMessageCreatedEvent;
 use App\Events\ItemChatMessageDeletedEvent;
 use App\Events\ItemChatMessageUpdatedEvent;
+use App\Events\ItemChatReactionToggledEvent;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItemChatAttachment;
@@ -22,6 +23,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Activitylog\Models\Activity;
 
@@ -479,6 +481,29 @@ test('pin toggles pinned_at and lists the message in pinned', function () {
     ])->assertOk()->assertJsonPath('message.is_pinned', false);
 });
 
+test('reaction toggle broadcasts to every connection except the requesting tab', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
+    $this->actingAs($user);
+
+    $id = $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
+        'body' => 'react from one tab',
+    ])->assertCreated()->json('message.id');
+
+    Event::fake([ItemChatReactionToggledEvent::class]);
+
+    $this->postJson(
+        route('collections.items.chat.react', [$collection, $item, $id]),
+        ['emoji' => '👍'],
+        ['X-Socket-ID' => '1234.5678'],
+    )->assertOk();
+
+    Event::assertDispatched(
+        ItemChatReactionToggledEvent::class,
+        fn (ItemChatReactionToggledEvent $event): bool => $event->socket === '1234.5678'
+            && $event->userId === $user->id,
+    );
+});
+
 test('reaction toggle is unique per user and emoji', function () {
     ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
     $this->actingAs($user);
@@ -554,4 +579,25 @@ test('chat message create and delete write lean activity log entries', function 
     expect($deleted)->not->toBeNull()
         ->and($deleted->properties['message_id'] ?? null)->toBe($messageId)
         ->and($deleted->properties['body_preview'] ?? null)->toBe('Audit me please');
+});
+
+test('chat activity log entries record the uuid chat id', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
+    $this->actingAs($user);
+
+    $messageId = $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
+        'body' => 'Which chat am I in?',
+    ])->assertCreated()->json('message.id');
+
+    $chatId = (string) CollectionItemChatMessage::query()->findOrFail($messageId)->chat_id;
+    expect(Str::isUuid($chatId))->toBeTrue();
+
+    $this->deleteJson(route('collections.items.chat.destroy', [$collection, $item, $messageId]))
+        ->assertOk();
+
+    $created = Activity::query()->where('event', 'chat_message')->latest('id')->first();
+    $deleted = Activity::query()->where('event', 'chat_message_deleted')->latest('id')->first();
+
+    expect($created?->properties['chat_id'] ?? null)->toBe($chatId)
+        ->and($deleted?->properties['chat_id'] ?? null)->toBe($chatId);
 });

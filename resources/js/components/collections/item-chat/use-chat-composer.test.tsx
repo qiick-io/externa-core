@@ -195,4 +195,72 @@ describe('useChatComposer', () => {
 
         expect(result.current.draft).toBe('');
     });
+
+    it('highlights the first suggestion again when new mention hits arrive', async () => {
+        mocks.fetchMentions.mockResolvedValue({
+            users: [
+                { id: 7, name: 'Ada', email: 'ada@example.test' },
+                { id: 8, name: 'Adam', email: 'adam@example.test' },
+            ],
+            collections: [],
+        });
+        const { result } = renderComposer();
+
+        act(() => {
+            result.current.onComposerChange('Hi @Ad', 6);
+        });
+        await waitFor(() => {
+            expect(result.current.mentionMenu.hits).toHaveLength(2);
+        });
+        act(() => {
+            result.current.setMentionHighlight(1);
+        });
+
+        expect(result.current.mentionMenu.highlightIndex).toBe(1);
+
+        act(() => {
+            result.current.onComposerChange('Hi @Ada', 7);
+        });
+        await waitFor(() => {
+            expect(mocks.fetchMentions).toHaveBeenCalledTimes(2);
+        });
+        await waitFor(() => {
+            expect(result.current.mentionMenu.highlightIndex).toBe(0);
+        });
+    });
+
+    it('closes the mention menu and forgets mentions when mentions are turned off', async () => {
+        mocks.fetchMentions.mockResolvedValue({
+            users: [{ id: 7, name: 'Ada', email: 'ada@example.test' }],
+            collections: [],
+        });
+        const { result, rerender } = renderHook(
+            ({ mentionsEnabled }: { mentionsEnabled: boolean }) =>
+                useChatComposer({
+                    open: true,
+                    scope,
+                    scopeKey: 'hub:chat-1',
+                    mentionsEnabled,
+                    chatMaxUploadBytes: null,
+                    textareaRef: { current: null },
+                    captionTextareaRef: { current: null },
+                    whisperTyping: vi.fn(),
+                    enqueuePending: vi.fn(),
+                    setError: vi.fn(),
+                }),
+            { initialProps: { mentionsEnabled: true } },
+        );
+
+        act(() => {
+            result.current.onComposerChange('Hi @Ad', 6);
+        });
+        await waitFor(() => {
+            expect(result.current.mentionMenu.isOpen).toBe(true);
+        });
+
+        rerender({ mentionsEnabled: false });
+
+        expect(result.current.mentionMenu.isOpen).toBe(false);
+        expect(result.current.mentionMenu.hits).toEqual([]);
+    });
 });
