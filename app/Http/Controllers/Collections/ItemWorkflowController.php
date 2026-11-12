@@ -11,6 +11,7 @@ use App\Http\Requests\Collections\ScheduleCollectionItemRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemPublisherService;
+use App\Traits\AssertsItemBelongsToCollectionTrait;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,6 +23,8 @@ use RuntimeException;
  */
 class ItemWorkflowController extends Controller
 {
+    use AssertsItemBelongsToCollectionTrait;
+
     public function __construct(
         private CollectionItemPublisherService $itemPublisher,
         private ScheduleCollectionItemAction $scheduleCollectionItemAction,
@@ -172,13 +175,5 @@ class ItemWorkflowController extends Controller
             'item' => $item,
             'version' => 'draft',
         ])->with('success', __('Draft discarded.'));
-    }
-
-    /**
-     * Abort when the item does not belong to the route collection.
-     */
-    private function assertItemBelongsToCollection(Collection $collection, CollectionItem $item): void
-    {
-        abort_if($item->collection_id !== $collection->id, 404);
     }
 }
