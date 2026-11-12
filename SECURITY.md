@@ -21,13 +21,21 @@ Policy (#32): fail on **high+** for Composer (`composer audit --locked`, low/med
 
 Reporting app vulnerabilities is below; dependency audits are separate (#32).
 
+## Supported versions
+
+| Version | Security fixes |
+| --- | --- |
+| `1.x`, latest minor | Yes, as a patch release of that minor. |
+| `1.x`, older minors | No. Upgrade to the latest `1.x` minor (`php artisan externa:upgrade`). |
+
 ## Reporting a vulnerability
 
 Please **do not** open a public GitHub issue for security bugs.
 
-1. Email the maintainers (see the GitHub org / repo security contact), or use GitHub **Private vulnerability reporting** if enabled on the repository.
+1. Use GitHub's private vulnerability reporting: **Report a vulnerability** on the [Security tab](https://github.com/qiick-io/externa-core/security) of `qiick-io/externa-core`.
 2. Include: Externa version (`composer.json`), deploy shape (SQLite/Postgres, reverse proxy), steps to reproduce, and impact.
-3. Allow a reasonable window before public disclosure.
+
+We aim to acknowledge reports within **72 hours**. Fixes ship as a patch release of the latest minor, announced with a GitHub security advisory and on the [Qiick blog](https://qiick.io/en/blog/tag/security). Please keep the report private until the advisory is published.
 
 ## Threat model (summary)
 
