@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Support\Files\FilesDisk;
+use App\Services\Files\FilesDiskService;
 use Illuminate\Support\Facades\Config;
 
 test('allowed disks always include local assets family and remote backends', function (): void {
     Config::set('files.disk', 'assets');
 
-    expect(FilesDisk::allowed())->toEqualCanonicalizing([
+    expect(FilesDiskService::allowed())->toEqualCanonicalizing([
         'assets',
-        FilesDisk::PRIVATE_ASSETS,
+        FilesDiskService::PRIVATE_ASSETS,
         's3',
         'gcs',
         'azure',
@@ -20,25 +20,25 @@ test('allowed disks always include local assets family and remote backends', fun
 test('allowed disks include the configured FILES_DISK default when custom', function (): void {
     Config::set('files.disk', 'custom_remote');
 
-    expect(FilesDisk::allowed())
-        ->toContain('custom_remote', 'gcs', 'azure', 's3', 'assets', FilesDisk::PRIVATE_ASSETS);
+    expect(FilesDiskService::allowed())
+        ->toContain('custom_remote', 'gcs', 'azure', 's3', 'assets', FilesDiskService::PRIVATE_ASSETS);
 });
 
 test('default reads files.disk config', function (): void {
     Config::set('files.disk', 'gcs');
 
-    expect(FilesDisk::default())->toBe('gcs');
+    expect(FilesDiskService::default())->toBe('gcs');
 });
 
 test('forEffectivePrivacy leaves gcs and azure unchanged', function (): void {
-    expect(FilesDisk::forEffectivePrivacy(true, 'gcs'))->toBe('gcs')
-        ->and(FilesDisk::forEffectivePrivacy(false, 'azure'))->toBe('azure')
-        ->and(FilesDisk::forEffectivePrivacy(true, 's3'))->toBe('s3');
+    expect(FilesDiskService::forEffectivePrivacy(true, 'gcs'))->toBe('gcs')
+        ->and(FilesDiskService::forEffectivePrivacy(false, 'azure'))->toBe('azure')
+        ->and(FilesDiskService::forEffectivePrivacy(true, 's3'))->toBe('s3');
 });
 
 test('forEffectivePrivacy maps local assets family by privacy', function (): void {
-    expect(FilesDisk::forEffectivePrivacy(true, 'assets'))->toBe(FilesDisk::PRIVATE_ASSETS)
-        ->and(FilesDisk::forEffectivePrivacy(false, FilesDisk::PRIVATE_ASSETS))->toBe('assets');
+    expect(FilesDiskService::forEffectivePrivacy(true, 'assets'))->toBe(FilesDiskService::PRIVATE_ASSETS)
+        ->and(FilesDiskService::forEffectivePrivacy(false, FilesDiskService::PRIVATE_ASSETS))->toBe('assets');
 });
 
 test('filesystems config declares gcs and azure drivers', function (): void {

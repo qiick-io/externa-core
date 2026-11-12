@@ -19,11 +19,11 @@ use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionFieldConvertService;
 use App\Services\Collections\CollectionFieldRenamerService;
+use App\Services\Collections\CollectionFieldSettingsPipelineService;
 use App\Services\Collections\CollectionFieldStorageShapeService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Support\Collections\CollectionFieldSettingsPipeline;
-use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
-use App\Support\Collections\FieldPacks\FieldPackRegistry;
+use App\Services\Collections\CollectionPacks\CollectionPackRegistryService;
+use App\Services\Collections\FieldPacks\FieldPackRegistryService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -425,7 +425,7 @@ class ManageCollections implements Approvable, ClassifiesToolActionsContract, To
         }
 
         return json_encode([
-            'packs' => FieldPackRegistry::summaries(),
+            'packs' => FieldPackRegistryService::summaries(),
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
@@ -468,7 +468,7 @@ class ManageCollections implements Approvable, ClassifiesToolActionsContract, To
         }
 
         return json_encode([
-            'packs' => CollectionPackRegistry::summaries(),
+            'packs' => CollectionPackRegistryService::summaries(),
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
@@ -550,7 +550,7 @@ class ManageCollections implements Approvable, ClassifiesToolActionsContract, To
             return $settings;
         }
 
-        $settings = app(CollectionFieldSettingsPipeline::class)
+        $settings = app(CollectionFieldSettingsPipelineService::class)
             ->normalizeAndValidate($settings, $type);
 
         if (is_string($settings)) {
@@ -654,7 +654,7 @@ class ManageCollections implements Approvable, ClassifiesToolActionsContract, To
                 ? $typeForSettings
                 : FieldTypeEnum::tryFrom((string) $typeForSettings);
 
-            $settings = app(CollectionFieldSettingsPipeline::class)
+            $settings = app(CollectionFieldSettingsPipelineService::class)
                 ->normalizeAndValidate($settings, $typeForSettings);
 
             if (is_string($settings)) {

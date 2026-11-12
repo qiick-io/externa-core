@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin\Files;
 
 use App\Http\Requests\Concerns\ValidatesFileManagerFieldsTrait;
-use App\Support\Validation\SearchQueryRules;
+use App\Services\Validation\SearchQueryRulesService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,7 +42,7 @@ class ListFilesRequest extends FormRequest
     {
         return [
             'parent_id' => $this->parentIdRules(),
-            'search' => SearchQueryRules::search(),
+            'search' => SearchQueryRulesService::search(),
             'trashed' => ['nullable', 'string', Rule::in(['only', 'with'])],
             'page' => ['nullable', 'integer', 'min:1'],
             'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],

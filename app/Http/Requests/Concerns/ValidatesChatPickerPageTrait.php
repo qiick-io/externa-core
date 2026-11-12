@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Concerns;
 
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\SearchQueryRulesService;
+use App\Services\Validation\StringLimitsService;
 
 /**
  * Search and paging rules shared by the chat hub pickers (people directory
@@ -19,7 +19,7 @@ trait ValidatesChatPickerPageTrait
     protected function chatPickerPageRules(): array
     {
         return [
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
+            'q' => SearchQueryRulesService::search(StringLimitsService::SEARCH_CHAT_HUB),
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Http\Requests\Settings\Concerns\AuthorizesProjectSettingsTrait;
-use App\Support\Collections\ContentLocaleCatalog;
+use App\Services\Collections\ContentLocaleCatalogService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,7 +21,7 @@ class UpdateProjectLocalizationSettingsRequest extends FormRequest
     public function rules(): array
     {
         $locales = array_keys(config('i18n.available_locales', ['en' => 'English']));
-        $contentCatalog = ContentLocaleCatalog::codes();
+        $contentCatalog = ContentLocaleCatalogService::codes();
 
         return [
             'default_language' => ['required', 'string', Rule::in($locales)],

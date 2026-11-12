@@ -4,9 +4,9 @@ use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
+use App\Services\Files\FilesDiskService;
 use App\Services\FileService;
 use App\Services\FileTransformService;
-use App\Support\Files\FilesDisk;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -34,11 +34,11 @@ it('stores uploads into a private folder on private_assets', function (): void {
     ]);
 
     $response->assertCreated()
-        ->assertJsonPath('disk', FilesDisk::PRIVATE_ASSETS)
+        ->assertJsonPath('disk', FilesDiskService::PRIVATE_ASSETS)
         ->assertJsonPath('effective_access', 'private');
 
     $file = File::query()->where('name', 'secret.txt')->firstOrFail();
-    expect($file->disk)->toBe(FilesDisk::PRIVATE_ASSETS)
+    expect($file->disk)->toBe(FilesDiskService::PRIVATE_ASSETS)
         ->and($file->isEffectivelyPrivate())->toBeTrue();
 
     Storage::disk('private_assets')->assertExists($file->storage_path);
@@ -59,7 +59,7 @@ it('moves bytes off public assets when marking a file private', function (): voi
 
     $updated = $service->updateMetadata($file, ['access' => 'private']);
 
-    expect($updated->disk)->toBe(FilesDisk::PRIVATE_ASSETS)
+    expect($updated->disk)->toBe(FilesDiskService::PRIVATE_ASSETS)
         ->and(app(FileTransformService::class)->publicUrl($updated))->toBeNull();
 
     Storage::disk('private_assets')->assertExists($updated->storage_path);
@@ -84,7 +84,7 @@ it('migrates legacy private rows still on assets via artisan command', function 
         ->assertSuccessful();
 
     $file->refresh();
-    expect($file->disk)->toBe(FilesDisk::PRIVATE_ASSETS);
+    expect($file->disk)->toBe(FilesDiskService::PRIVATE_ASSETS);
     Storage::disk('private_assets')->assertExists($file->storage_path);
     Storage::disk('assets')->assertMissing('2026/09/legacy-secret.txt');
 });
@@ -94,7 +94,7 @@ it('allows API content for private files with read_private while publicUrl stays
     $file = $service->uploadFile(UploadedFile::fake()->create('gated.txt', 6, 'text/plain'));
     $file = $service->updateMetadata($file, ['access' => 'private']);
 
-    expect($file->disk)->toBe(FilesDisk::PRIVATE_ASSETS)
+    expect($file->disk)->toBe(FilesDiskService::PRIVATE_ASSETS)
         ->and(app(FileTransformService::class)->publicUrl($file))->toBeNull();
 
     // Authenticated admin download still works

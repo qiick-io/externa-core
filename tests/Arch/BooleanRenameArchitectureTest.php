@@ -9,9 +9,9 @@ use App\Services\Auth\OidcSocialiteFactoryService;
 use App\Services\Authorization\SuperAdminGuardService;
 use App\Services\Chat\ChatService;
 use App\Services\Collections\FieldConditionEvaluatorService;
+use App\Services\Collections\UniqueCollectionSlugGeneratorService;
 use App\Services\GitExport\GitExportRepositoryService;
 use App\Services\Search\MeilisearchClientService;
-use App\Support\Collections\UniqueCollectionSlugGenerator;
 use App\Support\Health\ReadinessChecks;
 
 /**
@@ -37,6 +37,6 @@ test('boolean helpers renamed in #366 keep their prefixed names', function (stri
     [OidcSocialiteFactoryService::class, 'isEnabled', 'enabled'],
     [GitExportRepositoryService::class, 'isEnabled', 'enabled'],
     [MeilisearchClientService::class, 'isEnabled', 'enabled'],
-    [UniqueCollectionSlugGenerator::class, 'isAvailable', 'available'],
+    [UniqueCollectionSlugGeneratorService::class, 'isAvailable', 'available'],
     [ReadinessChecks::class, 'isRedisRequired', 'redisRequired'],
 ]);

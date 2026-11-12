@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\File;
-use App\Support\Files\FilesDisk;
+use App\Services\Files\FilesDiskService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -34,7 +34,7 @@ class StoreFileRequest extends FormRequest
             'file' => ['required', 'file'],
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'name' => ['nullable', 'string', 'max:255'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
+            'disk' => ['nullable', 'string', Rule::in(FilesDiskService::allowed())],
         ];
     }
 }

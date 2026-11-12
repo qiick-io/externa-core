@@ -41,7 +41,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 **Assumption:** anyone with DB access **or** `APP_KEY` + app code can read application data, including chat bodies and activity properties. Laravel `encrypted` casts use `APP_KEY` on the server — that is **not** end-to-end encryption.
 
-**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtension`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizer`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](https://docs.qiick.io/externa/file-manager).
+**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtensionService`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizerService`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](https://docs.qiick.io/externa/file-manager).
 
 ## Data handling defaults
 

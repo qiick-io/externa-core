@@ -11,8 +11,8 @@ use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Authorization\PolicyRequestResolverService;
 use App\Services\Chat\ChatService;
-use App\Support\Authorization\PolicyRequestResolver;
 use Illuminate\Auth\Access\Response;
 
 /**
@@ -30,7 +30,7 @@ final class ChatPolicy
         private ChatService $chats,
         private EffectivePermissionResolverService $permissionResolver,
         private CollectionPermissionEnforcerService $enforcer,
-        private PolicyRequestResolver $requestResolver,
+        private PolicyRequestResolverService $requestResolver,
     ) {}
 
     public function view(?User $user, Chat $chat): Response

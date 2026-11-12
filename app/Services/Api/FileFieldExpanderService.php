@@ -6,9 +6,9 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\File;
+use App\Services\Collections\BlocksFieldSchemaService;
+use App\Services\Files\FileTransformUrlBuilderService;
 use App\Support\Api\ApiAccess;
-use App\Support\Collections\BlocksFieldSchema;
-use App\Support\Files\FileTransformUrlBuilder;
 
 /**
  * Expand image/file/files field values to public file payloads on API responses.
@@ -21,7 +21,7 @@ class FileFieldExpanderService
 {
     public function __construct(
         private FilePermissionGuardService $filePermissionGuard,
-        private BlocksFieldSchema $blocksFieldSchema,
+        private BlocksFieldSchemaService $blocksFieldSchema,
     ) {}
 
     /**
@@ -439,7 +439,7 @@ class FileFieldExpanderService
             ];
         }
 
-        $transforms = FileTransformUrlBuilder::urlsFor((int) $file->id, $file->mime_type);
+        $transforms = FileTransformUrlBuilderService::urlsFor((int) $file->id, $file->mime_type);
 
         return [
             'id' => $file->id,

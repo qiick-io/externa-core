@@ -3,7 +3,7 @@
 Source tokens: `resources/css/app.css` (`:root`, `.dark`, `html.high-contrast`, `html.high-contrast.dark`).
 Ratios measured from resolved hex (WCAG relative luminance). `sidebar-primary / sidebar-accent` is the full-height active-item bar in the sidebar and settings nav (non-colour active cue, #463, #473); `sidebar-accent-foreground / sidebar-accent` is the Assistant nav hover/focus wash and `sidebar-primary / sidebar` is its 1px theme-primary border (both follow the theme preset / brand, not the violet `ai` tokens). **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
 
-Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForeground` picks fg; if a project brand fails 3:1 against the surface, settings should warn or fall back (#243).
+Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegroundService` picks fg; if a project brand fails 3:1 against the surface, settings should warn or fall back (#243).
 
 `prefers-contrast: more` mirrors the `html.high-contrast` (+ `.dark`) blocks — keep them identical when editing.
 

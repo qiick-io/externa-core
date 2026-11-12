@@ -3,10 +3,10 @@
 namespace App\Ai\Support;
 
 use App\Enums\FieldTypeEnum;
-use App\Support\Collections\BlocksFieldSchema;
+use App\Services\Collections\BlocksFieldSchemaService;
 
 /**
- * Curated field-type cookbook for AI tools (aligned with field-types docs + BlocksFieldSchema).
+ * Curated field-type cookbook for AI tools (aligned with field-types docs + BlocksFieldSchemaService).
  * Does not scrape markdown at runtime.
  */
 final class FieldTypeCookbook
@@ -108,9 +108,9 @@ final class FieldTypeCookbook
         return [
             'types' => $entries,
             'meta' => [
-                'max_blocks_depth' => BlocksFieldSchema::MAX_BLOCKS_DEPTH,
-                'default_blocks_depth' => BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH,
-                'allowed_nested_types' => BlocksFieldSchema::ALLOWED_NESTED_TYPES,
+                'max_blocks_depth' => BlocksFieldSchemaService::MAX_BLOCKS_DEPTH,
+                'default_blocks_depth' => BlocksFieldSchemaService::DEFAULT_BLOCKS_DEPTH,
+                'allowed_nested_types' => BlocksFieldSchemaService::ALLOWED_NESTED_TYPES,
                 'complex_types' => self::COMPLEX_TYPES,
             ],
         ];
@@ -207,7 +207,7 @@ final class FieldTypeCookbook
     {
         return match ($type) {
             FieldTypeEnum::Blocks => [
-                'max_blocks_depth' => BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH,
+                'max_blocks_depth' => BlocksFieldSchemaService::DEFAULT_BLOCKS_DEPTH,
                 'block_types' => [
                     [
                         'key' => 'rich_text',
@@ -361,9 +361,9 @@ final class FieldTypeCookbook
         $specific = match ($type) {
             FieldTypeEnum::Blocks => [
                 'blocks itself is never translatable; nest translatable leaf fields instead.',
-                'max_blocks_depth defaults to '.BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH.', ceiling '.BlocksFieldSchema::MAX_BLOCKS_DEPTH.'.',
+                'max_blocks_depth defaults to '.BlocksFieldSchemaService::DEFAULT_BLOCKS_DEPTH.', ceiling '.BlocksFieldSchemaService::MAX_BLOCKS_DEPTH.'.',
                 'Nested m2a/many_to_many/one_to_many are JSON-embedded in block.data — no junction table.',
-                'Nested types must be in BlocksFieldSchema::ALLOWED_NESTED_TYPES.',
+                'Nested types must be in BlocksFieldSchemaService::ALLOWED_NESTED_TYPES.',
                 'Before create_field/update_field on blocks, MUST call DescribeFieldTypes for blocks.',
             ],
             FieldTypeEnum::M2a => [
@@ -407,9 +407,9 @@ final class FieldTypeCookbook
         }
 
         return [
-            'max_blocks_depth' => BlocksFieldSchema::MAX_BLOCKS_DEPTH,
-            'default_blocks_depth' => BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH,
-            'allowed_nested_types' => BlocksFieldSchema::ALLOWED_NESTED_TYPES,
+            'max_blocks_depth' => BlocksFieldSchemaService::MAX_BLOCKS_DEPTH,
+            'default_blocks_depth' => BlocksFieldSchemaService::DEFAULT_BLOCKS_DEPTH,
+            'allowed_nested_types' => BlocksFieldSchemaService::ALLOWED_NESTED_TYPES,
             'notes' => [
                 'Nested blocks inherit the root field max depth; deeper blocks types are stripped on save.',
                 'Nested relations (m2a/m2m/o2m) are JSON-embedded inside block.data.',
