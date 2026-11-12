@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\Logging\StructuredLogContext;
+use App\Enums\StructuredLogContextKeyEnum;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
@@ -31,7 +31,7 @@ class AssignRequestIdMiddleware
         $requestId = $this->resolveRequestId($request->headers->get(self::HEADER));
 
         $request->headers->set(self::HEADER, $requestId);
-        Context::addHidden(StructuredLogContext::REQUEST_ID, $requestId);
+        Context::addHidden(StructuredLogContextKeyEnum::RequestId->value, $requestId);
 
         $response = $next($request);
         $response->headers->set(self::HEADER, $requestId);

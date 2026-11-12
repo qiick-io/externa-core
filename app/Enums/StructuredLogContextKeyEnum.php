@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Logging;
+namespace App\Enums;
 
 /**
  * Hidden Context keys read by the `structured` log channel (#209).
@@ -10,11 +10,9 @@ namespace App\Support\Logging;
  * Hidden Context travels with queued jobs but is not appended to the other channels, so
  * the default `stack` / `single` output stays as it was.
  */
-final class StructuredLogContext
+enum StructuredLogContextKeyEnum: string
 {
-    public const string REQUEST_ID = 'structured_log.request_id';
-
-    public const string JOB = 'structured_log.job';
-
-    public const string JOB_ATTEMPT = 'structured_log.job_attempt';
+    case RequestId = 'structured_log.request_id';
+    case Job = 'structured_log.job';
+    case JobAttempt = 'structured_log.job_attempt';
 }

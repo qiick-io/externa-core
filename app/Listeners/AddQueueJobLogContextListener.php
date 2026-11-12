@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Support\Logging\StructuredLogContext;
+use App\Enums\StructuredLogContextKeyEnum;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -24,13 +24,13 @@ class AddQueueJobLogContextListener
     public function handleProcessing(JobProcessing $event): void
     {
         Context::addHidden([
-            StructuredLogContext::JOB => $event->job->resolveName(),
-            StructuredLogContext::JOB_ATTEMPT => $event->job->attempts(),
+            StructuredLogContextKeyEnum::Job->value => $event->job->resolveName(),
+            StructuredLogContextKeyEnum::JobAttempt->value => $event->job->attempts(),
         ]);
     }
 
     public function handleFinished(JobProcessed|JobFailed|JobExceptionOccurred $event): void
     {
-        Context::forgetHidden([StructuredLogContext::JOB, StructuredLogContext::JOB_ATTEMPT]);
+        Context::forgetHidden([StructuredLogContextKeyEnum::Job->value, StructuredLogContextKeyEnum::JobAttempt->value]);
     }
 }

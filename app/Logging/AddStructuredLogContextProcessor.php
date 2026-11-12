@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Logging;
+namespace App\Logging;
 
+use App\Enums\StructuredLogContextKeyEnum;
+use App\Services\AppVersionService;
 use App\Support\Api\ApiAccess;
-use App\Support\AppVersion;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -29,12 +30,12 @@ final class AddStructuredLogContextProcessor implements ProcessorInterface
             ...$record->extra,
             ...array_filter(
                 [
-                    'request_id' => Context::getHidden(StructuredLogContext::REQUEST_ID),
+                    'request_id' => Context::getHidden(StructuredLogContextKeyEnum::RequestId->value),
                     'environment' => App::environment(),
-                    'app_version' => AppVersion::current(),
+                    'app_version' => app(AppVersionService::class)->current(),
                     ...$this->requestFields(),
-                    'job' => Context::getHidden(StructuredLogContext::JOB),
-                    'job_attempt' => Context::getHidden(StructuredLogContext::JOB_ATTEMPT),
+                    'job' => Context::getHidden(StructuredLogContextKeyEnum::Job->value),
+                    'job_attempt' => Context::getHidden(StructuredLogContextKeyEnum::JobAttempt->value),
                 ],
                 static fn (mixed $value): bool => $value !== null,
             ),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Enums\PermissionEnum;
+use App\Services\AppVersionService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetricsService;
@@ -12,7 +13,6 @@ use App\Services\Deploy\DeployHookStatusService;
 use App\Services\Settings\ProjectAppearanceService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\UserNotificationPreferencesService;
-use App\Support\AppVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -58,7 +58,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => $projectSettings->displayName(),
-            'appVersion' => AppVersion::current(),
+            'appVersion' => app(AppVersionService::class)->current(),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user ? $permissionResolver->permissionsFor($user) : [],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Logging;
+namespace App\Logging;
 
 use Monolog\LogRecord;
 use Monolog\Processor\ProcessorInterface;

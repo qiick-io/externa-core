@@ -21,7 +21,7 @@ use App\Mcp\Tools\PublishItem;
 use App\Mcp\Tools\Search;
 use App\Mcp\Tools\TagFile;
 use App\Mcp\Tools\UpdateItem;
-use App\Support\AppVersion;
+use App\Services\AppVersionService;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -82,6 +82,6 @@ MARKDOWN;
     ) {
         parent::__construct($transport);
 
-        $this->version = AppVersion::current();
+        $this->version = app(AppVersionService::class)->current();
     }
 }

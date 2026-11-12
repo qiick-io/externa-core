@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Enums\StructuredLogContextKeyEnum;
 use App\Http\Middleware\AssignRequestIdMiddleware;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
+use App\Logging\RedactSensitiveLogDataProcessor;
 use App\Models\User;
-use App\Support\Logging\RedactSensitiveLogDataProcessor;
-use App\Support\Logging\StructuredLogContext;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -151,7 +151,7 @@ test('log lines name the signed-in user', function (): void {
 });
 
 test('queued jobs log their class, attempt and the dispatching request id', function (): void {
-    Context::addHidden(StructuredLogContext::REQUEST_ID, 'request-from-web-1');
+    Context::addHidden(StructuredLogContextKeyEnum::RequestId->value, 'request-from-web-1');
 
     dispatch(function (): void {
         Log::channel('structured')->info('Inside a job');
@@ -162,7 +162,7 @@ test('queued jobs log their class, attempt and the dispatching request id', func
     expect($logExtra)
         ->toMatchArray(['request_id' => 'request-from-web-1', 'job_attempt' => 1])
         ->and($logExtra['job'])->toBeString()->toContain('Closure')
-        ->and(Context::hasHidden(StructuredLogContext::JOB))->toBeFalse();
+        ->and(Context::hasHidden(StructuredLogContextKeyEnum::Job->value))->toBeFalse();
 });
 
 test('sensitive keys are redacted at any depth', function (): void {
@@ -212,7 +212,7 @@ test('the default channel output is unchanged', function (): void {
     expect(config('logging.channels.stack.channels'))->not->toContain('structured');
 
     $singleLogPath = redirectLogChannelToFile('single', 'path');
-    Context::addHidden(StructuredLogContext::REQUEST_ID, 'request-not-in-plain-logs');
+    Context::addHidden(StructuredLogContextKeyEnum::RequestId->value, 'request-not-in-plain-logs');
 
     Log::channel('single')->info('Plain text line');
 

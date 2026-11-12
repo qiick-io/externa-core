@@ -1,7 +1,7 @@
 <?php
 
-use App\Support\Logging\AddStructuredLogContextProcessor;
-use App\Support\Logging\RedactSensitiveLogDataProcessor;
+use App\Logging\AddStructuredLogContextProcessor;
+use App\Logging\RedactSensitiveLogDataProcessor;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
