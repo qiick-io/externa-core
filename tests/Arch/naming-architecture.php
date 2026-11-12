@@ -37,8 +37,6 @@ return [
         'App\Http\Controllers\Ai\AiConversationController' => 7,
         'App\Http\Controllers\Api\V1\CollectionItemController' => 8,
         'App\Http\Controllers\Api\V1\FileController' => 7,
-        'App\Http\Controllers\Collections\ContentCollectionController' => 11,
-        'App\Http\Controllers\Collections\FieldController' => 12,
         'App\Http\Controllers\Collections\ItemController' => 14,
         'App\Http\Controllers\Settings\ProjectIntegrationsSettingsController' => 6,
     ],

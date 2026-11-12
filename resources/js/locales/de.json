@@ -1001,6 +1001,7 @@
         "itemToolbar": {
             "previewAs": "Vorschau als…",
             "livePreview": "Live Preview",
+            "livePreviewUnsaved": "Live-Vorschau (ungespeichert, es wird nichts angelegt)",
             "livePreviewError": "Live Preview konnte nicht geöffnet werden. Prüfe die Vorschau-URL der Collection.",
             "livePreviewAt": "Vorschau zum…",
             "livePreviewAtHint": "Zeigt den Eintrag so, wie er bei geplanten Änderungen live aussehen wird (max. 90 Tage voraus).",

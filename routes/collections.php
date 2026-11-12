@@ -8,8 +8,15 @@
  */
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Collections\CollectionPackController;
+use App\Http\Controllers\Collections\CollectionSingletonContentController;
+use App\Http\Controllers\Collections\CollectionSlugController;
+use App\Http\Controllers\Collections\CollectionTrashController;
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
+use App\Http\Controllers\Collections\FieldConvertController;
+use App\Http\Controllers\Collections\FieldLayoutController;
+use App\Http\Controllers\Collections\FieldPackController;
 use App\Http\Controllers\Collections\ItemAiDraftController;
 use App\Http\Controllers\Collections\ItemApprovalController;
 use App\Http\Controllers\Collections\ItemBoardController;
@@ -20,6 +27,7 @@ use App\Http\Controllers\Collections\ItemChatAttachmentUploadController;
 use App\Http\Controllers\Collections\ItemChatController;
 use App\Http\Controllers\Collections\ItemChatReactionController;
 use App\Http\Controllers\Collections\ItemController;
+use App\Http\Controllers\Collections\ItemLivePreviewDraftController;
 use App\Http\Controllers\Collections\ItemRevisionController;
 use App\Http\Controllers\Collections\ItemWorkflowController;
 use App\Http\Middleware\EnsureAiItemDraftsEnabledMiddleware;
@@ -37,14 +45,14 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.store');
 
-        Route::post('collections/bulk', [ContentCollectionController::class, 'bulk'])
+        Route::post('collections/bulk', [CollectionTrashController::class, 'bulk'])
             ->name('collections.bulk');
 
-        Route::post('collections/packs/{pack}', [ContentCollectionController::class, 'applyPack'])
+        Route::post('collections/packs/{pack}', [CollectionPackController::class, 'applyPack'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.packs.apply');
 
-        Route::get('collections/slug-available', [ContentCollectionController::class, 'checkSlug'])
+        Route::get('collections/slug-available', [CollectionSlugController::class, 'checkSlug'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.slug-available');
 
@@ -60,15 +68,15 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanDeleteCollections->value)
             ->name('collections.destroy');
 
-        Route::post('collections/{collection}/restore', [ContentCollectionController::class, 'restore'])
+        Route::post('collections/{collection}/restore', [CollectionTrashController::class, 'restore'])
             ->middleware('permission:'.PermissionEnum::CanRestoreCollections->value)
             ->name('collections.restore');
 
-        Route::delete('collections/{collection}/force', [ContentCollectionController::class, 'forceDelete'])
+        Route::delete('collections/{collection}/force', [CollectionTrashController::class, 'forceDelete'])
             ->middleware('permission:'.PermissionEnum::CanForceDeleteCollections->value)
             ->name('collections.force-delete');
 
-        Route::put('collections/{collection}/singleton-content', [ContentCollectionController::class, 'upsertSingletonContent'])
+        Route::put('collections/{collection}/singleton-content', [CollectionSingletonContentController::class, 'upsertSingletonContent'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.singleton-content');
 
@@ -79,6 +87,15 @@ Route::middleware(['auth', 'verified'])
         Route::get('collections/{collection}/items/new', [ItemController::class, 'newItem'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.items.new');
+
+        // Registered before `items/{item}` so DELETE does not bind `live-preview-draft` as an item.
+        Route::post('collections/{collection}/items/live-preview-draft', [ItemLivePreviewDraftController::class, 'store'])
+            ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+            ->name('collections.items.live-preview-draft.store');
+
+        Route::delete('collections/{collection}/items/live-preview-draft', [ItemLivePreviewDraftController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+            ->name('collections.items.live-preview-draft.destroy');
 
         // Off unless AI_ITEM_DRAFTS (404); needs can-use-ai AND ai.draft; createItems / updateItems and
         // the daily AI budget are checked in the form request (#210).
@@ -290,7 +307,7 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanForceDeleteCollections->value)
             ->name('collections.items.force-delete');
 
-        Route::post('collections/{collection}/field-packs/{pack}', [FieldController::class, 'applyPack'])
+        Route::post('collections/{collection}/field-packs/{pack}', [FieldPackController::class, 'applyPack'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.field-packs.apply');
 
@@ -302,11 +319,11 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.update');
 
-        Route::get('collections/{collection}/fields/{field}/convert-targets', [FieldController::class, 'convertTargets'])
+        Route::get('collections/{collection}/fields/{field}/convert-targets', [FieldConvertController::class, 'convertTargets'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.convert-targets');
 
-        Route::post('collections/{collection}/fields/{field}/convert', [FieldController::class, 'convert'])
+        Route::post('collections/{collection}/fields/{field}/convert', [FieldConvertController::class, 'convert'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.convert');
 
@@ -314,7 +331,7 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.destroy');
 
-        Route::post('collections/{collection}/fields/reorder', [FieldController::class, 'reorder'])
+        Route::post('collections/{collection}/fields/reorder', [FieldLayoutController::class, 'reorder'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.reorder');
 
@@ -322,15 +339,15 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.duplicate');
 
-        Route::post('collections/{collection}/fields/{field}/toggle-form-visibility', [FieldController::class, 'toggleFormVisibility'])
+        Route::post('collections/{collection}/fields/{field}/toggle-form-visibility', [FieldLayoutController::class, 'toggleFormVisibility'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.toggle-form-visibility');
 
-        Route::post('collections/{collection}/fields/{field}/layout-width', [FieldController::class, 'updateLayoutWidth'])
+        Route::post('collections/{collection}/fields/{field}/layout-width', [FieldLayoutController::class, 'updateLayoutWidth'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.update-layout-width');
 
-        Route::put('collections/{collection}/form-layout', [FieldController::class, 'updateFormLayout'])
+        Route::put('collections/{collection}/form-layout', [FieldLayoutController::class, 'updateFormLayout'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.form-layout.update');
     });

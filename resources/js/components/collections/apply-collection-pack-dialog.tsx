@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { PackagePlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
+import CollectionPackController from '@/actions/App/Http/Controllers/Collections/CollectionPackController';
 import { PackChoiceGroup } from '@/components/collections/pack-choice-group';
 import { Button } from '@/components/ui/button';
 import {
@@ -72,7 +72,7 @@ export function ApplyCollectionPackDialog({
 
         setApplying(true);
         router.post(
-            ContentCollectionController.applyPack.url(selected.key),
+            CollectionPackController.applyPack.url(selected.key),
             {},
             {
                 preserveScroll: true,
