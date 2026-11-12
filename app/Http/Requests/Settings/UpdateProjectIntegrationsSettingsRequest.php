@@ -103,7 +103,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
 
         /** @var array<string, array{id: string, name: string, url: string}> $existingById */
         $existingById = [];
-        foreach (app(ProjectSettingsService::class)->raw()['deploy_hooks'] as $row) {
+        foreach (app(ProjectSettingsService::class)->integrations()->storedDeployHooks() as $row) {
             if (is_array($row) && is_string($row['id'] ?? null)) {
                 $existingById[$row['id']] = [
                     'id' => $row['id'],
@@ -162,7 +162,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
 
         /** @var array<string, true> $existingIds */
         $existingIds = [];
-        foreach (app(ProjectSettingsService::class)->raw()['deploy_hooks'] as $row) {
+        foreach (app(ProjectSettingsService::class)->integrations()->storedDeployHooks() as $row) {
             if (is_array($row) && is_string($row['id'] ?? null)) {
                 $existingIds[$row['id']] = true;
             }

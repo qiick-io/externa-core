@@ -685,16 +685,16 @@ parameters:
 			path: app/Services/Files/FileFavoriteFlagService.php
 
 		-
-			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: app/Services/Settings/ProjectSettingsService.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 2
-			path: app/Services/Settings/ProjectSettingsService.php
+			path: app/Services/Settings/Project/ProjectFilesSettingsService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Services/Settings/Project/ProjectGeneralSettingsService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
