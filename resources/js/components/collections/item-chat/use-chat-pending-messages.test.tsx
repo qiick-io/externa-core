@@ -67,7 +67,7 @@ function pendingRow(body: string): PendingChatMessage {
 
 function renderPending(realtimeOn = true) {
     const options = {
-        open: true,
+        open: true as boolean,
         scope,
         scopeKey: 'hub:chat-1',
         realtimeOn,
@@ -175,5 +175,21 @@ describe('useChatPendingMessages', () => {
         expect(result.current.pendingMessages.map((row) => row.body)).toEqual([
             'First',
         ]);
+    });
+
+    it('drops the pending bubbles when the drawer closes', () => {
+        mocks.postMessage.mockReturnValue(new Promise(() => {}));
+        const { options, result, rerender } = renderPending();
+
+        act(() => {
+            result.current.enqueuePending(pendingRow('Unsent'));
+        });
+
+        expect(result.current.pendingMessages).toHaveLength(1);
+
+        options.open = false;
+        rerender();
+
+        expect(result.current.pendingMessages).toEqual([]);
     });
 });

@@ -86,17 +86,22 @@ export function ItemChatAddToFieldDialog({
                     <Button
                         type="button"
                         disabled={
+                            scope === null ||
                             attachment === null ||
                             fieldName === '' ||
                             fileFields.length === 0
                         }
                         onClick={() => {
-                            if (attachment === null || fieldName === '') {
+                            if (
+                                scope === null ||
+                                attachment === null ||
+                                fieldName === ''
+                            ) {
                                 return;
                             }
 
                             void addChatAttachmentToField(
-                                scope!,
+                                scope,
                                 attachment.id,
                                 fieldName,
                             )
