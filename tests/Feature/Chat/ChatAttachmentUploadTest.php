@@ -103,7 +103,7 @@ test('chat upload respects chat_max_upload_bytes setting', function () {
         1024,
     );
 
-    expect(app(ProjectSettingsService::class)->chatMaxUploadBytes())->toBe(1024);
+    expect(app(ProjectSettingsService::class)->files()->chatMaxUploadBytes())->toBe(1024);
 
     $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
         'file' => UploadedFile::fake()->createWithContent('big.txt', str_repeat('x', 2048)),

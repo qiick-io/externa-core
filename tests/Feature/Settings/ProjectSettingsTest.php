@@ -181,13 +181,13 @@ test('authorized users can view and update project settings', function () {
         ->toBe(15 * 1024 * 1024);
 
     $project = app(ProjectSettingsService::class);
-    expect($project->maxTransformSize())->toBe(800)
-        ->and($project->transformPreset('hero')['fit'])->toBe('cover')
+    expect($project->files()->maxTransformSize())->toBe(800)
+        ->and($project->files()->transformPreset('hero')['fit'])->toBe('cover')
         ->and($project->security()->passwordPolicy())->toBe('strong')
         ->and($project->content()->revisionRetentionCount())->toBe(50)
         ->and($project->content()->revisionRetentionDays())->toBe(90)
-        ->and($project->filesMaxUploadBytes())->toBe(20 * 1024 * 1024)
-        ->and($project->chatMaxUploadBytes())->toBe(15 * 1024 * 1024);
+        ->and($project->files()->filesMaxUploadBytes())->toBe(20 * 1024 * 1024)
+        ->and($project->files()->chatMaxUploadBytes())->toBe(15 * 1024 * 1024);
 
     $this->actingAs($user)
         ->get(route('project.edit'))
@@ -222,7 +222,7 @@ test('legacy bare preset sizes are normalized into structured presets', function
         'preset_transformations' => [64, 128],
     ]);
 
-    $presets = app(ProjectSettingsService::class)->presetTransformations();
+    $presets = app(ProjectSettingsService::class)->files()->presetTransformations();
 
     expect($presets)->toHaveCount(2)
         ->and($presets[0]['key'])->toBe('size-64')

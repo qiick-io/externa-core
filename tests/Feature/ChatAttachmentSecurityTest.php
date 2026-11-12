@@ -184,7 +184,7 @@ test('chat upload over default size cap is rejected', function () {
     ]);
     $this->actingAs($user);
 
-    expect(app(ProjectSettingsService::class)->chatMaxUploadBytes())->toBe(25 * 1024 * 1024);
+    expect(app(ProjectSettingsService::class)->files()->chatMaxUploadBytes())->toBe(25 * 1024 * 1024);
 
     $over = (25 * 1024 * 1024) + 1;
     $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [

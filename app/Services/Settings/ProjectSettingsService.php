@@ -21,9 +21,8 @@ use Illuminate\Support\Facades\Crypt;
  * normalized {@see raw()} bag and the {@see decryptSecret()} helper. Each area's keys
  * are normalized and read by its per-section reader under `App\Services\Settings\Project`
  * (General, Localization, Security, API, Content, Files, Integrations, matching the
- * settings pages); {@see normalize()} only composes their pieces. The getters below are
- * thin delegates kept until their callers move to the readers; Integrations callers
- * already use {@see integrations()} directly.
+ * settings pages); {@see normalize()} only composes their pieces. Callers read a value
+ * through its area accessor ({@see security()}, {@see files()}, …) or inject the reader.
  */
 class ProjectSettingsService
 {
@@ -224,87 +223,6 @@ class ProjectSettingsService
     public static function encryptOidcClientSecret(string $plain): string
     {
         return self::encryptSecret($plain);
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function allowedTransformations(): array
-    {
-        return $this->files()->allowedTransformations();
-    }
-
-    public function isTransformationsEnabled(): bool
-    {
-        return $this->files()->isTransformationsEnabled();
-    }
-
-    /**
-     * @return list<array{
-     *     key: string,
-     *     fit: string,
-     *     width: int|null,
-     *     height: int|null,
-     *     quality: int,
-     *     without_enlargement: bool,
-     *     format: string
-     * }>
-     */
-    public function presetTransformations(): array
-    {
-        return $this->files()->presetTransformations();
-    }
-
-    /**
-     * @return array{
-     *     key: string,
-     *     fit: string,
-     *     width: int|null,
-     *     height: int|null,
-     *     quality: int,
-     *     without_enlargement: bool,
-     *     format: string
-     * }|null
-     */
-    public function transformPreset(string $key): ?array
-    {
-        return $this->files()->transformPreset($key);
-    }
-
-    public function maxTransformSize(): int
-    {
-        return $this->files()->maxTransformSize();
-    }
-
-    public function filesMaxUploadBytes(): ?int
-    {
-        return $this->files()->filesMaxUploadBytes();
-    }
-
-    public function chatMaxUploadBytes(): ?int
-    {
-        return $this->files()->chatMaxUploadBytes();
-    }
-
-    public function uploadAllowSvg(): bool
-    {
-        return $this->files()->uploadAllowSvg();
-    }
-
-    /**
-     * @return list<string>|null
-     */
-    public function uploadAllowedMimes(): ?array
-    {
-        return $this->files()->uploadAllowedMimes();
-    }
-
-    /**
-     * @return list<string>|null
-     */
-    public function uploadAllowedExtensions(): ?array
-    {
-        return $this->files()->uploadAllowedExtensions();
     }
 
     public static function encryptWebhookSecret(string $plain): string
