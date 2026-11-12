@@ -55,8 +55,12 @@ test('the super-admin role keeps its name, even for a super-admin', function () 
     $gate = Gate::forUser($this->superAdmin);
 
     expect($gate->inspect('update', [$this->superAdminRole, 'owners'])->message())->toBe('The super-admin role cannot be renamed.')
-        ->and($gate->inspect('update', [$this->superAdminRole, null])->message())->toBe('The super-admin role cannot be renamed.')
         ->and($gate->allows('update', [$this->superAdminRole, RoleEnum::SuperAdmin->value]))->toBeTrue();
+});
+
+test('an update that does not rename the super-admin role is allowed', function () {
+    expect(Gate::forUser($this->manager)->allows('update', [$this->superAdminRole, null]))->toBeTrue()
+        ->and(Gate::forUser($this->superAdmin)->allows('update', [$this->superAdminRole, null]))->toBeTrue();
 });
 
 test('locked system roles cannot be renamed but stay editable', function () {

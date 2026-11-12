@@ -12,7 +12,7 @@ use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Admin\RoleController;
-use App\Models\Role as AppRole;
+use App\Models\Role;
 use App\Services\Api\CollectionPermissionSyncService;
 use App\Services\Api\FilePermissionSyncService;
 use App\Services\Authorization\EffectivePermissionResolverService;
@@ -22,7 +22,6 @@ use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Stringable;
 
@@ -114,7 +113,7 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
             return $error;
         }
 
-        $source = $this->findAppRoleForDuplicate($request);
+        $source = $this->findRoleForDuplicate($request);
 
         if (is_string($source)) {
             return $source;
@@ -136,11 +135,11 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
 
         $guard = config('auth.defaults.guard', 'web');
 
-        if (AppRole::query()->where('name', $name)->where('guard_name', $guard)->exists()) {
+        if (Role::query()->where('name', $name)->where('guard_name', $guard)->exists()) {
             return 'Error: A role with this name already exists.';
         }
 
-        $clone = AppRole::query()->create([
+        $clone = Role::query()->create([
             'name' => $name,
             'guard_name' => $guard,
             'is_system' => false,
@@ -170,10 +169,10 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 
-    private function findAppRoleForDuplicate(Request $request): AppRole|string
+    private function findRoleForDuplicate(Request $request): Role|string
     {
         if ($request->filled('role_id')) {
-            $role = AppRole::query()->find($request->integer('role_id'));
+            $role = Role::query()->find($request->integer('role_id'));
 
             return $role ?? 'Error: Role not found.';
         }
@@ -183,7 +182,7 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: role_id or source_name is required to identify the source role.';
         }
 
-        $role = AppRole::query()
+        $role = Role::query()
             ->where('name', $sourceName)
             ->where('guard_name', config('auth.defaults.guard', 'web'))
             ->first();
@@ -287,16 +286,18 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
         }
 
         $renamed = false;
+        $requestedName = $request->filled('name') ? trim((string) $request->string('name')) : null;
 
-        if ($request->filled('name')) {
-            $name = trim((string) $request->string('name'));
+        // RolePolicy keeps the super-admin role's name and locked system roles' names.
+        if ($error = $this->policyDenialError('update', [$role, $requestedName])) {
+            return $error;
+        }
+
+        if ($requestedName !== null) {
+            $name = $requestedName;
 
             if ($name === '') {
                 return 'Error: name cannot be empty.';
-            }
-
-            if ($role->name === RoleEnum::SuperAdmin->value && $name !== RoleEnum::SuperAdmin->value) {
-                return 'Error: The super-admin role cannot be renamed.';
             }
 
             if ($name === RoleEnum::SuperAdmin->value && $role->name !== RoleEnum::SuperAdmin->value) {
@@ -347,8 +348,9 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: Role not found.';
         }
 
-        if ($role->name === RoleEnum::SuperAdmin->value) {
-            return 'Error: The super-admin role cannot be deleted.';
+        // RolePolicy refuses the super-admin role and locked system roles.
+        if ($error = $this->policyDenialError('delete', $role)) {
+            return $error;
         }
 
         $summary = $this->serializeRole($role, false);
@@ -357,6 +359,25 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return json_encode(['ok' => true, 'deleted' => $summary], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    /**
+     * The tool's error string for a RolePolicy denial, or null when the policy allows.
+     *
+     * Runs after requirePermission() has checked the ability's permission, so a denial here
+     * is one of the policy's role invariants and carries its message.
+     *
+     * @param  Role|array{0: Role, 1: ?string}  $arguments
+     */
+    private function policyDenialError(string $ability, Role|array $arguments): ?string
+    {
+        $response = Gate::forUser($this->authenticatedUser())->inspect($ability, $arguments);
+
+        if ($response->allowed()) {
+            return null;
+        }
+
+        return 'Error: '.($response->message() ?? 'You cannot perform this operation.');
     }
 
     private function listPermissions(Request $request): string

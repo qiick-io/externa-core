@@ -259,7 +259,6 @@ return [
     'App\Services\Authorization\EffectivePermissionResolverService',
     'App\Services\Chat\ChatAttachmentUploadService',
     'App\Services\Chat\ChatParticipantSyncService',
-    'App\Services\Chat\ChatService',
     'App\Services\Chat\ChatUnreadService',
     'App\Services\Collections\ApplyCollectionPackService',
     'App\Services\Collections\ApplyFieldPackService',

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserGroupActionRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\UserGroup;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -17,18 +15,12 @@ use Illuminate\Support\Facades\Gate;
  */
 class UserGroupTrashController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
-
     /**
-     * Restore a soft-deleted user group.
-     *
-     * Permission only: unlike UserGroupPolicy::restore() (used by the AI tool), the web
-     * route does not refuse groups that grant super-admin. Kept as-is in #599, which
-     * moves checks without changing behaviour.
+     * Restore a soft-deleted user group (groups that grant super-admin: super-admins only).
      */
     public function restore(UserGroup $group): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanRestoreGroups->value);
+        abort_unless(Gate::allows('restore', $group), 403);
 
         $group->restore();
 
