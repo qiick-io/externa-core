@@ -1,423 +1,126 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use App\Enums\FileTypeEnum;
-use App\Jobs\WarmFileThumbnailJob;
 use App\Models\File;
 use App\Models\FileUpload;
-use App\Models\FileVersion;
 use App\Models\User;
-use App\Services\Files\FileEffectiveAccessService;
-use App\Services\Files\FilesDiskService;
-use App\Services\Security\PlainTextSanitizerService;
-use App\Services\Uploads\ForbiddenUploadExtensionService;
-use App\Services\Uploads\MimeTypeValidatorService;
-use App\Services\Uploads\SafeUploadMimeService;
-use App\Services\Webhooks\OutboundWebhookDispatcherService;
-use App\Traits\HasFilesTrait;
+use App\Services\Files\FileAttachmentService;
+use App\Services\Files\FileCopyService;
+use App\Services\Files\FileMetadataService;
+use App\Services\Files\FilePrivacyDiskService;
+use App\Services\Files\FileTrashService;
+use App\Services\Files\FileTreeService;
+use App\Services\Files\FileUploadService;
+use App\Services\Files\FileZipService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use ZipArchive;
 
 /**
- * Façade for file/folder CRUD, bulk ops, zips, attachments; chunk uploads delegate to FileChunkUploadService.
+ * Stable façade over the file-manager services in `App\Services\Files`.
+ *
+ * Controllers, Actions, the REST API, AI tools, jobs and commands (and products built on
+ * externa-core) call this one entry point; every method delegates to the service that owns the
+ * responsibility, so new logic goes there, never here. The chunk-upload methods stay for
+ * existing callers only: new code calls {@see FileChunkUploadService} directly.
  */
 class FileService
 {
     public function __construct(
+        private readonly FileTreeService $tree,
+        private readonly FileUploadService $uploads,
+        private readonly FileMetadataService $metadata,
+        private readonly FilePrivacyDiskService $privacyDisks,
+        private readonly FileCopyService $copies,
+        private readonly FileTrashService $trash,
+        private readonly FileZipService $zips,
+        private readonly FileAttachmentService $attachments,
         private readonly FileChunkUploadService $chunkUploads,
     ) {}
 
     /**
-     * Create a folder node and persist its computed path.
+     * @see FileTreeService::createFolder()
      */
     public function createFolder(string $name, ?int $parentId = null, ?string $disk = null): File
     {
-        $disk ??= FilesDiskService::default();
-
-        $file = DB::transaction(function () use ($name, $parentId, $disk) {
-            $file = File::query()->create([
-                'parent_id' => $parentId,
-                'type' => FileTypeEnum::Folder,
-                'name' => $name,
-                'path' => '/'.$name,
-                'disk' => $disk,
-                'storage_path' => null,
-            ]);
-
-            $file->path = $this->calculatePath($file);
-            $file->save();
-
-            return $file;
-        });
-
-        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.created', $file);
-
-        return $file;
+        return $this->tree->createFolder($name, $parentId, $disk);
     }
 
     /**
-     * Store an uploaded file, deduplicate by hash when possible, and link a version row.
+     * @see FileUploadService::uploadFile()
+     *
+     * @throws ValidationException When the upload is unreadable or its type is not allowed
      */
     public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, ?string $disk = null, ?string $name = null): File
     {
-        $disk = $this->resolveUploadDisk($disk, $parentId);
-        $fileName = PlainTextSanitizerService::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
-        $field = $name !== null ? 'name' : 'file';
-        $absolutePath = $this->absolutePathOfUpload($uploadedFile, $field);
-        $sniffed = MimeTypeValidatorService::assertAllowedPath($fileName, $absolutePath, $field);
-        $mimeType = SafeUploadMimeService::assertFilePoolAllowed($fileName, $sniffed, $field);
-        $fileHash = $this->hashPathSha256($absolutePath);
-        $size = $uploadedFile->getSize() ?: 0;
-        $storagePath = $this->generateStoragePath($fileName, $disk);
-        $storedPath = null;
-
-        try {
-            $storedPath = Storage::disk($disk)->putFileAs(
-                dirname($storagePath),
-                $uploadedFile,
-                basename($storagePath)
-            );
-
-            [$width, $height, $meta] = $this->extractImageMeta(
-                $disk,
-                $storedPath,
-                $mimeType,
-                $this->imageMetaContent($disk, $storedPath),
-            );
-
-            $file = DB::transaction(function () use ($parentId, $disk, $fileName, $mimeType, $size, $width, $height, $meta, $storedPath, $fileHash) {
-                $version = $this->resolveOrCreateVersion($disk, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta);
-
-                $file = File::query()->create([
-                    'parent_id' => $parentId,
-                    'name' => $fileName,
-                    'type' => FileTypeEnum::File,
-                    'path' => '/'.$fileName,
-                    'disk' => $version->disk,
-                    'storage_path' => $version->storage_path,
-                    'mime_type' => $mimeType,
-                    'extension' => pathinfo($fileName, PATHINFO_EXTENSION) ?: null,
-                    'size' => $size,
-                    'width' => $width,
-                    'height' => $height,
-                    'meta' => $meta,
-                    'hash' => $fileHash,
-                ]);
-
-                $version->file_id = $file->id;
-                $version->save();
-
-                $file->current_version_id = $version->id;
-                $file->path = $this->calculatePath($file);
-                $file->save();
-
-                $this->dispatchThumbnailWarmup($file);
-
-                return $file;
-            });
-
-            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.created', $file);
-
-            return $file;
-        } catch (\Throwable $e) {
-            if ($storedPath !== null) {
-                Storage::disk($disk)->delete($storedPath);
-            }
-
-            throw $e;
-        }
+        return $this->uploads->uploadFile($uploadedFile, $parentId, $disk, $name);
     }
 
     /**
-     * Move a file or folder, optionally across disks, with optimistic locking when version is supplied.
+     * @see FileUploadService::replaceFile()
+     *
+     * @throws \InvalidArgumentException When the target is not a file
+     */
+    public function replaceFile(File $file, UploadedFile $uploadedFile): File
+    {
+        return $this->uploads->replaceFile($file, $uploadedFile);
+    }
+
+    /**
+     * @see FileUploadService::hashPathSha256()
+     */
+    public function hashPathSha256(string $absolutePath): string
+    {
+        return $this->uploads->hashPathSha256($absolutePath);
+    }
+
+    /**
+     * @see FileUploadService::absolutePathOfUpload()
+     */
+    public function absolutePathOfUpload(UploadedFile $uploadedFile, string $field = 'file'): string
+    {
+        return $this->uploads->absolutePathOfUpload($uploadedFile, $field);
+    }
+
+    /**
+     * @see FileTreeService::move()
      *
      * @throws HttpResponseException When optimistic lock fails (409)
      */
     public function move(File $file, ?int $targetParentId, ?string $targetDisk = null, ?Carbon $version = null): File
     {
-        if ($targetParentId !== null) {
-            $this->validateNotDescendant($file, $targetParentId);
-        }
-
-        $oldDisk = $file->disk;
-        $newDisk = $targetDisk ?? $oldDisk;
-        $oldStoragePath = $file->storage_path;
-        $newStoragePath = null;
-        $fileMoved = false;
-
-        try {
-            if ($oldDisk !== $newDisk && $file->isFile() && $file->storage_path) {
-                $newStoragePath = $this->generateStoragePath($file->name, $newDisk);
-                $this->movePhysicalFileBetweenDisks($file, $oldDisk, $newDisk, $oldStoragePath, $newStoragePath);
-                $fileMoved = true;
-            }
-
-            $moved = DB::transaction(function () use ($file, $targetParentId, $newDisk, $newStoragePath, $fileMoved, $version) {
-                if ($version !== null) {
-                    $updated = File::query()
-                        ->where('id', $file->id)
-                        ->where('updated_at', $version)
-                        ->update([
-                            'parent_id' => $targetParentId,
-                            'disk' => $newDisk,
-                            'storage_path' => $fileMoved ? $newStoragePath : $file->storage_path,
-                            'updated_at' => now(),
-                        ]);
-
-                    if ($updated === 0) {
-                        throw new HttpResponseException(
-                            response()->json(['message' => 'File has been modified by another operation. Please refresh and try again.'], 409)
-                        );
-                    }
-
-                    $file = $file->fresh();
-                } else {
-                    $file->parent_id = $targetParentId;
-                    $file->disk = $newDisk;
-                    if ($fileMoved) {
-                        $file->storage_path = $newStoragePath;
-                    }
-                    $file->save();
-                }
-
-                $file->path = $this->calculatePath($file);
-                $file->save();
-
-                if ($file->isFolder()) {
-                    $this->updateChildrenPaths($file);
-                }
-
-                return $file->fresh();
-            });
-
-            // query()->update and path-only saves can skip access/parent dirty checks — force recompute.
-            $this->syncEffectiveAccess($moved);
-
-            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $moved);
-
-            $moved = $this->reconcilePrivacyDisk($moved);
-            if ($moved->isFolder()) {
-                $this->reconcileDescendantPrivacyDisks($moved);
-            }
-
-            return $moved;
-        } catch (\Throwable $e) {
-            if ($fileMoved && $oldStoragePath && $newStoragePath) {
-                $oldStorage = Storage::disk($oldDisk);
-                $newStorage = Storage::disk($newDisk);
-
-                if ($newStorage->exists($newStoragePath)) {
-                    $contents = $newStorage->get($newStoragePath);
-                    if ($contents !== false) {
-                        $oldStorage->put($oldStoragePath, $contents);
-                        $newStorage->delete($newStoragePath);
-                    }
-                }
-            }
-
-            throw $e;
-        }
+        return $this->tree->move($file, $targetParentId, $targetDisk, $version);
     }
 
     /**
-     * Rename a file or folder and recalculate descendant paths when needed.
+     * @param  list<int>  $fileIds
+     * @return list<File>
+     */
+    public function bulkMove(array $fileIds, ?int $targetParentId): array
+    {
+        return $this->tree->bulkMove($fileIds, $targetParentId);
+    }
+
+    /**
+     * @see FileTreeService::rename()
      */
     public function rename(File $file, string $newName): File
     {
-        $newName = PlainTextSanitizerService::sanitize($newName) ?? '';
-        ForbiddenUploadExtensionService::assertAllowed($newName, 'name');
-
-        $renamed = DB::transaction(function () use ($file, $newName) {
-            $file->name = $newName;
-            $file->path = $this->calculatePath($file);
-            $file->save();
-
-            if ($file->isFolder()) {
-                $this->updateChildrenPaths($file);
-            }
-
-            return $file->fresh();
-        });
-
-        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $renamed);
-
-        return $renamed;
+        return $this->tree->rename($file, $newName);
     }
 
     /**
+     * @see FileMetadataService::updateMetadata()
+     *
      * @param  array<string, mixed>  $attributes
      */
     public function updateMetadata(File $file, array $attributes): File
     {
-        $accessChanged = array_key_exists('access', $attributes);
-
-        $updated = DB::transaction(function () use ($file, $attributes) {
-            $allowed = [
-                'title',
-                'description',
-                'location',
-                'download_name',
-                'focal_point_x',
-                'focal_point_y',
-                'translate_x',
-                'translate_y',
-                'scale',
-                'access',
-            ];
-
-            $textKeys = ['title', 'description', 'location', 'download_name'];
-            $focalChanged = false;
-            foreach ($allowed as $key) {
-                if (array_key_exists($key, $attributes)) {
-                    if (in_array($key, ['focal_point_x', 'focal_point_y'], true)
-                        && (float) ($file->{$key} ?? 0) !== (float) ($attributes[$key] ?? 0)) {
-                        $focalChanged = true;
-                    }
-                    $value = $attributes[$key];
-                    if (in_array($key, $textKeys, true) && (is_string($value) || $value === null)) {
-                        $value = PlainTextSanitizerService::sanitize($value);
-                    }
-                    $file->{$key} = $value;
-                }
-            }
-
-            $file->save();
-
-            if ($focalChanged) {
-                app(FileTransformService::class)->clearTransforms($file);
-            }
-
-            return $file->fresh(['tags']);
-        });
-
-        if ($accessChanged) {
-            $updated = $this->reconcilePrivacyDisk($updated);
-            if ($updated->isFolder()) {
-                $this->reconcileDescendantPrivacyDisks($updated);
-            }
-        }
-
-        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $updated);
-
-        return $updated;
-    }
-
-    /**
-     * Persist denormalized effective_access for a node (and folder descendants).
-     */
-    private function syncEffectiveAccess(File $file): void
-    {
-        $service = app(FileEffectiveAccessService::class);
-        $service->apply($file);
-        File::query()->whereKey($file->id)->update([
-            'effective_access' => $file->effective_access,
-        ]);
-
-        if ($file->isFolder()) {
-            $service->refreshDescendants($file);
-        }
-    }
-
-    /**
-     * Move effective-private local assets onto private_assets (and back when public).
-     *
-     * @return int Number of files whose disk changed
-     */
-    public function migratePrivateFilesToPrivateDisk(): int
-    {
-        $moved = 0;
-
-        File::query()
-            ->where('type', FileTypeEnum::File)
-            ->whereIn('disk', ['assets', FilesDiskService::PRIVATE_ASSETS])
-            ->whereNotNull('storage_path')
-            ->orderBy('id')
-            ->chunkById(100, function ($files) use (&$moved): void {
-                foreach ($files as $file) {
-                    $before = $file->disk;
-                    $reconciled = $this->reconcilePrivacyDisk($file);
-                    if ($reconciled->disk !== $before) {
-                        $moved++;
-                    }
-                }
-            });
-
-        return $moved;
-    }
-
-    /**
-     * Ensure a file's local disk matches effective privacy (assets ↔ private_assets).
-     */
-    public function reconcilePrivacyDisk(File $file): File
-    {
-        if (! $file->isFile() || ! $file->storage_path) {
-            return $file;
-        }
-
-        if (! FilesDiskService::isLocalAssetsFamily($file->disk)) {
-            return $file;
-        }
-
-        $targetDisk = FilesDiskService::forEffectivePrivacy($file->isEffectivelyPrivate(), $file->disk);
-        if ($targetDisk === $file->disk) {
-            return $file;
-        }
-
-        app(FileTransformService::class)->clearTransforms($file);
-
-        $newPath = $this->generateStoragePath($file->name, $targetDisk);
-        $this->movePhysicalFileBetweenDisks(
-            $file,
-            $file->disk,
-            $targetDisk,
-            $file->storage_path,
-            $newPath,
-        );
-
-        $file->disk = $targetDisk;
-        $file->storage_path = $newPath;
-        $file->save();
-
-        if ($file->current_version_id) {
-            FileVersion::query()
-                ->where('id', $file->current_version_id)
-                ->update([
-                    'disk' => $targetDisk,
-                    'storage_path' => $newPath,
-                ]);
-        }
-
-        return $file->fresh(['tags']);
-    }
-
-    /**
-     * Reconcile local disks for every file under a folder after visibility changes.
-     */
-    public function reconcileDescendantPrivacyDisks(File $folder): void
-    {
-        if (! $folder->isFolder()) {
-            return;
-        }
-
-        File::query()
-            ->where('type', FileTypeEnum::File)
-            ->where('path', 'like', $folder->path.'/%')
-            ->whereIn('disk', ['assets', FilesDiskService::PRIVATE_ASSETS])
-            ->whereNotNull('storage_path')
-            ->orderBy('id')
-            ->chunkById(100, function ($files): void {
-                foreach ($files as $file) {
-                    $this->reconcilePrivacyDisk($file);
-                }
-            });
+        return $this->metadata->updateMetadata($file, $attributes);
     }
 
     /**
@@ -425,139 +128,7 @@ class FileService
      */
     public function syncTags(File $file, array $tagNames): File
     {
-        $file->syncTags($this->normalizeTagNames($tagNames));
-
-        return $file->fresh(['tags']);
-    }
-
-    /**
-     * Replace file bytes in storage and register a new version row.
-     *
-     * @throws \InvalidArgumentException When the target is not a file
-     */
-    public function replaceFile(File $file, UploadedFile $uploadedFile): File
-    {
-        if (! $file->isFile()) {
-            throw new \InvalidArgumentException('Only files can be replaced.');
-        }
-
-        $absolutePath = $this->absolutePathOfUpload($uploadedFile, 'file');
-        $originalName = $uploadedFile->getClientOriginalName();
-        $sniffed = MimeTypeValidatorService::assertAllowedPath($originalName, $absolutePath, 'file');
-        $mimeType = SafeUploadMimeService::assertFilePoolAllowed($originalName, $sniffed, 'file');
-        $fileHash = $this->hashPathSha256($absolutePath);
-
-        app(FileTransformService::class)->clearTransforms($file);
-
-        $size = $uploadedFile->getSize() ?: 0;
-        $storagePath = $this->generateStoragePath($file->name, $file->disk);
-        $storedPath = null;
-
-        try {
-            $storedPath = Storage::disk($file->disk)->putFileAs(
-                dirname($storagePath),
-                $uploadedFile,
-                basename($storagePath)
-            );
-
-            [$width, $height, $meta] = $this->extractImageMeta(
-                $file->disk,
-                $storedPath,
-                $mimeType,
-                $this->imageMetaContent($file->disk, $storedPath),
-            );
-
-            $replaced = DB::transaction(function () use ($file, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta) {
-                $version = $this->resolveOrCreateVersion(
-                    $file->disk,
-                    $storedPath,
-                    $fileHash,
-                    $mimeType,
-                    $size,
-                    $width,
-                    $height,
-                    $meta,
-                );
-
-                $version->file_id = $file->id;
-                $version->save();
-
-                $file->storage_path = $version->storage_path;
-                $file->disk = $version->disk;
-                $file->mime_type = $mimeType;
-                $file->extension = pathinfo($file->name, PATHINFO_EXTENSION) ?: null;
-                $file->size = $size;
-                $file->width = $width;
-                $file->height = $height;
-                $file->meta = $meta;
-                $file->hash = $fileHash;
-                $file->current_version_id = $version->id;
-                $file->save();
-
-                $this->dispatchThumbnailWarmup($file);
-
-                return $file->fresh(['tags']);
-            });
-
-            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $replaced);
-
-            return $replaced;
-        } catch (\Throwable $exception) {
-            if ($storedPath !== null) {
-                Storage::disk($file->disk)->delete($storedPath);
-            }
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * Deep-copy a file or folder tree under an optional new parent.
-     */
-    public function copy(File $file, ?int $targetParentId = null): File
-    {
-        return DB::transaction(function () use ($file, $targetParentId) {
-            if ($file->isFolder()) {
-                return $this->copyFolder($file, $targetParentId ?? $file->parent_id);
-            }
-
-            return $this->copyFileRecord($file, $targetParentId ?? $file->parent_id);
-        });
-    }
-
-    /**
-     * Mark a file as favorited for the given user.
-     */
-    public function favorite(File $file, User $user): void
-    {
-        $file->favoritedBy()->syncWithoutDetaching([$user->id]);
-    }
-
-    /**
-     * Remove a user's favorite marker from a file.
-     */
-    public function unfavorite(File $file, User $user): void
-    {
-        $file->favoritedBy()->detach($user->id);
-    }
-
-    /**
-     * @param  list<int>  $fileIds
-     * @return list<File>
-     */
-    public function bulkFavorite(array $fileIds, User $user, bool $favorite): array
-    {
-        $files = File::query()->whereIn('id', $fileIds)->get();
-
-        foreach ($files as $file) {
-            if ($favorite) {
-                $this->favorite($file, $user);
-            } else {
-                $this->unfavorite($file, $user);
-            }
-        }
-
-        return $files->all();
+        return $this->metadata->syncTags($file, $tagNames);
     }
 
     /**
@@ -567,48 +138,42 @@ class FileService
      */
     public function bulkTag(array $fileIds, array $tagNames, bool $attach): array
     {
-        $normalizedTagNames = $this->normalizeTagNames($tagNames);
-        $files = File::query()->whereIn('id', $fileIds)->get();
-
-        foreach ($files as $file) {
-            if ($attach) {
-                $file->attachTags($normalizedTagNames);
-            } else {
-                $file->detachTags($normalizedTagNames);
-            }
-        }
-
-        return $files->map(fn (File $file): File => $file->fresh(['tags']))->all();
+        return $this->metadata->bulkTag($fileIds, $tagNames, $attach);
     }
 
-    /**
-     * @param  list<string>  $tagNames
-     * @return list<string>
-     */
-    protected function normalizeTagNames(array $tagNames): array
+    public function favorite(File $file, User $user): void
     {
-        return array_values(array_unique(array_filter(
-            array_map(
-                static fn (mixed $tagName): string => PlainTextSanitizerService::sanitize((string) $tagName) ?? '',
-                $tagNames,
-            ),
-            static fn (string $tagName): bool => $tagName !== '',
-        )));
+        $this->metadata->favorite($file, $user);
+    }
+
+    public function unfavorite(File $file, User $user): void
+    {
+        $this->metadata->unfavorite($file, $user);
     }
 
     /**
      * @param  list<int>  $fileIds
      * @return list<File>
      */
-    public function bulkMove(array $fileIds, ?int $targetParentId): array
+    public function bulkFavorite(array $fileIds, User $user, bool $favorite): array
     {
-        $moved = [];
+        return $this->metadata->bulkFavorite($fileIds, $user, $favorite);
+    }
 
-        foreach (File::query()->whereIn('id', $fileIds)->get() as $file) {
-            $moved[] = $this->move($file, $targetParentId);
-        }
+    /**
+     * @see FilePrivacyDiskService::migratePrivateFilesToPrivateDisk()
+     */
+    public function migratePrivateFilesToPrivateDisk(): int
+    {
+        return $this->privacyDisks->migratePrivateFilesToPrivateDisk();
+    }
 
-        return $moved;
+    /**
+     * @see FileCopyService::copy()
+     */
+    public function copy(File $file, ?int $targetParentId = null): File
+    {
+        return $this->copies->copy($file, $targetParentId);
     }
 
     /**
@@ -617,13 +182,31 @@ class FileService
      */
     public function bulkCopy(array $fileIds, ?int $targetParentId = null): array
     {
-        $copied = [];
+        return $this->copies->bulkCopy($fileIds, $targetParentId);
+    }
 
-        foreach (File::query()->whereIn('id', $fileIds)->get() as $file) {
-            $copied[] = $this->copy($file, $targetParentId);
-        }
+    /**
+     * @see FileTrashService::softDelete()
+     */
+    public function softDelete(File $file): void
+    {
+        $this->trash->softDelete($file);
+    }
 
-        return $copied;
+    /**
+     * @see FileTrashService::restore()
+     */
+    public function restore(File $file): File
+    {
+        return $this->trash->restore($file);
+    }
+
+    /**
+     * @see FileTrashService::forceDelete()
+     */
+    public function forceDelete(File $file): void
+    {
+        $this->trash->forceDelete($file);
     }
 
     /**
@@ -631,9 +214,7 @@ class FileService
      */
     public function bulkSoftDelete(array $fileIds): void
     {
-        foreach (File::query()->whereIn('id', $fileIds)->get() as $file) {
-            $this->softDelete($file);
-        }
+        $this->trash->bulkSoftDelete($fileIds);
     }
 
     /**
@@ -641,9 +222,7 @@ class FileService
      */
     public function bulkRestore(array $fileIds): void
     {
-        foreach (File::query()->onlyTrashed()->whereIn('id', $fileIds)->get() as $file) {
-            $this->restore($file);
-        }
+        $this->trash->bulkRestore($fileIds);
     }
 
     /**
@@ -651,21 +230,19 @@ class FileService
      */
     public function bulkForceDelete(array $fileIds): void
     {
-        foreach (File::query()->withTrashed()->whereIn('id', $fileIds)->get() as $file) {
-            $this->forceDelete($file);
-        }
+        $this->trash->bulkForceDelete($fileIds);
     }
 
     /**
-     * Absolute path where a user's async zip job should be written.
+     * @see FileZipService::zipStoragePath()
      */
     public function zipStoragePath(int $userId, string $jobId): string
     {
-        return storage_path('app/zips/'.$userId.'/'.$jobId.'.zip');
+        return $this->zips->zipStoragePath($userId, $jobId);
     }
 
     /**
-     * Build a zip of the given files/folders. Returns absolute path.
+     * @see FileZipService::buildZipArchive()
      *
      * @param  list<int>  $fileIds
      *
@@ -673,308 +250,39 @@ class FileService
      */
     public function buildZipArchive(array $fileIds, ?string $destinationPath = null, ?int $maxBytes = null): string
     {
-        $files = File::query()->whereIn('id', $fileIds)->get();
-        $zipPath = $destinationPath ?? storage_path('app/tmp/files-'.Str::uuid().'.zip');
-        $maxBytes ??= (int) config('files.zip_max_bytes', 104_857_600);
-
-        if (! is_dir(dirname($zipPath))) {
-            mkdir(dirname($zipPath), 0755, true);
-        }
-
-        $zip = new ZipArchive;
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException('Unable to create zip archive.');
-        }
-
-        $totalBytes = 0;
-
-        foreach ($files as $file) {
-            $totalBytes = $this->addFileToZip($zip, $file, $file->name, $totalBytes, $maxBytes);
-        }
-
-        $zip->close();
-
-        return $zipPath;
+        return $this->zips->buildZipArchive($fileIds, $destinationPath, $maxBytes);
     }
 
     /**
-     * Delete zip files older than the configured TTL. Returns count removed.
+     * @see FileZipService::cleanupExpiredZips()
      */
     public function cleanupExpiredZips(): int
     {
-        $ttlMinutes = (int) config('files.zip_ttl_minutes', 60);
-        $cutoff = now()->subMinutes($ttlMinutes)->getTimestamp();
-        $root = storage_path('app/zips');
-
-        if (! is_dir($root)) {
-            return 0;
-        }
-
-        $cleanedCount = 0;
-
-        foreach (glob($root.'/*/*.zip') ?: [] as $zipPath) {
-            $modifiedAt = @filemtime($zipPath);
-
-            if ($modifiedAt === false || $modifiedAt > $cutoff) {
-                continue;
-            }
-
-            if (@unlink($zipPath)) {
-                $cleanedCount++;
-            }
-        }
-
-        return $cleanedCount;
-    }
-
-    protected function copyFileRecord(File $file, ?int $targetParentId): File
-    {
-        $copyName = $this->uniqueCopyName($file->name, $targetParentId);
-        $newStoragePath = null;
-
-        if ($file->storage_path && Storage::disk($file->disk)->exists($file->storage_path)) {
-            $newStoragePath = $this->generateStoragePath($copyName, $file->disk);
-            Storage::disk($file->disk)->copy($file->storage_path, $newStoragePath);
-        }
-
-        $copy = File::query()->create([
-            'parent_id' => $targetParentId,
-            'type' => FileTypeEnum::File,
-            'name' => $copyName,
-            'title' => $file->title,
-            'description' => $file->description,
-            'location' => $file->location,
-            'download_name' => $file->download_name,
-            'path' => '/'.$copyName,
-            'disk' => $file->disk,
-            'storage_path' => $newStoragePath,
-            'mime_type' => $file->mime_type,
-            'extension' => $file->extension,
-            'size' => $file->size,
-            'width' => $file->width,
-            'height' => $file->height,
-            'meta' => $file->meta,
-            'hash' => $file->hash,
-            'focal_point_x' => $file->focal_point_x,
-            'focal_point_y' => $file->focal_point_y,
-            'translate_x' => $file->translate_x,
-            'translate_y' => $file->translate_y,
-            'scale' => $file->scale,
-        ]);
-
-        if ($newStoragePath !== null) {
-            $version = FileVersion::query()->create([
-                'file_id' => $copy->id,
-                'disk' => $copy->disk,
-                'storage_path' => $newStoragePath,
-                'hash' => $copy->hash,
-                'mime_type' => $copy->mime_type,
-                'size' => $copy->size ?? 0,
-                'width' => $copy->width,
-                'height' => $copy->height,
-                'meta' => $copy->meta,
-            ]);
-            $copy->current_version_id = $version->id;
-        }
-
-        $copy->path = $this->calculatePath($copy);
-        $copy->save();
-
-        $tagNames = $file->tags->map(fn ($tag) => $tag->name)->all();
-        if ($tagNames !== []) {
-            $copy->syncTags($tagNames);
-        }
-
-        return $copy->fresh(['tags']);
-    }
-
-    protected function copyFolder(File $folder, ?int $targetParentId): File
-    {
-        $copyName = $this->uniqueCopyName($folder->name, $targetParentId);
-
-        $copy = File::query()->create([
-            'parent_id' => $targetParentId,
-            'type' => FileTypeEnum::Folder,
-            'name' => $copyName,
-            'title' => $folder->title,
-            'description' => $folder->description,
-            'location' => $folder->location,
-            'path' => '/'.$copyName,
-            'disk' => $folder->disk,
-        ]);
-
-        $copy->path = $this->calculatePath($copy);
-        $copy->save();
-
-        foreach ($folder->children as $child) {
-            $this->copy($child, $copy->id);
-        }
-
-        return $copy->fresh(['tags']);
-    }
-
-    protected function uniqueCopyName(string $name, ?int $parentId): string
-    {
-        $extension = pathinfo($name, PATHINFO_EXTENSION);
-        $basename = pathinfo($name, PATHINFO_FILENAME);
-        $candidate = $basename.' copy'.($extension !== '' ? '.'.$extension : '');
-        $counter = 2;
-
-        while (
-            File::query()
-                ->where('parent_id', $parentId)
-                ->where('name', $candidate)
-                ->exists()
-        ) {
-            $candidate = $basename.' copy '.$counter.($extension !== '' ? '.'.$extension : '');
-            $counter++;
-        }
-
-        return $candidate;
-    }
-
-    protected function addFileToZip(ZipArchive $zip, File $file, string $entryName, int $totalBytes, int $maxBytes): int
-    {
-        if ($file->isFolder()) {
-            $zip->addEmptyDir($entryName);
-
-            foreach ($file->children as $child) {
-                $totalBytes = $this->addFileToZip(
-                    $zip,
-                    $child,
-                    $entryName.'/'.$child->name,
-                    $totalBytes,
-                    $maxBytes,
-                );
-            }
-
-            return $totalBytes;
-        }
-
-        if (! $file->storage_path || ! Storage::disk($file->disk)->exists($file->storage_path)) {
-            return $totalBytes;
-        }
-
-        $size = (int) ($file->size ?? 0);
-        if ($totalBytes + $size > $maxBytes) {
-            throw new \RuntimeException('Zip exceeds the maximum allowed size.');
-        }
-
-        $contents = Storage::disk($file->disk)->get($file->storage_path);
-        if ($contents === false) {
-            return $totalBytes;
-        }
-
-        $zip->addFromString($entryName, $contents);
-
-        return $totalBytes + strlen($contents);
+        return $this->zips->cleanupExpiredZips();
     }
 
     /**
-     * Soft-delete a file or folder and all descendants recursively.
-     */
-    public function softDelete(File $file): void
-    {
-        DB::transaction(function () use ($file) {
-            foreach ($file->children as $child) {
-                $this->softDelete($child);
-            }
-
-            $file->delete();
-        });
-
-        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.deleted', $file);
-    }
-
-    /**
-     * Restore a soft-deleted file or folder and its trashed descendants.
-     */
-    public function restore(File $file): File
-    {
-        return DB::transaction(function () use ($file) {
-            $file->restore();
-
-            foreach (File::query()->onlyTrashed()->where('parent_id', $file->id)->get() as $child) {
-                $this->restore($child);
-            }
-
-            return $file->fresh();
-        });
-    }
-
-    /**
-     * Permanently delete a file or folder tree and remove storage bytes.
-     */
-    public function forceDelete(File $file): void
-    {
-        DB::transaction(function () use ($file) {
-            foreach (File::query()->withTrashed()->where('parent_id', $file->id)->get() as $child) {
-                $this->forceDelete($child);
-            }
-
-            if ($file->isFile() && $file->storage_path) {
-                app(FileTransformService::class)->clearTransforms($file);
-                Storage::disk($file->disk)->delete($file->storage_path);
-            }
-
-            $file->forceDelete();
-        });
-
-        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.deleted', $file);
-    }
-
-    /**
-     * Attach a file to a model using the HasFilesTrait trait.
+     * @see FileAttachmentService::attachToModel()
      *
      * @throws \InvalidArgumentException When the model class or instance is invalid
      */
     public function attachToModel(File $file, string $modelType, int $modelId, ?string $role = null, int $order = 0): void
     {
-        DB::transaction(function () use ($file, $modelType, $modelId, $role, $order) {
-            if (! class_exists($modelType)) {
-                throw new \InvalidArgumentException("Model class '{$modelType}' does not exist.");
-            }
-
-            $model = $modelType::query()->find($modelId);
-            if (! $model) {
-                throw new \InvalidArgumentException("Model '{$modelType}' with ID {$modelId} not found.");
-            }
-
-            if (! in_array(HasFilesTrait::class, class_uses_recursive($modelType), true)) {
-                throw new \InvalidArgumentException("Model '{$modelType}' does not use HasFilesTrait trait.");
-            }
-
-            $model->attachFile($file, $role, $order);
-        });
+        $this->attachments->attachToModel($file, $modelType, $modelId, $role, $order);
     }
 
     /**
-     * Detach a file from a model, optionally scoped to a pivot role.
+     * @see FileAttachmentService::detachFromModel()
      *
      * @throws \InvalidArgumentException When the model class or instance is invalid
      */
     public function detachFromModel(File $file, string $modelType, int $modelId, ?string $role = null): void
     {
-        DB::transaction(function () use ($file, $modelType, $modelId, $role) {
-            if (! class_exists($modelType)) {
-                throw new \InvalidArgumentException("Model class '{$modelType}' does not exist.");
-            }
-
-            $model = $modelType::query()->find($modelId);
-            if (! $model) {
-                throw new \InvalidArgumentException("Model '{$modelType}' with ID {$modelId} not found.");
-            }
-
-            if (! in_array(HasFilesTrait::class, class_uses_recursive($modelType), true)) {
-                throw new \InvalidArgumentException("Model '{$modelType}' does not use HasFilesTrait trait.");
-            }
-
-            $model->detachFile($file, $role);
-        });
+        $this->attachments->detachFromModel($file, $modelType, $modelId, $role);
     }
 
     /**
-     * Begin a chunked upload session and return tracking metadata.
+     * @see FileChunkUploadService::initChunkUpload()
      */
     public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, ?string $disk = null): FileUpload
     {
@@ -982,10 +290,7 @@ class FileService
     }
 
     /**
-     * Persist one chunk for an in-progress upload session.
-     *
-     * @throws \RuntimeException When the session expired or is already complete
-     * @throws \InvalidArgumentException When chunk index is out of range
+     * @see FileChunkUploadService::uploadChunk()
      */
     public function uploadChunk(string $uploadId, int $chunkIndex, UploadedFile $chunk): void
     {
@@ -993,9 +298,7 @@ class FileService
     }
 
     /**
-     * Merge uploaded chunks into a final file record.
-     *
-     * @throws \RuntimeException When session expired, incomplete, or merge fails
+     * @see FileChunkUploadService::completeChunkUpload()
      */
     public function completeChunkUpload(string $uploadId): File
     {
@@ -1003,6 +306,8 @@ class FileService
     }
 
     /**
+     * @see FileChunkUploadService::getUploadStatus()
+     *
      * @return array<string, mixed>|null
      */
     public function getUploadStatus(string $uploadId): ?array
@@ -1011,249 +316,10 @@ class FileService
     }
 
     /**
-     * Remove expired partial upload sessions and their chunk storage. Returns count cleaned.
+     * @see FileChunkUploadService::cleanupStaleUploads()
      */
     public function cleanupStaleUploads(?Carbon $before = null): int
     {
         return $this->chunkUploads->cleanupStaleUploads($before);
-    }
-
-    /**
-     * Compute the display path from parent hierarchy and name.
-     */
-    public function calculatePath(File $file): string
-    {
-        if ($file->parent_id === null) {
-            return '/'.$file->name;
-        }
-
-        // One query for the parent row (strict models forbid a lazy load here).
-        $parent = $file->relationLoaded('parent') ? $file->parent : $file->parent()->first();
-        if (! $parent) {
-            return '/'.$file->name;
-        }
-
-        $parentPath = $parent->path;
-        if ($parentPath === '/') {
-            return '/'.$file->name;
-        }
-
-        return rtrim($parentPath, '/').'/'.$file->name;
-    }
-
-    /**
-     * Recalculate and persist paths for all descendants after a folder move or rename.
-     */
-    public function updateChildrenPaths(File $folder): void
-    {
-        foreach ($folder->children as $child) {
-            $child->path = $this->calculatePath($child);
-            $child->save();
-
-            if ($child->isFolder()) {
-                $this->updateChildrenPaths($child);
-            }
-        }
-    }
-
-    /**
-     * Resolve upload disk from FILES_DISK / caller, then map privacy for local assets.
-     */
-    public function resolveUploadDisk(?string $disk, ?int $parentId): string
-    {
-        $disk ??= FilesDiskService::default();
-
-        $parentPrivate = false;
-        if ($parentId !== null) {
-            $parent = File::query()->find($parentId);
-            $parentPrivate = $parent?->isEffectivelyPrivate() ?? false;
-        }
-
-        return FilesDiskService::forEffectivePrivacy($parentPrivate, $disk);
-    }
-
-    protected function generateStoragePath(string $fileName, string $disk): string
-    {
-        $extension = pathinfo($fileName, PATHINFO_EXTENSION);
-        $basename = pathinfo($fileName, PATHINFO_FILENAME);
-        $uniqueName = $basename.'_'.uniqid().($extension ? '.'.$extension : '');
-
-        return date('Y/m').'/'.$uniqueName;
-    }
-
-    protected function validateNotDescendant(File $file, int $targetParentId): void
-    {
-        if ($targetParentId === $file->id) {
-            throw new \InvalidArgumentException('Cannot move a file into itself.');
-        }
-
-        $target = File::query()->find($targetParentId);
-        if (! $target) {
-            return;
-        }
-
-        $current = $target;
-        while ($current && $current->parent_id !== null) {
-            if ($current->parent_id === $file->id) {
-                throw new \InvalidArgumentException('Cannot move a folder into its own descendant.');
-            }
-            $current = $current->parent;
-        }
-    }
-
-    protected function movePhysicalFileBetweenDisks(File $file, string $oldDisk, string $newDisk, string $oldPath, string $newPath): void
-    {
-        $oldStorage = Storage::disk($oldDisk);
-        $newStorage = Storage::disk($newDisk);
-
-        $contents = $oldStorage->get($oldPath);
-        if ($contents !== false) {
-            $newStorage->put($newPath, $contents);
-            $oldStorage->delete($oldPath);
-        }
-    }
-
-    /**
-     * SHA-256 of a file on disk without loading the whole blob into a PHP string.
-     */
-    public function hashPathSha256(string $absolutePath): string
-    {
-        $hash = hash_file('sha256', $absolutePath);
-        if ($hash === false) {
-            throw ValidationException::withMessages([
-                'file' => [__('Unable to hash uploaded file.')],
-            ]);
-        }
-
-        return $hash;
-    }
-
-    /**
-     * Absolute path for an UploadedFile temp body (streaming hash / MIME sniff).
-     *
-     * @throws ValidationException
-     */
-    public function absolutePathOfUpload(UploadedFile $uploadedFile, string $field = 'file'): string
-    {
-        $path = $uploadedFile->getRealPath();
-        if ($path === false || $path === '') {
-            throw ValidationException::withMessages([
-                $field => [__('Unable to read uploaded file.')],
-            ]);
-        }
-
-        return $path;
-    }
-
-    /**
-     * Image meta payload for extractImageMeta: empty on local disks (uses path);
-     * remote disks still need bytes for getimagesizefromstring.
-     */
-    public function imageMetaContent(string $disk, string $path): string
-    {
-        if ($this->isLocalDisk($disk)) {
-            return '';
-        }
-
-        $contents = Storage::disk($disk)->get($path);
-
-        return is_string($contents) ? $contents : '';
-    }
-
-    /**
-     * @return array{0: ?int, 1: ?int, 2: array<string, mixed>}
-     */
-    public function extractImageMeta(string $disk, string $path, ?string $mimeType, string $content): array
-    {
-        $width = null;
-        $height = null;
-        $meta = [];
-
-        if (! $mimeType || ! str_starts_with($mimeType, 'image/')) {
-            return [$width, $height, $meta];
-        }
-
-        try {
-            if ($this->isLocalDisk($disk)) {
-                $imagePath = Storage::disk($disk)->path($path);
-                if (file_exists($imagePath)) {
-                    $imageInfo = getimagesize($imagePath);
-                }
-            } else {
-                $imageInfo = getimagesizefromstring($content);
-            }
-
-            if (isset($imageInfo) && $imageInfo !== false) {
-                $width = $imageInfo[0];
-                $height = $imageInfo[1];
-                $meta['dimensions'] = ['width' => $width, 'height' => $height];
-            }
-        } catch (\Throwable $exception) {
-            // Ignore image processing failures, but keep them visible.
-            report($exception);
-        }
-
-        return [$width, $height, $meta];
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     */
-    public function resolveOrCreateVersion(
-        string $disk,
-        string $storagePath,
-        string $fileHash,
-        ?string $mimeType,
-        int $size,
-        ?int $width,
-        ?int $height,
-        array $meta,
-        bool $moveFromTemp = false,
-        ?string $fileName = null
-    ): FileVersion {
-        $existingVersion = FileVersion::query()->where('hash', $fileHash)->first();
-
-        if ($existingVersion && Storage::disk($existingVersion->disk)->exists($existingVersion->storage_path)) {
-            if (Storage::disk($disk)->exists($storagePath)) {
-                Storage::disk($disk)->delete($storagePath);
-            }
-
-            return $existingVersion;
-        }
-
-        if ($moveFromTemp && $fileName !== null) {
-            $finalStoragePath = $this->generateStoragePath($fileName, $disk);
-            Storage::disk($disk)->move($storagePath, $finalStoragePath);
-            $storagePath = $finalStoragePath;
-        }
-
-        return FileVersion::query()->create([
-            'file_id' => null,
-            'disk' => $disk,
-            'storage_path' => $storagePath,
-            'hash' => $fileHash,
-            'mime_type' => $mimeType,
-            'size' => $size,
-            'width' => $width,
-            'height' => $height,
-            'meta' => $meta,
-        ]);
-    }
-
-    protected function isLocalDisk(string $disk): bool
-    {
-        return Config::get("filesystems.disks.{$disk}.driver", '') === 'local';
-    }
-
-    /**
-     * Queue a best-effort thumbnail warm-up for raster images.
-     */
-    public function dispatchThumbnailWarmup(File $file): void
-    {
-        if (! app(FileTransformService::class)->isImage($file)) {
-            return;
-        }
-
-        WarmFileThumbnailJob::dispatch($file->id);
     }
 }

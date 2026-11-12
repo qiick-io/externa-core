@@ -652,13 +652,13 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Services/FileService.php
+			path: app/Services/Files/FileCopyService.php
 
 		-
 			message: '#^Unable to resolve the template type TMapValue in call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\)$#'
 			identifier: argument.templateType
 			count: 1
-			path: app/Services/FileService.php
+			path: app/Services/Files/FileCopyService.php
 
 		-
 			message: '#^Comparison operation "\<" between int\<1, max\> and 1 is always false\.$#'
