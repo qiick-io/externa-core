@@ -19,6 +19,7 @@ use App\Http\Controllers\Settings\ProjectApiSettingsController;
 use App\Http\Controllers\Settings\ProjectContentSettingsController;
 use App\Http\Controllers\Settings\ProjectFilesSettingsController;
 use App\Http\Controllers\Settings\ProjectIntegrationsSettingsController;
+use App\Http\Controllers\Settings\ProjectIntegrationTestController;
 use App\Http\Controllers\Settings\ProjectLocalizationSettingsController;
 use App\Http\Controllers\Settings\ProjectSecuritySettingsController;
 use App\Http\Controllers\Settings\ProjectSettingsController;
@@ -102,15 +103,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware($canManageProject)
         ->name('project.integrations.update');
 
-    Route::post('settings/project/integrations/webhook-test', [ProjectIntegrationsSettingsController::class, 'sendTestWebhook'])
+    Route::post('settings/project/integrations/webhook-test', [ProjectIntegrationTestController::class, 'sendTestWebhook'])
         ->middleware($canManageProject)
         ->name('project.integrations.webhook-test');
 
-    Route::post('settings/project/integrations/slack-notifier-test', [ProjectIntegrationsSettingsController::class, 'sendTestSlackNotifier'])
+    Route::post('settings/project/integrations/slack-notifier-test', [ProjectIntegrationTestController::class, 'sendTestSlackNotifier'])
         ->middleware($canManageProject)
         ->name('project.integrations.slack-notifier-test');
 
-    Route::post('settings/project/integrations/telegram-notifier-test', [ProjectIntegrationsSettingsController::class, 'sendTestTelegramNotifier'])
+    Route::post('settings/project/integrations/telegram-notifier-test', [ProjectIntegrationTestController::class, 'sendTestTelegramNotifier'])
         ->middleware($canManageProject)
         ->name('project.integrations.telegram-notifier-test');
 
@@ -119,15 +120,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('project.integrations.deploy');
 
     // Deprecated aliases (one minor): keep old test URLs working.
-    Route::post('settings/project/webhook-test', [ProjectIntegrationsSettingsController::class, 'sendTestWebhook'])
+    Route::post('settings/project/webhook-test', [ProjectIntegrationTestController::class, 'sendTestWebhook'])
         ->middleware($canManageProject)
         ->name('project.webhook-test');
 
-    Route::post('settings/project/slack-notifier-test', [ProjectIntegrationsSettingsController::class, 'sendTestSlackNotifier'])
+    Route::post('settings/project/slack-notifier-test', [ProjectIntegrationTestController::class, 'sendTestSlackNotifier'])
         ->middleware($canManageProject)
         ->name('project.slack-notifier-test');
 
-    Route::post('settings/project/telegram-notifier-test', [ProjectIntegrationsSettingsController::class, 'sendTestTelegramNotifier'])
+    Route::post('settings/project/telegram-notifier-test', [ProjectIntegrationTestController::class, 'sendTestTelegramNotifier'])
         ->middleware($canManageProject)
         ->name('project.telegram-notifier-test');
 
