@@ -959,6 +959,17 @@ export default function ItemsForm({
                             }
                         />
                     )}
+                    {isNew &&
+                        hasFields &&
+                        canCreateItem &&
+                        livePreviewConfigured && (
+                            <ItemLivePreviewButton
+                                collectionId={collection.id}
+                                itemId={null}
+                                formId={COLLECTION_ITEM_FORM_ID}
+                                version="draft"
+                            />
+                        )}
                     {canUseAiDrafts && !formReadonly && (
                         <ItemAiDraftDialog
                             collectionId={collection.id}

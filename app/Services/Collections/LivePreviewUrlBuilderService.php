@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Collections;
 
 use App\Http\Controllers\Api\V1\LivePreviewController;
@@ -118,18 +120,72 @@ class LivePreviewUrlBuilderService
             asOfTimestamp: $asOf?->getTimestamp(),
         );
 
-        $replacements = [
+        $url = $this->expandTemplate($template, [
             '{{id}}' => (string) $item->id,
             '{{slug}}' => $collection->slug,
             '{{collection}}' => $collection->slug,
             '{{locale}}' => $locale ?? '',
             '{{version}}' => $version,
             '{{token}}' => $token,
-        ];
+        ]);
 
+        return [
+            'url' => $url,
+            'expires_at' => $expiresAt->utc()->format('Y-m-d\TH:i:s\Z'),
+            'as_of' => $asOf?->utc()->format('Y-m-d\TH:i:s\Z'),
+        ];
+    }
+
+    /**
+     * Preview URL for a create form that has no item yet: `{{id}}` expands to an empty string and
+     * the version is always `draft` (the payload is unpublished form state).
+     *
+     * @return array{url: string, expires_at: string, as_of: null}
+     */
+    public function buildForUnsavedDraft(
+        Collection $collection,
+        string $unsavedDraftId,
+        ?string $locale,
+        User $user,
+    ): array {
+        $template = $this->templateFor($collection);
+        if ($template === null) {
+            throw new RuntimeException('No Live Preview URL configured for this collection.');
+        }
+
+        $expiresAt = now()->addSeconds(self::TTL_SECONDS);
+        $token = $this->tokens->mintUnsavedDraft(
+            collectionId: $collection->id,
+            unsavedDraftId: $unsavedDraftId,
+            locale: $locale,
+            expiresAt: $expiresAt->getTimestamp(),
+            userId: (int) $user->id,
+        );
+
+        return [
+            'url' => $this->expandTemplate($template, [
+                '{{id}}' => '',
+                '{{slug}}' => $collection->slug,
+                '{{collection}}' => $collection->slug,
+                '{{locale}}' => $locale ?? '',
+                '{{version}}' => 'draft',
+                '{{token}}' => $token,
+            ]),
+            'expires_at' => $expiresAt->utc()->format('Y-m-d\TH:i:s\Z'),
+            'as_of' => null,
+        ];
+    }
+
+    /**
+     * Replace the template tokens, then drop empty query values from optional ones
+     * (…?locale=&version=… → …?version=…).
+     *
+     * @param  array<string, string>  $replacements
+     */
+    private function expandTemplate(string $template, array $replacements): string
+    {
         $url = strtr($template, $replacements);
 
-        // Drop empty query values from optional locale (…?locale=&version=… → …?version=…).
         $parts = parse_url($url);
         if (is_array($parts) && isset($parts['query'])) {
             parse_str($parts['query'], $query);
@@ -151,10 +207,6 @@ class LivePreviewUrlBuilderService
             $url = $rebuild;
         }
 
-        return [
-            'url' => $url,
-            'expires_at' => $expiresAt->utc()->format('Y-m-d\TH:i:s\Z'),
-            'as_of' => $asOf?->utc()->format('Y-m-d\TH:i:s\Z'),
-        ];
+        return $url;
     }
 }

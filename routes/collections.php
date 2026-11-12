@@ -27,6 +27,7 @@ use App\Http\Controllers\Collections\ItemChatAttachmentUploadController;
 use App\Http\Controllers\Collections\ItemChatController;
 use App\Http\Controllers\Collections\ItemChatReactionController;
 use App\Http\Controllers\Collections\ItemController;
+use App\Http\Controllers\Collections\ItemLivePreviewDraftController;
 use App\Http\Controllers\Collections\ItemRevisionController;
 use App\Http\Controllers\Collections\ItemWorkflowController;
 use App\Http\Middleware\EnsureAiItemDraftsEnabledMiddleware;
@@ -86,6 +87,15 @@ Route::middleware(['auth', 'verified'])
         Route::get('collections/{collection}/items/new', [ItemController::class, 'newItem'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.items.new');
+
+        // Registered before `items/{item}` so DELETE does not bind `live-preview-draft` as an item.
+        Route::post('collections/{collection}/items/live-preview-draft', [ItemLivePreviewDraftController::class, 'store'])
+            ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+            ->name('collections.items.live-preview-draft.store');
+
+        Route::delete('collections/{collection}/items/live-preview-draft', [ItemLivePreviewDraftController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+            ->name('collections.items.live-preview-draft.destroy');
 
         // Off unless AI_ITEM_DRAFTS (404); needs can-use-ai AND ai.draft; createItems / updateItems and
         // the daily AI budget are checked in the form request (#210).
