@@ -115,12 +115,6 @@ parameters:
 			path: app/Http/Controllers/Admin/UserController.php
 
 		-
-			message: '#^Match expression does not handle remaining value\: mixed$#'
-			identifier: match.unhandled
-			count: 1
-			path: app/Http/Controllers/Admin/UserController.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -130,7 +124,13 @@ parameters:
 			message: '#^Match expression does not handle remaining value\: mixed$#'
 			identifier: match.unhandled
 			count: 1
-			path: app/Http/Controllers/Admin/UserGroupController.php
+			path: app/Http/Controllers/Admin/UserGroupTrashController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Admin/UserTrashController.php
 
 		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$pinned_at\.$#'

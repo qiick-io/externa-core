@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Collections\CreateCollectionItemAction;
@@ -8,12 +10,8 @@ use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\V1\BatchDestroyCollectionItemsRequest;
-use App\Http\Requests\Api\V1\BatchStoreCollectionItemsRequest;
-use App\Http\Requests\Api\V1\BatchUpdateCollectionItemsRequest;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\BatchCollectionItemsService;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiIncludeParserService;
@@ -28,6 +26,8 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * Public CMS API: CRUD for collection items gated by collection_permissions.
+ *
+ * Batch writes live in {@see CollectionItemBatchController}.
  */
 class CollectionItemController extends Controller
 {
@@ -37,7 +37,6 @@ class CollectionItemController extends Controller
         private CollectionItemQueryService $itemQueryService,
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
-        private BatchCollectionItemsService $batchCollectionItemsService,
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private PublicApiResponseCacheService $responseCache,
         private PublicItemSortParserService $sortParser,
@@ -258,53 +257,5 @@ class CollectionItemController extends Controller
         $model->delete();
 
         return response()->json(null, 204);
-    }
-
-    /**
-     * Batch-create items; each entry uses {@see CreateCollectionItemAction}.
-     */
-    public function batchStore(BatchStoreCollectionItemsRequest $request, string $slug): JsonResponse
-    {
-        $collection = $request->collection();
-        $validated = $request->validated();
-
-        /** @var list<array{data?: mixed}> $items */
-        $items = array_values($validated['items']);
-
-        return response()->json(
-            $this->batchCollectionItemsService->create($request, $collection, $items),
-        );
-    }
-
-    /**
-     * Batch-update items; each entry uses {@see UpdateCollectionItemAction}.
-     */
-    public function batchUpdate(BatchUpdateCollectionItemsRequest $request, string $slug): JsonResponse
-    {
-        $collection = $request->collection();
-        $validated = $request->validated();
-
-        /** @var list<array{id: int, data?: mixed}> $items */
-        $items = array_values($validated['items']);
-
-        return response()->json(
-            $this->batchCollectionItemsService->update($request, $collection, $items),
-        );
-    }
-
-    /**
-     * Batch soft-delete items (same soft-delete path as single destroy).
-     */
-    public function batchDestroy(BatchDestroyCollectionItemsRequest $request, string $slug): JsonResponse
-    {
-        $collection = $request->collection();
-        $validated = $request->validated();
-
-        /** @var list<int> $ids */
-        $ids = array_values($validated['ids']);
-
-        return response()->json(
-            $this->batchCollectionItemsService->delete($request, $collection, $ids),
-        );
     }
 }
