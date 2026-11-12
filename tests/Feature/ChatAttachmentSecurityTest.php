@@ -115,7 +115,7 @@ test('item chat attachment routes succeed with can-show-chat and fail when chat 
         'sidebar_modules',
         $modules,
     );
-    expect(app(ProjectSettingsService::class)->isSidebarModuleEnabled('chat'))->toBeFalse();
+    expect(app(ProjectSettingsService::class)->general()->isSidebarModuleEnabled('chat'))->toBeFalse();
 
     $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
         'file' => secRealUpload('notes2.txt', "hello again\n"),

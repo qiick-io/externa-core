@@ -57,7 +57,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
-            'name' => $projectSettings->displayName(),
+            'name' => $projectSettings->general()->displayName(),
             'appVersion' => app(AppVersionService::class)->current(),
             'auth' => [
                 'user' => $user,

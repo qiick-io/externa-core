@@ -208,7 +208,7 @@ class ProjectSettingsService
         $raw = $this->raw();
 
         return [
-            'name' => $this->projectName(),
+            'name' => $this->general()->projectName(),
             'defaultLanguage' => $raw['default_language'],
             'isRegistrationEnabled' => $raw['registration_enabled'],
             'isEmailVerificationRequired' => $raw['email_verification_required'],
@@ -220,21 +220,6 @@ class ProjectSettingsService
             'filesMaxUploadBytes' => $raw['files_max_upload_bytes'],
             'chatMaxUploadBytes' => $raw['chat_max_upload_bytes'],
         ];
-    }
-
-    public function projectName(): ?string
-    {
-        return $this->general()->projectName();
-    }
-
-    public function displayName(): string
-    {
-        return $this->general()->displayName();
-    }
-
-    public function isSidebarModuleEnabled(string $moduleId): bool
-    {
-        return $this->general()->isSidebarModuleEnabled($moduleId);
     }
 
     public function defaultLanguage(): string
