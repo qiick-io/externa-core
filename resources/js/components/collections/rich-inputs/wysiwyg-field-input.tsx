@@ -1,7 +1,7 @@
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import type { Editor } from '@tiptap/react';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
     Bold,
@@ -52,7 +52,13 @@ function WysiwygLinkPopover({ editor }: { editor: Editor }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [url, setUrl] = useState('');
-    const isActive = editor.isActive('link');
+    // Read through useEditorState: the editor object never changes identity, so a
+    // plain `editor.isActive()` call would be memoized by the React Compiler and
+    // never see the selection move.
+    const isActive = useEditorState({
+        editor,
+        selector: ({ editor: current }) => current.isActive('link'),
+    });
 
     const openChange = (next: boolean): void => {
         if (next) {
@@ -143,27 +149,43 @@ function WysiwygLinkPopover({ editor }: { editor: Editor }) {
 
 function WysiwygToolbar({ editor }: { editor: Editor }) {
     const { t } = useTranslation();
+    // One snapshot per editor transaction (see WysiwygLinkPopover for why).
+    const activeState = useEditorState({
+        editor,
+        selector: ({ editor: current }) => ({
+            isBold: current.isActive('bold'),
+            isItalic: current.isActive('italic'),
+            isStrike: current.isActive('strike'),
+            isHeading2: current.isActive('heading', { level: 2 }),
+            isHeading3: current.isActive('heading', { level: 3 }),
+            isBulletList: current.isActive('bulletList'),
+            isOrderedList: current.isActive('orderedList'),
+            isBlockquote: current.isActive('blockquote'),
+            canUndo: current.can().undo(),
+            canRedo: current.can().redo(),
+        }),
+    });
 
     return (
         <div className="flex flex-wrap gap-2 border-b p-1.5">
             <ButtonGroup>
                 <ToolbarToggle
                     label={t('richText.bold')}
-                    pressed={editor.isActive('bold')}
+                    pressed={activeState.isBold}
                     onToggle={() => editor.chain().focus().toggleBold().run()}
                 >
                     <Bold className="size-3.5" />
                 </ToolbarToggle>
                 <ToolbarToggle
                     label={t('richText.italic')}
-                    pressed={editor.isActive('italic')}
+                    pressed={activeState.isItalic}
                     onToggle={() => editor.chain().focus().toggleItalic().run()}
                 >
                     <Italic className="size-3.5" />
                 </ToolbarToggle>
                 <ToolbarToggle
                     label={t('richText.strikethrough')}
-                    pressed={editor.isActive('strike')}
+                    pressed={activeState.isStrike}
                     onToggle={() => editor.chain().focus().toggleStrike().run()}
                 >
                     <Strikethrough className="size-3.5" />
@@ -172,7 +194,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
             <ButtonGroup>
                 <ToolbarToggle
                     label={t('richText.heading2')}
-                    pressed={editor.isActive('heading', { level: 2 })}
+                    pressed={activeState.isHeading2}
                     onToggle={() =>
                         editor.chain().focus().toggleHeading({ level: 2 }).run()
                     }
@@ -181,7 +203,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
                 </ToolbarToggle>
                 <ToolbarToggle
                     label={t('richText.heading3')}
-                    pressed={editor.isActive('heading', { level: 3 })}
+                    pressed={activeState.isHeading3}
                     onToggle={() =>
                         editor.chain().focus().toggleHeading({ level: 3 }).run()
                     }
@@ -192,7 +214,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
             <ButtonGroup>
                 <ToolbarToggle
                     label={t('richText.bulletList')}
-                    pressed={editor.isActive('bulletList')}
+                    pressed={activeState.isBulletList}
                     onToggle={() =>
                         editor.chain().focus().toggleBulletList().run()
                     }
@@ -201,7 +223,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
                 </ToolbarToggle>
                 <ToolbarToggle
                     label={t('richText.orderedList')}
-                    pressed={editor.isActive('orderedList')}
+                    pressed={activeState.isOrderedList}
                     onToggle={() =>
                         editor.chain().focus().toggleOrderedList().run()
                     }
@@ -210,7 +232,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
                 </ToolbarToggle>
                 <ToolbarToggle
                     label={t('richText.quote')}
-                    pressed={editor.isActive('blockquote')}
+                    pressed={activeState.isBlockquote}
                     onToggle={() =>
                         editor.chain().focus().toggleBlockquote().run()
                     }
@@ -222,14 +244,14 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
             <ButtonGroup>
                 <ToolbarButton
                     label={t('richText.undo')}
-                    disabled={!editor.can().undo()}
+                    disabled={!activeState.canUndo}
                     onClick={() => editor.chain().focus().undo().run()}
                 >
                     <Undo2 className="size-3.5" />
                 </ToolbarButton>
                 <ToolbarButton
                     label={t('richText.redo')}
-                    disabled={!editor.can().redo()}
+                    disabled={!activeState.canRedo}
                     onClick={() => editor.chain().focus().redo().run()}
                 >
                     <Redo2 className="size-3.5" />
