@@ -1,253 +1,80 @@
-import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import {
-    Check,
-    CheckCheck,
-    ChevronDown,
-    CircleX,
-    ClipboardList,
-    Clock,
-    Copy,
-    File,
-    FilePen,
-    Globe,
-    History,
-    Languages,
-    ListChecks,
-    MessageCircle,
-    Plus,
-    RotateCcw,
-    Rows3,
-    Save,
-    ScrollText,
-    Send,
-    Trash2,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Rows3 } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import ItemApprovalController from '@/actions/App/Http/Controllers/Collections/ItemApprovalController';
-import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import ItemWorkflowController from '@/actions/App/Http/Controllers/Collections/ItemWorkflowController';
-import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
-import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
-import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
-import { ItemAiDraftDialog } from '@/components/collections/item-ai-draft-dialog';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
-import { ItemEditingPresence } from '@/components/collections/item-editing-presence';
-import { DatetimeLocalPicker } from '@/components/collections/item-field-date-input';
-import { ItemLivePreviewButton } from '@/components/collections/item-live-preview-button';
+import {
+    ItemActivityPanel,
+    ItemViewToggle,
+} from '@/components/collections/item-form/item-activity-panel';
+import { ItemFieldsForm } from '@/components/collections/item-form/item-fields-form';
+import {
+    ItemDraftRestoredBanner,
+    ItemStaleBanner,
+} from '@/components/collections/item-form/item-form-banners';
+import {
+    ItemStaleSaveDialog,
+    ItemWorkflowDialogs,
+} from '@/components/collections/item-form/item-form-dialogs';
+import { ItemFormHeaderActions } from '@/components/collections/item-form/item-form-header-actions';
+import {
+    getItemFormElement,
+    isChatRequestedInUrl,
+    readItemViewParam,
+    setItemSaveAction,
+} from '@/components/collections/item-form/item-form-helpers';
+import type {
+    FieldGrant,
+    ItemPayload,
+    ItemSaveAction,
+    ItemView,
+} from '@/components/collections/item-form/item-form-helpers';
+import { ItemLocaleMenu } from '@/components/collections/item-form/item-locale-menu';
+import { ItemRevisionsPanel } from '@/components/collections/item-form/item-revisions-panel';
+import {
+    ItemScheduleFailureAlert,
+    ItemSchedulePanel,
+} from '@/components/collections/item-form/item-schedule-panel';
+import {
+    ItemVersionActionsMenu,
+    ItemVersionSelect,
+} from '@/components/collections/item-form/item-version-controls';
+import { useItemDraftAutosave } from '@/components/collections/item-form/use-item-draft-autosave';
+import { useItemOptimisticLock } from '@/components/collections/item-form/use-item-optimistic-lock';
+import { useItemSaveShortcut } from '@/components/collections/item-form/use-item-save-shortcut';
+import { useItemSchedule } from '@/components/collections/item-form/use-item-schedule';
+import { useItemWorkflowActions } from '@/components/collections/item-form/use-item-workflow-actions';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
-import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
-import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
-import type { RevisionSnapshot } from '@/components/collections/item-revision-compare-modal';
-import { ItemRevisionsDrawer } from '@/components/collections/item-revisions-drawer';
-import { ShortcutKeys } from '@/components/collections/shortcut-keys';
-import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FilterSearch } from '@/components/layout/page-header';
-import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
-import type { TablePaginationLink } from '@/components/layout/page-layout';
-import { Badge } from '@/components/ui/badge';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
-import {
-    ButtonGroup,
-    ButtonGroupSeparator,
-} from '@/components/ui/button-group';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollection } from '@/hooks/use-collection';
 import { useItemPresence } from '@/hooks/use-item-presence';
-import {
-    useRegisterUnsavedChanges,
-    useRequestLeave,
-} from '@/hooks/use-unsaved-changes';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
-import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
-import { getNonFieldErrors } from '@/lib/collection-data-errors';
+import type { ItemAiDraftValue } from '@/lib/ai-item-draft';
 import { draftValuesForForm } from '@/lib/ai-item-draft';
-import { contentLocaleMeta } from '@/lib/content-locales-catalog';
+import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
 import { formatUserDisplayName } from '@/lib/format';
-import { toDatetimeLocalValue } from '@/lib/format';
-import {
-    applyItemDraftToForm,
-    clearItemDraft,
-    readItemDraft,
-    serializeItemForm,
-    writeItemDraft,
-} from '@/lib/item-draft-storage';
-import { isRemoteUpdatedAtStale, notifyItemSaved } from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
 import { toast } from '@/lib/toast';
-import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
 import type { AdminActivityLogRow, BreadcrumbItem, Paginated } from '@/types';
 import type { CollectionView } from '@/types/collections';
 
-const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
-const DRAFT_DEBOUNCE_MS = 800;
-
-type FieldGrant = { read: boolean; create: boolean; update: boolean };
-
-type ItemSaveAction = 'stay' | 'create_new' | 'copy';
-
-type ItemView = 'fields' | 'activity';
-
-/** Query param that keeps the item's activity view across pagination and history (#465). */
-const ITEM_VIEW_PARAM = 'view';
-
 /**
- * Read the item view from the page URL (`?view=activity`); anything else is the edit view.
- * @param {string} pageUrl - Inertia page URL (path + query).
- * @returns {ItemView}
- */
-function readItemViewParam(pageUrl: string): ItemView {
-    const queryIndex = pageUrl.indexOf('?');
-
-    if (queryIndex === -1) {
-        return 'fields';
-    }
-
-    return new URLSearchParams(pageUrl.slice(queryIndex + 1)).get(
-        ITEM_VIEW_PARAM,
-    ) === 'activity'
-        ? 'activity'
-        : 'fields';
-}
-
-/**
- * Pin activity pagination links to the activity view. The server builds them
- * on first load, before a client-side switch to `?view=activity`.
- * @param {TablePaginationLink[]} links - Laravel paginator links.
- * @returns {TablePaginationLink[]}
- */
-function withActivityViewParam(
-    links: TablePaginationLink[],
-): TablePaginationLink[] {
-    return links.map((link) => {
-        if (link.url === null) {
-            return link;
-        }
-
-        const linkUrl = new URL(link.url, window.location.origin);
-        linkUrl.searchParams.set(ITEM_VIEW_PARAM, 'activity');
-
-        return { ...link, url: `${linkUrl.pathname}${linkUrl.search}` };
-    });
-}
-
-/** Keys of the save shortcut, one entry per key cap. */
-function itemSaveShortcut(shift: boolean): string[] {
-    const isMac =
-        typeof navigator !== 'undefined' &&
-        /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
-
-    if (isMac) {
-        return shift ? ['⌘', '⇧', 'S'] : ['⌘', 'S'];
-    }
-
-    return shift ? ['Ctrl', 'Shift', 'S'] : ['Ctrl', 'S'];
-}
-
-function setItemSaveAction(action: ItemSaveAction): HTMLFormElement | null {
-    const form = document.getElementById(
-        COLLECTION_ITEM_FORM_ID,
-    ) as HTMLFormElement | null;
-    const input = form?.querySelector<HTMLInputElement>(
-        'input[name="save_action"]',
-    );
-
-    if (input) {
-        input.value = action;
-    }
-
-    return form;
-}
-
-type ItemPayload = {
-    id: number;
-    data: Record<string, unknown>;
-    created_at?: string | null;
-    updated_at?: string | null;
-    user_created?: { id: number; name: string; email?: string | null } | null;
-    user_updated?: { id: number; name: string; email?: string | null } | null;
-    has_draft?: boolean;
-    draft_data?: Record<string, unknown> | null;
-    publish_at?: string | null;
-    unpublish_at?: string | null;
-    published_at?: string | null;
-    schedule_error?: string | null;
-    schedule_failed_at?: string | null;
-    approval_status?: string | null;
-    rejection_note?: string | null;
-    submitted_by?: number | null;
-    reviewed_by?: number | null;
-    reviewed_at?: string | null;
-};
-
-/**
- * Create or edit a collection item.
+ * Create or edit a collection item. The page wires the server props to the
+ * item-form hooks (local draft, optimistic locking, schedule, workflow) and
+ * lays out the header actions, sub-header controls, banners, the field form
+ * or activity view, and the dialogs and drawers.
  * @returns {JSX.Element}
  */
-
-function fromDatetimeLocalValue(local: string): string {
-    const date = new Date(local);
-
-    return Number.isNaN(date.getTime()) ? local : date.toISOString();
-}
-
-/**
- * Whether the page URL deep-links to the item chat (`?chat=1` or `?comments=1`).
- */
-function isChatRequestedInUrl(pageUrl: string): boolean {
-    const query = pageUrl.includes('?')
-        ? pageUrl.slice(pageUrl.indexOf('?') + 1)
-        : '';
-    const params = new URLSearchParams(query);
-
-    return params.get('chat') === '1' || params.get('comments') === '1';
-}
-
 export default function ItemsForm({
     collection,
     item,
@@ -285,37 +112,12 @@ export default function ItemsForm({
     const { t } = useTranslation();
     const page = usePage();
     const { can, auth } = useCan();
-    const requestLeave = useRequestLeave();
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
         : null;
     const activeTab: ItemView =
         !isNew && item !== null ? readItemViewParam(page.url) : 'fields';
 
-    /**
-     * Switch between the edit and activity views through the `view` query
-     * param, so activity pagination (its links keep the query string) and
-     * back/forward stay on the chosen view. Client-side push, no request.
-     */
-    const selectItemView = useCallback(
-        (view: ItemView) => {
-            const nextUrl = new URL(page.url, window.location.origin);
-
-            if (view === 'activity') {
-                nextUrl.searchParams.set(ITEM_VIEW_PARAM, 'activity');
-            } else {
-                nextUrl.searchParams.delete(ITEM_VIEW_PARAM);
-                nextUrl.searchParams.delete('page');
-            }
-
-            router.push({
-                url: `${nextUrl.pathname}${nextUrl.search}`,
-                preserveState: true,
-                preserveScroll: true,
-            });
-        },
-        [page.url],
-    );
     const listHref = useMemo(() => {
         const fromReturn = readReturnParam(page.url);
 
@@ -323,12 +125,6 @@ export default function ItemsForm({
     }, [page.url, collection.id]);
 
     const draftItemKey = isNew ? ('new' as const) : item!.id;
-    const initialDraft = useMemo(
-        () => readItemDraft(collection.id, draftItemKey),
-        // one-shot on mount for this item
-
-        [collection.id, draftItemKey],
-    );
 
     const {
         locales,
@@ -343,11 +139,6 @@ export default function ItemsForm({
 
     const [isDirty, setIsDirty] = useState(false);
     const [formKey, setFormKey] = useState(0);
-    const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deleting, setDeleting] = useState(false);
-    const [draftBanner, setDraftBanner] = useState(
-        () => initialDraft !== null && Object.keys(initialDraft).length > 0,
-    );
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const [revisionsOpen, setRevisionsOpen] = useState(false);
@@ -355,36 +146,18 @@ export default function ItemsForm({
         () => !isNew && item !== null && isChatRequestedInUrl(page.url),
     );
     const [chatCount, setChatCount] = useState(chatCountProp);
-    const [compareRevision, setCompareRevision] =
-        useState<RevisionSnapshot | null>(null);
-    const [allRevisions, setAllRevisions] = useState<RevisionSnapshot[]>([]);
     const [revisionApply, setRevisionApply] = useState<{
         nonce: number;
         values: Record<string, unknown>;
     } | null>(null);
-    const [publishing, setPublishing] = useState(false);
-    const [publishOpen, setPublishOpen] = useState(false);
-    const [discardDraftOpen, setDiscardDraftOpen] = useState(false);
-    const [discardingDraft, setDiscardingDraft] = useState(false);
-    const [scheduling, setScheduling] = useState(false);
-    const [submittingReview, setSubmittingReview] = useState(false);
-    const [approving, setApproving] = useState(false);
-    const [rejectOpen, setRejectOpen] = useState(false);
-    const [rejecting, setRejecting] = useState(false);
-    const [rejectNote, setRejectNote] = useState('');
-    const [publishAtLocal, setPublishAtLocal] = useState(() =>
-        toDatetimeLocalValue(item?.publish_at ?? null),
-    );
-    const [unpublishAtLocal, setUnpublishAtLocal] = useState(() =>
-        toDatetimeLocalValue(item?.unpublish_at ?? null),
-    );
-    const draftTimer = useRef<number | null>(null);
-    const loadedUpdatedAtRef = useRef<string | null>(item?.updated_at ?? null);
-    const [expectedUpdatedAt, setExpectedUpdatedAt] = useState(
-        item?.updated_at ?? '',
-    );
-    const allowStaleSaveRef = useRef(false);
-    const [staleSaveOpen, setStaleSaveOpen] = useState(false);
+
+    const { isDraftRestored, scheduleDraftSave, clearDraft } =
+        useItemDraftAutosave({
+            collectionId: collection.id,
+            draftItemKey,
+            formKey,
+            setIsDirty,
+        });
 
     const versioningEnabled = Boolean(collection.versioning);
     const approvalsRequired = Boolean(collection.approvals_required);
@@ -393,60 +166,6 @@ export default function ItemsForm({
     const viewingPublished =
         versioningEnabled && !isNew && contentVersion === 'published';
     const hasServerDraft = Boolean(item?.has_draft);
-    // ponytail: treat any set publish_at as Scheduled; due rows clear via scheduler
-    const isScheduled = Boolean(item?.publish_at);
-    const draftVersionOption = useMemo((): {
-        label: string;
-        Icon: LucideIcon;
-    } => {
-        if (contentVersion === 'draft' && isScheduled) {
-            return {
-                label: t('collections.itemToolbar.scheduled'),
-                Icon: Clock,
-            };
-        }
-
-        if (approvalsRequired && approvalStatus === 'in_review') {
-            return {
-                label: t('collections.itemToolbar.inReview'),
-                Icon: ClipboardList,
-            };
-        }
-
-        if (approvalsRequired && approvalStatus === 'approved') {
-            return {
-                label: t('collections.itemToolbar.approved'),
-                Icon: CheckCheck,
-            };
-        }
-
-        if (approvalsRequired && approvalStatus === 'rejected') {
-            return {
-                label: t('collections.itemToolbar.rejected'),
-                Icon: CircleX,
-            };
-        }
-
-        if (hasServerDraft) {
-            return {
-                label: t('collections.itemToolbar.draft'),
-                Icon: FilePen,
-            };
-        }
-
-        return {
-            label: t('collections.itemToolbar.draftEmpty'),
-            Icon: File,
-        };
-    }, [
-        approvalStatus,
-        approvalsRequired,
-        contentVersion,
-        hasServerDraft,
-        isScheduled,
-        t,
-    ]);
-    const DraftVersionIcon = draftVersionOption.Icon;
     const showRevisionsEntry = !isNew && item !== null;
     const latestForCompare = publishedData ?? rawData;
     const canCreateItem = can(PermissionEnum.CanCreateCollections);
@@ -490,19 +209,29 @@ export default function ItemsForm({
     });
 
     const formReadonly = baseFormReadonly || presence.lockedByOther;
-    const remoteStale = isRemoteUpdatedAtStale(
-        expectedUpdatedAt || null,
-        presence.remoteUpdatedAt,
-    );
+    const optimisticLock = useItemOptimisticLock({
+        isNew,
+        updatedAt: item?.updated_at,
+        isDirty,
+        remoteUpdatedAt: presence.remoteUpdatedAt,
+    });
+    const schedule = useItemSchedule({
+        collectionId: collection.id,
+        itemId: item?.id ?? 0,
+        publishAt: item?.publish_at,
+        unpublishAt: item?.unpublish_at,
+        contentVersion,
+        isViewingPublished: viewingPublished,
+    });
+    const workflow = useItemWorkflowActions({
+        collectionId: collection.id,
+        itemId: item?.id ?? 0,
+    });
     const showCreateNew = !collection.is_singleton;
     const showCopy = !isNew && !collection.is_singleton && canCreateItem;
 
     const [previousItemProps, setPreviousItemProps] = useState({
         chatCountProp,
-        updatedAt: item?.updated_at,
-        isDirty,
-        publishAt: item?.publish_at,
-        unpublishAt: item?.unpublish_at,
         isNew,
         item,
         pageUrl: page.url,
@@ -512,20 +241,12 @@ export default function ItemsForm({
     // change" pattern), each one only when its own source changed.
     if (
         previousItemProps.chatCountProp !== chatCountProp ||
-        previousItemProps.updatedAt !== item?.updated_at ||
-        previousItemProps.isDirty !== isDirty ||
-        previousItemProps.publishAt !== item?.publish_at ||
-        previousItemProps.unpublishAt !== item?.unpublish_at ||
         previousItemProps.isNew !== isNew ||
         previousItemProps.item !== item ||
         previousItemProps.pageUrl !== page.url
     ) {
         setPreviousItemProps({
             chatCountProp,
-            updatedAt: item?.updated_at,
-            isDirty,
-            publishAt: item?.publish_at,
-            unpublishAt: item?.unpublish_at,
             isNew,
             item,
             pageUrl: page.url,
@@ -533,24 +254,6 @@ export default function ItemsForm({
 
         if (previousItemProps.chatCountProp !== chatCountProp) {
             setChatCount(chatCountProp);
-        }
-
-        if (
-            (previousItemProps.updatedAt !== item?.updated_at ||
-                previousItemProps.isDirty !== isDirty) &&
-            !isDirty
-        ) {
-            setExpectedUpdatedAt(item?.updated_at ?? '');
-        }
-
-        if (
-            previousItemProps.publishAt !== item?.publish_at ||
-            previousItemProps.unpublishAt !== item?.unpublish_at
-        ) {
-            setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
-            setUnpublishAtLocal(
-                toDatetimeLocalValue(item?.unpublish_at ?? null),
-            );
         }
 
         // Deep links (`?chat=1`, `?comments=1`) open the chat drawer.
@@ -566,250 +269,18 @@ export default function ItemsForm({
         }
     }
 
-    // The stale-save guard reads this ref in a submit listener, so it follows
-    // the committed baseline, like `expectedUpdatedAt` above.
-    useEffect(() => {
-        if (!isDirty) {
-            loadedUpdatedAtRef.current = item?.updated_at ?? null;
-        }
-    }, [item?.updated_at, isDirty]);
-
-    // Whisper fresh updated_at to peer editors after Inertia save refreshes props.
-    // notifyItemSaved was previously unused — peers never saw the stale banner (#315).
-    useEffect(() => {
-        if (isNew || !item?.updated_at) {
-            return;
-        }
-
-        const timer = window.setTimeout(() => {
-            notifyItemSaved(item.updated_at as string);
-        }, 0);
-
-        return () => window.clearTimeout(timer);
-    }, [isNew, item?.updated_at]);
-
-    useEffect(() => {
-        const form = document.getElementById(COLLECTION_ITEM_FORM_ID);
-
-        if (!form) {
-            return;
-        }
-
-        const onSubmit = (event: SubmitEvent) => {
-            if (allowStaleSaveRef.current) {
-                allowStaleSaveRef.current = false;
-
-                return;
-            }
-
-            const stale = isRemoteUpdatedAtStale(
-                loadedUpdatedAtRef.current,
-                presence.remoteUpdatedAt,
-            );
-
-            if (!stale) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            setStaleSaveOpen(true);
-        };
-
-        form.addEventListener('submit', onSubmit, true);
-
-        return () => {
-            form.removeEventListener('submit', onSubmit, true);
-        };
-    }, [presence.remoteUpdatedAt]);
-
     const discardItemChanges = useCallback(() => {
         setIsDirty(false);
-        clearItemDraft(collection.id, draftItemKey);
-        setDraftBanner(false);
+        clearDraft();
         setFormKey((key) => key + 1);
-    }, [collection.id, draftItemKey, setIsDirty]);
+    }, [clearDraft, setIsDirty]);
 
     const submitSave = useCallback((action: ItemSaveAction) => {
         setItemSaveAction(action)?.requestSubmit();
     }, []);
 
-    const hasTranslatableFields = useMemo(
-        () => (collection.fields ?? []).some((field) => field.translatable),
-        [collection.fields],
-    );
-
-    const translationCompleteness = useMemo(() => {
-        if (locales.length < 2 || !hasTranslatableFields) {
-            return null;
-        }
-
-        const translatable = (collection.fields ?? []).filter(
-            (field) => field.translatable,
-        );
-        const scores: Record<string, { filled: number; total: number }> = {};
-
-        for (const code of locales) {
-            scores[code] = { filled: 0, total: translatable.length };
-        }
-
-        for (const field of translatable) {
-            const bag = contentDefaults?.[field.name];
-
-            if (!bag || typeof bag !== 'object' || Array.isArray(bag)) {
-                continue;
-            }
-
-            const map = bag as Record<string, unknown>;
-
-            for (const code of locales) {
-                const value = map[code];
-                const filled =
-                    value !== null &&
-                    value !== undefined &&
-                    !(typeof value === 'string' && value.trim() === '');
-
-                if (filled && scores[code]) {
-                    scores[code].filled += 1;
-                }
-            }
-        }
-
-        return scores;
-    }, [hasTranslatableFields, collection.fields, contentDefaults, locales]);
-
-    /**
-     * Apply current locale values to all locales (ponytail: DOM manipulation).
-     */
-    const handleApplyToAll = (): void => {
-        const form = document.getElementById(
-            COLLECTION_ITEM_FORM_ID,
-        ) as HTMLFormElement | null;
-
-        if (!form) {
-            return;
-        }
-
-        const inputs = form.querySelectorAll<
-            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >('input, textarea, select');
-
-        for (const input of inputs) {
-            const name = input.name;
-            const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
-
-            if (!match) {
-                continue;
-            }
-
-            const [, fieldName, locale] = match;
-
-            if (locale === globalLocale) {
-                // Apply this value to all other locales
-                for (const targetLocale of locales) {
-                    if (targetLocale === globalLocale) {
-                        continue;
-                    }
-
-                    const targetName = `data[${fieldName}][${targetLocale}]`;
-                    const targetInput = form.querySelector<
-                        | HTMLInputElement
-                        | HTMLTextAreaElement
-                        | HTMLSelectElement
-                    >(`[name="${targetName}"]`);
-
-                    if (targetInput) {
-                        if (
-                            input.type === 'checkbox' ||
-                            input.type === 'radio'
-                        ) {
-                            (targetInput as HTMLInputElement).checked = (
-                                input as HTMLInputElement
-                            ).checked;
-                        } else {
-                            targetInput.value = input.value;
-                        }
-
-                        targetInput.dispatchEvent(
-                            new Event('input', { bubbles: true }),
-                        );
-                    }
-                }
-            }
-        }
-
-        setIsDirty(true);
-        scheduleDraftSave();
-    };
-
-    /**
-     * Apply current locale values to empty locales only (ponytail: DOM manipulation).
-     */
-    const handleApplyToEmpty = (): void => {
-        const form = document.getElementById(
-            COLLECTION_ITEM_FORM_ID,
-        ) as HTMLFormElement | null;
-
-        if (!form) {
-            return;
-        }
-
-        const inputs = form.querySelectorAll<
-            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >('input, textarea, select');
-
-        for (const input of inputs) {
-            const name = input.name;
-            const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
-
-            if (!match) {
-                continue;
-            }
-
-            const [, fieldName, locale] = match;
-
-            if (locale === globalLocale) {
-                // Apply this value only to empty locales
-                for (const targetLocale of locales) {
-                    if (targetLocale === globalLocale) {
-                        continue;
-                    }
-
-                    const targetName = `data[${fieldName}][${targetLocale}]`;
-                    const targetInput = form.querySelector<
-                        | HTMLInputElement
-                        | HTMLTextAreaElement
-                        | HTMLSelectElement
-                    >(`[name="${targetName}"]`);
-
-                    if (targetInput) {
-                        const isEmpty =
-                            targetInput.type === 'checkbox' ||
-                            targetInput.type === 'radio'
-                                ? !(targetInput as HTMLInputElement).checked
-                                : (targetInput.value ?? '').trim() === '';
-
-                        if (isEmpty) {
-                            if (
-                                input.type === 'checkbox' ||
-                                input.type === 'radio'
-                            ) {
-                                (targetInput as HTMLInputElement).checked = (
-                                    input as HTMLInputElement
-                                ).checked;
-                            } else {
-                                targetInput.value = input.value;
-                            }
-
-                            targetInput.dispatchEvent(
-                                new Event('input', { bubbles: true }),
-                            );
-                        }
-                    }
-                }
-            }
-        }
-
+    /** Mark the form dirty after an edit and keep the local draft. */
+    const markFormEdited = (): void => {
         setIsDirty(true);
         scheduleDraftSave();
     };
@@ -820,82 +291,44 @@ export default function ItemsForm({
         onDiscard: discardItemChanges,
     });
 
-    useEffect(() => {
-        if (formReadonly || !hasFields) {
-            return;
-        }
+    useItemSaveShortcut({
+        isEnabled: !formReadonly && hasFields,
+        showCreateNew,
+        submitSave,
+    });
 
-        const onKeyDown = (event: KeyboardEvent): void => {
-            if (event.isComposing || event.key.toLowerCase() !== 's') {
-                return;
-            }
-
-            if (!(event.metaKey || event.ctrlKey)) {
-                return;
-            }
-
-            if (
-                (event.target as HTMLElement | null)?.closest('[role="dialog"]')
-            ) {
-                return;
-            }
-
-            event.preventDefault();
-            submitSave(event.shiftKey && showCreateNew ? 'create_new' : 'stay');
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [formReadonly, hasFields, showCreateNew, submitSave]);
-
-    useEffect(() => {
-        if (!draftBanner || !initialDraft) {
-            return;
-        }
-
-        const form = document.getElementById(
-            COLLECTION_ITEM_FORM_ID,
-        ) as HTMLFormElement | null;
-
-        if (!form) {
-            return;
-        }
-
-        applyItemDraftToForm(form, initialDraft);
-        // oxlint-disable-next-line react/set-state-in-effect -- the draft is written into the uncontrolled DOM form first; dirty only once that form exists and holds it.
-        setIsDirty(true);
-    }, [draftBanner, initialDraft, formKey]);
-
-    const scheduleDraftSave = (): void => {
-        if (draftTimer.current) {
-            window.clearTimeout(draftTimer.current);
-        }
-
-        draftTimer.current = window.setTimeout(() => {
-            const form = document.getElementById(
-                COLLECTION_ITEM_FORM_ID,
-            ) as HTMLFormElement | null;
-
-            if (!form) {
-                return;
-            }
-
-            writeItemDraft(
-                collection.id,
-                draftItemKey,
-                serializeItemForm(form),
-            );
-        }, DRAFT_DEBOUNCE_MS);
+    const applyAiDraft = (
+        draft: Record<string, ItemAiDraftValue>,
+        draftLocale: string,
+    ): void => {
+        setRevisionApply({
+            nonce: Date.now(),
+            values: draftValuesForForm(
+                collection.fields ?? [],
+                draft,
+                draftLocale,
+                locales,
+                getItemFormElement(),
+            ),
+        });
+        markFormEdited();
+        toast.success(t('collections.aiDraft.applied'));
     };
 
-    useEffect(() => {
-        return () => {
-            if (draftTimer.current) {
-                window.clearTimeout(draftTimer.current);
-            }
-        };
-    }, []);
+    const applyRevision = (values: Record<string, unknown>): void => {
+        if (formReadonly) {
+            toast.error('Switch to Draft before applying a revision.');
+
+            return;
+        }
+
+        setRevisionApply({
+            nonce: Date.now(),
+            values,
+        });
+        markFormEdited();
+        toast.success('Revision applied to the form. Save to keep.');
+    };
 
     const lastCrumb: BreadcrumbItem = isNew
         ? {
@@ -923,218 +356,69 @@ export default function ItemsForm({
         ? `New item — ${collection.name}`
         : `Item #${item!.id} — ${collection.name}`;
 
-    const formProps = isNew
-        ? wayfinderInertiaFormProps(
-              ItemController.store,
-              { collection: collection.id },
-              'post',
-          )
-        : wayfinderInertiaFormProps(
-              ItemController.update,
-              {
-                  collection: collection.id,
-                  item: item!.id,
-              },
-              'put',
-          );
+    // One element for both branches below: the create form and the edit form
+    // still sit at different tree positions, so turning a new item into a
+    // saved one remounts the form, as before the split.
+    const fieldsForm = (
+        <ItemFieldsForm
+            key={formKey}
+            collection={collection}
+            itemId={item?.id ?? null}
+            isNew={isNew}
+            locales={locales}
+            contentDefaults={contentDefaults}
+            relatedCollections={relatedCollections}
+            fieldGrants={fieldGrants}
+            fieldSearch={fieldSearch}
+            globalLocale={globalLocale}
+            formReadonly={formReadonly}
+            revisionApply={revisionApply}
+            versioningEnabled={versioningEnabled}
+            contentVersion={contentVersion}
+            expectedUpdatedAt={optimisticLock.expectedUpdatedAt}
+            lockedByOther={presence.lockedByOther}
+            lockHolderName={presence.lock?.name}
+            onSaved={() => {
+                setIsDirty(false);
+                clearDraft();
+            }}
+            onEdited={markFormEdited}
+        />
+    );
 
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
             headerActions={
-                <>
-                    {!isNew && item !== null && (
-                        <ItemPreviewAsRoleDialog
-                            collectionId={collection.id}
-                            itemId={item.id}
-                            roles={previewRoles}
-                        />
-                    )}
-                    {!isNew && item !== null && livePreviewConfigured && (
-                        <ItemLivePreviewButton
-                            collectionId={collection.id}
-                            itemId={item.id}
-                            version={
-                                versioningEnabled ? contentVersion : 'published'
-                            }
-                        />
-                    )}
-                    {isNew &&
-                        hasFields &&
-                        canCreateItem &&
-                        livePreviewConfigured && (
-                            <ItemLivePreviewButton
-                                collectionId={collection.id}
-                                itemId={null}
-                                formId={COLLECTION_ITEM_FORM_ID}
-                                version="draft"
-                            />
-                        )}
-                    {canUseAiDrafts && !formReadonly && (
-                        <ItemAiDraftDialog
-                            collectionId={collection.id}
-                            fields={collection.fields ?? []}
-                            locales={locales}
-                            defaultLocale={globalLocale}
-                            onApply={(draft, draftLocale) => {
-                                setRevisionApply({
-                                    nonce: Date.now(),
-                                    values: draftValuesForForm(
-                                        collection.fields ?? [],
-                                        draft,
-                                        draftLocale,
-                                        locales,
-                                        document.getElementById(
-                                            COLLECTION_ITEM_FORM_ID,
-                                        ) as HTMLFormElement | null,
-                                    ),
-                                });
-                                setIsDirty(true);
-                                scheduleDraftSave();
-                                toast.success(t('collections.aiDraft.applied'));
-                            }}
-                        />
-                    )}
-                    {!isNew && item !== null && (
-                        <HeaderIconButton
-                            type="button"
-                            label={t('collections.itemToolbar.chat')}
-                            className="relative"
-                            data-test="open-chat-drawer"
-                            onClick={() => setChatOpen(true)}
-                        >
-                            <MessageCircle className="size-4" />
-                            {chatCount > 0 ? (
-                                <Badge className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full px-1 tabular-nums">
-                                    {chatCount > 9 ? '9+' : chatCount}
-                                </Badge>
-                            ) : null}
-                        </HeaderIconButton>
-                    )}
-                    {showRevisionsEntry && (
-                        <HeaderIconButton
-                            type="button"
-                            label={t('collections.itemToolbar.revisions')}
-                            data-test="open-revisions-drawer"
-                            onClick={() => setRevisionsOpen(true)}
-                        >
-                            <History className="size-4" />
-                        </HeaderIconButton>
-                    )}
-                    {canEditItem && (
-                        <HeaderIconButton
-                            asChild
-                            label={t('collections.itemToolbar.editFields')}
-                        >
-                            <Link
-                                href={FieldController.index.url(collection.id)}
-                            >
-                                <Rows3 className="size-4" />
-                            </Link>
-                        </HeaderIconButton>
-                    )}
-                    {!isNew && item !== null && canDeleteItem && (
-                        <HeaderIconButton
-                            type="button"
-                            label={t('collections.itemToolbar.delete')}
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleteOpen(true)}
-                        >
-                            <Trash2 className="size-4" />
-                        </HeaderIconButton>
-                    )}
-                    {!isNew && item !== null ? (
-                        <ItemEditingPresence
-                            editors={presence.editors}
-                            lockedByOther={presence.lockedByOther}
-                            lockHolderName={presence.lock?.name ?? null}
-                            onTakeOver={presence.takeOverLock}
-                        />
-                    ) : null}
-                    <UnsavedChangesToolbar
-                        isDirty={isDirty && !formReadonly}
-                        className="flex items-center gap-2"
-                    />
-                    {hasFields && !formReadonly && (
-                        <ButtonGroup data-test="item-save-split">
-                            <Button
-                                type="submit"
-                                form={COLLECTION_ITEM_FORM_ID}
-                                onClick={() => setItemSaveAction('stay')}
-                            >
-                                <Save className="size-4" />
-                                {isNew
-                                    ? t('collections.itemSave.create')
-                                    : versioningEnabled &&
-                                        contentVersion === 'draft'
-                                      ? t('collections.itemSave.saveDraft')
-                                      : t('collections.itemSave.save')}
-                            </Button>
-                            <ButtonGroupSeparator className="bg-primary-foreground/25" />
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        aria-label={t(
-                                            'collections.itemSave.more',
-                                        )}
-                                        data-test="item-save-menu"
-                                    >
-                                        <ChevronDown className="size-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                        onSelect={() => submitSave('stay')}
-                                    >
-                                        <Check className="size-4" />
-                                        {t('collections.itemSave.stay')}
-                                        <DropdownMenuShortcut>
-                                            <ShortcutKeys
-                                                keys={itemSaveShortcut(false)}
-                                            />
-                                        </DropdownMenuShortcut>
-                                    </DropdownMenuItem>
-                                    {showCreateNew ? (
-                                        <DropdownMenuItem
-                                            onSelect={() =>
-                                                submitSave('create_new')
-                                            }
-                                        >
-                                            <Plus className="size-4" />
-                                            {t(
-                                                'collections.itemSave.createNew',
-                                            )}
-                                            <DropdownMenuShortcut>
-                                                <ShortcutKeys
-                                                    keys={itemSaveShortcut(
-                                                        true,
-                                                    )}
-                                                />
-                                            </DropdownMenuShortcut>
-                                        </DropdownMenuItem>
-                                    ) : null}
-                                    {showCopy ? (
-                                        <DropdownMenuItem
-                                            onSelect={() => submitSave('copy')}
-                                        >
-                                            <CheckCheck className="size-4" />
-                                            {t('collections.itemSave.copy')}
-                                        </DropdownMenuItem>
-                                    ) : null}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        onSelect={() => discardItemChanges()}
-                                    >
-                                        <RotateCcw className="size-4" />
-                                        {t('collections.itemSave.discard')}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </ButtonGroup>
-                    )}
-                </>
+                <ItemFormHeaderActions
+                    collection={collection}
+                    item={item}
+                    isNew={isNew}
+                    previewRoles={previewRoles}
+                    livePreviewConfigured={livePreviewConfigured}
+                    versioningEnabled={versioningEnabled}
+                    contentVersion={contentVersion}
+                    hasFields={hasFields}
+                    canCreateItem={canCreateItem}
+                    canEditItem={canEditItem}
+                    canDeleteItem={canDeleteItem}
+                    canUseAiDrafts={canUseAiDrafts}
+                    formReadonly={formReadonly}
+                    locales={locales}
+                    globalLocale={globalLocale}
+                    onApplyAiDraft={applyAiDraft}
+                    chatCount={chatCount}
+                    onOpenChat={() => setChatOpen(true)}
+                    showRevisionsEntry={showRevisionsEntry}
+                    onOpenRevisions={() => setRevisionsOpen(true)}
+                    onOpenDelete={() => workflow.setIsDeleteOpen(true)}
+                    presence={presence}
+                    isDirty={isDirty}
+                    showCreateNew={showCreateNew}
+                    showCopy={showCopy}
+                    submitSave={submitSave}
+                    onDiscardChanges={discardItemChanges}
+                />
             }
         >
             <Head title={pageTitle} />
@@ -1158,430 +442,50 @@ export default function ItemsForm({
                 filtersRight={
                     <div className="flex items-center gap-2">
                         {!isNew && item !== null && versioningEnabled && (
-                            <>
-                                {/* Status on published view only — on draft, select label carries it. */}
-                                {approvalsRequired &&
-                                approvalStatus !== 'draft' &&
-                                contentVersion === 'published' ? (
-                                    <Badge
-                                        variant={
-                                            approvalStatus === 'approved'
-                                                ? 'default'
-                                                : approvalStatus === 'rejected'
-                                                  ? 'destructive'
-                                                  : 'secondary'
-                                        }
-                                        data-test="approval-status-badge"
-                                        className="px-2 text-xs"
-                                    >
-                                        {approvalStatus === 'in_review'
-                                            ? t(
-                                                  'collections.itemToolbar.inReview',
-                                              )
-                                            : approvalStatus === 'approved'
-                                              ? t(
-                                                    'collections.itemToolbar.approved',
-                                                )
-                                              : t(
-                                                    'collections.itemToolbar.rejected',
-                                                )}
-                                    </Badge>
-                                ) : null}
-                                <Select
-                                    value={contentVersion}
-                                    onValueChange={(value) => {
-                                        if (
-                                            value !== 'published' &&
-                                            value !== 'draft'
-                                        ) {
-                                            return;
-                                        }
-
-                                        void requestLeave().then((ok) => {
-                                            if (!ok) {
-                                                return;
-                                            }
-
-                                            router.get(
-                                                collections.items.show.url({
-                                                    collection: collection.id,
-                                                    item: item.id,
-                                                }),
-                                                { version: value },
-                                                { preserveScroll: true },
-                                            );
-                                        });
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        className="w-auto min-w-0"
-                                        data-test="content-version-select"
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem
-                                            value="published"
-                                            textValue={t(
-                                                'collections.itemToolbar.published',
-                                            )}
-                                        >
-                                            <Globe className="size-4" />
-                                            {t(
-                                                'collections.itemToolbar.published',
-                                            )}
-                                        </SelectItem>
-                                        <SelectItem
-                                            value="draft"
-                                            textValue={draftVersionOption.label}
-                                        >
-                                            <DraftVersionIcon className="size-4" />
-                                            {draftVersionOption.label}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </>
+                            <ItemVersionSelect
+                                collectionId={collection.id}
+                                item={item}
+                                contentVersion={contentVersion}
+                                approvalsRequired={approvalsRequired}
+                                approvalStatus={approvalStatus}
+                                hasServerDraft={hasServerDraft}
+                            />
                         )}
                         {showDraftVersionActions && item !== null ? (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        data-test="item-version-actions"
-                                    >
-                                        <ListChecks className="size-4" />
-                                        {t('collections.itemToolbar.actions')}
-                                        <ChevronDown className="size-3.5 opacity-80" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="min-w-52"
-                                >
-                                    {canApproveNow ? (
-                                        <>
-                                            <DropdownMenuItem
-                                                disabled={approving}
-                                                className="items-start"
-                                                data-test="approve-item"
-                                                onClick={() => {
-                                                    setApproving(true);
-                                                    router.post(
-                                                        ItemApprovalController.approve.url(
-                                                            {
-                                                                collection:
-                                                                    collection.id,
-                                                                item: item.id,
-                                                            },
-                                                        ),
-                                                        {},
-                                                        {
-                                                            onFinish: () =>
-                                                                setApproving(
-                                                                    false,
-                                                                ),
-                                                        },
-                                                    );
-                                                }}
-                                            >
-                                                <Check className="mt-0.5" />
-                                                <span className="flex flex-col gap-0.5">
-                                                    <span>
-                                                        {t(
-                                                            'collections.itemToolbar.approve',
-                                                        )}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {t(
-                                                            'collections.itemToolbar.approveDescription',
-                                                        )}
-                                                    </span>
-                                                </span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="items-start"
-                                                data-test="reject-item"
-                                                onClick={() => {
-                                                    setRejectNote(
-                                                        item.rejection_note ??
-                                                            '',
-                                                    );
-                                                    setRejectOpen(true);
-                                                }}
-                                            >
-                                                <CircleX className="mt-0.5" />
-                                                <span className="flex flex-col gap-0.5">
-                                                    <span>
-                                                        {t(
-                                                            'collections.itemToolbar.reject',
-                                                        )}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {t(
-                                                            'collections.itemToolbar.rejectDescription',
-                                                        )}
-                                                    </span>
-                                                </span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                        </>
-                                    ) : null}
-                                    {canSubmitNow ? (
-                                        <>
-                                            <DropdownMenuItem
-                                                disabled={submittingReview}
-                                                data-test="submit-for-review"
-                                                onClick={() => {
-                                                    setSubmittingReview(true);
-                                                    router.post(
-                                                        ItemApprovalController.submitForReview.url(
-                                                            {
-                                                                collection:
-                                                                    collection.id,
-                                                                item: item.id,
-                                                            },
-                                                        ),
-                                                        {},
-                                                        {
-                                                            onFinish: () =>
-                                                                setSubmittingReview(
-                                                                    false,
-                                                                ),
-                                                        },
-                                                    );
-                                                }}
-                                            >
-                                                <Send />
-                                                {t(
-                                                    'collections.itemToolbar.submitForReview',
-                                                )}
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                        </>
-                                    ) : null}
-                                    <DropdownMenuItem
-                                        disabled={
-                                            publishing ||
-                                            publishBlockedByApproval
-                                        }
-                                        className={
-                                            publishBlockedByApproval
-                                                ? 'items-start'
-                                                : undefined
-                                        }
-                                        data-test="publish-item"
-                                        onClick={() => {
-                                            if (publishBlockedByApproval) {
-                                                return;
-                                            }
-
-                                            setPublishOpen(true);
-                                        }}
-                                    >
-                                        <Globe
-                                            className={
-                                                publishBlockedByApproval
-                                                    ? 'mt-0.5'
-                                                    : undefined
-                                            }
-                                        />
-                                        {publishBlockedByApproval ? (
-                                            <span className="flex flex-col gap-0.5">
-                                                <span>
-                                                    {t(
-                                                        'collections.itemToolbar.publish',
-                                                    )}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {t(
-                                                        'collections.itemToolbar.approveBeforePublish',
-                                                    )}
-                                                </span>
-                                            </span>
-                                        ) : (
-                                            t('collections.itemToolbar.publish')
-                                        )}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        disabled={discardingDraft}
-                                        variant="destructive"
-                                        data-test="discard-server-draft"
-                                        onClick={() =>
-                                            setDiscardDraftOpen(true)
-                                        }
-                                    >
-                                        <RotateCcw />
-                                        {t(
-                                            'collections.itemToolbar.discardDraft',
-                                        )}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ItemVersionActionsMenu
+                                item={item}
+                                canApproveNow={canApproveNow}
+                                canSubmitNow={canSubmitNow}
+                                publishBlockedByApproval={
+                                    publishBlockedByApproval
+                                }
+                                workflow={workflow}
+                            />
                         ) : null}
                         {hasFields && locales.length > 1 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="px-3"
-                                        data-test="item-form-locale"
-                                        data-locale={globalLocale}
-                                    >
-                                        <ContentLocaleFlag
-                                            region={
-                                                contentLocaleMeta(globalLocale)
-                                                    .flag
-                                            }
-                                            title={
-                                                contentLocaleMeta(globalLocale)
-                                                    .name
-                                            }
-                                            className="h-3.5 w-auto"
-                                        />
-                                        <span className="hidden font-mono text-xs uppercase lg:inline">
-                                            {globalLocale}
-                                        </span>
-                                        <Languages className="size-3.5 opacity-60" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="min-w-48"
-                                >
-                                    {locales.map((code) => {
-                                        const meta = contentLocaleMeta(code);
-                                        const score =
-                                            translationCompleteness?.[code];
-
-                                        return (
-                                            <DropdownMenuItem
-                                                key={code}
-                                                onClick={() =>
-                                                    setGlobalLocale(code)
-                                                }
-                                                className="gap-2"
-                                            >
-                                                <ContentLocaleFlag
-                                                    region={meta.flag}
-                                                />
-                                                <span className="flex-1">
-                                                    {meta.name}
-                                                </span>
-                                                {score ? (
-                                                    <span
-                                                        className="font-mono text-xs text-muted-foreground"
-                                                        data-test="translation-completeness"
-                                                    >
-                                                        {score.filled}/
-                                                        {score.total}
-                                                    </span>
-                                                ) : (
-                                                    <span className="font-mono text-xs text-muted-foreground">
-                                                        {code}
-                                                    </span>
-                                                )}
-                                            </DropdownMenuItem>
-                                        );
-                                    })}
-                                    {!formReadonly ? (
-                                        <>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                onClick={handleApplyToAll}
-                                                className="gap-2"
-                                            >
-                                                <Copy className="size-3.5" />
-                                                {t(
-                                                    'collections.localized.applyAll',
-                                                )}
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={handleApplyToEmpty}
-                                                className="gap-2"
-                                            >
-                                                <Copy className="size-3.5" />
-                                                {t(
-                                                    'collections.localized.applyEmpty',
-                                                )}
-                                            </DropdownMenuItem>
-                                        </>
-                                    ) : null}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ItemLocaleMenu
+                                fields={collection.fields}
+                                locales={locales}
+                                contentDefaults={contentDefaults}
+                                globalLocale={globalLocale}
+                                onGlobalLocaleChange={setGlobalLocale}
+                                formReadonly={formReadonly}
+                                onLocaleValuesApplied={markFormEdited}
+                            />
                         )}
                         {!isNew && item !== null && (
-                            <ToggleGroup
-                                type="single"
-                                variant="outline"
-                                value={activeTab}
-                                onValueChange={(value) => {
-                                    if (
-                                        value === 'fields' ||
-                                        value === 'activity'
-                                    ) {
-                                        selectItemView(value);
-                                    }
-                                }}
-                            >
-                                <ToggleGroupItem
-                                    value="fields"
-                                    aria-label={t('a11y.fieldsPanel')}
-                                >
-                                    <ScrollText className="size-4" />
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                    value="activity"
-                                    aria-label={t('a11y.activityPanel')}
-                                >
-                                    <History className="size-4" />
-                                </ToggleGroupItem>
-                            </ToggleGroup>
+                            <ItemViewToggle activeTab={activeTab} />
                         )}
                     </div>
                 }
                 scrollContent
             >
-                {draftBanner && (
-                    <div
-                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
-                        data-test="item-draft-banner"
-                    >
-                        <span>{t('collections.items.form.draftRestored')}</span>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            data-test="discard-item-draft"
-                            onClick={() => {
-                                clearItemDraft(collection.id, draftItemKey);
-                                setDraftBanner(false);
-                                setIsDirty(false);
-                                setFormKey((key) => key + 1);
-                            }}
-                        >
-                            {t('collections.items.form.discardDraft')}
-                        </Button>
-                    </div>
+                {isDraftRestored && (
+                    <ItemDraftRestoredBanner onDiscard={discardItemChanges} />
                 )}
 
-                {!isNew && item !== null && remoteStale ? (
-                    <div
-                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
-                        data-test="item-stale-banner"
-                    >
-                        <span>
-                            {t('collections.itemPresence.staleDescription')}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            data-test="item-stale-reload"
-                            onClick={() => router.reload()}
-                        >
-                            {t('collections.itemPresence.staleReload')}
-                        </Button>
-                    </div>
+                {!isNew && item !== null && optimisticLock.isRemoteStale ? (
+                    <ItemStaleBanner />
                 ) : null}
 
                 {!isNew &&
@@ -1589,25 +493,10 @@ export default function ItemsForm({
                 versioningEnabled &&
                 canEditItem &&
                 item.schedule_error ? (
-                    <div
-                        className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-3 text-sm text-destructive"
-                        data-test="item-schedule-failure"
-                        role="alert"
-                    >
-                        <p className="font-medium">
-                            {t('collections.itemSchedule.failureTitle')}
-                        </p>
-                        <p className="mt-1 text-destructive/90">
-                            {item.schedule_error}
-                        </p>
-                        {item.unpublish_at ? (
-                            <p className="mt-1 text-xs text-destructive/80">
-                                {t(
-                                    'collections.itemSchedule.failureUnpublishKept',
-                                )}
-                            </p>
-                        ) : null}
-                    </div>
+                    <ItemScheduleFailureAlert
+                        scheduleError={item.schedule_error}
+                        unpublishAt={item.unpublish_at}
+                    />
                 ) : null}
 
                 {!isNew &&
@@ -1615,138 +504,11 @@ export default function ItemsForm({
                     versioningEnabled &&
                     canEditItem &&
                     activeTab === 'fields' && (
-                        <div
-                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-3 text-sm dark:border-sidebar-border"
-                            data-test="item-schedule-panel"
-                        >
-                            {viewingPublished ? (
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-xs text-muted-foreground">
-                                        {t(
-                                            'collections.itemSchedule.publishedAt',
-                                        )}
-                                    </span>
-                                    {item.published_at ? (
-                                        <DatetimeLocalPicker
-                                            value={toDatetimeLocalValue(
-                                                item.published_at,
-                                            )}
-                                            data-test="schedule-published-at"
-                                            disabled
-                                            placeholder={t(
-                                                'collections.itemSchedule.pickDateTime',
-                                            )}
-                                            clearLabel={t(
-                                                'collections.itemSchedule.clearField',
-                                            )}
-                                            onChange={() => {}}
-                                        />
-                                    ) : (
-                                        <span
-                                            className="flex h-control min-w-[12.5rem] items-center text-sm text-muted-foreground"
-                                            data-test="schedule-already-published"
-                                        >
-                                            {t(
-                                                'collections.itemSchedule.alreadyPublished',
-                                            )}
-                                        </span>
-                                    )}
-                                </div>
-                            ) : (
-                                <label className="flex flex-col gap-1">
-                                    <span className="text-xs text-muted-foreground">
-                                        {t(
-                                            'collections.itemSchedule.publishAt',
-                                        )}
-                                    </span>
-                                    <DatetimeLocalPicker
-                                        value={publishAtLocal}
-                                        data-test="schedule-publish-at"
-                                        placeholder={t(
-                                            'collections.itemSchedule.pickDateTime',
-                                        )}
-                                        clearLabel={t(
-                                            'collections.itemSchedule.clearField',
-                                        )}
-                                        onChange={setPublishAtLocal}
-                                    />
-                                </label>
-                            )}
-                            <label className="flex flex-col gap-1">
-                                <span className="text-xs text-muted-foreground">
-                                    {t('collections.itemSchedule.unpublishAt')}
-                                </span>
-                                <DatetimeLocalPicker
-                                    value={unpublishAtLocal}
-                                    data-test="schedule-unpublish-at"
-                                    placeholder={t(
-                                        'collections.itemSchedule.pickDateTime',
-                                    )}
-                                    clearLabel={t(
-                                        'collections.itemSchedule.clearField',
-                                    )}
-                                    onChange={setUnpublishAtLocal}
-                                />
-                            </label>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                disabled={scheduling}
-                                data-test="schedule-save"
-                                onClick={() => {
-                                    setScheduling(true);
-                                    const scheduleUrl = `/collections/${collection.id}/items/${item.id}/schedule?version=${contentVersion}`;
-                                    const payload = viewingPublished
-                                        ? {
-                                              unpublish_at: unpublishAtLocal
-                                                  ? fromDatetimeLocalValue(
-                                                        unpublishAtLocal,
-                                                    )
-                                                  : null,
-                                          }
-                                        : {
-                                              publish_at: publishAtLocal
-                                                  ? fromDatetimeLocalValue(
-                                                        publishAtLocal,
-                                                    )
-                                                  : null,
-                                              unpublish_at: unpublishAtLocal
-                                                  ? fromDatetimeLocalValue(
-                                                        unpublishAtLocal,
-                                                    )
-                                                  : null,
-                                          };
-                                    router.post(scheduleUrl, payload, {
-                                        onFinish: () => setScheduling(false),
-                                    });
-                                }}
-                            >
-                                {t('collections.itemSchedule.save')}
-                            </Button>
-                            {(viewingPublished
-                                ? item.unpublish_at
-                                : item.publish_at || item.unpublish_at) && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={scheduling}
-                                    data-test="schedule-clear"
-                                    onClick={() => {
-                                        setScheduling(true);
-                                        router.post(
-                                            `/collections/${collection.id}/items/${item.id}/schedule?version=${contentVersion}`,
-                                            { clear: true },
-                                            {
-                                                onFinish: () =>
-                                                    setScheduling(false),
-                                            },
-                                        );
-                                    }}
-                                >
-                                    {t('collections.itemSchedule.cancel')}
-                                </Button>
-                            )}
-                        </div>
+                        <ItemSchedulePanel
+                            item={item}
+                            viewingPublished={viewingPublished}
+                            schedule={schedule}
+                        />
                     )}
 
                 {!hasFields && (
@@ -1773,362 +535,15 @@ export default function ItemsForm({
                 {hasFields && (
                     <>
                         {isNew ? (
-                            <Form
-                                key={formKey}
-                                {...formProps}
-                                id={COLLECTION_ITEM_FORM_ID}
-                                className="space-y-6"
-                                options={{ preserveScroll: true }}
-                                onSuccess={() => {
-                                    setIsDirty(false);
-                                    clearItemDraft(collection.id, draftItemKey);
-                                    setDraftBanner(false);
-                                }}
-                                onError={(errors) => {
-                                    const nonFieldErrors =
-                                        getNonFieldErrors(errors);
-
-                                    if (nonFieldErrors.length > 0) {
-                                        nonFieldErrors.forEach((msg) => {
-                                            toast.error(msg);
-                                        });
-                                    }
-                                }}
-                                onInput={() => {
-                                    setIsDirty(true);
-                                    scheduleDraftSave();
-                                }}
-                                onChange={() => {
-                                    setIsDirty(true);
-                                    scheduleDraftSave();
-                                }}
-                            >
-                                {({ errors }) => (
-                                    <>
-                                        <input
-                                            type="hidden"
-                                            name="save_action"
-                                            defaultValue="stay"
-                                        />
-                                        {!isNew && versioningEnabled ? (
-                                            <input
-                                                type="hidden"
-                                                name="version"
-                                                value={contentVersion}
-                                            />
-                                        ) : null}
-                                        <DynamicItemFields
-                                            variant="plain"
-                                            collectionId={collection.id}
-                                            fields={collection.fields}
-                                            locales={locales}
-                                            defaults={contentDefaults}
-                                            relatedCollections={
-                                                relatedCollections
-                                            }
-                                            formLayout={collection.form_layout}
-                                            fieldGrants={fieldGrants}
-                                            isNew={isNew}
-                                            fieldSearch={fieldSearch}
-                                            errors={
-                                                errors as Record<
-                                                    string,
-                                                    unknown
-                                                >
-                                            }
-                                            defaultLocale={globalLocale}
-                                            forceReadonly={formReadonly}
-                                            revisionApply={revisionApply}
-                                        />
-                                    </>
-                                )}
-                            </Form>
+                            fieldsForm
                         ) : (
                             <>
-                                {activeTab === 'fields' && (
-                                    <Form
-                                        key={formKey}
-                                        {...formProps}
-                                        id={COLLECTION_ITEM_FORM_ID}
-                                        className="space-y-6"
-                                        options={{ preserveScroll: true }}
-                                        onSuccess={() => {
-                                            setIsDirty(false);
-                                            clearItemDraft(
-                                                collection.id,
-                                                draftItemKey,
-                                            );
-                                            setDraftBanner(false);
-                                        }}
-                                        onError={(errors) => {
-                                            const nonFieldErrors =
-                                                getNonFieldErrors(errors);
-
-                                            if (nonFieldErrors.length > 0) {
-                                                nonFieldErrors.forEach(
-                                                    (msg) => {
-                                                        toast.error(msg);
-                                                    },
-                                                );
-                                            }
-                                        }}
-                                        onInput={() => {
-                                            if (formReadonly) {
-                                                return;
-                                            }
-
-                                            setIsDirty(true);
-                                            scheduleDraftSave();
-                                        }}
-                                        onChange={() => {
-                                            if (formReadonly) {
-                                                return;
-                                            }
-
-                                            setIsDirty(true);
-                                            scheduleDraftSave();
-                                        }}
-                                    >
-                                        {({ errors }) => (
-                                            <>
-                                                <input
-                                                    type="hidden"
-                                                    name="save_action"
-                                                    defaultValue="stay"
-                                                />
-                                                {versioningEnabled ? (
-                                                    <input
-                                                        type="hidden"
-                                                        name="version"
-                                                        value={contentVersion}
-                                                    />
-                                                ) : null}
-                                                <input
-                                                    type="hidden"
-                                                    name="expected_updated_at"
-                                                    value={expectedUpdatedAt}
-                                                />
-                                                {formReadonly ? (
-                                                    <p
-                                                        className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
-                                                        data-test={
-                                                            presence.lockedByOther
-                                                                ? 'item-soft-lock-banner'
-                                                                : 'published-readonly-banner'
-                                                        }
-                                                    >
-                                                        {presence.lockedByOther
-                                                            ? t(
-                                                                  'collections.itemPresence.lockedBy',
-                                                                  {
-                                                                      name:
-                                                                          presence
-                                                                              .lock
-                                                                              ?.name ??
-                                                                          '…',
-                                                                  },
-                                                              )
-                                                            : 'Published is read-only. Switch to Draft to edit, then Publish.'}
-                                                    </p>
-                                                ) : null}
-                                                <DynamicItemFields
-                                                    variant="plain"
-                                                    collectionId={collection.id}
-                                                    fields={collection.fields}
-                                                    locales={locales}
-                                                    defaults={contentDefaults}
-                                                    relatedCollections={
-                                                        relatedCollections
-                                                    }
-                                                    formLayout={
-                                                        collection.form_layout
-                                                    }
-                                                    fieldGrants={fieldGrants}
-                                                    isNew={isNew}
-                                                    fieldSearch={fieldSearch}
-                                                    errors={
-                                                        errors as Record<
-                                                            string,
-                                                            unknown
-                                                        >
-                                                    }
-                                                    defaultLocale={globalLocale}
-                                                    forceReadonly={formReadonly}
-                                                    revisionApply={
-                                                        revisionApply
-                                                    }
-                                                />
-                                            </>
-                                        )}
-                                    </Form>
-                                )}
+                                {activeTab === 'fields' && fieldsForm}
                                 {activeTab === 'activity' && item !== null && (
-                                    <div className="space-y-6">
-                                        <div className="rounded-lg border border-sidebar-border/70 bg-muted/30 p-4 text-sm dark:border-sidebar-border">
-                                            <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
-                                                <div>
-                                                    <dt className="font-medium text-foreground">
-                                                        {t(
-                                                            'collections.columnPicker.createdBy',
-                                                        )}
-                                                    </dt>
-                                                    <dd>
-                                                        {item.user_created
-                                                            ?.name ?? '—'}
-                                                    </dd>
-                                                </div>
-                                                <div>
-                                                    <dt className="font-medium text-foreground">
-                                                        {t(
-                                                            'collections.columnPicker.updatedBy',
-                                                        )}
-                                                    </dt>
-                                                    <dd>
-                                                        {item.user_updated
-                                                            ?.name ?? '—'}
-                                                    </dd>
-                                                </div>
-                                                <div>
-                                                    <dt className="font-medium text-foreground">
-                                                        {t(
-                                                            'collections.columnPicker.createdAt',
-                                                        )}
-                                                    </dt>
-                                                    <dd>
-                                                        {item.created_at
-                                                            ? new Date(
-                                                                  item.created_at,
-                                                              ).toLocaleString()
-                                                            : '—'}
-                                                    </dd>
-                                                </div>
-                                                <div>
-                                                    <dt className="font-medium text-foreground">
-                                                        {t(
-                                                            'collections.columnPicker.updatedAt',
-                                                        )}
-                                                    </dt>
-                                                    <dd>
-                                                        {item.updated_at
-                                                            ? new Date(
-                                                                  item.updated_at,
-                                                              ).toLocaleString()
-                                                            : '—'}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </div>
-                                        <TablePanel
-                                            footer={
-                                                activityLogs &&
-                                                activityLogs.last_page > 1 ? (
-                                                    <TablePagination
-                                                        links={withActivityViewParam(
-                                                            activityLogs.links ??
-                                                                [],
-                                                        )}
-                                                    />
-                                                ) : undefined
-                                            }
-                                        >
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>
-                                                            {t(
-                                                                'activityLog.columns.date',
-                                                            )}
-                                                        </TableHead>
-                                                        <TableHead>
-                                                            {t(
-                                                                'activityLog.columns.user',
-                                                            )}
-                                                        </TableHead>
-                                                        <TableHead>
-                                                            {t(
-                                                                'activityLog.columns.action',
-                                                            )}
-                                                        </TableHead>
-                                                        <TableHead>
-                                                            {t(
-                                                                'activityLog.columns.description',
-                                                            )}
-                                                        </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {activityLogs &&
-                                                    (activityLogs.data ?? [])
-                                                        .length === 0 ? (
-                                                        <TableRow>
-                                                            <TableCell
-                                                                colSpan={4}
-                                                                className="text-muted-foreground"
-                                                            >
-                                                                {t(
-                                                                    'collections.items.form.noActivity',
-                                                                )}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : (
-                                                        (
-                                                            activityLogs?.data ??
-                                                            []
-                                                        ).map((row) => (
-                                                            <TableRow
-                                                                key={row.id}
-                                                            >
-                                                                <TableCell className="text-sm whitespace-nowrap tabular-nums">
-                                                                    {row.created_at
-                                                                        ? new Date(
-                                                                              row.created_at,
-                                                                          ).toLocaleString()
-                                                                        : '—'}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {row.causer ? (
-                                                                        <div className="text-sm">
-                                                                            <div>
-                                                                                {
-                                                                                    row
-                                                                                        .causer
-                                                                                        .name
-                                                                                }
-                                                                            </div>
-                                                                            <div className="text-xs text-muted-foreground">
-                                                                                {
-                                                                                    row
-                                                                                        .causer
-                                                                                        .email
-                                                                                }
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-sm text-muted-foreground">
-                                                                            {t(
-                                                                                'activityLog.system',
-                                                                            )}
-                                                                        </span>
-                                                                    )}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <Badge variant="secondary">
-                                                                        {row.event ??
-                                                                            '—'}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="max-w-xs truncate text-sm">
-                                                                    {
-                                                                        row.description
-                                                                    }
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </TablePanel>
-                                    </div>
+                                    <ItemActivityPanel
+                                        item={item}
+                                        activityLogs={activityLogs}
+                                    />
                                 )}
                             </>
                         )}
@@ -2137,196 +552,19 @@ export default function ItemsForm({
             </PageLayout>
 
             {!isNew && item !== null && (
-                <Dialog open={staleSaveOpen} onOpenChange={setStaleSaveOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>
-                                {t('collections.itemPresence.staleTitle')}
-                            </DialogTitle>
-                            <DialogDescription>
-                                {t('collections.itemPresence.staleDescription')}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setStaleSaveOpen(false);
-                                    router.reload();
-                                }}
-                            >
-                                {t('collections.itemPresence.staleReload')}
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={() => {
-                                    // Align expected token with remote so server overwrite is intentional.
-                                    if (presence.remoteUpdatedAt) {
-                                        setExpectedUpdatedAt(
-                                            presence.remoteUpdatedAt,
-                                        );
-                                        loadedUpdatedAtRef.current =
-                                            presence.remoteUpdatedAt;
-                                    } else {
-                                        setExpectedUpdatedAt('');
-                                    }
-
-                                    allowStaleSaveRef.current = true;
-                                    setStaleSaveOpen(false);
-                                    queueMicrotask(() => {
-                                        const form = document.getElementById(
-                                            COLLECTION_ITEM_FORM_ID,
-                                        ) as HTMLFormElement | null;
-                                        form?.requestSubmit();
-                                    });
-                                }}
-                            >
-                                {t('collections.itemPresence.staleSave')}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <ItemStaleSaveDialog
+                    open={optimisticLock.isStaleSaveOpen}
+                    onOpenChange={optimisticLock.setIsStaleSaveOpen}
+                    onSaveAnyway={optimisticLock.saveAnyway}
+                />
             )}
 
             {!isNew && item !== null && (
-                <ConfirmDestructiveDialog
-                    open={deleteOpen}
-                    onOpenChange={setDeleteOpen}
-                    title={t('itemConfirm.deleteTitle', {
-                        name: `#${item.id}`,
-                    })}
-                    description={t('itemConfirm.deleteDescription')}
-                    confirming={deleting}
-                    onConfirm={() => {
-                        setDeleting(true);
-                        router.delete(
-                            ItemController.destroy.url({
-                                collection: collection.id,
-                                item: item.id,
-                            }),
-                            {
-                                onFinish: () => setDeleting(false),
-                                onError: () => setDeleteOpen(false),
-                            },
-                        );
-                    }}
-                />
-            )}
-
-            {!isNew && item !== null && versioningEnabled && (
-                <ConfirmDestructiveDialog
-                    open={rejectOpen}
-                    onOpenChange={setRejectOpen}
-                    title={t('itemConfirm.rejectDraftTitle', {
-                        name: `#${item.id}`,
-                    })}
-                    description={
-                        <div className="grid gap-2 pt-1 text-left">
-                            <p className="text-sm text-muted-foreground">
-                                {t('collections.items.form.rejectHint')}
-                            </p>
-                            <Textarea
-                                className="min-h-24"
-                                value={rejectNote}
-                                onChange={(event) =>
-                                    setRejectNote(event.target.value)
-                                }
-                                data-test="rejection-note"
-                                placeholder={t(
-                                    'collections.items.form.rejectionNote',
-                                )}
-                            />
-                            {item.rejection_note &&
-                            approvalStatus === 'rejected' ? (
-                                <p className="text-xs text-muted-foreground">
-                                    {t('collections.items.form.previousNote', {
-                                        note: item.rejection_note,
-                                    })}
-                                </p>
-                            ) : null}
-                        </div>
-                    }
-                    confirmLabel={t('collections.itemToolbar.reject')}
-                    confirming={rejecting}
-                    onConfirm={() => {
-                        if (rejectNote.trim() === '') {
-                            return;
-                        }
-
-                        setRejecting(true);
-                        router.post(
-                            ItemApprovalController.reject.url({
-                                collection: collection.id,
-                                item: item.id,
-                            }),
-                            { rejection_note: rejectNote.trim() },
-                            {
-                                onFinish: () => {
-                                    setRejecting(false);
-                                    setRejectOpen(false);
-                                },
-                            },
-                        );
-                    }}
-                />
-            )}
-
-            {!isNew && item !== null && versioningEnabled && (
-                <ConfirmDestructiveDialog
-                    open={publishOpen}
-                    onOpenChange={setPublishOpen}
-                    title={t('itemConfirm.publishDraftTitle', {
-                        name: `#${item.id}`,
-                    })}
-                    description={t('itemConfirm.publishDraftDescription')}
-                    confirmLabel={t('collections.itemToolbar.publish')}
-                    confirming={publishing}
-                    onConfirm={() => {
-                        setPublishing(true);
-                        router.post(
-                            ItemWorkflowController.publish.url({
-                                collection: collection.id,
-                                item: item.id,
-                            }),
-                            {},
-                            {
-                                onFinish: () => {
-                                    setPublishing(false);
-                                    setPublishOpen(false);
-                                },
-                            },
-                        );
-                    }}
-                />
-            )}
-
-            {!isNew && item !== null && versioningEnabled && (
-                <ConfirmDestructiveDialog
-                    open={discardDraftOpen}
-                    onOpenChange={setDiscardDraftOpen}
-                    title={t('itemConfirm.discardDraftTitle', {
-                        name: `#${item.id}`,
-                    })}
-                    description={t('itemConfirm.discardDraftDescription')}
-                    confirmLabel={t('collections.itemToolbar.discardDraft')}
-                    confirming={discardingDraft}
-                    onConfirm={() => {
-                        setDiscardingDraft(true);
-                        router.post(
-                            ItemWorkflowController.discardDraft.url({
-                                collection: collection.id,
-                                item: item.id,
-                            }),
-                            {},
-                            {
-                                onFinish: () => {
-                                    setDiscardingDraft(false);
-                                    setDiscardDraftOpen(false);
-                                },
-                            },
-                        );
-                    }}
+                <ItemWorkflowDialogs
+                    item={item}
+                    versioningEnabled={versioningEnabled}
+                    approvalStatus={approvalStatus}
+                    workflow={workflow}
                 />
             )}
 
@@ -2356,66 +594,19 @@ export default function ItemsForm({
             )}
 
             {!isNew && item !== null && (
-                <ItemRevisionsDrawer
-                    open={revisionsOpen}
-                    onOpenChange={setRevisionsOpen}
-                    collectionId={collection.id}
+                <ItemRevisionsPanel
+                    collection={collection}
                     itemId={item.id}
-                    canRestore={canEditItem}
-                    onSelectRevision={(revision, all) => {
-                        setAllRevisions(all);
-                        setCompareRevision(revision);
-                        setRevisionsOpen(false);
-                    }}
-                />
-            )}
-
-            {!isNew && item !== null && (
-                <ItemRevisionCompareModal
-                    open={compareRevision !== null}
-                    onOpenChange={(open) => {
-                        if (!open) {
-                            setCompareRevision(null);
-                        }
-                    }}
-                    collectionId={collection.id}
-                    fields={collection.fields}
                     locales={locales}
-                    formLayout={collection.form_layout}
                     relatedCollections={relatedCollections}
                     latestData={
                         contentVersion === 'draft' ? rawData : latestForCompare
                     }
-                    revision={compareRevision}
-                    previousRevision={
-                        compareRevision
-                            ? (allRevisions[
-                                  allRevisions.findIndex(
-                                      (row) => row.id === compareRevision.id,
-                                  ) + 1
-                              ] ?? null)
-                            : null
-                    }
-                    canRestore={canEditItem && !formReadonly}
-                    onApply={(values) => {
-                        if (formReadonly) {
-                            toast.error(
-                                'Switch to Draft before applying a revision.',
-                            );
-
-                            return;
-                        }
-
-                        setRevisionApply({
-                            nonce: Date.now(),
-                            values,
-                        });
-                        setIsDirty(true);
-                        scheduleDraftSave();
-                        toast.success(
-                            'Revision applied to the form. Save to keep.',
-                        );
-                    }}
+                    open={revisionsOpen}
+                    onOpenChange={setRevisionsOpen}
+                    canRestore={canEditItem}
+                    canApplyToForm={!formReadonly}
+                    onApplyRevision={applyRevision}
                 />
             )}
         </AppLayout>
