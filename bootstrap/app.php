@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Exceptions\RenderNotFoundResponse;
+use App\Http\Middleware\AssignRequestIdMiddleware;
 use App\Http\Middleware\ConfigurePublicApiCorsMiddleware;
 use App\Http\Middleware\EnsureCanManageFilesMiddleware;
 use App\Http\Middleware\EnsureSidebarModuleEnabledMiddleware;
@@ -46,6 +47,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Before HandleCors so project allowlist can override cors.allowed_origins
         $middleware->prepend(ConfigurePublicApiCorsMiddleware::class);
+
+        // Outermost global middleware: every response (web, API, GraphQL, MCP, health, and
+        // 401/404/429/503 from inner layers) carries X-Request-Id (#209).
+        $middleware->prepend(AssignRequestIdMiddleware::class);
 
         $middleware->encryptCookies(except: [
             'appearance',
