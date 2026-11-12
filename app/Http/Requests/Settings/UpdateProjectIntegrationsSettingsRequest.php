@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Settings;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
@@ -45,7 +47,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
             foreach (['webhook_url', 'notifier_slack_webhook_url'] as $urlField) {
@@ -103,7 +105,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
 
         /** @var array<string, array{id: string, name: string, url: string}> $existingById */
         $existingById = [];
-        foreach (app(ProjectSettingsService::class)->raw()['deploy_hooks'] as $row) {
+        foreach (app(ProjectSettingsService::class)->integrations()->storedDeployHooks() as $row) {
             if (is_array($row) && is_string($row['id'] ?? null)) {
                 $existingById[$row['id']] = [
                     'id' => $row['id'],
@@ -162,7 +164,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
 
         /** @var array<string, true> $existingIds */
         $existingIds = [];
-        foreach (app(ProjectSettingsService::class)->raw()['deploy_hooks'] as $row) {
+        foreach (app(ProjectSettingsService::class)->integrations()->storedDeployHooks() as $row) {
             if (is_array($row) && is_string($row['id'] ?? null)) {
                 $existingIds[$row['id']] = true;
             }

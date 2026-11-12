@@ -7,6 +7,7 @@ use App\Services\Collections\ContentLocaleCatalogService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Validate localization project settings (admin UI language + content locales).
@@ -33,7 +34,7 @@ class UpdateProjectLocalizationSettingsRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
             $contentLocales = $this->input('content_locales', []);

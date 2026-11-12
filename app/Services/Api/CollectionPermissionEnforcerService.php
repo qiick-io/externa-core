@@ -30,7 +30,7 @@ class CollectionPermissionEnforcerService
     ) {}
 
     /**
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}|null
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}|null
      */
     public function resolveRules(Request $request, Collection $collection): ?array
     {
@@ -351,9 +351,9 @@ class CollectionPermissionEnforcerService
     /**
      * Field ACL ∩ item_filter: empty fields map = unrestricted.
      *
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $a
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $b
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $a
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $b
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}
      */
     private function intersectNormalizedRules(array $a, array $b): array
     {

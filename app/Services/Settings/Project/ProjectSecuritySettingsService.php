@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Settings\Project;
 
 use App\Services\Settings\ProjectSettingsService;
+use App\Traits\NormalizesProjectSettingValuesTrait;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -13,9 +14,14 @@ use Illuminate\Validation\Rules\Password;
  *
  * Every value comes from the shared, memoized {@see ProjectSettingsService::raw()};
  * the OIDC client secret goes through {@see ProjectSettingsService::storedSecret()}.
+ *
+ * This area's keys of the stored bag are normalized here ({@see normalize()}),
+ * and {@see ProjectSettingsService::raw()} composes them with the other areas.
  */
 class ProjectSecuritySettingsService
 {
+    use NormalizesProjectSettingValuesTrait;
+
     public function __construct(
         private readonly ProjectSettingsService $projectSettings,
     ) {}
@@ -125,5 +131,70 @@ class ProjectSecuritySettingsService
     public function oidcClientSecret(): ?string
     {
         return $this->projectSettings->storedSecret('oidc_client_secret');
+    }
+
+    /**
+     * Normalize the Authentication & Security keys (password, login, registration,
+     * domains, OIDC) of a stored `project` bag. The OIDC secret stays ciphertext.
+     *
+     * @param  array<string, mixed>  $raw
+     * @return array<string, mixed>
+     */
+    public function normalize(array $raw): array
+    {
+        $policy = is_string($raw['password_policy'] ?? null) ? $raw['password_policy'] : 'weak';
+        if (! in_array($policy, config('settings.project.password_policies', ['weak']), true)) {
+            $policy = 'weak';
+        }
+
+        $attempts = is_numeric($raw['login_max_attempts'] ?? null)
+            ? (int) $raw['login_max_attempts']
+            : 5;
+
+        return [
+            'password_policy' => $policy,
+            'login_max_attempts' => max(1, min(100, $attempts)),
+            'registration_enabled' => (bool) ($raw['registration_enabled'] ?? false),
+            'default_user_role' => is_string($raw['default_user_role'] ?? null) && $raw['default_user_role'] !== ''
+                ? $raw['default_user_role']
+                : null,
+            'email_verification_required' => (bool) ($raw['email_verification_required'] ?? false),
+            'two_factor_required' => (bool) ($raw['two_factor_required'] ?? false),
+            'allowed_domains' => $this->normalizeDomains($raw['allowed_domains'] ?? []),
+            'oidc_enabled' => (bool) ($raw['oidc_enabled'] ?? false),
+            'oidc_issuer' => $this->nullableUrl($raw['oidc_issuer'] ?? null),
+            'oidc_client_id' => is_string($raw['oidc_client_id'] ?? null) && trim($raw['oidc_client_id']) !== ''
+                ? trim($raw['oidc_client_id'])
+                : null,
+            'oidc_client_secret' => is_string($raw['oidc_client_secret'] ?? null)
+                && $raw['oidc_client_secret'] !== ''
+                ? $raw['oidc_client_secret']
+                : null,
+            'oidc_button_label' => is_string($raw['oidc_button_label'] ?? null) && trim($raw['oidc_button_label']) !== ''
+                ? trim($raw['oidc_button_label'])
+                : null,
+            'oidc_jit_provisioning' => (bool) ($raw['oidc_jit_provisioning'] ?? false),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeDomains(mixed $value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\s,]+/', $value) ?: [];
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return collect($value)
+            ->map(fn (mixed $domain): string => strtolower(trim((string) $domain)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }

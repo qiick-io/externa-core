@@ -268,9 +268,6 @@ class ApiKey extends Model
         return ! $this->isRevoked() && ! $this->isExpired();
     }
 
-    /**
-     * @param  list<string>|null  $allowlist
-     */
     public function allowsIp(string $ip): bool
     {
         $allowlist = $this->ip_allowlist;

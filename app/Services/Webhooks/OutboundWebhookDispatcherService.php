@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Webhooks;
 
 use App\Jobs\DeliverOutboundWebhookJob;
@@ -67,13 +69,13 @@ class OutboundWebhookDispatcherService
      */
     private function queueSignedWebhook(string $type, array $data): void
     {
-        $url = $this->projectSettings->webhookUrl();
+        $url = $this->projectSettings->integrations()->webhookUrl();
         if ($url === null) {
             return;
         }
 
         // Prefer refuse over empty-key HMAC (deterministic, false authenticity).
-        if ($this->projectSettings->webhookSecret() === null) {
+        if ($this->projectSettings->integrations()->webhookSecret() === null) {
             Log::warning('Outbound webhook refused: URL configured without signing secret', [
                 'type' => $type,
             ]);

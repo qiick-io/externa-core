@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Collections;
 
 use App\Enums\FieldTypeEnum;
-use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettingsTrait;
+use App\Traits\NormalizesCollectionFieldSettingsTrait;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class CollectionFieldSettingsPipelineService
 {
-    use ValidatesCollectionFieldSettingsTrait;
+    use NormalizesCollectionFieldSettingsTrait;
 
     /**
      * Normalize then validate settings the same way Store/Update field HTTP requests do.

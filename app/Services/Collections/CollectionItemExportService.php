@@ -148,6 +148,7 @@ class CollectionItemExportService
 
     /**
      * @param  Builder<CollectionItem>  $query
+     * @param  array<string, mixed>  $filters
      */
     public function applyListingConstraints(
         Builder $query,

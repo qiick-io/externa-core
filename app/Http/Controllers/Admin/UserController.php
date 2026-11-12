@@ -65,7 +65,7 @@ class UserController extends Controller
 
         if ($search !== '') {
             $term = '%'.$search.'%';
-            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = $query->getModel()->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($inner) use ($term, $like): void {
                 $inner->where('first_name', $like, $term)
                     ->orWhere('last_name', $like, $term)

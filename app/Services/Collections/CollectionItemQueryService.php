@@ -82,6 +82,7 @@ class CollectionItemQueryService
     /**
      * @param  array<string, mixed>  $filters
      * @param  Builder<CollectionItem>  $query
+     * @return Builder<CollectionItem>
      */
     public function applyFilters(
         Builder $query,
@@ -513,6 +514,7 @@ class CollectionItemQueryService
      *
      * @param  Builder<CollectionItem>  $query
      * @param  array<string, mixed>|null  $itemFilter
+     * @return Builder<CollectionItem>
      */
     public function applyPermissionItemFilter(
         Builder $query,
@@ -737,6 +739,7 @@ class CollectionItemQueryService
      * (numeric cast would break "2026-10-11").
      *
      * @param  Builder<CollectionItem>  $query
+     * @return Builder<CollectionItem>
      */
     public function applyDateFieldRange(
         Builder $query,

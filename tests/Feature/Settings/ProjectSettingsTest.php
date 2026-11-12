@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Settings\ProjectSettingsService;
@@ -291,7 +293,7 @@ test('telegram bot token must look like a BotFather token', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    expect(app(ProjectSettingsService::class)->notifierTelegramBotToken())
+    expect(app(ProjectSettingsService::class)->integrations()->notifierTelegramBotToken())
         ->toBe('123456789:AAExampleToken_Value-1');
 });
 

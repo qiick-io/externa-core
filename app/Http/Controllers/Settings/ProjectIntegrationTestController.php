@@ -26,12 +26,12 @@ class ProjectIntegrationTestController extends Controller
      */
     public function sendTestWebhook(OutboundWebhookDispatcherService $dispatcher): RedirectResponse
     {
-        if ($this->projectSettings->webhookUrl() === null) {
+        if ($this->projectSettings->integrations()->webhookUrl() === null) {
             return to_route('project.integrations.edit')
                 ->with('error', __('Configure a webhook URL before sending a test event.'));
         }
 
-        if ($this->projectSettings->webhookSecret() === null) {
+        if ($this->projectSettings->integrations()->webhookSecret() === null) {
             return to_route('project.integrations.edit')
                 ->with('error', __('Configure a webhook signing secret before sending a test event.'));
         }
@@ -47,7 +47,7 @@ class ProjectIntegrationTestController extends Controller
      */
     public function sendTestSlackNotifier(OutboundWebhookDispatcherService $dispatcher): RedirectResponse
     {
-        if ($this->projectSettings->notifierSlackWebhookUrl() === null) {
+        if ($this->projectSettings->integrations()->notifierSlackWebhookUrl() === null) {
             return to_route('project.integrations.edit')
                 ->with('error', __('Configure a Slack incoming webhook URL before sending a test message.'));
         }
@@ -65,7 +65,7 @@ class ProjectIntegrationTestController extends Controller
      */
     public function sendTestTelegramNotifier(): RedirectResponse
     {
-        if (! $this->projectSettings->isNotifierTelegramConfigured()) {
+        if (! $this->projectSettings->integrations()->isNotifierTelegramConfigured()) {
             return to_route('project.integrations.edit')
                 ->with('error', __('Configure a Telegram bot token and chat ID before sending a test message.'));
         }
