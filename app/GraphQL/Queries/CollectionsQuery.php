@@ -2,10 +2,10 @@
 
 namespace App\GraphQL\Queries;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
 use App\Services\Api\CollectionPermissionGuardService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Support\Facades\Gate;
 
 final class CollectionsQuery
@@ -15,7 +15,7 @@ final class CollectionsQuery
      */
     public function __invoke(mixed $_, array $args): array
     {
-        $access = app(ApiAccess::class);
+        $access = app(ApiAccessData::class);
         $matrix = app(CollectionPermissionGuardService::class)->matrixForRole($access->roleId());
         $gate = Gate::forUser(request()->user());
 

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Logging;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\StructuredLogContextKeyEnum;
 use App\Services\AppVersionService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -65,7 +65,7 @@ final class AddStructuredLogContextProcessor implements ProcessorInterface
         return [
             'route' => $request->route()?->getName(),
             'user_id' => $guard?->hasUser() === true ? $guard->id() : null,
-            'api_key_id' => $apiAccess instanceof ApiAccess ? $apiAccess->apiKey?->id : null,
+            'api_key_id' => $apiAccess instanceof ApiAccessData ? $apiAccess->apiKey?->id : null,
         ];
     }
 }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
-use App\Support\Api\ApiAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,8 +102,8 @@ class AuthenticateMcpRequestMiddleware
         Auth::guard(config('auth.defaults.guard', 'web'))->setUser($owner);
         Auth::shouldUse(config('auth.defaults.guard', 'web'));
 
-        $access = new ApiAccess(actor: 'api_key', role: $role, apiKey: $apiKey);
-        app()->instance(ApiAccess::class, $access);
+        $access = new ApiAccessData(actor: 'api_key', role: $role, apiKey: $apiKey);
+        app()->instance(ApiAccessData::class, $access);
 
         $request->attributes->set('apiAccess', $access);
         $request->attributes->set('mcp_api_key', $apiKey);

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Ai\Concerns;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\FilePermissionActionEnum;
 use App\Models\File;
 use App\Policies\FilePolicy;
 use App\Services\Api\FilePermissionGuardService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
@@ -26,11 +26,11 @@ trait EnforcesAiFileAccessTrait
     /**
      * API access of the current MCP bearer request, or null for session actors.
      */
-    protected function aiRequestApiAccess(): ?ApiAccess
+    protected function aiRequestApiAccess(): ?ApiAccessData
     {
         $access = request()->attributes->get('apiAccess');
 
-        return $access instanceof ApiAccess ? $access : null;
+        return $access instanceof ApiAccessData ? $access : null;
     }
 
     /**

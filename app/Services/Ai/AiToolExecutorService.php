@@ -6,13 +6,13 @@ namespace App\Services\Ai;
 
 use App\Ai\Support\AiActivityLogger;
 use App\Data\Ai\AiToolExecutionResultData;
+use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\PendingToolCallStatusEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
 use App\Models\PendingToolCall;
 use App\Models\User;
-use App\Support\Api\ApiAccess;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 use Throwable;
@@ -152,7 +152,7 @@ class AiToolExecutorService
                 $arguments,
                 $surface,
                 $actor,
-                apiKey: app()->bound(ApiAccess::class) ? app(ApiAccess::class)->apiKey : null,
+                apiKey: app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey : null,
             );
 
             return $this->finish(
@@ -354,7 +354,7 @@ class AiToolExecutorService
      *
      * @throws InvalidArgumentException when the requesting key can no longer run a write
      */
-    private function apiAccessForApprovedCall(PendingToolCall $pending): ?ApiAccess
+    private function apiAccessForApprovedCall(PendingToolCall $pending): ?ApiAccessData
     {
         if ($pending->api_key_id === null) {
             return null;
@@ -377,7 +377,7 @@ class AiToolExecutorService
             throw new InvalidArgumentException('The API key that requested this call can no longer run writes.');
         }
 
-        return new ApiAccess(actor: 'api_key', role: $role, apiKey: $apiKey);
+        return new ApiAccessData(actor: 'api_key', role: $role, apiKey: $apiKey);
     }
 
     /**
@@ -390,7 +390,7 @@ class AiToolExecutorService
      * @param  callable(): TReturn  $callback
      * @return TReturn
      */
-    private function withApiAccess(?ApiAccess $apiAccess, callable $callback): mixed
+    private function withApiAccess(?ApiAccessData $apiAccess, callable $callback): mixed
     {
         if ($apiAccess === null) {
             return $callback();
@@ -399,10 +399,10 @@ class AiToolExecutorService
         $attributes = request()->attributes;
         $hadAttribute = $attributes->has('apiAccess');
         $previousAttribute = $attributes->get('apiAccess');
-        $previousBinding = app()->bound(ApiAccess::class) ? app(ApiAccess::class) : null;
+        $previousBinding = app()->bound(ApiAccessData::class) ? app(ApiAccessData::class) : null;
 
         $attributes->set('apiAccess', $apiAccess);
-        app()->instance(ApiAccess::class, $apiAccess);
+        app()->instance(ApiAccessData::class, $apiAccess);
 
         try {
             return $callback();
@@ -413,10 +413,10 @@ class AiToolExecutorService
                 $attributes->remove('apiAccess');
             }
 
-            if ($previousBinding instanceof ApiAccess) {
-                app()->instance(ApiAccess::class, $previousBinding);
+            if ($previousBinding instanceof ApiAccessData) {
+                app()->instance(ApiAccessData::class, $previousBinding);
             } else {
-                app()->forgetInstance(ApiAccess::class);
+                app()->forgetInstance(ApiAccessData::class);
             }
         }
     }

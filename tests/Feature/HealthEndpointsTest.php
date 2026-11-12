@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Health\ReadinessChecks;
+use App\Services\Health\ReadinessChecksService;
 
 test('liveness returns 200 when the app responds', function () {
     $this->getJson('/health/live')
@@ -28,7 +28,7 @@ test('readiness returns 200 with database check when redis not required', functi
 });
 
 test('readiness returns 503 when database is down', function () {
-    $this->mock(ReadinessChecks::class, function ($mock): void {
+    $this->mock(ReadinessChecksService::class, function ($mock): void {
         $mock->shouldReceive('run')->once()->andReturn([
             'database' => 'fail',
         ]);
@@ -41,7 +41,7 @@ test('readiness returns 503 when database is down', function () {
 });
 
 test('readiness returns 503 when required redis is down', function () {
-    $this->mock(ReadinessChecks::class, function ($mock): void {
+    $this->mock(ReadinessChecksService::class, function ($mock): void {
         $mock->shouldReceive('run')->once()->andReturn([
             'database' => 'ok',
             'redis' => 'fail',

@@ -1,5 +1,6 @@
 <?php
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
@@ -16,7 +17,6 @@ use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -48,7 +48,7 @@ function syncScopedItem(CollectionItem $item, Collection $collection, array $dat
 /**
  * Cache key shaped exactly like {@see ItemQuery}.
  */
-function graphqlItemCacheKey(Collection $collection, string $itemId, ApiAccess $access): string
+function graphqlItemCacheKey(Collection $collection, string $itemId, ApiAccessData $access): string
 {
     $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
@@ -72,7 +72,7 @@ function graphqlItemCacheKey(Collection $collection, string $itemId, ApiAccess $
 /**
  * Cache key shaped exactly like {@see ItemsQuery} (defaults).
  */
-function graphqlItemsCacheKey(Collection $collection, ApiAccess $access): string
+function graphqlItemsCacheKey(Collection $collection, ApiAccessData $access): string
 {
     $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
@@ -99,7 +99,7 @@ function graphqlItemsCacheKey(Collection $collection, ApiAccess $access): string
 /**
  * Same as ItemQuery hash factors but without api_key_scopes (regression probe).
  */
-function graphqlItemCacheKeyWithoutScopes(Collection $collection, string $itemId, ApiAccess $access): string
+function graphqlItemCacheKeyWithoutScopes(Collection $collection, string $itemId, ApiAccessData $access): string
 {
     $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
@@ -122,7 +122,7 @@ function graphqlItemCacheKeyWithoutScopes(Collection $collection, string $itemId
 /**
  * Same as ItemsQuery hash factors but without api_key_scopes (regression probe).
  */
-function graphqlItemsCacheKeyWithoutScopes(Collection $collection, ApiAccess $access): string
+function graphqlItemsCacheKeyWithoutScopes(Collection $collection, ApiAccessData $access): string
 {
     $cache = app(PublicApiResponseCacheService::class);
     $roleId = $access->roleId();
@@ -741,10 +741,10 @@ it('partitions GraphQL ItemQuery and ItemsQuery cache keys by api key scopes', f
         'read_only' => true,
     ]);
 
-    $wideAccess = new ApiAccess('api_key', $wide['role'], $wide['key']);
-    $emptyAccess = new ApiAccess('api_key', $wide['role'], $emptyKey);
-    $narrowAccess = new ApiAccess('api_key', $wide['role'], $narrowKey);
-    $readOnlyAccess = new ApiAccess('api_key', $wide['role'], $readOnlyKey);
+    $wideAccess = new ApiAccessData('api_key', $wide['role'], $wide['key']);
+    $emptyAccess = new ApiAccessData('api_key', $wide['role'], $emptyKey);
+    $narrowAccess = new ApiAccessData('api_key', $wide['role'], $narrowKey);
+    $readOnlyAccess = new ApiAccessData('api_key', $wide['role'], $readOnlyKey);
 
     $itemId = (string) $item->id;
 
@@ -944,11 +944,11 @@ it('migrated keys default files_scope all keeps 1.3.0 file behaviour', function 
 
 it('response cache factors include files_scope', function (): void {
     $auth = makeApiKeyForRole();
-    $accessAll = new ApiAccess('api_key', $auth['role'], $auth['key']->fresh());
+    $accessAll = new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh());
     $factorsAll = $accessAll->responseCacheScopeFactors();
 
     $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::None])->save();
-    $accessNone = new ApiAccess('api_key', $auth['role'], $auth['key']->fresh());
+    $accessNone = new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh());
     $factorsNone = $accessNone->responseCacheScopeFactors();
 
     expect($factorsAll['api_key_scopes']['files_scope'])->toBe('all')

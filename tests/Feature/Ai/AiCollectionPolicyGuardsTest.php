@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
 use App\Models\Role;
 use App\Models\User;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -77,7 +77,7 @@ it('applies the API key scopes even when the key owner is a super-admin', functi
     ]);
     $auth['key']->forceFill(['owner_id' => $owner->id, 'read_only' => true])->save();
     $this->actingAs($owner);
-    request()->attributes->set('apiAccess', new ApiAccess('api_key', $auth['role'], $auth['key']->fresh()));
+    request()->attributes->set('apiAccess', new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh()));
 
     expect($this->guards->guardAiCollectionAction($this->posts, CollectionPermissionActionEnum::Read))->toBeNull()
         ->and($this->guards->guardAiCollectionAction($this->posts, CollectionPermissionActionEnum::Update))

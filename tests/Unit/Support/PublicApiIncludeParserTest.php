@@ -1,9 +1,9 @@
 <?php
 
-use App\Support\Api\PublicApiIncludeParser;
+use App\Services\Api\PublicApiIncludeParserService;
 
 it('parses csv include into sorted unique tokens', function (): void {
-    $parser = new PublicApiIncludeParser;
+    $parser = new PublicApiIncludeParserService;
 
     expect($parser->parse('files,author,files, categories'))
         ->toBe(['author', 'categories', 'files'])
@@ -13,10 +13,10 @@ it('parses csv include into sorted unique tokens', function (): void {
 });
 
 it('is case-sensitive and ignores unknown-looking empty parts', function (): void {
-    $parser = new PublicApiIncludeParser;
+    $parser = new PublicApiIncludeParserService;
 
     expect($parser->parse('Files,files, ,Users'))
         ->toBe(['Files', 'Users', 'files'])
-        ->and($parser->has(['files', 'author'], PublicApiIncludeParser::TOKEN_FILES))->toBeTrue()
-        ->and($parser->has(['files', 'author'], PublicApiIncludeParser::TOKEN_USERS))->toBeFalse();
+        ->and($parser->has(['files', 'author'], PublicApiIncludeParserService::TOKEN_FILES))->toBeTrue()
+        ->and($parser->has(['files', 'author'], PublicApiIncludeParserService::TOKEN_USERS))->toBeFalse();
 });

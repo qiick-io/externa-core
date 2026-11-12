@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Http\LmStudioSseNormalizer;
+use App\Services\Http\LmStudioSseNormalizerService;
 
 test('maps lm studio reasoning_text events to openai summary_text events', function () {
     $chunk = <<<'SSE'
@@ -12,7 +12,7 @@ data: {"type":"response.reasoning_text.done"}
 
 SSE;
 
-    $normalized = LmStudioSseNormalizer::normalize($chunk);
+    $normalized = LmStudioSseNormalizerService::normalize($chunk);
 
     expect($normalized)
         ->toContain('response.reasoning_summary_text.delta')
@@ -23,5 +23,5 @@ SSE;
 test('leaves unrelated sse chunks untouched', function () {
     $chunk = 'data: {"type":"response.output_text.delta","delta":"hi"}\n\n';
 
-    expect(LmStudioSseNormalizer::normalize($chunk))->toBe($chunk);
+    expect(LmStudioSseNormalizerService::normalize($chunk))->toBe($chunk);
 });
