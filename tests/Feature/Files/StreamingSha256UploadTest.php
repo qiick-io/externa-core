@@ -57,8 +57,8 @@ it('streams chunk merge hash to the same digest as a single-body upload', functi
         ->and($file->name)->toBe('chunked.bin');
 });
 
-it('FileService uploadFile source no longer calls getContent on the happy path', function (): void {
-    $source = file_get_contents(app_path('Services/FileService.php'));
+it('FileUploadService upload and replace sources no longer call getContent on the happy path', function (): void {
+    $source = file_get_contents(app_path('Services/Files/FileUploadService.php'));
     expect($source)->not->toBeFalse();
 
     // Narrow: uploadFile / replaceFile bodies must not use getContent.
@@ -69,6 +69,7 @@ it('FileService uploadFile source no longer calls getContent on the happy path',
         (string) $source,
         $uploadMatch,
     );
+    expect($uploadMatch)->not->toBeEmpty();
     expect($uploadMatch[0] ?? '')->not->toContain('getContent(');
 
     preg_match(
@@ -76,5 +77,6 @@ it('FileService uploadFile source no longer calls getContent on the happy path',
         (string) $source,
         $replaceMatch,
     );
+    expect($replaceMatch)->not->toBeEmpty();
     expect($replaceMatch[0] ?? '')->not->toContain('getContent(');
 });

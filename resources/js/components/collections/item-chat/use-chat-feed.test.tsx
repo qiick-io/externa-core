@@ -163,4 +163,33 @@ describe('useChatFeed', () => {
         });
         expect(result.current.loading).toBe(false);
     });
+
+    it('follows a new chat id prop and loads that thread', async () => {
+        mocks.fetchMessages.mockResolvedValue(page([]));
+        const { result, rerender } = renderHook(
+            ({ chatId }: { chatId: string | null }) =>
+                useChatFeed({
+                    open: true,
+                    chatId,
+                    variant: 'pane',
+                    liveChatIdRef: { current: null },
+                    onChatCountChangeRef: { current: vi.fn() },
+                    olderAnchorIdRef: { current: null },
+                }),
+            { initialProps: { chatId: 'chat-1' as string | null } },
+        );
+
+        expect(result.current.scopeKey).toBe('hub:chat-1');
+
+        rerender({ chatId: 'chat-2' });
+
+        expect(result.current.liveChatId).toBe('chat-2');
+        expect(result.current.scopeKey).toBe('hub:chat-2');
+        await waitFor(() => {
+            expect(mocks.fetchMessages).toHaveBeenLastCalledWith(
+                { mode: 'hub', chatId: 'chat-2' },
+                { beforeId: undefined },
+            );
+        });
+    });
 });

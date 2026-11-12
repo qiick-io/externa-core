@@ -25,6 +25,11 @@ type UseChatRealtimeOptions = {
     messages: ItemChatMessage[];
     liveChatIdRef: RefObject<string | null>;
     chatCountRef: RefObject<number>;
+    /**
+     * Ids of deleted messages already taken off the count, shared with the delete
+     * action so its reply and this tab's `MessageDeleted` echo lower it only once.
+     */
+    countedDeletionIdsRef: RefObject<Set<number>>;
     onChatCountChangeRef: RefObject<(count: number) => void>;
     forceScrollBottomRef: RefObject<boolean>;
     /** Removes the optimistic bubble an own `MessageCreated` stands for. */
@@ -51,6 +56,7 @@ export function useChatRealtime({
     messages,
     liveChatIdRef,
     chatCountRef,
+    countedDeletionIdsRef,
     onChatCountChangeRef,
     forceScrollBottomRef,
     dropEchoedPending,
@@ -73,12 +79,18 @@ export function useChatRealtime({
         messagesRef.current = messages;
     });
 
-    useEffect(() => {
+    const openThreadKey = `${String(open)}:${scopeKey}`;
+    const [typingResetKey, setTypingResetKey] = useState(openThreadKey);
+
+    // Opening the drawer or switching thread forgets who was typing, during render
+    // (React's "adjust state on prop change" pattern).
+    if (typingResetKey !== openThreadKey) {
+        setTypingResetKey(openThreadKey);
+
         if (open) {
-            // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
             setTypingNames([]);
         }
-    }, [open, scopeKey]);
+    }
 
     useEffect(() => {
         if (!open || !realtimeOn || !liveChatId) {
@@ -198,6 +210,12 @@ export function useChatRealtime({
             }
 
             removeCachedMessage(chatId, id);
+
+            if (countedDeletionIdsRef.current.has(id)) {
+                return;
+            }
+
+            countedDeletionIdsRef.current.add(id);
             onChatCountChangeRef.current(Math.max(0, chatCountRef.current - 1));
         });
         channel.listen(
@@ -217,12 +235,10 @@ export function useChatRealtime({
                     return;
                 }
 
+                // This tab's own toggles do not echo back here: the request sends
+                // `X-Socket-ID` and the server broadcasts to others only. A toggle by
+                // the same user in another tab does arrive, and flips `reacted`.
                 const isOwn = userId === viewerId;
-
-                if (isOwn) {
-                    return;
-                }
-
                 const chatId = liveChatIdRef.current;
 
                 if (!chatId) {
@@ -244,7 +260,7 @@ export function useChatRealtime({
                                       emoji,
                                       event.added === true,
                                       actor,
-                                      false,
+                                      isOwn,
                                   ),
                               }
                             : row,
@@ -313,6 +329,7 @@ export function useChatRealtime({
         scope,
         liveChatIdRef,
         chatCountRef,
+        countedDeletionIdsRef,
         onChatCountChangeRef,
         forceScrollBottomRef,
         dropEchoedPending,

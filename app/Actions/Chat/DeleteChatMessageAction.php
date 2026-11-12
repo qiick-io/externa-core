@@ -23,7 +23,7 @@ class DeleteChatMessageAction
     public function execute(Chat $chat, CollectionItemChatMessage $message, User $user): void
     {
         $messageId = (int) $message->id;
-        $chatId = (int) $chat->id;
+        $chatId = (string) $chat->id;
         $attachmentCount = $message->attachments()->count();
         $bodyPreview = Str::limit((string) $message->body, 120);
 
