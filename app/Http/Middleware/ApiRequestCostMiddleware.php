@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Data\Api\ApiAccessData;
+use App\Services\Api\PublicApiIncludeParserService;
 use App\Services\Validation\FilterQueryLimitsService;
-use App\Support\Api\ApiAccess;
-use App\Support\Api\PublicApiIncludeParser;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -65,7 +65,7 @@ class ApiRequestCostMiddleware
     private function bucketKey(Request $request): string
     {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess && $access->apiKey !== null) {
+        if ($access instanceof ApiAccessData && $access->apiKey !== null) {
             return 'api-cost:'.$access->apiKey->id;
         }
 
@@ -97,7 +97,7 @@ class ApiRequestCostMiddleware
             $cost += max(0, $mutationCost) * $this->batchEntryCount($request);
         }
 
-        $tokens = app(PublicApiIncludeParser::class)->parse($request->query('include'));
+        $tokens = app(PublicApiIncludeParserService::class)->parse($request->query('include'));
         $cost += count($tokens) * max(0, $includeCost);
         $cost += $this->relationalFilterKeyCount($request) * max(0, $relationFilterCost);
 

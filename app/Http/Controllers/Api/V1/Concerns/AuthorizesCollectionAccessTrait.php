@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Concerns;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
 use App\Policies\CollectionPolicy;
-use App\Support\Api\ApiAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 trait AuthorizesCollectionAccessTrait
 {
-    protected function apiAccess(Request $request): ApiAccess
+    protected function apiAccess(Request $request): ApiAccessData
     {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($access instanceof ApiAccessData) {
             return $access;
         }
 
-        return app(ApiAccess::class);
+        return app(ApiAccessData::class);
     }
 
     /**

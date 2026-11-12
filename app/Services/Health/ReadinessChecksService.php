@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Health;
+declare(strict_types=1);
+
+namespace App\Services\Health;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -9,7 +11,7 @@ use Throwable;
 /**
  * Short-timeout dependency checks for HTTP readiness probes.
  */
-class ReadinessChecks
+class ReadinessChecksService
 {
     /**
      * @return array<string, string>

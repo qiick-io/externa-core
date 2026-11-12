@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Api;
+declare(strict_types=1);
+
+namespace App\Data\Api;
 
 use App\Enums\ApiKeyFilesScopeEnum;
 use App\Models\ApiKey;
@@ -9,12 +11,12 @@ use App\Models\Role;
 /**
  * Resolved actor for a public CMS API request.
  */
-final class ApiAccess
+final readonly class ApiAccessData
 {
     public function __construct(
-        public readonly string $actor,
-        public readonly Role $role,
-        public readonly ?ApiKey $apiKey = null,
+        public string $actor,
+        public Role $role,
+        public ?ApiKey $apiKey = null,
     ) {}
 
     public function isPublic(): bool

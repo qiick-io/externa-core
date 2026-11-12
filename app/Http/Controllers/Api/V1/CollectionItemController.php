@@ -16,12 +16,12 @@ use App\Models\CollectionItem;
 use App\Services\Api\BatchCollectionItemsService;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
+use App\Services\Api\PublicApiIncludeParserService;
 use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Api\PublicItemSortParserService;
 use App\Services\Api\RelationIncludeHydratorService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionLocaleResolverService;
-use App\Support\Api\PublicApiIncludeParser;
-use App\Support\Api\PublicItemSortParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -40,7 +40,7 @@ class CollectionItemController extends Controller
         private BatchCollectionItemsService $batchCollectionItemsService,
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private PublicApiResponseCacheService $responseCache,
-        private PublicItemSortParser $sortParser,
+        private PublicItemSortParserService $sortParser,
     ) {}
 
     public function index(Request $request, string $slug): JsonResponse
@@ -79,7 +79,7 @@ class CollectionItemController extends Controller
             'sort' => $this->sortParser->cacheKey($sortKeys),
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
-            'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
+            'include' => app(PublicApiIncludeParserService::class)->parse($request->query('include')),
             'role_id' => $roleId,
             // File field expansion depends on file grants, not only role_id.
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
@@ -109,7 +109,7 @@ class CollectionItemController extends Controller
 
             $paginator = $query->paginate($perPage, ['*'], 'page', $page);
             $pageItems = $paginator->getCollection();
-            $include = app(PublicApiIncludeParser::class)->parse($request->query('include'));
+            $include = app(PublicApiIncludeParserService::class)->parse($request->query('include'));
             if ($include !== []) {
                 app(RelationIncludeHydratorService::class)->prewarm($pageItems, $collection, $include, $request);
             }
@@ -142,7 +142,7 @@ class CollectionItemController extends Controller
         $hash = $this->responseCache->hash([
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
-            'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
+            'include' => app(PublicApiIncludeParserService::class)->parse($request->query('include')),
             'role_id' => $roleId,
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
             ...$access->responseCacheScopeFactors(),

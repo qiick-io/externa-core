@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\ApiKey;
+use App\Services\Api\PublicApiOriginService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Api\PublicApiOrigin;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +23,7 @@ class EnforcePublicApiOriginMiddleware
 
         $originHeader = $request->headers->get('Origin');
         if (is_string($originHeader) && $originHeader !== '') {
-            $origin = PublicApiOrigin::normalize($originHeader);
+            $origin = PublicApiOriginService::normalize($originHeader);
             if ($origin === null || ! in_array($origin, $allowlist, true)) {
                 return response()->json(['message' => 'Origin not allowed.'], 403);
             }

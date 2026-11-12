@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Support\Api;
+declare(strict_types=1);
+
+namespace App\Services\Api;
 
 /**
  * Parse Public REST `?include=` CSV into unique case-sensitive tokens.
  */
-final class PublicApiIncludeParser
+final class PublicApiIncludeParserService
 {
     public const TOKEN_FILES = 'files';
 

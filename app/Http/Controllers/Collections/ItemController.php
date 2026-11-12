@@ -39,8 +39,8 @@ use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Collections\LivePreviewAsOfResolverService;
 use App\Services\Collections\LivePreviewUnsavedDraftService;
 use App\Services\Collections\LivePreviewUrlBuilderService;
+use App\Services\Http\SafeReturnUrlService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Http\SafeReturnUrl;
 use App\Traits\AssertsItemBelongsToCollectionTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -739,7 +739,7 @@ class ItemController extends Controller
         }
 
         if ($action === 'stay') {
-            $return = SafeReturnUrl::from(request()->input('return'));
+            $return = SafeReturnUrlService::from(request()->input('return'));
             if ($return !== null) {
                 return redirect()->to($return)->with('success', $success);
             }

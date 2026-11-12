@@ -11,8 +11,8 @@ use App\Services\Chat\ChatService;
 use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Services\Collections\UniqueCollectionSlugGeneratorService;
 use App\Services\GitExport\GitExportRepositoryService;
+use App\Services\Health\ReadinessChecksService;
 use App\Services\Search\MeilisearchClientService;
-use App\Support\Health\ReadinessChecks;
 
 /**
  * Boolean helpers renamed in #366 keep their is/has/can prefix.
@@ -38,5 +38,5 @@ test('boolean helpers renamed in #366 keep their prefixed names', function (stri
     [GitExportRepositoryService::class, 'isEnabled', 'enabled'],
     [MeilisearchClientService::class, 'isEnabled', 'enabled'],
     [UniqueCollectionSlugGeneratorService::class, 'isAvailable', 'available'],
-    [ReadinessChecks::class, 'isRedisRequired', 'redisRequired'],
+    [ReadinessChecksService::class, 'isRedisRequired', 'redisRequired'],
 ]);

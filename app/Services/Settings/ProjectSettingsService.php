@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Settings;
 
 use App\Data\Deploy\DeployHookData;
+use App\Services\Api\PublicApiOriginService;
 use App\Services\Collections\ContentLocaleCatalogService;
 use App\Services\Settings\Project\ProjectApiSettingsService;
 use App\Services\Settings\Project\ProjectContentSettingsService;
@@ -17,7 +18,6 @@ use App\Services\Uploads\ForbiddenUploadExtensionService;
 use App\Services\Uploads\UploadAllowlistService;
 use App\Services\Uploads\UploadSizeLimiterService;
 use App\Services\Webhooks\OutboundWebhookCatalogService;
-use App\Support\Api\PublicApiOrigin;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rules\Password;
@@ -1012,7 +1012,7 @@ class ProjectSettingsService
             if (! is_string($entry)) {
                 continue;
             }
-            $origin = PublicApiOrigin::normalize($entry);
+            $origin = PublicApiOriginService::normalize($entry);
             if ($origin === null || in_array($origin, $normalized, true)) {
                 continue;
             }

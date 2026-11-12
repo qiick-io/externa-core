@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Api;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -12,7 +13,6 @@ use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +35,7 @@ class CollectionPermissionEnforcerService
     public function resolveRules(Request $request, Collection $collection): ?array
     {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($access instanceof ApiAccessData) {
             $keyRules = $this->guard->rulesFor($access->roleId(), (int) $collection->id);
             $owner = $access->apiKey?->owner;
             if (! $owner instanceof User) {
@@ -126,7 +126,7 @@ class CollectionPermissionEnforcerService
         CollectionPermissionActionEnum $action,
     ): bool {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($access instanceof ApiAccessData) {
             if (! $this->guard->allows($access->roleId(), (int) $collection->id, $action)) {
                 return false;
             }
@@ -327,7 +327,7 @@ class CollectionPermissionEnforcerService
      */
     private function isAclScopedActor(Request $request): bool
     {
-        if ($request->attributes->get('apiAccess') instanceof ApiAccess) {
+        if ($request->attributes->get('apiAccess') instanceof ApiAccessData) {
             return true;
         }
 

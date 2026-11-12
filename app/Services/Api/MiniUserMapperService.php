@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Support\Api;
+declare(strict_types=1);
+
+namespace App\Services\Api;
 
 use App\Models\User;
 
 /**
  * Compact public-API user payload shared by item resources and relation hydration.
  */
-final class MiniUserMapper
+final class MiniUserMapperService
 {
     /**
      * @return array{id: int, name: string, email: string|null}|null
