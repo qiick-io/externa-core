@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in structured logging: `LOG_CHANNEL=structured` (or `structured` in `LOG_STACK`) writes one JSON object per line to stderr with `request_id`, `user_id` / `api_key_id`, route, queued job class and attempt, environment and app version, and redacts authorization headers, cookies, tokens, passwords and secrets. Every response now carries an `X-Request-Id` header (a valid incoming id is kept, otherwise one is generated); the default `stack` output is unchanged (#209).
+
 ### Security
 
 - AI tool approvals: two concurrent approve or reject clicks can no longer both decide (and run) the same call; the decision is one conditional update (#441).

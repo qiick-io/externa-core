@@ -1,5 +1,8 @@
 <?php
 
+use App\Support\Logging\AddStructuredLogContextProcessor;
+use App\Support\Logging\RedactSensitiveLogDataProcessor;
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -103,6 +106,31 @@ return [
             ],
             'formatter' => env('LOG_STDERR_FORMATTER'),
             'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        /*
+         * Opt-in JSON logs for containers (#209): one JSON object per line on stderr, with
+         * request id, actor, route, job, environment and version in `extra`, and secrets
+         * redacted. Select it with LOG_CHANNEL=structured or add it to LOG_STACK.
+         */
+        'structured' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'debug'),
+            'handler' => StreamHandler::class,
+            'handler_with' => [
+                'stream' => 'php://stderr',
+            ],
+            'formatter' => JsonFormatter::class,
+            // Stack traces stay inside the JSON string, so a line is still one record.
+            'formatter_with' => [
+                'includeStacktraces' => true,
+            ],
+            // Run in this order: add context, redact it, then fill message placeholders.
+            'processors' => [
+                AddStructuredLogContextProcessor::class,
+                RedactSensitiveLogDataProcessor::class,
+                PsrLogMessageProcessor::class,
+            ],
         ],
 
         'syslog' => [
