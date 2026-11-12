@@ -226,19 +226,6 @@ class ProjectSettingsService
         return self::encryptSecret($plain);
     }
 
-    /**
-     * @return list<string>
-     */
-    public function publicApiAllowedOrigins(): array
-    {
-        return $this->api()->publicApiAllowedOrigins();
-    }
-
-    public function forgetPublicApiAllowedOriginsCache(): void
-    {
-        $this->api()->forgetPublicApiAllowedOriginsCache();
-    }
-
     public function previewUrlDefault(): ?string
     {
         return $this->content()->previewUrlDefault();
