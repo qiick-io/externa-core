@@ -1677,7 +1677,9 @@
                 "key": "Key",
                 "nameHint": "Translated label shown in the admin UI and item form.",
                 "note": "Note",
-                "noteHint": "Optional helper text shown under the field control in the item form."
+                "noteHint": "Optional helper text shown under the field control in the item form.",
+                "keyDuplicate": "A field with this key already exists in this collection.",
+                "updateSubtitle": "Update settings for {{name}}."
             },
             "blocks": {
                 "blockTypes": "Block types",
@@ -1744,7 +1746,8 @@
                 "description": "Read-only view of field data after collection ACL and file access rules (including <code>access: denied</code>). Not a visual editor.",
                 "role": "Role",
                 "chooseRole": "Choose role",
-                "notReadable": "Not readable for this role."
+                "notReadable": "Not readable for this role.",
+                "failed": "Preview failed."
             },
             "compare": {
                 "title": "Compare revision",
