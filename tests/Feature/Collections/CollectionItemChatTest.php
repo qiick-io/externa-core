@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Events\ItemChatMessageCreatedEvent;
 use App\Events\ItemChatMessageDeletedEvent;
 use App\Events\ItemChatMessageUpdatedEvent;
+use App\Events\ItemChatReactionToggledEvent;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItemChatAttachment;
@@ -478,6 +479,29 @@ test('pin toggles pinned_at and lists the message in pinned', function () {
     $this->putJson(route('collections.items.chat.pin', [$collection, $item, $id]), [
         'pinned' => false,
     ])->assertOk()->assertJsonPath('message.is_pinned', false);
+});
+
+test('reaction toggle broadcasts to every connection except the requesting tab', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
+    $this->actingAs($user);
+
+    $id = $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
+        'body' => 'react from one tab',
+    ])->assertCreated()->json('message.id');
+
+    Event::fake([ItemChatReactionToggledEvent::class]);
+
+    $this->postJson(
+        route('collections.items.chat.react', [$collection, $item, $id]),
+        ['emoji' => '👍'],
+        ['X-Socket-ID' => '1234.5678'],
+    )->assertOk();
+
+    Event::assertDispatched(
+        ItemChatReactionToggledEvent::class,
+        fn (ItemChatReactionToggledEvent $event): bool => $event->socket === '1234.5678'
+            && $event->userId === $user->id,
+    );
 });
 
 test('reaction toggle is unique per user and emoji', function () {
