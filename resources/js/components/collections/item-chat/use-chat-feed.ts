@@ -52,6 +52,15 @@ export function useChatFeed({
 }: UseChatFeedOptions) {
     const { t } = useTranslation();
     const [liveChatId, setLiveChatId] = useState<string | null>(chatId);
+    const [syncedChatId, setSyncedChatId] = useState(chatId);
+
+    // A new `chatId` prop replaces the live id during render (React's "adjust state
+    // on prop change" pattern); `load` may still set it when the server creates the chat.
+    if (syncedChatId !== chatId) {
+        setSyncedChatId(chatId);
+        setLiveChatId(chatId);
+    }
+
     const scope = useMemo<ChatScope | null>(() => {
         if (liveChatId) {
             return { mode: 'hub', chatId: liveChatId };
@@ -214,11 +223,6 @@ export function useChatFeed({
             olderAnchorIdRef,
         ],
     );
-
-    useEffect(() => {
-        // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
-        setLiveChatId(chatId);
-    }, [chatId]);
 
     // Runs with the latest `load`; the effect below re-runs only when the thread changes.
     const loadOpenedThread = useEffectEvent((): void => {

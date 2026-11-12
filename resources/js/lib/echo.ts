@@ -42,6 +42,16 @@ export function isRealtimeEnabled(
 }
 
 /**
+ * `X-Socket-ID` header for a request whose broadcast should skip this tab: the server
+ * sends it with `broadcast(...)->toOthers()`. Empty until Echo has a connection.
+ */
+export function echoSocketIdHeaders(): Record<string, string> {
+    const socketId = echoInstance?.socketId();
+
+    return socketId ? { 'X-Socket-ID': socketId } : {};
+}
+
+/**
  * Lazily configure Laravel Echo for Reverb. No-op when realtime is disabled.
  */
 export function ensureEcho(realtimeEnabled: boolean): EchoInstance | null {

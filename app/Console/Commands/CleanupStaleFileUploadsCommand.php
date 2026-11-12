@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
-use App\Services\FileService;
+use App\Services\FileChunkUploadService;
 use Illuminate\Console\Command;
 
 /**
@@ -22,11 +24,11 @@ class CleanupStaleFileUploadsCommand extends Command
      */
 
     /**
-     * Remove expired partial uploads via FileService.
+     * Remove expired partial uploads via FileChunkUploadService.
      */
-    public function handle(FileService $fileService): int
+    public function handle(FileChunkUploadService $chunkUploads): int
     {
-        $cleanedCount = $fileService->cleanupStaleUploads();
+        $cleanedCount = $chunkUploads->cleanupStaleUploads();
 
         $this->info(sprintf('Cleaned up %d stale file upload(s).', $cleanedCount));
 

@@ -118,7 +118,7 @@ export function useChatComposer({
 
     useEffect(() => {
         if (!open) {
-            // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
+            // oxlint-disable-next-line react/set-state-in-effect -- clearAttachBatch also bumps the upload generation ref and revokes preview object URLs; those side effects must not run during render (#726)
             clearAttachBatch();
             setComposerDragOver(false);
 
@@ -131,23 +131,29 @@ export function useChatComposer({
         setReplyTo(null);
     }, [open, scopeKey, clearAttachBatch]);
 
-    useEffect(() => {
-        // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
+    const [highlightedHits, setHighlightedHits] = useState(mentionHits);
+    const [wereMentionsEnabled, setWereMentionsEnabled] =
+        useState(mentionsEnabled);
+
+    // New suggestions start on the first one, during render (React's "adjust state
+    // on prop change" pattern).
+    if (highlightedHits !== mentionHits) {
+        setHighlightedHits(mentionHits);
         setMentionHighlight(0);
-    }, [mentionHits]);
+    }
 
-    useEffect(() => {
-        if (mentionsEnabled) {
-            return;
+    // Turning mentions off closes the picker and forgets the picked mentions.
+    if (wereMentionsEnabled !== mentionsEnabled) {
+        setWereMentionsEnabled(mentionsEnabled);
+
+        if (!mentionsEnabled) {
+            setMentionOpen(false);
+            setMentionStart(null);
+            setMentionHits([]);
+            setMentionedUsers([]);
+            setMentionedCollections([]);
         }
-
-        // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
-        setMentionOpen(false);
-        setMentionStart(null);
-        setMentionHits([]);
-        setMentionedUsers([]);
-        setMentionedCollections([]);
-    }, [mentionsEnabled]);
+    }
 
     const composerTarget = (): {
         el: HTMLTextAreaElement | null;

@@ -22,7 +22,9 @@ class ToggleChatReactionAction
     ) {}
 
     /**
-     * Broadcasts `ItemChatReactionToggledEvent`.
+     * Broadcasts `ItemChatReactionToggledEvent` to the other connections only: the
+     * tab that sent `X-Socket-ID` has already applied the toggle, while the same
+     * user's other tabs still receive it.
      *
      * @return array{message_id: int, emoji: string, added: bool, reactions: list<array<string, mixed>>}
      *
@@ -53,14 +55,14 @@ class ToggleChatReactionAction
             ]);
         }
 
-        event(new ItemChatReactionToggledEvent(
+        broadcast(new ItemChatReactionToggledEvent(
             $chat->id,
             (int) $message->id,
             (int) $user->id,
             $this->serializer->displayName($user),
             $emoji,
             $added,
-        ));
+        ))->toOthers();
 
         $message->load($this->serializer->messageRelations());
 
