@@ -1027,7 +1027,10 @@
             "approved": "Approvato",
             "rejected": "Rifiutato",
             "approveBeforePublish": "Approva prima di pubblicare",
-            "actions": "Azioni"
+            "actions": "Azioni",
+            "publishedReadOnly": "La versione pubblicata è di sola lettura. Passa alla bozza per modificare, poi pubblica.",
+            "revisionNeedsDraft": "Passa alla bozza prima di applicare una revisione.",
+            "revisionApplied": "Revisione applicata al modulo. Salva per mantenerla."
         },
         "itemPresence": {
             "viewing": "{{count}} altro/i editor in visualizzazione",
