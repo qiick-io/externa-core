@@ -102,7 +102,7 @@ class UpgradeCommand extends Command
 
         $this->newLine();
         $this->info('Automated subset done. Smoke: login + open one collection.');
-        $this->line('Full checklist: https://docs.externa.qiick.io/docs/upgrade');
+        $this->line('Full checklist: https://docs.qiick.io/externa/upgrade');
 
         return self::SUCCESS;
     }

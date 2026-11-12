@@ -241,7 +241,7 @@ php artisan test --testsuite=Arch
 ## Externa rules
 
 - This repo is the UI reference for every qiick app: a UI pattern lands here (or in the `@qiick` registry) first, and the other apps copy it.
-- Self-hosted distribution: externa-core is the reference implementation (`externa:install`, `externa:upgrade`, Packagist, GHCR, docs.externa.qiick.io installation and upgrade pages).
+- Self-hosted distribution: externa-core is the reference implementation (`externa:install`, `externa:upgrade`, Packagist, GHCR, docs.qiick.io/externa installation and upgrade pages).
 - Architecture exemptions (strict types deferred, starter-kit files) are in `tests/Arch/naming-architecture.php`; the #366 boolean renames are pinned by `tests/Arch/BooleanRenameArchitectureTest.php`.
 
 ## graphify

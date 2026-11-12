@@ -371,7 +371,7 @@ export default function AdminApiKeysIndex({
                                         {t('emptyState.apiKeys.cta')}
                                     </Button>
                                 }
-                                docsHref="https://docs.externa.qiick.io"
+                                docsHref="https://docs.qiick.io/externa"
                                 docsLabel={t('common.learnMore')}
                                 compact
                             />
