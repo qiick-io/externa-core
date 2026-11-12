@@ -12,7 +12,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocaleMiddleware;
 use App\Http\Middleware\SetSecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
-use App\Support\Auth\HomePath;
+use App\Services\Auth\HomePathService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->redirectGuestsTo('/login');
-        $middleware->redirectUsersTo(fn (Request $request) => HomePath::for($request->user()));
+        $middleware->redirectUsersTo(fn (Request $request) => HomePathService::for($request->user()));
 
         // Before HandleCors so project allowlist can override cors.allowed_origins
         $middleware->prepend(ConfigurePublicApiCorsMiddleware::class);

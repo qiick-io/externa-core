@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Support\Http;
+declare(strict_types=1);
+
+namespace App\Services\Http;
 
 /**
  * Same-origin relative /collections/... return paths (mirrors FE safe-return-url).
  */
-final class SafeReturnUrl
+final class SafeReturnUrlService
 {
     public static function from(mixed $candidate): ?string
     {

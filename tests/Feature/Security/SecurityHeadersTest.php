@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Middleware\SetSecurityHeadersMiddleware;
-use App\Support\Http\UserContentResponse;
+use App\Http\Responses\UserContentResponse;
 use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 

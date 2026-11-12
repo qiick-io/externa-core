@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Http;
+declare(strict_types=1);
+
+namespace App\Services\Http;
 
 /**
  * Map LM Studio Responses SSE event names onto the OpenAI shapes laravel/ai parses.
@@ -10,7 +12,7 @@ namespace App\Support\Http;
  * consumed silently, the browser SSE stays idle, and Herd nginx closes the
  * upstream after the default 60s fastcgi_read_timeout ("network error").
  */
-final class LmStudioSseNormalizer
+final class LmStudioSseNormalizerService
 {
     /**
      * Rewrite LM Studio reasoning event type names in an SSE byte chunk.

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Api;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\FilePermissionActionEnum;
 use App\Models\ApiKey;
 use App\Models\File;
 use App\Models\User;
 use App\Policies\FilePolicy;
 use App\Services\Authorization\EffectivePermissionResolverService;
-use App\Support\Api\ApiAccess;
 
 /**
  * Files API access for an API actor (public role or API key): role file ACL ∩ API key scopes ∩
@@ -28,7 +28,7 @@ final class FileAccessEnforcerService
         private EffectivePermissionResolverService $permissionResolver,
     ) {}
 
-    public function allowsFileAction(ApiAccess $access, FilePermissionActionEnum $action): bool
+    public function allowsFileAction(ApiAccessData $access, FilePermissionActionEnum $action): bool
     {
         if (! $this->guard->allows($access->roleId(), $action)) {
             return false;
@@ -52,7 +52,7 @@ final class FileAccessEnforcerService
      * Read access to one file: `read`, plus `read_private` (role and owner) when the file is
      * effectively private.
      */
-    public function allowsFileRead(ApiAccess $access, File $file): bool
+    public function allowsFileRead(ApiAccessData $access, File $file): bool
     {
         if (! $this->allowsFileAction($access, FilePermissionActionEnum::Read)) {
             return false;

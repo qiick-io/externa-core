@@ -2,15 +2,15 @@
 
 namespace App\Http\Resources;
 
+use App\Data\Api\ApiAccessData;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FileFieldExpanderService;
+use App\Services\Api\MiniUserMapperService;
+use App\Services\Api\PublicApiIncludeParserService;
 use App\Services\Api\RelationIncludeHydratorService;
 use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Collections\CollectionLocaleResolverService;
-use App\Support\Api\ApiAccess;
-use App\Support\Api\MiniUserMapper;
-use App\Support\Api\PublicApiIncludeParser;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -42,22 +42,22 @@ class CollectionItemResource extends JsonResource
         $data = app(CollectionItemDataAccessorService::class)->flattenForLocale($item, $locale, $includeAll);
 
         $isPublicV1 = $request->is('api/v1/*');
-        $includeParser = app(PublicApiIncludeParser::class);
+        $includeParser = app(PublicApiIncludeParserService::class);
         $include = $isPublicV1 ? $includeParser->parse($request->query('include')) : [];
 
         // Public REST v1: slim by default; GraphQL / other api/* keep always-expand-files.
         $wantsFiles = $isPublicV1
-            ? $includeParser->has($include, PublicApiIncludeParser::TOKEN_FILES)
+            ? $includeParser->has($include, PublicApiIncludeParserService::TOKEN_FILES)
             : $request->is('api/*');
         $wantsUsers = $isPublicV1
-            ? $includeParser->has($include, PublicApiIncludeParser::TOKEN_USERS)
+            ? $includeParser->has($include, PublicApiIncludeParserService::TOKEN_USERS)
             : true;
 
         if ($wantsFiles && $item->collection !== null) {
             $access = $request->attributes->get('apiAccess');
-            if (! $access instanceof ApiAccess) {
+            if (! $access instanceof ApiAccessData) {
                 try {
-                    $access = app(ApiAccess::class);
+                    $access = app(ApiAccessData::class);
                 } catch (\Throwable) {
                     $access = null;
                 }
@@ -88,8 +88,8 @@ class CollectionItemResource extends JsonResource
             'published_at' => $item->published_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
-            'user_created' => $wantsUsers ? app(MiniUserMapper::class)->toArray($item->userCreated) : null,
-            'user_updated' => $wantsUsers ? app(MiniUserMapper::class)->toArray($item->userUpdated) : null,
+            'user_created' => $wantsUsers ? app(MiniUserMapperService::class)->toArray($item->userCreated) : null,
+            'user_updated' => $wantsUsers ? app(MiniUserMapperService::class)->toArray($item->userUpdated) : null,
         ];
     }
 }

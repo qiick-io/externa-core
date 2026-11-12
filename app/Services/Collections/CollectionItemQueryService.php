@@ -8,9 +8,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\PublicItemSortParserService;
 use App\Services\Validation\FilterQueryLimitsService;
 use App\Services\Validation\StringLimitsService;
-use App\Support\Api\PublicItemSortParser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -45,7 +45,7 @@ class CollectionItemQueryService
 
     /**
      * Public/API filterable system columns on `collections_items`
-     * (same allowlist as {@see PublicItemSortParser::SYSTEM_COLUMNS}).
+     * (same allowlist as {@see PublicItemSortParserService::SYSTEM_COLUMNS}).
      *
      * @var list<string>
      */
@@ -891,7 +891,7 @@ class CollectionItemQueryService
             }
 
             $column = $key['name'];
-            // raw-sql: reviewed — column from allowlist only (PublicItemSortParser::SYSTEM_COLUMNS)
+            // raw-sql: reviewed — column from allowlist only (PublicItemSortParserService::SYSTEM_COLUMNS)
             $query->orderByRaw($column.' is null asc')
                 ->orderBy($column, $direction);
         }

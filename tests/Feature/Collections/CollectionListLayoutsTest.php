@@ -8,8 +8,8 @@ use App\Models\User;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Http\SafeReturnUrlService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Http\SafeReturnUrl;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
@@ -17,11 +17,11 @@ beforeEach(function () {
 });
 
 test('safe return url accepts only relative collections paths', function () {
-    expect(SafeReturnUrl::from('/collections/1/items'))->toBe('/collections/1/items');
-    expect(SafeReturnUrl::from('/collections/1/items?layout=kanban'))->toBe('/collections/1/items?layout=kanban');
-    expect(SafeReturnUrl::from('https://evil.test/collections/1'))->toBeNull();
-    expect(SafeReturnUrl::from('/admin/users'))->toBeNull();
-    expect(SafeReturnUrl::from('/collections/../etc/passwd'))->toBeNull();
+    expect(SafeReturnUrlService::from('/collections/1/items'))->toBe('/collections/1/items');
+    expect(SafeReturnUrlService::from('/collections/1/items?layout=kanban'))->toBe('/collections/1/items?layout=kanban');
+    expect(SafeReturnUrlService::from('https://evil.test/collections/1'))->toBeNull();
+    expect(SafeReturnUrlService::from('/admin/users'))->toBeNull();
+    expect(SafeReturnUrlService::from('/collections/../etc/passwd'))->toBeNull();
 });
 
 test('put list-columns persists layout and field prefs', function () {

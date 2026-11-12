@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\PermissionEnum;
@@ -10,7 +11,6 @@ use App\Models\ApiKey;
 use App\Models\File;
 use App\Models\Role;
 use App\Models\User;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Gate;
@@ -26,7 +26,7 @@ beforeEach(function (): void {
  */
 function actAsFileApiActor(Role $role, ?ApiKey $apiKey = null): void
 {
-    request()->attributes->set('apiAccess', new ApiAccess(
+    request()->attributes->set('apiAccess', new ApiAccessData(
         actor: $apiKey === null ? 'public' : 'api_key',
         role: $role,
         apiKey: $apiKey,

@@ -11,13 +11,13 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Auth\OidcController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
-use App\Support\Auth\HomePath;
+use App\Services\Auth\HomePathService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
-        ? redirect(HomePath::for(auth()->user()))
+        ? redirect(HomePathService::for(auth()->user()))
         : redirect()->route('login');
 })->name('home');
 

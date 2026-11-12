@@ -1,11 +1,11 @@
 <?php
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\Response;
@@ -49,7 +49,7 @@ test('model policies decide for super admins too', function () {
 });
 
 test('super admin does not bypass the gate for an api actor', function () {
-    request()->attributes->set('apiAccess', new ApiAccess('api_key', Role::factory()->create()));
+    request()->attributes->set('apiAccess', new ApiAccessData('api_key', Role::factory()->create()));
 
     expect(Gate::forUser($this->superAdmin)->allows('non-existent-ability'))->toBeFalse();
 });

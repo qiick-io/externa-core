@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Http;
+declare(strict_types=1);
+
+namespace App\Services\Http;
 
 use Psr\Http\Message\StreamInterface;
 use RuntimeException;
@@ -9,7 +11,7 @@ use RuntimeException;
  * PSR-7 stream backed by curl_multi + WRITEFUNCTION so SSE bytes arrive while
  * the consumer reads — works under Herd PHP-FPM where Guzzle stream:true is empty.
  */
-class CurlMultiReadableStream implements StreamInterface
+class CurlMultiReadableStreamService implements StreamInterface
 {
     private string $buffer = '';
 
@@ -247,7 +249,7 @@ class CurlMultiReadableStream implements StreamInterface
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_WRITEFUNCTION => function ($curlHandle, string $data): int {
                 // Normalize before buffer so laravel/ai sees OpenAI-shaped reasoning events.
-                $this->buffer .= LmStudioSseNormalizer::normalize($data);
+                $this->buffer .= LmStudioSseNormalizerService::normalize($data);
 
                 return strlen($data);
             },

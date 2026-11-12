@@ -2,15 +2,13 @@
 
 namespace App\Services\Api;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Collections\CollectionLocaleResolverService;
-use App\Support\Api\ApiAccess;
-use App\Support\Api\MiniUserMapper;
-use App\Support\Api\PublicApiIncludeParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -31,8 +29,8 @@ class RelationIncludeHydratorService
         private CollectionLocaleResolverService $localeResolver,
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private FileFieldExpanderService $fileFieldExpander,
-        private PublicApiIncludeParser $includeParser,
-        private MiniUserMapper $miniUserMapper,
+        private PublicApiIncludeParserService $includeParser,
+        private MiniUserMapperService $miniUserMapper,
     ) {}
 
     /**
@@ -87,8 +85,8 @@ class RelationIncludeHydratorService
         $idsByCollection = $this->collectRelatedIds($data, $relationFields);
         $itemsById = $this->batchLoadItems($idsByCollection, $request);
 
-        $wantsFiles = $this->includeParser->has($include, PublicApiIncludeParser::TOKEN_FILES);
-        $wantsUsers = $this->includeParser->has($include, PublicApiIncludeParser::TOKEN_USERS);
+        $wantsFiles = $this->includeParser->has($include, PublicApiIncludeParserService::TOKEN_FILES);
+        $wantsUsers = $this->includeParser->has($include, PublicApiIncludeParserService::TOKEN_USERS);
         $access = $this->resolveAccess($request);
         $locale = $this->resolveLocale($request);
         $includeAll = $request->boolean('include_all_translations');
@@ -256,7 +254,7 @@ class RelationIncludeHydratorService
         SupportCollection $itemsById,
         array &$serializedCache,
         Request $request,
-        ?ApiAccess $access,
+        ?ApiAccessData $access,
         string $locale,
         bool $includeAll,
         bool $wantsFiles,
@@ -381,7 +379,7 @@ class RelationIncludeHydratorService
         CollectionItem $item,
         array &$serializedCache,
         Request $request,
-        ?ApiAccess $access,
+        ?ApiAccessData $access,
         string $locale,
         bool $includeAll,
         bool $wantsFiles,
@@ -533,15 +531,15 @@ class RelationIncludeHydratorService
             : FieldTypeEnum::tryFrom((string) $field->type);
     }
 
-    private function resolveAccess(Request $request): ?ApiAccess
+    private function resolveAccess(Request $request): ?ApiAccessData
     {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($access instanceof ApiAccessData) {
             return $access;
         }
 
         try {
-            return app(ApiAccess::class);
+            return app(ApiAccessData::class);
         } catch (\Throwable $exception) {
             report($exception);
 

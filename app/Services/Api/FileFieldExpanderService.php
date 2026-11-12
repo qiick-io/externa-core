@@ -2,13 +2,13 @@
 
 namespace App\Services\Api;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\File;
 use App\Services\Collections\BlocksFieldSchemaService;
 use App\Services\Files\FileTransformUrlBuilderService;
-use App\Support\Api\ApiAccess;
 
 /**
  * Expand image/file/files field values to public file payloads on API responses.
@@ -28,7 +28,7 @@ class FileFieldExpanderService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public function expand(array $data, Collection $collection, ?ApiAccess $access): array
+    public function expand(array $data, Collection $collection, ?ApiAccessData $access): array
     {
         $collection->loadMissing('fields');
 
@@ -144,7 +144,7 @@ class FileFieldExpanderService
     /**
      * @param  \Illuminate\Support\Collection<int, File>  $filesById
      */
-    private function expandBlocks(mixed $rawBlocks, CollectionField $blocksField, $filesById, ?int $roleId, ?ApiAccess $access): mixed
+    private function expandBlocks(mixed $rawBlocks, CollectionField $blocksField, $filesById, ?int $roleId, ?ApiAccessData $access): mixed
     {
         if (! is_array($rawBlocks)) {
             return [];
@@ -290,7 +290,7 @@ class FileFieldExpanderService
     /**
      * @param  \Illuminate\Support\Collection<int, File>  $filesById
      */
-    private function expandNestedFileValue(FieldTypeEnum $type, mixed $value, $filesById, ?int $roleId, ?ApiAccess $access): mixed
+    private function expandNestedFileValue(FieldTypeEnum $type, mixed $value, $filesById, ?int $roleId, ?ApiAccessData $access): mixed
     {
         if ($type === FieldTypeEnum::Files && is_array($value)) {
             $expanded = [];
@@ -412,7 +412,7 @@ class FileFieldExpanderService
     /**
      * @return array<string, mixed>|int|null Bare int when API key files_scope blocks read.
      */
-    private function expandOne(int $id, mixed $file, ?int $roleId, ?ApiAccess $access): array|int|null
+    private function expandOne(int $id, mixed $file, ?int $roleId, ?ApiAccessData $access): array|int|null
     {
         if (! $file instanceof File || $file->trashed() || ! $file->isFile()) {
             return null;

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
+use App\Http\Responses\UserContentResponse;
 use App\Models\Chat;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
 use App\Policies\CollectionItemChatAttachmentPolicy;
-use App\Support\Http\UserContentResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;

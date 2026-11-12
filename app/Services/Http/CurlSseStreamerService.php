@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Http;
+declare(strict_types=1);
+
+namespace App\Services\Http;
 
 use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -11,7 +13,7 @@ use Psr\Http\Message\RequestInterface;
  * Progressive SSE via curl_multi. Herd FPM + Guzzle stream:true returns empty bodies;
  * buffering works but tokens arrive in one burst. This streams bytes as LM Studio emits them.
  */
-final class CurlSseStreamer
+final class CurlSseStreamerService
 {
     /**
      * @return PromiseInterface<Response>
@@ -40,7 +42,7 @@ final class CurlSseStreamer
             $curlOptions[CURLOPT_POSTFIELDS] = $body;
         }
 
-        $stream = new CurlMultiReadableStream($url, $curlOptions);
+        $stream = new CurlMultiReadableStreamService($url, $curlOptions);
         $statusCode = $stream->statusCode();
 
         return Create::promiseFor(new Response(

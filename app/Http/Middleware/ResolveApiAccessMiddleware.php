@@ -2,17 +2,17 @@
 
 namespace App\Http\Middleware;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
 use App\Models\Role;
-use App\Support\Api\ApiAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Resolve public vs API-key actor for /api/v1 and bind ApiAccess on the container.
+ * Resolve public vs API-key actor for /api/v1 and bind ApiAccessData on the container.
  */
 class ResolveApiAccessMiddleware
 {
@@ -26,13 +26,13 @@ class ResolveApiAccessMiddleware
             $access = $this->resolvePublic();
         }
 
-        app()->instance(ApiAccess::class, $access);
+        app()->instance(ApiAccessData::class, $access);
         $request->attributes->set('apiAccess', $access);
 
         return $next($request);
     }
 
-    private function resolvePublic(): ApiAccess
+    private function resolvePublic(): ApiAccessData
     {
         $role = Role::query()
             ->where('name', RoleEnum::Public->value)
@@ -43,10 +43,10 @@ class ResolveApiAccessMiddleware
             abort(503, __('Public API role is not configured.'));
         }
 
-        return new ApiAccess(actor: 'public', role: $role);
+        return new ApiAccessData(actor: 'public', role: $role);
     }
 
-    private function resolveFromApiKey(Request $request, string $bearer): ApiAccess
+    private function resolveFromApiKey(Request $request, string $bearer): ApiAccessData
     {
         $hash = ApiKey::hashSecret($bearer);
         $apiKey = ApiKey::query()->with(['role', 'owner'])->where('key_hash', $hash)->first();
@@ -89,6 +89,6 @@ class ResolveApiAccessMiddleware
             abort(401, __('API keys cannot use the super-admin role.'));
         }
 
-        return new ApiAccess(actor: 'api_key', role: $role, apiKey: $apiKey);
+        return new ApiAccessData(actor: 'api_key', role: $role, apiKey: $apiKey);
     }
 }
