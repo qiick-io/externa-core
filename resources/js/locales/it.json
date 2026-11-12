@@ -982,6 +982,22 @@
             "copy": "Salva come copia",
             "discard": "Scarta tutte le modifiche"
         },
+        "aiDraft": {
+            "button": "Bozza AI",
+            "title": "Bozza con AI",
+            "description": "Descrivi l'elemento. L'AI propone i valori dei campi di testo; tu li controlli, compili il modulo e salvi come sempre.",
+            "prompt": "Indicazioni",
+            "promptPlaceholder": "es. Una news che annuncia la release di primavera, tono cordiale",
+            "locale": "Lingua",
+            "generate": "Genera",
+            "regenerate": "Genera di nuovo",
+            "preview": "Valori proposti",
+            "empty": "L'AI non ha proposto valori utilizzabili. Prova con indicazioni più dettagliate.",
+            "dropped": "Esclusi (non rispettano le regole del campo)",
+            "apply": "Compila il modulo",
+            "applied": "Bozza inserita nel modulo. Controllala e salva per conservarla.",
+            "error": "Non è stato possibile generare la bozza AI."
+        },
         "itemToolbar": {
             "previewAs": "Anteprima come…",
             "livePreview": "Live Preview",

@@ -69,6 +69,12 @@ enum PermissionEnum: string
      */
     case CanManageAiPrompts = 'ai.prompts.manage';
 
+    /**
+     * Generate AI item drafts in the item editor (#210). Dotted like {@see self::CanManageAiPrompts};
+     * the collection's createItems / updateItems ability is still required on top.
+     */
+    case CanUseAiItemDrafts = 'ai.draft';
+
     case CanShowChat = 'can-show-chat';
     case CanCreateDirectChats = 'can-create-direct-chats';
 

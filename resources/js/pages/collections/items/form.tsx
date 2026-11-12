@@ -33,6 +33,7 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import { ItemAiDraftDialog } from '@/components/collections/item-ai-draft-dialog';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
 import { ItemEditingPresence } from '@/components/collections/item-editing-presence';
 import { DatetimeLocalPicker } from '@/components/collections/item-field-date-input';
@@ -102,6 +103,7 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
+import { draftValuesForForm } from '@/lib/ai-item-draft';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import { formatUserDisplayName } from '@/lib/format';
 import { toDatetimeLocalValue } from '@/lib/format';
@@ -259,6 +261,7 @@ export default function ItemsForm({
     activityLogs: activityLogsProp = null,
     chat_count: chatCountProp = 0,
     livePreviewConfigured = false,
+    canUseAiDrafts = false,
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -276,6 +279,8 @@ export default function ItemsForm({
         | null;
     chat_count?: number;
     livePreviewConfigured?: boolean;
+    /** AI_ITEM_DRAFTS on, `ai.draft` permission and create/update on the collection. */
+    canUseAiDrafts?: boolean;
 }) {
     const { t } = useTranslation();
     const page = usePage();
@@ -965,6 +970,31 @@ export default function ItemsForm({
                                 version="draft"
                             />
                         )}
+                    {canUseAiDrafts && !formReadonly && (
+                        <ItemAiDraftDialog
+                            collectionId={collection.id}
+                            fields={collection.fields ?? []}
+                            locales={locales}
+                            defaultLocale={globalLocale}
+                            onApply={(draft, draftLocale) => {
+                                setRevisionApply({
+                                    nonce: Date.now(),
+                                    values: draftValuesForForm(
+                                        collection.fields ?? [],
+                                        draft,
+                                        draftLocale,
+                                        locales,
+                                        document.getElementById(
+                                            COLLECTION_ITEM_FORM_ID,
+                                        ) as HTMLFormElement | null,
+                                    ),
+                                });
+                                setIsDirty(true);
+                                scheduleDraftSave();
+                                toast.success(t('collections.aiDraft.applied'));
+                            }}
+                        />
+                    )}
                     {!isNew && item !== null && (
                         <HeaderIconButton
                             type="button"
