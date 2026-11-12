@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Ai;
 
 use App\Ai\Agents\ItemDraftWriter;
+use App\Ai\Support\AiActivityLogger;
 use App\Data\Ai\ItemDraftPromptData;
 use App\Data\Ai\ItemDraftResultData;
 use App\Enums\FieldTypeEnum;
@@ -60,8 +61,9 @@ class ItemDraftGeneratorService
     }
 
     /**
-     * Whether the item editor should offer AI drafts: feature on, the dedicated permission, and
-     * the collection's create or update ability (the same checks the endpoint enforces).
+     * Whether the item editor should offer AI drafts: feature on, the base `can-use-ai` and the
+     * dedicated `ai.draft` permissions, and the collection's create or update ability (the same
+     * checks the endpoint enforces; the daily budget is checked per request, not here).
      */
     public function canDraftFor(?User $user, Collection $collection): bool
     {
@@ -69,8 +71,10 @@ class ItemDraftGeneratorService
             return false;
         }
 
-        if (! $this->permissionResolver->hasPermission($user, PermissionEnum::CanUseAiItemDrafts->value)) {
-            return false;
+        foreach ([PermissionEnum::CanUseAi, PermissionEnum::CanUseAiItemDrafts] as $requiredPermission) {
+            if (! $this->permissionResolver->hasPermission($user, $requiredPermission->value)) {
+                return false;
+            }
         }
 
         $gate = Gate::forUser($user);
@@ -81,8 +85,10 @@ class ItemDraftGeneratorService
     /**
      * Prompt the model and return the validated draft.
      *
-     * Side effects: one AI provider call and one `ai` activity log entry (no prompt or generated
-     * content is logged: collections have no privacy flag, so content is treated as private).
+     * Side effects: one AI provider call and one `ai_prompt` activity (surface `item_draft`, with
+     * the token usage), also when the call fails, so every draft counts towards the user's daily
+     * prompt cap and token budget ({@see AiDailyBudgetService}). No prompt text or generated content
+     * is logged: collections have no privacy flag, so content is treated as private.
      *
      * @throws ValidationException when the collection has no field an AI draft can fill
      */
@@ -108,22 +114,28 @@ class ItemDraftGeneratorService
             (int) config('ai.item_drafts.max_tokens', 0),
         );
 
-        $response = $agent->prompt(
-            $this->promptFor($collection, $input),
-            model: is_string($configuredModel) && $configuredModel !== '' ? $configuredModel : null,
-        );
+        $result = null;
+        $usage = null;
 
-        [$acceptedValues, $droppedFields] = $this->validatedDraft(
-            $collection,
-            $draftableFields,
-            $response->toArray(),
-            $input->locale,
-        );
-        $result = new ItemDraftResultData($acceptedValues, $droppedFields, $response->meta->model);
+        try {
+            $response = $agent->prompt(
+                $this->promptFor($collection, $input),
+                model: is_string($configuredModel) && $configuredModel !== '' ? $configuredModel : null,
+            );
+            $usage = $response->usage->toArray();
 
-        $this->logUsage($collection, $input, $result);
+            [$acceptedValues, $droppedFields] = $this->validatedDraft(
+                $collection,
+                $draftableFields,
+                $response->toArray(),
+                $input->locale,
+            );
+            $result = new ItemDraftResultData($acceptedValues, $droppedFields, $response->meta->model);
 
-        return $result;
+            return $result;
+        } finally {
+            $this->logPrompt($collection, $input, $result, $usage);
+        }
     }
 
     /**
@@ -359,23 +371,26 @@ class ItemDraftGeneratorService
     }
 
     /**
-     * Record usage without any prompt text or generated content.
+     * Log the draft as an `ai_prompt` the daily budget counts, without prompt text or content.
+     *
+     * @param  array<string, mixed>|null  $usage
      */
-    private function logUsage(Collection $collection, ItemDraftPromptData $input, ItemDraftResultData $result): void
+    private function logPrompt(Collection $collection, ItemDraftPromptData $input, ?ItemDraftResultData $result, ?array $usage): void
     {
-        activity()
-            ->causedBy($input->user)
-            ->performedOn($collection)
-            ->useLog('ai')
-            ->event('ai_item_draft')
-            ->withProperties([
+        AiActivityLogger::prompt(
+            $input->user,
+            sprintf('Item draft for collection #%d (%s)', $collection->id, $input->locale),
+            extra: [
+                'surface' => AiDailyBudgetService::SURFACE_ITEM_DRAFT,
+                'usage' => $usage,
                 'collection_id' => $collection->id,
                 'locale' => $input->locale,
                 'prompt_length' => mb_strlen($input->prompt),
-                'model' => $result->model,
-                'filled_fields' => array_keys($result->values),
-                'dropped_fields' => array_column($result->droppedFields, 'field'),
-            ])
-            ->log('AI item draft');
+                'model' => $result?->model,
+                'filled_fields' => $result !== null ? array_keys($result->values) : [],
+                'dropped_fields' => $result !== null ? array_column($result->droppedFields, 'field') : [],
+                'failed' => $result === null,
+            ],
+        );
     }
 }

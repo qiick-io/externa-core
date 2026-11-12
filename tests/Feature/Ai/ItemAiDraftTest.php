@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use App\Ai\Agents\ItemDraftWriter;
+use App\Ai\Support\AiActivityLogger;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
+use App\Services\Ai\AiDailyBudgetService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
@@ -49,7 +51,10 @@ beforeEach(function (): void {
     ]);
 });
 
-function itemDraftEditor(array $extraPermissions = [PermissionEnum::CanUseAiItemDrafts->value]): User
+function itemDraftEditor(array $extraPermissions = [
+    PermissionEnum::CanUseAi->value,
+    PermissionEnum::CanUseAiItemDrafts->value,
+]): User
 {
     return grantAiPermissions(User::factory()->create(), [...allCollectionPermissions(), ...$extraPermissions]);
 }
@@ -81,10 +86,20 @@ test('the ai.draft permission is required', function () {
     ItemDraftWriter::assertNeverPrompted();
 });
 
+test('the base can-use-ai permission is required', function () {
+    ItemDraftWriter::fake()->preventStrayPrompts();
+    $this->actingAs(itemDraftEditor([PermissionEnum::CanUseAiItemDrafts->value]));
+
+    postItemDraft($this->collection)->assertForbidden();
+
+    ItemDraftWriter::assertNeverPrompted();
+});
+
 test('the collection create or update ability is required', function () {
     ItemDraftWriter::fake()->preventStrayPrompts();
     $this->actingAs(grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanShowCollections->value,
+        PermissionEnum::CanUseAi->value,
         PermissionEnum::CanUseAiItemDrafts->value,
     ]));
 
@@ -151,10 +166,12 @@ test('a draft persists nothing and logs usage without content', function () {
 
     expect(CollectionItem::query()->count())->toBe(0);
 
-    $activity = Activity::query()->where('event', 'ai_item_draft')->sole();
+    $activity = Activity::query()->where('event', 'ai_prompt')->sole();
 
     expect($activity->causer_id)->toBe($user->id)
-        ->and($activity->subject_id)->toBe($this->collection->id)
+        ->and($activity->properties->get('surface'))->toBe(AiDailyBudgetService::SURFACE_ITEM_DRAFT)
+        ->and($activity->properties->get('collection_id'))->toBe($this->collection->id)
+        ->and($activity->properties->get('usage'))->toBeArray()
         ->and($activity->properties->get('prompt_length'))->toBe(mb_strlen('A short post about the spring release'))
         ->and($activity->properties->get('filled_fields'))->toBe(['title'])
         ->and($activity->properties->toJson())->not->toContain('Spring release')
@@ -201,4 +218,48 @@ test('a provider failure answers 502 without leaking details', function () {
         ->assertStatus(502)
         ->assertJsonMissing(['message' => 'connection refused at http://10.0.0.5'])
         ->assertJsonPath('message', 'The AI draft could not be generated. Try again later.');
+
+    expect(Activity::query()->where('event', 'ai_prompt')->sole()->properties->get('failed'))->toBeTrue();
+});
+
+test('the endpoint answers 429 once the daily prompt cap is reached, before validation', function () {
+    config()->set('ai.daily_prompt_limit', 1);
+    ItemDraftWriter::fake()->preventStrayPrompts();
+    $user = itemDraftEditor();
+    AiActivityLogger::prompt($user, 'Chat prompt');
+    $this->actingAs($user);
+
+    postItemDraft($this->collection, ['prompt' => ''])
+        ->assertTooManyRequests()
+        ->assertJsonPath('message', 'Daily AI prompt limit reached.');
+
+    ItemDraftWriter::assertNeverPrompted();
+});
+
+test('the endpoint answers 429 once the token budget is used up, counting earlier drafts', function () {
+    config()->set('ai.daily_token_budget', 500);
+    ItemDraftWriter::fake()->preventStrayPrompts();
+    $user = itemDraftEditor();
+    AiActivityLogger::prompt($user, 'Item draft for collection #1 (it)', extra: [
+        'surface' => AiDailyBudgetService::SURFACE_ITEM_DRAFT,
+        'usage' => ['input_tokens' => 400, 'output_tokens' => 100],
+    ]);
+    $this->actingAs($user);
+
+    postItemDraft($this->collection)
+        ->assertTooManyRequests()
+        ->assertJsonPath('message', 'Daily AI token budget reached.');
+
+    ItemDraftWriter::assertNeverPrompted();
+});
+
+test('a draft counts towards the daily prompt cap', function () {
+    config()->set('ai.daily_prompt_limit', 1);
+    ItemDraftWriter::fake([['title' => 'Spring release']])->preventStrayPrompts();
+    $this->actingAs(itemDraftEditor());
+
+    postItemDraft($this->collection)->assertOk();
+    postItemDraft($this->collection)->assertTooManyRequests();
+
+    ItemDraftWriter::assertPromptedTimes(1);
 });

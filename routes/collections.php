@@ -75,10 +75,12 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.items.new');
 
-        // Off unless AI_ITEM_DRAFTS (404); createItems / updateItems checked in the form request (#210).
+        // Off unless AI_ITEM_DRAFTS (404); needs can-use-ai AND ai.draft; createItems / updateItems and
+        // the daily AI budget are checked in the form request (#210).
         Route::post('collections/{collection}/items/ai-draft', ItemAiDraftController::class)
             ->middleware([
                 EnsureAiItemDraftsEnabledMiddleware::class,
+                'permission:'.PermissionEnum::CanUseAi->value,
                 'permission:'.PermissionEnum::CanUseAiItemDrafts->value,
                 'throttle:20,1',
             ])
