@@ -1,5 +1,6 @@
+import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { exec } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -710,10 +711,11 @@ export default defineConfig({
             // Herd `secure` → hot URL https://{HERD_SITE}:5173 (not 127.0.0.1).
             detectTls: herdTlsHost,
         }),
-        react({
-            babel: {
-                plugins: ['babel-plugin-react-compiler'],
-            },
+        react(),
+        // @vitejs/plugin-react 6 no longer reads a `babel` option: the React Compiler runs
+        // through @rolldown/plugin-babel with the plugin's preset (as in excubia-app, #751).
+        babel({
+            presets: [reactCompilerPreset()],
         }),
         tailwindcss(),
         wayfinderVite8(
