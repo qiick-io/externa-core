@@ -27,7 +27,7 @@ class UserGroup extends Model
     ];
 
     /**
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, UserGroupUser>
      */
     public function users(): BelongsToMany
     {

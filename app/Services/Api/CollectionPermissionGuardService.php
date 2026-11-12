@@ -31,7 +31,7 @@ class CollectionPermissionGuardService
     /**
      * Normalized rules for a role×collection grant, or null when no grant / unrestricted null rules.
      *
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}|null
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}|null
      */
     public function rulesFor(int $roleId, int $collectionId): ?array
     {
@@ -59,7 +59,7 @@ class CollectionPermissionGuardService
      * Returns null when the user has no collection_permissions grants for the collection
      * (Spatie-only admin access → unrestricted fields/items).
      *
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}|null
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}|null
      */
     public function rulesForUser(?User $user, int $collectionId): ?array
     {

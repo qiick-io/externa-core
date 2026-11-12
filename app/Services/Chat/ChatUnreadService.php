@@ -107,6 +107,8 @@ class ChatUnreadService
      * Mark author + current viewers read, then broadcast totals to anyone whose unread may change.
      *
      * ponytail: totals() per recipient. Ceiling: busy collection notify; upgrade: stored unread counter.
+     *
+     * @param  list<int>  $mentionedIds
      */
     public function afterMessageCreated(
         Chat $chat,

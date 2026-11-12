@@ -63,7 +63,7 @@ class RoleController extends Controller
 
         if ($search !== '') {
             $term = '%'.$search.'%';
-            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = $query->getModel()->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where('name', $like, $term);
         }
 

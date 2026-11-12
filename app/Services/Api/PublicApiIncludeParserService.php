@@ -48,6 +48,9 @@ final class PublicApiIncludeParserService
         return $list;
     }
 
+    /**
+     * @param  list<string>  $include
+     */
     public function has(array $include, string $token): bool
     {
         return in_array($token, $include, true);

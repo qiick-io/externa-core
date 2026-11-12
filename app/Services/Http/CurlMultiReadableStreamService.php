@@ -19,10 +19,10 @@ class CurlMultiReadableStreamService implements StreamInterface
 
     private bool $started = false;
 
-    /** @var \CurlHandle|resource|null */
+    /** @var \CurlHandle|null */
     private mixed $curlHandle = null;
 
-    /** @var \CurlMultiHandle|resource|null */
+    /** @var \CurlMultiHandle|null */
     private mixed $multiHandle = null;
 
     private int $statusCode = 0;

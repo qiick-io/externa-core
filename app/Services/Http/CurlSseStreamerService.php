@@ -16,7 +16,7 @@ use Psr\Http\Message\RequestInterface;
 final class CurlSseStreamerService
 {
     /**
-     * @return PromiseInterface<Response>
+     * @return PromiseInterface Fulfilled with the streaming Response (Guzzle promises are not generic).
      */
     public static function stream(RequestInterface $request): PromiseInterface
     {
