@@ -104,7 +104,7 @@ test('create form preview resolves the unsaved payload like a draft item without
     expect(CollectionItem::query()->count())->toBe(0);
 });
 
-test('create form preview validates like a create save', function () {
+test('create form preview keeps the create save rules except presence', function () {
     $collection = unsavedPreviewCollection();
     $user = unsavedPreviewEditor();
 
@@ -112,14 +112,64 @@ test('create form preview validates like a create save', function () {
         ->postJson(route('collections.items.live-preview-draft.store', $collection), [
             'data' => ['notes' => 'No title'],
         ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('data.title');
+        ->assertOk();
 
     $this->actingAs($user)
         ->postJson(route('collections.items.live-preview-draft.store', $collection), [
             'data' => ['title' => 'Ok', 'unknown_field' => 'x'],
         ])
         ->assertUnprocessable();
+
+    $this->actingAs($user)
+        ->postJson(route('collections.items.live-preview-draft.store', $collection), [
+            'data' => ['title' => ['not', 'a', 'string']],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('data.title');
+
+    // The real save still enforces the required title.
+    $this->actingAs($user)
+        ->post(route('collections.items.store', $collection), ['data' => ['notes' => 'No title']])
+        ->assertSessionHasErrors('data.title');
+
+    expect(CollectionItem::query()->count())->toBe(0);
+});
+
+test('create form preview with empty required fields resolves', function () {
+    $collection = unsavedPreviewCollection();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'code',
+        'type' => FieldTypeEnum::String,
+        'settings' => ['validation_rules' => [
+            ['operator' => 'required'],
+            ['operator' => 'max_length', 'value' => 5],
+        ]],
+    ]);
+    $collection = $collection->fresh(['fields']);
+    $user = unsavedPreviewEditor();
+
+    $response = $this->actingAs($user)
+        ->postJson(route('collections.items.live-preview-draft.store', $collection), [
+            'data' => ['title' => '', 'notes' => 'Only notes so far'],
+        ])
+        ->assertOk();
+
+    $data = getUnsavedPreview(unsavedPreviewToken($response))
+        ->assertOk()
+        ->assertJsonPath('data.data.notes', 'Only notes so far')
+        ->json('data.data');
+
+    expect($data['title'] ?? null)->toBeNull()
+        ->and($data)->not->toHaveKey('code')
+        ->and(CollectionItem::query()->count())->toBe(0);
+
+    $this->actingAs($user)
+        ->postJson(route('collections.items.live-preview-draft.store', $collection), [
+            'data' => ['code' => 'too-long-code'],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('data.code');
 });
 
 test('create form preview needs a configured preview url', function () {

@@ -17,9 +17,10 @@ use Illuminate\Validation\Validator;
 /**
  * Validates the unsaved create-form payload sent to Live Preview before the first save.
  *
- * Authorization and validation match {@see StoreCollectionItemRequest}: the create permission,
- * the collection's create grant, the schema rules and the unknown-key check. A preview must never
- * accept data that saving the same form would reject.
+ * Authorization matches {@see StoreCollectionItemRequest} (create permission and collection create
+ * grant). Validation keeps every type, format, length, option and unknown-key rule of a create save
+ * but drops the presence rules: previewing a half-filled form is the point, so empty required fields
+ * stay absent (or take their default) in the stashed payload. Saving still enforces them.
  */
 class StoreItemLivePreviewDraftRequest extends FormRequest
 {
@@ -44,13 +45,15 @@ class StoreItemLivePreviewDraftRequest extends FormRequest
     }
 
     /**
+     * Create-save rules without presence rules ({@see CollectionItemDataRuleBuilderService::withoutRequiredRules()}).
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
             'locale' => ['nullable', 'string', 'max:16'],
-            ...app(CollectionItemDataRuleBuilderService::class)->rules(
+            ...app(CollectionItemDataRuleBuilderService::class)->withoutRequiredRules()->rules(
                 $this->routeCollection(),
                 true,
                 null,
