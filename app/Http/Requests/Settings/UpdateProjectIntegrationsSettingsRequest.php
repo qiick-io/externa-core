@@ -47,7 +47,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
             foreach (['webhook_url', 'notifier_slack_webhook_url'] as $urlField) {

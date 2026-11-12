@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PendingToolCallStatusEnum;
+use Carbon\CarbonImmutable;
 use Database\Factories\PendingToolCallFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +24,13 @@ use Illuminate\Support\Str;
  * @property PendingToolCallStatusEnum $status
  * @property int|null $requested_by
  * @property int|null $resolved_by
- * @property Carbon $expires_at
- * @property Carbon|null $resolved_at
+ * @property CarbonImmutable $expires_at
+ * @property CarbonImmutable|null $resolved_at
  * @property string|null $result
  * @property string|null $decision_note
  * @property int|null $api_key_id
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 class PendingToolCall extends Model
 {

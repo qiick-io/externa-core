@@ -555,6 +555,9 @@ class CollectionItemDataNormalizerService
         return $out;
     }
 
+    /**
+     * @return list<int>
+     */
     private function normalizeIntegerArray(mixed $value): array
     {
         if (! is_array($value)) {

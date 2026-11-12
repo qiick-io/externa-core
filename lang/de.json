@@ -227,5 +227,6 @@
     "format must be csv or json.": "Das Format muss csv oder json sein.",
     "This collection has no fields an AI draft can fill.": "Diese Sammlung hat keine Felder, die ein KI-Entwurf ausfüllen kann.",
     "The value has the wrong type for this field.": "Der Wert hat für dieses Feld den falschen Typ.",
-    "The AI draft could not be generated. Try again later.": "Der KI-Entwurf konnte nicht erstellt werden. Versuche es später erneut."
+    "The AI draft could not be generated. Try again later.": "Der KI-Entwurf konnte nicht erstellt werden. Versuche es später erneut.",
+    "Deprecated AI model in use: :models. Switch to a recommended model.": "Veraltetes KI-Modell in Verwendung: :models. Wechsle zu einem empfohlenen Modell."
 }

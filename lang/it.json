@@ -227,5 +227,6 @@
     "format must be csv or json.": "Il formato deve essere csv o json.",
     "This collection has no fields an AI draft can fill.": "Questa collezione non ha campi che una bozza AI possa compilare.",
     "The value has the wrong type for this field.": "Il valore ha un tipo non valido per questo campo.",
-    "The AI draft could not be generated. Try again later.": "Non è stato possibile generare la bozza AI. Riprova più tardi."
+    "The AI draft could not be generated. Try again later.": "Non è stato possibile generare la bozza AI. Riprova più tardi.",
+    "Deprecated AI model in use: :models. Switch to a recommended model.": "Modello AI deprecato in uso: :models. Passa a un modello consigliato."
 }

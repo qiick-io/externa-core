@@ -67,7 +67,7 @@ class UserGroupController extends Controller
         }
 
         if ($search !== '') {
-            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = $query->getModel()->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($builder) use ($search, $like): void {
                 $builder->where('name', $like, "%{$search}%")
                     ->orWhere('description', $like, "%{$search}%");

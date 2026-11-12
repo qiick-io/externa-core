@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
 
 /**
  * Key-value setting row scoped to project or user.
@@ -14,8 +14,8 @@ use Illuminate\Support\Carbon;
  * @property string $group
  * @property string $key
  * @property mixed $value
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 class Setting extends Model
 {
