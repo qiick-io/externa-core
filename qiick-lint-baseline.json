@@ -29,7 +29,6 @@
         "resources/js/lib/safe-return-url.ts": 1,
         "resources/js/lib/theme-css.ts": 3,
         "resources/js/pages/admin/api-keys/index.tsx": 9,
-        "resources/js/pages/admin/files/index.tsx": 5,
         "resources/js/pages/admin/groups/index.tsx": 1,
         "resources/js/pages/admin/roles/form.tsx": 14,
         "resources/js/pages/admin/users/index.tsx": 1,
