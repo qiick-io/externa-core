@@ -1,8 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Settings;
 
 use App\Data\Deploy\DeployHookData;
+use App\Services\Settings\Project\ProjectApiSettingsService;
+use App\Services\Settings\Project\ProjectContentSettingsService;
+use App\Services\Settings\Project\ProjectFilesSettingsService;
+use App\Services\Settings\Project\ProjectGeneralSettingsService;
+use App\Services\Settings\Project\ProjectIntegrationsSettingsService;
+use App\Services\Settings\Project\ProjectLocalizationSettingsService;
+use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use App\Services\Webhooks\OutboundWebhookCatalogService;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
@@ -10,22 +19,38 @@ use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Support\Uploads\UploadAllowlist;
 use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Contracts\Encryption\DecryptException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rules\Password;
 
 /**
  * Resolves project-level settings for admin forms and runtime wiring.
+ *
+ * This class owns the one shared source every area reads from: the memoized,
+ * normalized {@see raw()} bag and the {@see decryptSecret()} helper. The area getters
+ * live in the per-section readers under `App\Services\Settings\Project` (General,
+ * Localization, Security, API, Content, Files, Integrations, matching the settings
+ * pages); the getters below are thin delegates kept so existing callers do not change.
  */
 class ProjectSettingsService
 {
-    public const PUBLIC_API_ORIGINS_CACHE_KEY = 'project.public_api_allowed_origins';
-
-    /** Short TTL; forgotten on project settings save. */
-    private const PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS = 60;
+    public const PUBLIC_API_ORIGINS_CACHE_KEY = ProjectApiSettingsService::PUBLIC_API_ORIGINS_CACHE_KEY;
 
     /** @var array<string, mixed>|null Request-lifetime memo (singleton binding). */
     private ?array $memoizedRaw = null;
+
+    private ?ProjectGeneralSettingsService $generalSettings = null;
+
+    private ?ProjectLocalizationSettingsService $localizationSettings = null;
+
+    private ?ProjectSecuritySettingsService $securitySettings = null;
+
+    private ?ProjectApiSettingsService $apiSettings = null;
+
+    private ?ProjectContentSettingsService $contentSettings = null;
+
+    private ?ProjectFilesSettingsService $filesSettings = null;
+
+    private ?ProjectIntegrationsSettingsService $integrationsSettings = null;
 
     public function __construct(
         private readonly SettingsRepositoryService $settings,
@@ -56,6 +81,85 @@ class ProjectSettingsService
     public function forgetRawCache(): void
     {
         $this->memoizedRaw = null;
+    }
+
+    /**
+     * Decrypt a stored secret (or deploy-hook URL) ciphertext.
+     *
+     * Null for anything that is not a non-empty string, for ciphertext the app key
+     * cannot decrypt (legacy plaintext, rotated key) and for an empty plaintext, so
+     * callers treat every unusable value as "not configured".
+     */
+    public function decryptSecret(mixed $ciphertext): ?string
+    {
+        if (! is_string($ciphertext) || $ciphertext === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($ciphertext);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    /**
+     * Decrypted value of an encrypted key in the `project` settings group.
+     *
+     * Reads the repository directly (not {@see raw()}), as the secret getters always have.
+     */
+    public function storedSecret(string $key): ?string
+    {
+        return $this->decryptSecret($this->settings->get(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'project',
+            $key,
+        ));
+    }
+
+    /**
+     * Encrypt a plaintext secret (or deploy-hook URL) for storage.
+     */
+    public static function encryptSecret(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
+    public function general(): ProjectGeneralSettingsService
+    {
+        return $this->generalSettings ??= new ProjectGeneralSettingsService($this);
+    }
+
+    public function localization(): ProjectLocalizationSettingsService
+    {
+        return $this->localizationSettings ??= new ProjectLocalizationSettingsService($this);
+    }
+
+    public function security(): ProjectSecuritySettingsService
+    {
+        return $this->securitySettings ??= new ProjectSecuritySettingsService($this);
+    }
+
+    public function api(): ProjectApiSettingsService
+    {
+        return $this->apiSettings ??= new ProjectApiSettingsService($this);
+    }
+
+    public function content(): ProjectContentSettingsService
+    {
+        return $this->contentSettings ??= new ProjectContentSettingsService($this);
+    }
+
+    public function files(): ProjectFilesSettingsService
+    {
+        return $this->filesSettings ??= new ProjectFilesSettingsService($this);
+    }
+
+    public function integrations(): ProjectIntegrationsSettingsService
+    {
+        return $this->integrationsSettings ??= new ProjectIntegrationsSettingsService($this);
     }
 
     /**
@@ -125,76 +229,71 @@ class ProjectSettingsService
 
     public function projectName(): ?string
     {
-        $name = $this->raw()['name'] ?? null;
-
-        return is_string($name) && trim($name) !== '' ? trim($name) : null;
+        return $this->general()->projectName();
     }
 
     public function displayName(): string
     {
-        return $this->projectName() ?? (string) config('app.name');
+        return $this->general()->displayName();
+    }
+
+    public function isSidebarModuleEnabled(string $moduleId): bool
+    {
+        return $this->general()->isSidebarModuleEnabled($moduleId);
     }
 
     public function defaultLanguage(): string
     {
-        return $this->raw()['default_language'];
+        return $this->localization()->defaultLanguage();
     }
 
     /**
-     * Ordered content locales enabled for CMS translations.
-     *
      * @return list<string>
      */
     public function contentLocales(): array
     {
-        return $this->raw()['content_locales'];
+        return $this->localization()->contentLocales();
     }
 
     public function defaultContentLocale(): string
     {
-        return $this->raw()['default_content_locale'];
+        return $this->localization()->defaultContentLocale();
     }
 
     /**
-     * Ordered fallback chain for missing translations.
-     *
      * @return list<string>
      */
     public function fallbackContentLocales(): array
     {
-        return $this->raw()['fallback_content_locales'];
+        return $this->localization()->fallbackContentLocales();
     }
 
     /**
-     * Catalog metadata for enabled content locales (Inertia share / settings UI).
-     *
      * @return list<array{code: string, name: string, flag: string}>
      */
     public function contentLocaleMeta(): array
     {
-        return ContentLocaleCatalog::metaFor($this->contentLocales());
+        return $this->localization()->contentLocaleMeta();
     }
 
     public function isRegistrationEnabled(): bool
     {
-        return (bool) $this->raw()['registration_enabled'];
+        return $this->security()->isRegistrationEnabled();
     }
 
     public function isEmailVerificationRequired(): bool
     {
-        return (bool) $this->raw()['email_verification_required'];
+        return $this->security()->isEmailVerificationRequired();
     }
 
     public function isTwoFactorRequired(): bool
     {
-        return (bool) $this->raw()['two_factor_required'];
+        return $this->security()->isTwoFactorRequired();
     }
 
     public function defaultUserRole(): ?string
     {
-        $role = $this->raw()['default_user_role'] ?? null;
-
-        return is_string($role) && $role !== '' ? $role : null;
+        return $this->security()->defaultUserRole();
     }
 
     /**
@@ -202,58 +301,90 @@ class ProjectSettingsService
      */
     public function allowedDomains(): array
     {
-        return $this->raw()['allowed_domains'];
-    }
-
-    /**
-     * Browser origins allowed for the public API when non-empty (CORS + request gate).
-     *
-     * @return list<string>
-     */
-    public function publicApiAllowedOrigins(): array
-    {
-        /** @var list<string> */
-        return Cache::remember(
-            self::PUBLIC_API_ORIGINS_CACHE_KEY,
-            self::PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS,
-            fn (): array => $this->raw()['public_api_allowed_origins'],
-        );
-    }
-
-    /**
-     * Drop the short-lived origins cache after project settings change.
-     */
-    public function forgetPublicApiAllowedOriginsCache(): void
-    {
-        Cache::forget(self::PUBLIC_API_ORIGINS_CACHE_KEY);
-        $this->forgetRawCache();
+        return $this->security()->allowedDomains();
     }
 
     public function loginMaxAttempts(): int
     {
-        return max(1, (int) $this->raw()['login_max_attempts']);
+        return $this->security()->loginMaxAttempts();
     }
 
     public function passwordPolicy(): string
     {
-        return $this->raw()['password_policy'];
+        return $this->security()->passwordPolicy();
+    }
+
+    public function passwordRule(): Password
+    {
+        return $this->security()->passwordRule();
+    }
+
+    public function isOidcEnabled(): bool
+    {
+        return $this->security()->isOidcEnabled();
+    }
+
+    public function oidcIssuer(): ?string
+    {
+        return $this->security()->oidcIssuer();
+    }
+
+    public function oidcClientId(): ?string
+    {
+        return $this->security()->oidcClientId();
+    }
+
+    public function oidcButtonLabel(): ?string
+    {
+        return $this->security()->oidcButtonLabel();
+    }
+
+    public function isOidcJitProvisioningEnabled(): bool
+    {
+        return $this->security()->isOidcJitProvisioningEnabled();
+    }
+
+    public function isOidcLoginAvailable(): bool
+    {
+        return $this->security()->isOidcLoginAvailable();
+    }
+
+    public function oidcClientSecret(): ?string
+    {
+        return $this->security()->oidcClientSecret();
+    }
+
+    public static function encryptOidcClientSecret(string $plain): string
+    {
+        return self::encryptSecret($plain);
     }
 
     /**
-     * Password rule driven by project password_policy.
+     * @return list<string>
      */
-    public function passwordRule(): Password
+    public function publicApiAllowedOrigins(): array
     {
-        return match ($this->passwordPolicy()) {
-            'weak' => Password::min(6),
-            'strong' => Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised(),
-            default => Password::min(8)->mixedCase()->numbers(),
-        };
+        return $this->api()->publicApiAllowedOrigins();
+    }
+
+    public function forgetPublicApiAllowedOriginsCache(): void
+    {
+        $this->api()->forgetPublicApiAllowedOriginsCache();
+    }
+
+    public function previewUrlDefault(): ?string
+    {
+        return $this->content()->previewUrlDefault();
+    }
+
+    public function revisionRetentionCount(): ?int
+    {
+        return $this->content()->revisionRetentionCount();
+    }
+
+    public function revisionRetentionDays(): ?int
+    {
+        return $this->content()->revisionRetentionDays();
     }
 
     /**
@@ -261,12 +392,12 @@ class ProjectSettingsService
      */
     public function allowedTransformations(): array
     {
-        return $this->raw()['allowed_transformations'];
+        return $this->files()->allowedTransformations();
     }
 
     public function isTransformationsEnabled(): bool
     {
-        return in_array('thumbnail', $this->allowedTransformations(), true);
+        return $this->files()->isTransformationsEnabled();
     }
 
     /**
@@ -282,7 +413,7 @@ class ProjectSettingsService
      */
     public function presetTransformations(): array
     {
-        return $this->raw()['preset_transformations'];
+        return $this->files()->presetTransformations();
     }
 
     /**
@@ -298,348 +429,119 @@ class ProjectSettingsService
      */
     public function transformPreset(string $key): ?array
     {
-        foreach ($this->presetTransformations() as $preset) {
-            if ($preset['key'] === $key) {
-                return $preset;
-            }
-        }
-
-        return null;
+        return $this->files()->transformPreset($key);
     }
 
     public function maxTransformSize(): int
     {
-        $presets = $this->presetTransformations();
-        $edges = [];
+        return $this->files()->maxTransformSize();
+    }
 
-        foreach ($presets as $preset) {
-            if (is_int($preset['width'])) {
-                $edges[] = $preset['width'];
-            }
-            if (is_int($preset['height'])) {
-                $edges[] = $preset['height'];
-            }
-        }
+    public function filesMaxUploadBytes(): ?int
+    {
+        return $this->files()->filesMaxUploadBytes();
+    }
 
-        return $edges === [] ? 256 : max($edges);
+    public function chatMaxUploadBytes(): ?int
+    {
+        return $this->files()->chatMaxUploadBytes();
+    }
+
+    public function uploadAllowSvg(): bool
+    {
+        return $this->files()->uploadAllowSvg();
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function uploadAllowedMimes(): ?array
+    {
+        return $this->files()->uploadAllowedMimes();
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function uploadAllowedExtensions(): ?array
+    {
+        return $this->files()->uploadAllowedExtensions();
     }
 
     public function webhookUrl(): ?string
     {
-        return $this->raw()['webhook_url'];
+        return $this->integrations()->webhookUrl();
     }
 
-    /**
-     * Project-level Live Preview URL template (tokens allowed). Null = unset.
-     */
-    public function previewUrlDefault(): ?string
-    {
-        return $this->raw()['preview_url_default'];
-    }
-
-    /**
-     * Project default max revision count (null = unlimited until a collection overrides).
-     */
-    public function revisionRetentionCount(): ?int
-    {
-        return $this->raw()['revision_retention_count'];
-    }
-
-    /**
-     * Project default revision age in days (null = unlimited until a collection overrides).
-     */
-    public function revisionRetentionDays(): ?int
-    {
-        return $this->raw()['revision_retention_days'];
-    }
-
-    /**
-     * Max Files pool upload size in bytes (null = unlimited).
-     */
-    public function filesMaxUploadBytes(): ?int
-    {
-        return $this->raw()['files_max_upload_bytes'];
-    }
-
-    /**
-     * Max chat attachment upload size in bytes (null = unlimited).
-     */
-    public function chatMaxUploadBytes(): ?int
-    {
-        return $this->raw()['chat_max_upload_bytes'];
-    }
-
-    /**
-     * Whether a sidebar module is enabled in project settings.
-     */
-    public function isSidebarModuleEnabled(string $moduleId): bool
-    {
-        foreach ($this->raw()['sidebar_modules'] as $module) {
-            if (($module['id'] ?? null) === $moduleId) {
-                return (bool) ($module['enabled'] ?? false);
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Decrypted webhook signing secret, or null when unset/unreadable.
-     */
     public function webhookSecret(): ?string
     {
-        $stored = $this->settings->get(
-            SettingsRepositoryService::SCOPE_PROJECT,
-            'project',
-            'webhook_secret',
-        );
-
-        if (! is_string($stored) || $stored === '') {
-            return null;
-        }
-
-        try {
-            $plain = Crypt::decryptString($stored);
-
-            return $plain !== '' ? $plain : null;
-        } catch (DecryptException) {
-            // ponytail: reject legacy plaintext; re-save via settings UI
-            return null;
-        }
+        return $this->integrations()->webhookSecret();
     }
 
-    /**
-     * Encrypt a plaintext webhook secret for storage.
-     */
     public static function encryptWebhookSecret(string $plain): string
     {
-        return Crypt::encryptString($plain);
+        return self::encryptSecret($plain);
     }
 
     public function notifierSlackWebhookUrl(): ?string
     {
-        return $this->raw()['notifier_slack_webhook_url'];
+        return $this->integrations()->notifierSlackWebhookUrl();
     }
 
     public function notifierTelegramChatId(): ?string
     {
-        $chatId = $this->raw()['notifier_telegram_chat_id'];
-
-        return is_string($chatId) && $chatId !== '' ? $chatId : null;
+        return $this->integrations()->notifierTelegramChatId();
     }
 
     public function isNotifierTelegramConfigured(): bool
     {
-        return $this->notifierTelegramBotToken() !== null
-            && $this->notifierTelegramChatId() !== null;
+        return $this->integrations()->isNotifierTelegramConfigured();
     }
 
-    /**
-     * Whether Slack/Telegram fan-out should emit this event type.
-     *
-     * `ping` always allowed (Send test). Null setting = all domain events (legacy).
-     */
     public function canAllowNotifierEvent(string $type): bool
     {
-        if ($type === 'ping') {
-            return true;
-        }
-
-        return in_array($type, $this->raw()['notifier_event_types'], true);
+        return $this->integrations()->canAllowNotifierEvent($type);
     }
 
-    /**
-     * Decrypted Telegram bot token, or null when unset/unreadable.
-     */
     public function notifierTelegramBotToken(): ?string
     {
-        $stored = $this->settings->get(
-            SettingsRepositoryService::SCOPE_PROJECT,
-            'project',
-            'notifier_telegram_bot_token',
-        );
-
-        if (! is_string($stored) || $stored === '') {
-            return null;
-        }
-
-        try {
-            $plain = Crypt::decryptString($stored);
-
-            return $plain !== '' ? $plain : null;
-        } catch (DecryptException) {
-            return null;
-        }
+        return $this->integrations()->notifierTelegramBotToken();
     }
 
     public static function encryptNotifierTelegramBotToken(string $plain): string
     {
-        return Crypt::encryptString($plain);
-    }
-
-    public function isOidcEnabled(): bool
-    {
-        return (bool) $this->raw()['oidc_enabled'];
-    }
-
-    public function oidcIssuer(): ?string
-    {
-        $issuer = $this->raw()['oidc_issuer'];
-
-        return is_string($issuer) && $issuer !== '' ? $issuer : null;
-    }
-
-    public function oidcClientId(): ?string
-    {
-        $id = $this->raw()['oidc_client_id'];
-
-        return is_string($id) && $id !== '' ? $id : null;
-    }
-
-    public function oidcButtonLabel(): ?string
-    {
-        $label = $this->raw()['oidc_button_label'];
-
-        return is_string($label) && trim($label) !== '' ? trim($label) : null;
-    }
-
-    public function isOidcJitProvisioningEnabled(): bool
-    {
-        return (bool) $this->raw()['oidc_jit_provisioning'];
+        return self::encryptSecret($plain);
     }
 
     /**
-     * True when OIDC is enabled and credentials are present (login CTA).
-     */
-    public function isOidcLoginAvailable(): bool
-    {
-        return $this->isOidcEnabled()
-            && $this->oidcIssuer() !== null
-            && $this->oidcClientId() !== null
-            && $this->oidcClientSecret() !== null;
-    }
-
-    /**
-     * Decrypted OIDC client secret, or null when unset/unreadable.
-     */
-    public function oidcClientSecret(): ?string
-    {
-        $stored = $this->settings->get(
-            SettingsRepositoryService::SCOPE_PROJECT,
-            'project',
-            'oidc_client_secret',
-        );
-
-        if (! is_string($stored) || $stored === '') {
-            return null;
-        }
-
-        try {
-            $plain = Crypt::decryptString($stored);
-
-            return $plain !== '' ? $plain : null;
-        } catch (DecryptException) {
-            return null;
-        }
-    }
-
-    public static function encryptOidcClientSecret(string $plain): string
-    {
-        return Crypt::encryptString($plain);
-    }
-
-    /**
-     * Decryptable deploy hooks for runtime delivery.
-     *
      * @return list<DeployHookData>
      */
     public function deployHooks(): array
     {
-        $hooks = [];
-
-        foreach ($this->raw()['deploy_hooks'] as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $id = is_string($row['id'] ?? null) ? $row['id'] : null;
-            $name = is_string($row['name'] ?? null) ? trim($row['name']) : '';
-            $cipher = is_string($row['url'] ?? null) ? $row['url'] : null;
-
-            if ($id === null || $name === '' || $cipher === null || $cipher === '') {
-                continue;
-            }
-
-            try {
-                $url = Crypt::decryptString($cipher);
-            } catch (DecryptException) {
-                continue;
-            }
-
-            if ($url === '') {
-                continue;
-            }
-
-            $hooks[] = new DeployHookData($id, $name, $url);
-        }
-
-        return $hooks;
+        return $this->integrations()->deployHooks();
     }
 
     public function deployHookById(string $hookId): ?DeployHookData
     {
-        foreach ($this->deployHooks() as $hook) {
-            if ($hook->id === $hookId) {
-                return $hook;
-            }
-        }
-
-        return null;
+        return $this->integrations()->deployHookById($hookId);
     }
 
     public function isDeployOnPublishEnabled(): bool
     {
-        return (bool) $this->raw()['deploy_on_publish'];
+        return $this->integrations()->isDeployOnPublishEnabled();
     }
 
     /**
-     * Edit-safe deploy hooks (never includes plaintext URLs).
-     *
      * @return list<array{id: string, name: string, url_configured: bool}>
      */
     public function deployHooksForEdit(): array
     {
-        $hooks = [];
-
-        foreach ($this->raw()['deploy_hooks'] as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $id = is_string($row['id'] ?? null) ? $row['id'] : null;
-            $name = is_string($row['name'] ?? null) ? trim($row['name']) : '';
-            $cipher = is_string($row['url'] ?? null) ? $row['url'] : null;
-
-            if ($id === null || $name === '') {
-                continue;
-            }
-
-            $hooks[] = [
-                'id' => $id,
-                'name' => $name,
-                'url_configured' => is_string($cipher) && $cipher !== '',
-            ];
-        }
-
-        return $hooks;
+        return $this->integrations()->deployHooksForEdit();
     }
 
-    /**
-     * Encrypt a plaintext deploy-hook URL for storage.
-     */
     public static function encryptDeployHookUrl(string $plain): string
     {
-        return Crypt::encryptString($plain);
+        return self::encryptSecret($plain);
     }
 
     /**
@@ -750,37 +652,6 @@ class ProjectSettingsService
             ),
             'upload_allow_svg' => (bool) ($raw['upload_allow_svg'] ?? false),
         ];
-    }
-
-    public function uploadAllowSvg(): bool
-    {
-        return (bool) $this->raw()['upload_allow_svg'];
-    }
-
-    /**
-     * null = use config/files.php defaults.
-     *
-     * @return list<string>|null
-     */
-    public function uploadAllowedMimes(): ?array
-    {
-        /** @var list<string>|null $mimes */
-        $mimes = $this->raw()['upload_allowed_mimes'];
-
-        return $mimes;
-    }
-
-    /**
-     * null = no extra extension filter.
-     *
-     * @return list<string>|null
-     */
-    public function uploadAllowedExtensions(): ?array
-    {
-        /** @var list<string>|null $extensions */
-        $extensions = $this->raw()['upload_allowed_extensions'];
-
-        return $extensions;
     }
 
     /**

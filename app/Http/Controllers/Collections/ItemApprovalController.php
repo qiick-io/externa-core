@@ -10,6 +10,7 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Collections\CollectionItemApprovalService;
+use App\Traits\AssertsItemBelongsToCollectionTrait;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Gate;
  */
 class ItemApprovalController extends Controller
 {
+    use AssertsItemBelongsToCollectionTrait;
+
     public function __construct(
         private CollectionItemApprovalService $itemApprovals,
     ) {}
@@ -80,13 +83,5 @@ class ItemApprovalController extends Controller
             'item' => $item,
             'version' => 'draft',
         ])->with('success', __('Rejected.'));
-    }
-
-    /**
-     * Abort when the item does not belong to the route collection.
-     */
-    private function assertItemBelongsToCollection(Collection $collection, CollectionItem $item): void
-    {
-        abort_if($item->collection_id !== $collection->id, 404);
     }
 }
