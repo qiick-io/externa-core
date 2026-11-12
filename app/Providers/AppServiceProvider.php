@@ -281,6 +281,6 @@ class AppServiceProvider extends ServiceProvider
         // production, so tests catch them (qiick standards, Automated checks).
         Model::shouldBeStrict(! app()->isProduction());
 
-        Password::defaults(fn (): Password => app(ProjectSettingsService::class)->passwordRule());
+        Password::defaults(fn (): Password => app(ProjectSettingsService::class)->security()->passwordRule());
     }
 }

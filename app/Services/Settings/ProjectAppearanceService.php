@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Settings;
 
 use App\Enums\ThemePresetEnum;
@@ -205,7 +207,7 @@ class ProjectAppearanceService
         $foreground = ContrastingForegroundService::forHex($primary) ?? ContrastingForegroundService::WHITE;
 
         return [
-            'name' => app(ProjectSettingsService::class)->displayName(),
+            'name' => app(ProjectSettingsService::class)->general()->displayName(),
             'logoUrl' => $this->absolutePublicUrl($shared['logoUrl'] ?? null),
             'primaryColor' => $primary,
             'primaryForeground' => $foreground,

@@ -57,7 +57,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
-            'name' => $projectSettings->displayName(),
+            'name' => $projectSettings->general()->displayName(),
             'appVersion' => app(AppVersionService::class)->current(),
             'auth' => [
                 'user' => $user,
@@ -68,9 +68,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'availableLocales' => config('i18n.available_locales', ['en' => 'English']),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'collectionLocales' => $projectSettings->contentLocales(),
-            'collectionLocaleMeta' => $projectSettings->contentLocaleMeta(),
-            'defaultContentLocale' => $projectSettings->defaultContentLocale(),
+            'collectionLocales' => $projectSettings->localization()->contentLocales(),
+            'collectionLocaleMeta' => $projectSettings->localization()->contentLocaleMeta(),
+            'defaultContentLocale' => $projectSettings->localization()->defaultContentLocale(),
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],

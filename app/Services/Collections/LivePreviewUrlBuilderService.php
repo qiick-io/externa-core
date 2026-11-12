@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\V1\LivePreviewController;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectContentSettingsService;
 use Carbon\CarbonInterface;
 use InvalidArgumentException;
 use RuntimeException;
@@ -35,7 +35,7 @@ class LivePreviewUrlBuilderService
     ];
 
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectContentSettingsService $contentSettings,
         private readonly LivePreviewTokenService $tokens,
         private readonly LivePreviewAsOfResolverService $asOfResolver,
     ) {}
@@ -47,7 +47,7 @@ class LivePreviewUrlBuilderService
             return $fromCollection;
         }
 
-        return $this->projectSettings->previewUrlDefault();
+        return $this->contentSettings->previewUrlDefault();
     }
 
     /**

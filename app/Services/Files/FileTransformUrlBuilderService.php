@@ -23,7 +23,7 @@ final class FileTransformUrlBuilderService
 
         try {
             $transforms = [];
-            foreach (app(ProjectSettingsService::class)->presetTransformations() as $preset) {
+            foreach (app(ProjectSettingsService::class)->files()->presetTransformations() as $preset) {
                 $key = $preset['key'] ?? null;
                 if (! is_string($key) || $key === '') {
                     continue;

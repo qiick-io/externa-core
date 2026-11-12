@@ -31,7 +31,7 @@ it('allows matching Origin and rejects mismatched Origin when allowlist is set',
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->api()->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
     grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
@@ -54,7 +54,7 @@ it('requires a valid API key when Origin is absent and allowlist is set', functi
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->api()->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
     grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
@@ -79,7 +79,7 @@ it('enforces the same origin gate on GraphQL', function (): void {
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->api()->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
     grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
@@ -118,7 +118,7 @@ it('applies project origins to CORS config for api paths', function (): void {
         'public_api_allowed_origins',
         ['https://app.example', 'https://www.example'],
     );
-    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->api()->forgetPublicApiAllowedOriginsCache();
 
     $this->withHeaders([
         'Origin' => 'https://app.example',
@@ -149,7 +149,7 @@ it('invalidates origins cache when project settings are saved', function (): voi
         ['https://old.example'],
     );
 
-    expect(app(ProjectSettingsService::class)->publicApiAllowedOrigins())
+    expect(app(ProjectSettingsService::class)->api()->publicApiAllowedOrigins())
         ->toBe(['https://old.example']);
 
     $this->withoutVite();
@@ -160,6 +160,6 @@ it('invalidates origins cache when project settings are saved', function (): voi
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.api.edit'));
 
-    expect(app(ProjectSettingsService::class)->publicApiAllowedOrigins())
+    expect(app(ProjectSettingsService::class)->api()->publicApiAllowedOrigins())
         ->toBe(['https://new.example']);
 });

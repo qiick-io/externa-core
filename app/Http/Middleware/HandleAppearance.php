@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Services\Settings\ProjectAppearanceService;
@@ -45,7 +47,7 @@ class HandleAppearance
         View::share('projectColorDark', $projectAppearance['projectColorDark']);
         View::share('projectColorDarkForeground', $projectAppearance['primaryForegroundDark']);
         View::share('projectThemeCss', $projectAppearance['themeCss']);
-        View::share('projectName', app(ProjectSettingsService::class)->displayName());
+        View::share('projectName', app(ProjectSettingsService::class)->general()->displayName());
 
         return $next($request);
     }

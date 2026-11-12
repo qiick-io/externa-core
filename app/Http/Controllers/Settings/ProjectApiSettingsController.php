@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
@@ -48,7 +50,7 @@ class ProjectApiSettingsController extends Controller
             $values,
         );
 
-        $this->projectSettings->forgetPublicApiAllowedOriginsCache();
+        $this->projectSettings->api()->forgetPublicApiAllowedOriginsCache();
 
         $this->logProjectSettingsUpdate($request, 'api', $values);
 
