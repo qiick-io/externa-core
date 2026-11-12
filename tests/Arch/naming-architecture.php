@@ -39,7 +39,7 @@ return [
         'App\Http\Controllers\Api\V1\CollectionItemController' => 8,
         'App\Http\Controllers\Api\V1\FileController' => 7,
         'App\Http\Controllers\Chat\ChatHubController' => 15,
-        'App\Http\Controllers\Chat\ChatMessageController' => 31,
+        'App\Http\Controllers\Chat\ChatMessageController' => 18,
         'App\Http\Controllers\Collections\ContentCollectionController' => 11,
         'App\Http\Controllers\Collections\FieldController' => 12,
         'App\Http\Controllers\Collections\ItemChatController' => 20,

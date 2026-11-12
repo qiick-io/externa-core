@@ -187,18 +187,6 @@ parameters:
 			path: app/Http/Controllers/Api/V1/CollectionItemController.php
 
 		-
-			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Chat/ChatMessageController.php
-
-		-
-			message: '#^Property App\\Models\\CollectionItemChatMessage\:\:\$mentioned_user_ids \(string\|null\) does not accept list\<int\>\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Http/Controllers/Chat/ChatMessageController.php
-
-		-
 			message: '#^Match expression does not handle remaining value\: mixed$#'
 			identifier: match.unhandled
 			count: 1
@@ -569,6 +557,12 @@ parameters:
 			identifier: parameterByRef.type
 			count: 1
 			path: app/Services/Api/RelationIncludeHydratorService.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/Chat/ChatMessageSerializerService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'

@@ -15,8 +15,6 @@ test('controllers do not validate requests inline', function (): void {
     $allowedInline = [
         // Runs after the unknown-folder redirect, which a Form Request would turn into a 422; revisit with #598.
         'Admin/FileController.php' => ['index'],
-        // Runs after the chat, attachment and item-write checks (403/404 before 422); moves with #598.
-        'Chat/ChatMessageController.php' => ['addToField'],
     ];
 
     $offenders = [];

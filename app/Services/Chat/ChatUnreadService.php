@@ -434,9 +434,11 @@ class ChatUnreadService
     }
 
     /**
+     * Users who turned on notifications for the collection's item chats.
+     *
      * @return list<int>
      */
-    private function subscriberIdsForCollection(int $collectionId): array
+    public function subscriberIdsForCollection(int $collectionId): array
     {
         $ids = [];
         $rows = Setting::query()
