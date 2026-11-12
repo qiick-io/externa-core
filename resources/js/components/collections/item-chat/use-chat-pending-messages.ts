@@ -59,12 +59,18 @@ export function useChatPendingMessages({
         pendingMessagesRef.current = pendingMessages;
     }, [pendingMessages]);
 
-    useEffect(() => {
+    const openThreadKey = `${String(open)}:${scopeKey}`;
+    const [pendingResetKey, setPendingResetKey] = useState(openThreadKey);
+
+    // Closing the drawer drops the pending bubbles, during render (React's "adjust
+    // state on prop change" pattern).
+    if (pendingResetKey !== openThreadKey) {
+        setPendingResetKey(openThreadKey);
+
         if (!open) {
-            // oxlint-disable-next-line react/set-state-in-effect -- moved as is from item-chat-drawer.tsx (#283), where the compiler skipped it; moving the reset out of the effect changes render timing (#671)
             setPendingMessages([]);
         }
-    }, [open, scopeKey]);
+    }
 
     const patchPending = useCallback(
         (

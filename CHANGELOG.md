@@ -45,6 +45,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Converting a field type on a large collection keeps only ids and values between the read and write phases, and writes chunk by chunk, instead of holding every item with its relations in memory (#441).
 - The AI import status poll retries a failed check with backoff (4 s up to 30 s, five attempts) instead of stopping for good at the first network error (#441).
 - The TypeScript SDK package builds itself on `npm pack` / `npm publish` (`prepack`) and declares its repository, so it can no longer be published without `dist/` (#441).
+- Chat: deleting a message logs the chat's UUID as `chat_id` in the activity log instead of an integer cast of it (`0` or its leading digits) (#723).
+- Item chat drawer: deleting your own message lowers the message count once with realtime on (the delete reply and its echo no longer both count it); a reaction toggled in another tab of the same user now shows in this one (the reaction request sends `X-Socket-ID` and the server skips only the tab that sent it); edit, add-to-field and attachments no longer assume a thread scope; the reset-on-open state is derived during render instead of in effects (#726).
+- The Lucide icon picker test renders a small mocked catalog instead of all ~1,700 icons (about 0.1 s instead of up to 26 s under load) and checks the real catalog's names without rendering it (#734).
 - Item editor: the activity log honours only the list page sizes (10, 20, 50, 100; default 10), so `?per_page=100000` no longer loads the whole log, and "Preview as…" without a role answers with a translated message (#738).
 - Item editor: the stale-save guard keeps catching saves over a peer's newer version after the form remounts (discard, or fields → activity → fields), the published read-only banner and the revision toasts are translated, and the schedule requests use the Wayfinder route (#741).
 
