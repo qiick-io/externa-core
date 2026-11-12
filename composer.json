@@ -11,6 +11,7 @@
         "laravel",
         "inertia"
     ],
+    "homepage": "https://qiick.io/en/externa",
     "license": "MIT",
     "authors": [
         {
@@ -21,7 +22,7 @@
     "support": {
         "issues": "https://github.com/qiick-io/externa-core/issues",
         "source": "https://github.com/qiick-io/externa-core",
-        "docs": "https://docs.externa.qiick.io"
+        "docs": "https://docs.qiick.io/externa"
     },
     "require": {
         "php": "^8.4.27",

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Collections;
 
 use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\MoveCollectionItemAction;
 use App\Actions\Collections\UpdateCollectionItemAction;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
@@ -15,8 +16,6 @@ use App\Http\Requests\Collections\ListCalendarMonthItemsRequest;
 use App\Http\Requests\Collections\ListCollectionFieldOptionsRequest;
 use App\Http\Requests\Collections\ListKanbanColumnItemsRequest;
 use App\Http\Requests\Collections\PreviewCollectionItemAsRoleRequest;
-use App\Http\Requests\Collections\RejectCollectionItemRequest;
-use App\Http\Requests\Collections\ScheduleCollectionItemRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
@@ -30,13 +29,10 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Authorization\EffectivePermissionResolverService;
-use App\Services\Collections\CollectionItemApprovalService;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
-use App\Services\Collections\CollectionItemPublisherService;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemRevisionRecorderService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\CollectionListColumnsNormalizerService;
 use App\Services\Collections\CollectionListDisplayEnricherService;
@@ -57,7 +53,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
-use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -79,6 +74,7 @@ class ItemController extends Controller
         private CollectionItemDataNormalizerService $itemDataNormalizer,
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
+        private MoveCollectionItemAction $moveCollectionItemAction,
         private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
         private CollectionListColumnsNormalizerService $listColumnsNormalizer,
@@ -88,9 +84,6 @@ class ItemController extends Controller
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
         private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
-        private CollectionItemPublisherService $itemPublisher,
-        private CollectionItemRevisionRecorderService $revisionRecorder,
-        private CollectionItemApprovalService $itemApprovals,
         private EffectivePermissionResolverService $permissionResolver,
         private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
@@ -674,11 +667,43 @@ class ItemController extends Controller
         }
 
         if ($request->boolean('board_move')) {
-            return $this->updateBoardMove($request, $collection, $item);
+            $item = $this->moveCollectionItemAction->execute(
+                $request,
+                $collection,
+                $item,
+                $request->validated('data') ?? [],
+                MoveCollectionItemAction::SOURCE_BOARD,
+                afterItemId: $request->validated('after_item_id') !== null
+                    ? (int) $request->validated('after_item_id')
+                    : null,
+                beforeItemId: $request->validated('before_item_id') !== null
+                    ? (int) $request->validated('before_item_id')
+                    : null,
+            );
+
+            return $this->redirectAfterItemSave(
+                $collection,
+                $item,
+                $this->itemSaveAction($request),
+                __('Item updated.'),
+            );
         }
 
         if ($request->boolean('calendar_move')) {
-            return $this->updateCalendarMove($request, $collection, $item);
+            $item = $this->moveCollectionItemAction->execute(
+                $request,
+                $collection,
+                $item,
+                $request->validated('data') ?? [],
+                MoveCollectionItemAction::SOURCE_CALENDAR,
+            );
+
+            return $this->redirectAfterItemSave(
+                $collection,
+                $item,
+                $this->itemSaveAction($request),
+                __('Item updated.'),
+            );
         }
 
         $version = (string) ($request->validated('version') ?? 'published');
@@ -783,500 +808,6 @@ class ItemController extends Controller
     }
 
     /**
-     * Kanban drag: persist group field on published values + board_sort.
-     * Versioned collections still update published so the board (which groups by
-     * published values) reflects the drop; draft_data is patched when present.
-     */
-    private function updateBoardMove(
-        UpdateCollectionItemRequest $request,
-        Collection $collection,
-        CollectionItem $item,
-    ): RedirectResponse {
-        $collection->loadMissing('fields');
-        $incoming = $request->validated('data') ?? [];
-        if (! is_array($incoming) || $incoming === []) {
-            throw ValidationException::withMessages([
-                'data' => [__('Board move requires a group field value.')],
-            ]);
-        }
-
-        foreach (array_keys($incoming) as $key) {
-            $field = $collection->fields->firstWhere('name', $key);
-            if (
-                ! $field instanceof CollectionField
-                || ! in_array($field->type, [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup], true)
-            ) {
-                throw ValidationException::withMessages([
-                    "data.{$key}" => [__('Board move only allows select or radio group fields.')],
-                ]);
-            }
-        }
-
-        $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
-
-        $published = $this->collectionItemValuesAssembler->assemble($item);
-        $preview = array_replace($published, $incoming);
-        $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
-            $collection->fields,
-            $preview,
-            $incoming,
-        );
-
-        $data = $published;
-        foreach ($incoming as $key => $value) {
-            $data[$key] = $value;
-        }
-
-        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
-            collection: $collection,
-            data: $data,
-            item: $item,
-            creating: false,
-            version: 'published',
-            shouldValidate: false,
-            shouldMergeIncoming: false,
-            shouldEnforceVersioningGuard: false,
-            revisionMeta: ['source' => 'board_move'],
-        ));
-
-        if (is_array($item->draft_data)) {
-            $draft = $item->draft_data;
-            foreach ($incoming as $key => $value) {
-                $draft[$key] = $value;
-            }
-            $item->draft_data = $this->itemDataNormalizer->normalize($collection, $draft, false);
-        }
-
-        $this->assignBoardSort(
-            $item,
-            $collection,
-            $request->validated('after_item_id') !== null
-                ? (int) $request->validated('after_item_id')
-                : null,
-            $request->validated('before_item_id') !== null
-                ? (int) $request->validated('before_item_id')
-                : null,
-        );
-        $item->save();
-
-        return $this->redirectAfterItemSave(
-            $collection,
-            $item,
-            $this->itemSaveAction($request),
-            __('Item updated.'),
-        );
-    }
-
-    /**
-     * Calendar drag: persist date field on published values.
-     * Versioned collections still update published so the calendar (which buckets
-     * by published values) reflects the drop; draft_data is patched when present.
-     * Datetime fields keep the existing clock when the client sends a bare Y-m-d.
-     */
-    private function updateCalendarMove(
-        UpdateCollectionItemRequest $request,
-        Collection $collection,
-        CollectionItem $item,
-    ): RedirectResponse {
-        $collection->loadMissing('fields');
-        $incoming = $request->validated('data') ?? [];
-        if (! is_array($incoming) || $incoming === []) {
-            throw ValidationException::withMessages([
-                'data' => [__('Calendar move requires a date field value.')],
-            ]);
-        }
-
-        foreach (array_keys($incoming) as $key) {
-            $field = $collection->fields->firstWhere('name', $key);
-            if (
-                ! $field instanceof CollectionField
-                || $field->type !== FieldTypeEnum::Date
-            ) {
-                throw ValidationException::withMessages([
-                    "data.{$key}" => [__('Calendar move only allows date fields.')],
-                ]);
-            }
-        }
-
-        $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
-
-        $published = $this->collectionItemValuesAssembler->assemble($item);
-        foreach ($incoming as $key => $value) {
-            if (! is_string($value)) {
-                continue;
-            }
-            $incoming[$key] = $this->calendarMoveDateValue(
-                is_string($published[$key] ?? null) ? $published[$key] : null,
-                $value,
-            );
-        }
-
-        $preview = array_replace($published, $incoming);
-        $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
-            $collection->fields,
-            $preview,
-            $incoming,
-        );
-
-        $data = $published;
-        foreach ($incoming as $key => $value) {
-            $data[$key] = $value;
-        }
-
-        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
-            collection: $collection,
-            data: $data,
-            item: $item,
-            creating: false,
-            version: 'published',
-            shouldValidate: false,
-            shouldMergeIncoming: false,
-            shouldEnforceVersioningGuard: false,
-            revisionMeta: ['source' => 'calendar_move'],
-        ));
-
-        if (is_array($item->draft_data)) {
-            $draft = $item->draft_data;
-            foreach ($incoming as $key => $value) {
-                $draft[$key] = $value;
-            }
-            $item->draft_data = $this->itemDataNormalizer->normalize($collection, $draft, false);
-            $item->save();
-        }
-
-        return $this->redirectAfterItemSave(
-            $collection,
-            $item,
-            $this->itemSaveAction($request),
-            __('Item updated.'),
-        );
-    }
-
-    /**
-     * Keep datetime clock when client sends a bare calendar day (Y-m-d).
-     */
-    private function calendarMoveDateValue(?string $existing, string $incoming): string
-    {
-        $trimmed = trim($incoming);
-        if (
-            preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed) === 1
-            && is_string($existing)
-            && preg_match('/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/', $existing, $match) === 1
-        ) {
-            return $trimmed.'T'.$match[2];
-        }
-
-        return $trimmed;
-    }
-
-    /**
-     * Place item immediately after `after_item_id` (or before `before_item_id`
-     * when dropping at the top). Increments later ranks so equal/null neighbor
-     * sorts cannot collapse the intended position.
-     */
-    private function assignBoardSort(
-        CollectionItem $item,
-        Collection $collection,
-        ?int $afterItemId,
-        ?int $beforeItemId,
-    ): void {
-        CollectionItem::query()->getConnection()->transaction(function () use ($item, $collection, $afterItemId, $beforeItemId): void {
-            $after = null;
-            if ($afterItemId !== null && $afterItemId !== $item->id) {
-                $after = CollectionItem::query()
-                    ->where('collection_id', $collection->id)
-                    ->whereKey($afterItemId)
-                    ->lockForUpdate()
-                    ->first();
-            }
-
-            $before = null;
-            if ($beforeItemId !== null && $beforeItemId !== $item->id) {
-                $before = CollectionItem::query()
-                    ->where('collection_id', $collection->id)
-                    ->whereKey($beforeItemId)
-                    ->lockForUpdate()
-                    ->first();
-            }
-
-            CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKey($item->id)
-                ->lockForUpdate()
-                ->first();
-
-            if ($after !== null) {
-                if ($after->board_sort === null) {
-                    $after->board_sort = 1000;
-                    $after->save();
-                }
-                $afterSort = (int) $after->board_sort;
-                CollectionItem::query()
-                    ->where('collection_id', $collection->id)
-                    ->whereKeyNot($item->id)
-                    ->whereNotNull('board_sort')
-                    ->where('board_sort', '>', $afterSort)
-                    ->increment('board_sort', 1000);
-                $item->board_sort = $afterSort + 1000;
-
-                return;
-            }
-
-            if ($before !== null) {
-                if ($before->board_sort === null) {
-                    $before->board_sort = 2000;
-                    $before->save();
-                }
-                $beforeSort = (int) $before->board_sort;
-                CollectionItem::query()
-                    ->where('collection_id', $collection->id)
-                    ->whereKeyNot($item->id)
-                    ->whereNotNull('board_sort')
-                    ->where('board_sort', '>=', $beforeSort)
-                    ->increment('board_sort', 1000);
-                $item->board_sort = $beforeSort;
-
-                return;
-            }
-
-            $item->board_sort = 1000;
-        });
-    }
-
-    /**
-     * Promote draft_data into published field values (content versioning).
-     */
-    public function publish(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('updateItems', $collection);
-        $this->assertItemBelongsToCollection($collection, $item);
-        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
-        abort_unless($collection->versioning, 422);
-
-        if (! is_array($item->draft_data)) {
-            return redirect()
-                ->route('collections.items.show', [
-                    'collection' => $collection,
-                    'item' => $item,
-                    'version' => 'draft',
-                ])
-                ->with('error', __('No draft changes to publish.'));
-        }
-
-        try {
-            $this->itemPublisher->promote($item, $collection, scheduled: false);
-        } catch (RuntimeException $e) {
-            return redirect()
-                ->route('collections.items.show', [
-                    'collection' => $collection,
-                    'item' => $item,
-                    'version' => 'draft',
-                ])
-                ->with('error', __($e->getMessage()));
-        }
-
-        return redirect()->route('collections.items.show', [
-            'collection' => $collection,
-            'item' => $item,
-            'version' => 'published',
-        ])->with('success', __('Published.'));
-    }
-
-    /**
-     * Submit draft for editorial review.
-     */
-    public function submitForReview(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('updateItems', $collection);
-        $this->assertItemBelongsToCollection($collection, $item);
-        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
-
-        /** @var User $user */
-        $user = $request->user();
-        $this->itemApprovals->submit($item, $collection, $user);
-
-        return redirect()->route('collections.items.show', [
-            'collection' => $collection,
-            'item' => $item,
-            'version' => 'draft',
-        ])->with('success', __('Submitted for review.'));
-    }
-
-    /**
-     * Approve a draft that is in review.
-     */
-    public function approve(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('updateItems', $collection);
-        $this->assertItemBelongsToCollection($collection, $item);
-        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
-
-        /** @var User $user */
-        $user = $request->user();
-        $this->itemApprovals->approve($item, $collection, $user);
-
-        return redirect()->route('collections.items.show', [
-            'collection' => $collection,
-            'item' => $item,
-            'version' => 'draft',
-        ])->with('success', __('Approved.'));
-    }
-
-    /**
-     * Reject a draft that is in review (note required).
-     */
-    public function reject(RejectCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        /** @var User $user */
-        $user = $request->user();
-        $this->itemApprovals->reject($item, $collection, $user, $validated['rejection_note']);
-
-        return redirect()->route('collections.items.show', [
-            'collection' => $collection,
-            'item' => $item,
-            'version' => 'draft',
-        ])->with('success', __('Rejected.'));
-    }
-
-    /**
-     * Schedule publish and/or unpublish for a versioned item.
-     */
-    public function schedule(ScheduleCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $version = $request->query('version', 'draft');
-        if (! in_array($version, ['published', 'draft'], true)) {
-            $version = 'draft';
-        }
-
-        if ($request->boolean('clear')) {
-            // Published workspace: only clear unpublish; keep draft promote schedule.
-            if ($version === 'published') {
-                $item->unpublish_at = null;
-            } else {
-                $item->publish_at = null;
-                $item->unpublish_at = null;
-                $item->clearScheduleFailure();
-            }
-            $item->save();
-
-            return redirect()->route('collections.items.show', [
-                'collection' => $collection,
-                'item' => $item,
-                'version' => $version,
-            ])->with('success', __('Schedule cleared.'));
-        }
-
-        $touchPublish = $request->exists('publish_at');
-        $touchUnpublish = $request->exists('unpublish_at');
-
-        $publishAt = $touchPublish ? ($validated['publish_at'] ?? null) : $item->publish_at?->toIso8601String();
-        $unpublishAt = $touchUnpublish ? ($validated['unpublish_at'] ?? null) : $item->unpublish_at?->toIso8601String();
-
-        // Draft promote+unpublish pair only; published view schedules soft-delete alone.
-        if (
-            $version !== 'published'
-            && $publishAt !== null
-            && $unpublishAt !== null
-            && strtotime((string) $unpublishAt) <= strtotime((string) $publishAt)
-        ) {
-            return redirect()
-                ->back()
-                ->with('error', __('Unpublish time must be after publish time.'));
-        }
-
-        if ($touchPublish && $publishAt !== null && ! is_array($item->draft_data)) {
-            return redirect()
-                ->route('collections.items.show', [
-                    'collection' => $collection,
-                    'item' => $item,
-                    'version' => 'draft',
-                ])
-                ->with('error', __('Save a draft before scheduling publish.'));
-        }
-
-        if (
-            $touchPublish
-            && $publishAt !== null
-            && $collection->approvals_required
-            && (string) $item->approval_status !== 'approved'
-        ) {
-            return redirect()
-                ->back()
-                ->with('error', __('Item must be approved before scheduling publish.'));
-        }
-
-        // Published workspace never reschedules promote; only soft-delete unpublish.
-        if ($version === 'published') {
-            $item->unpublish_at = $touchUnpublish ? ($validated['unpublish_at'] ?? null) : $item->unpublish_at;
-        } else {
-            if ($touchPublish) {
-                $item->publish_at = $validated['publish_at'] ?? null;
-                $item->clearScheduleFailure();
-            }
-            if ($touchUnpublish) {
-                $item->unpublish_at = $validated['unpublish_at'] ?? null;
-            }
-            // Legacy clients that always send both keys.
-            if (! $touchPublish && ! $touchUnpublish) {
-                $item->publish_at = $validated['publish_at'] ?? null;
-                $item->unpublish_at = $validated['unpublish_at'] ?? null;
-                $item->clearScheduleFailure();
-            }
-        }
-        $item->save();
-
-        return redirect()->route('collections.items.show', [
-            'collection' => $collection,
-            'item' => $item,
-            'version' => $version,
-        ])->with('success', __('Schedule saved.'));
-    }
-
-    /**
-     * Discard unpublished draft_data (content versioning). Published values untouched.
-     */
-    public function discardDraft(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
-    {
-        Gate::forUser($request->user())->authorize('updateItems', $collection);
-        $this->assertItemBelongsToCollection($collection, $item);
-        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
-        abort_unless($collection->versioning, 422);
-
-        if (! is_array($item->draft_data)) {
-            return redirect()
-                ->route('collections.items.show', [
-                    'collection' => $collection,
-                    'item' => $item,
-                    'version' => 'draft',
-                ])
-                ->with('error', __('No draft to discard.'));
-        }
-
-        $item->draft_data = null;
-        $item->publish_at = null;
-        $item->clearScheduleFailure();
-        if ($collection->approvals_required) {
-            $this->itemApprovals->resetToDraft($item);
-        } else {
-            $item->save();
-        }
-
-        $this->revisionRecorder->record($item, [
-            'source' => 'discard_draft',
-        ]);
-
-        return redirect()->route('collections.items.show', [
-            'collection' => $collection,
-            'item' => $item,
-            'version' => 'draft',
-        ])->with('success', __('Draft discarded.'));
-    }
-
-    /**
      * Soft-delete a collection item.
      */
     public function destroy(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
@@ -1298,6 +829,7 @@ class ItemController extends Controller
     {
         Gate::forUser($request->user())->authorize('updateItems', $collection);
         $this->assertItemBelongsToCollection($collection, $item);
+        Gate::forUser($request->user())->authorize('update', [$item, $collection]);
 
         $item->restore();
 
@@ -1350,10 +882,9 @@ class ItemController extends Controller
         $items = $query->get();
 
         // Authorize every selected item before mutating any (no partial apply on AuthZ fail).
-        if ($action !== 'restore') {
-            foreach ($items as $item) {
-                Gate::forUser($request->user())->authorize('delete', [$item, $collection]);
-            }
+        $itemAbility = $action === 'restore' ? 'update' : 'delete';
+        foreach ($items as $item) {
+            Gate::forUser($request->user())->authorize($itemAbility, [$item, $collection]);
         }
 
         CollectionItem::query()->getConnection()->transaction(function () use ($items, $action): void {
