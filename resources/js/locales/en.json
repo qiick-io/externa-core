@@ -982,6 +982,22 @@
             "copy": "Save as Copy",
             "discard": "Discard All Changes"
         },
+        "aiDraft": {
+            "button": "AI draft",
+            "title": "Draft with AI",
+            "description": "Describe the item. AI proposes values for the text fields; you review them, fill the form, and save as usual.",
+            "prompt": "Brief",
+            "promptPlaceholder": "e.g. A news post announcing the spring release, friendly tone",
+            "locale": "Language",
+            "generate": "Generate",
+            "regenerate": "Generate again",
+            "preview": "Proposed values",
+            "empty": "AI proposed no usable values. Try a more detailed brief.",
+            "dropped": "Left out (did not match the field rules)",
+            "apply": "Fill form",
+            "applied": "Draft added to the form. Review it and save to keep it.",
+            "error": "The AI draft could not be generated."
+        },
         "itemToolbar": {
             "previewAs": "Preview as…",
             "livePreview": "Live Preview",

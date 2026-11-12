@@ -10,6 +10,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
+use App\Http\Controllers\Collections\ItemAiDraftController;
 use App\Http\Controllers\Collections\ItemApprovalController;
 use App\Http\Controllers\Collections\ItemBoardController;
 use App\Http\Controllers\Collections\ItemChatActivityController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Collections\ItemChatReactionController;
 use App\Http\Controllers\Collections\ItemController;
 use App\Http\Controllers\Collections\ItemRevisionController;
 use App\Http\Controllers\Collections\ItemWorkflowController;
+use App\Http\Middleware\EnsureAiItemDraftsEnabledMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])
@@ -77,6 +79,17 @@ Route::middleware(['auth', 'verified'])
         Route::get('collections/{collection}/items/new', [ItemController::class, 'newItem'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.items.new');
+
+        // Off unless AI_ITEM_DRAFTS (404); needs can-use-ai AND ai.draft; createItems / updateItems and
+        // the daily AI budget are checked in the form request (#210).
+        Route::post('collections/{collection}/items/ai-draft', ItemAiDraftController::class)
+            ->middleware([
+                EnsureAiItemDraftsEnabledMiddleware::class,
+                'permission:'.PermissionEnum::CanUseAi->value,
+                'permission:'.PermissionEnum::CanUseAiItemDrafts->value,
+                'throttle:20,1',
+            ])
+            ->name('collections.items.ai-draft');
 
         Route::get('collections/{collection}/items/options', [ItemController::class, 'fieldOptions'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)

@@ -223,5 +223,8 @@
     "You cannot write fields: :fields": "Non puoi scrivere i campi: :fields",
     "You do not have permission to approve this tool call.": "Non hai il permesso di approvare questa chiamata strumento.",
     "You do not have permission to reject this tool call.": "Non hai il permesso di rifiutare questa chiamata strumento.",
-    "format must be csv or json.": "Il formato deve essere csv o json."
+    "format must be csv or json.": "Il formato deve essere csv o json.",
+    "This collection has no fields an AI draft can fill.": "Questa collezione non ha campi che una bozza AI possa compilare.",
+    "The value has the wrong type for this field.": "Il valore ha un tipo non valido per questo campo.",
+    "The AI draft could not be generated. Try again later.": "Non è stato possibile generare la bozza AI. Riprova più tardi."
 }
