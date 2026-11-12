@@ -2,6 +2,7 @@ import { Form, Head, Link, router } from '@inertiajs/react';
 import { Rows3, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import CollectionSingletonContentController from '@/actions/App/Http/Controllers/Collections/CollectionSingletonContentController';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
@@ -146,7 +147,7 @@ export default function CollectionsShow({
                 {hasFields && (
                     <Form
                         key={formKey}
-                        {...ContentCollectionController.upsertSingletonContent.form(
+                        {...CollectionSingletonContentController.upsertSingletonContent.form(
                             {
                                 collection: collection.id,
                             },

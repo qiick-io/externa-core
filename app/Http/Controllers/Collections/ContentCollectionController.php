@@ -1,51 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Collections;
 
-use App\Actions\Collections\CreateCollectionItemAction;
-use App\Actions\Collections\UpdateCollectionItemAction;
-use App\Data\Collections\CollectionItemWriteData;
+use App\Actions\Collections\CreateContentCollectionAction;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Collections\ApplyCollectionPackRequest;
-use App\Http\Requests\Collections\BulkCollectionActionRequest;
-use App\Http\Requests\Collections\CheckCollectionSlugRequest;
 use App\Http\Requests\Collections\ListContentCollectionsRequest;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
-use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
 use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\CollectionPacks\CollectionPackRegistryService;
-use App\Services\Collections\FieldConditionEvaluatorService;
-use App\Services\Collections\UniqueCollectionSlugGeneratorService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Manages content collection definitions and singleton content editing.
+ * Content collection definitions: list, create, show (singleton editor), update, soft-delete.
+ * Trash lives in CollectionTrashController, singleton content saves in
+ * CollectionSingletonContentController, packs in CollectionPackController and the slug
+ * check in CollectionSlugController.
  */
 class ContentCollectionController extends Controller
 {
     use ValidatesListPerPageTrait;
 
     public function __construct(
-        private CreateCollectionItemAction $createCollectionItemAction,
-        private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
         private CollectionPermissionEnforcerService $permissionEnforcer,
-        private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -111,75 +102,16 @@ class ContentCollectionController extends Controller
     }
 
     /**
-     * Check whether a collection slug is available (unique), optionally excluding one id.
-     */
-    public function checkSlug(CheckCollectionSlugRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $slug = Str::slug((string) $validated['slug']);
-        $excludeId = isset($validated['exclude']) ? (int) $validated['exclude'] : null;
-        $excludeId = $excludeId !== null && $excludeId > 0 ? $excludeId : null;
-
-        $generator = app(UniqueCollectionSlugGeneratorService::class);
-        $available = $slug !== ''
-            && (bool) preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)
-            && $generator->isAvailable($slug, $excludeId);
-
-        return response()->json([
-            'available' => $available,
-            'slug' => $slug,
-        ]);
-    }
-
-    /**
      * Create a collection and seed an empty singleton item when required.
      */
-    public function store(StoreContentCollectionRequest $request): RedirectResponse
-    {
-        $collection = Collection::query()->create($request->validated());
-
-        if ($collection->is_singleton) {
-            $collection->items()->create([]);
-        }
+    public function store(
+        StoreContentCollectionRequest $request,
+        CreateContentCollectionAction $createContentCollection,
+    ): RedirectResponse {
+        $collection = $createContentCollection->execute($request->validated());
 
         return redirect()->route('collections.show', $collection)
             ->with('success', __('Collection created.'));
-    }
-
-    /**
-     * Apply a registered collection pack (auto-create dependencies, skip existing fields).
-     */
-    public function applyPack(
-        ApplyCollectionPackRequest $request,
-        string $pack,
-        ApplyCollectionPackService $applyCollectionPack,
-    ): RedirectResponse {
-        $validated = $request->validated();
-
-        $result = $applyCollectionPack->apply($pack, [
-            'name' => $validated['name'] ?? null,
-            'slug' => $validated['slug'] ?? null,
-        ]);
-
-        $collection = Collection::query()->findOrFail($result['collection']['id']);
-        $createdFields = count($result['created_fields']) + count($result['created_relations']);
-        $skippedFields = count($result['skipped_fields']) + count($result['skipped_relations']);
-
-        $message = $result['collection']['created']
-            ? __('Collection pack applied: :name created with :created field(s) (:skipped skipped).', [
-                'name' => $collection->name,
-                'created' => $createdFields,
-                'skipped' => $skippedFields,
-            ])
-            : __('Collection pack applied on existing :name: :created field(s) created, :skipped skipped.', [
-                'name' => $collection->name,
-                'created' => $createdFields,
-                'skipped' => $skippedFields,
-            ]);
-
-        return redirect()->route('collections.fields.index', $collection)
-            ->with('success', $message);
     }
 
     /**
@@ -235,109 +167,5 @@ class ContentCollectionController extends Controller
 
         return redirect()->route('collections.index')
             ->with('success', __('Collection deleted.'));
-    }
-
-    /**
-     * Restore a soft-deleted collection.
-     */
-    public function restore(Collection $collection): RedirectResponse
-    {
-        $collection->restore();
-
-        return redirect()->route('collections.index', ['trashed' => 1])
-            ->with('success', __('Collection restored.'));
-    }
-
-    /**
-     * Permanently delete a collection.
-     */
-    public function forceDelete(Collection $collection): RedirectResponse
-    {
-        $collection->forceDelete();
-
-        return redirect()->route('collections.index', ['trashed' => 1])
-            ->with('success', __('Collection permanently deleted.'));
-    }
-
-    /**
-     * Run a bulk delete, restore, or force-delete action on selected collections.
-     */
-    public function bulk(BulkCollectionActionRequest $request): RedirectResponse
-    {
-        $action = $request->validated('action');
-        $ids = $request->validated('ids');
-
-        match ($action) {
-            'delete' => Collection::query()->whereIn('id', $ids)->delete(),
-            'restore' => Collection::query()->onlyTrashed()->whereIn('id', $ids)->restore(),
-            'force_delete' => Collection::query()->onlyTrashed()->whereIn('id', $ids)->forceDelete(),
-        };
-
-        return redirect()
-            ->back()
-            ->with('success', __('Bulk action completed.'));
-    }
-
-    /**
-     * Create or merge singleton collection content while preserving readonly fields.
-     */
-    public function upsertSingletonContent(UpsertSingletonCollectionItemRequest $request, Collection $collection): RedirectResponse
-    {
-        abort_unless($collection->is_singleton, 404);
-
-        $incoming = $request->validated('data') ?? [];
-        if (! is_array($incoming)) {
-            $incoming = [];
-        }
-
-        $item = $collection->items()->first();
-
-        if (! $item instanceof CollectionItem) {
-            $this->createCollectionItemAction->execute(new CollectionItemWriteData(
-                collection: $collection,
-                data: $incoming,
-                creating: true,
-                shouldValidate: false,
-            ));
-
-            return redirect()->route('collections.show', $collection)
-                ->with('success', __('Content saved.'));
-        }
-
-        $data = $this->collectionItemValuesAssembler->assemble($item);
-        $collection->loadMissing('fields');
-        $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
-            $collection->fields,
-            array_replace($data, $incoming),
-            $incoming,
-        );
-
-        foreach ($incoming as $key => $value) {
-            // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).
-            if (
-                is_array($value)
-                && isset($data[$key])
-                && is_array($data[$key])
-                && ! array_is_list($value)
-            ) {
-                $data[$key] = array_merge($data[$key], $value);
-            } else {
-                $data[$key] = $value;
-            }
-        }
-
-        $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
-            collection: $collection,
-            data: $data,
-            item: $item,
-            creating: false,
-            version: $collection->versioning ? 'draft' : 'published',
-            shouldValidate: false,
-            shouldMergeIncoming: false,
-            shouldEnforceVersioningGuard: false,
-        ));
-
-        return redirect()->route('collections.show', $collection)
-            ->with('success', __('Content updated.'));
     }
 }
