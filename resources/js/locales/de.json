@@ -1027,7 +1027,10 @@
             "approved": "Freigegeben",
             "rejected": "Abgelehnt",
             "approveBeforePublish": "Vor dem Veröffentlichen freigeben",
-            "actions": "Aktionen"
+            "actions": "Aktionen",
+            "publishedReadOnly": "Die veröffentlichte Version ist schreibgeschützt. Wechsle zum Entwurf, um zu bearbeiten, und veröffentliche dann.",
+            "revisionNeedsDraft": "Wechsle zum Entwurf, bevor du eine Revision anwendest.",
+            "revisionApplied": "Revision in das Formular übernommen. Speichere, um sie zu behalten."
         },
         "itemPresence": {
             "viewing": "{{count}} weitere(r) Bearbeiter sieht zu",

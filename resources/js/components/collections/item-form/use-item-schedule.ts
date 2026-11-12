@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
+import ItemWorkflowController from '@/actions/App/Http/Controllers/Collections/ItemWorkflowController';
 import { fromDatetimeLocalValue } from '@/components/collections/item-form/item-form-helpers';
 import { toDatetimeLocalValue } from '@/lib/format';
 
@@ -62,7 +63,10 @@ export function useItemSchedule({
         setUnpublishAtLocal(toDatetimeLocalValue(unpublishAt ?? null));
     }
 
-    const scheduleUrl = `/collections/${collectionId}/items/${itemId}/schedule?version=${contentVersion}`;
+    const scheduleUrl = ItemWorkflowController.schedule.url(
+        { collection: collectionId, item: itemId },
+        { query: { version: contentVersion } },
+    );
 
     /** Save the schedule; the published version only carries `unpublish_at`. */
     const saveSchedule = (): void => {

@@ -11,7 +11,6 @@
         "resources/js/components/chat/chat-send-attachments-dialog.tsx": 1,
         "resources/js/components/chat/chat-users-drawer.tsx": 1,
         "resources/js/components/chat/new-chat-menu.tsx": 1,
-        "resources/js/components/collections/collection-field-form.tsx": 2,
         "resources/js/components/collections/collection-form-drawer.tsx": 10,
         "resources/js/components/collections/group-field-renderer.tsx": 2,
         "resources/js/components/collections/item-preview-as-role-dialog.tsx": 1,

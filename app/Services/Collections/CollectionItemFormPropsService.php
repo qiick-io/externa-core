@@ -59,9 +59,10 @@ class CollectionItemFormPropsService
      * `?version=draft|published` picks the workspace; collections without versioning always
      * show the published values, and the draft workspace falls back to them while no draft exists.
      *
+     * @param  int  $activityPerPage  Activity log page size, already clamped by the controller.
      * @return array<string, mixed>
      */
-    public function editProps(Request $request, Collection $collection, CollectionItem $item): array
+    public function editProps(Request $request, Collection $collection, CollectionItem $item, int $activityPerPage): array
     {
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
         $item->load([
@@ -89,7 +90,7 @@ class CollectionItemFormPropsService
             ->forSubject($item)
             ->with(['causer', 'subject'])
             ->latest('id')
-            ->paginate($request->integer('per_page', 10))
+            ->paginate($activityPerPage)
             ->withQueryString();
 
         $itemPayload = (new CollectionItemResource($item))->toArray($request);

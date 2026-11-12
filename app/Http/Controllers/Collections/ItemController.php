@@ -12,10 +12,12 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Collections\CollectionItemFormPropsService;
 use App\Services\Collections\CollectionItemFormSaveService;
 use App\Services\Collections\LivePreviewUnsavedDraftService;
@@ -35,6 +37,7 @@ use Inertia\Response;
 class ItemController extends Controller
 {
     use AssertsItemBelongsToCollectionTrait;
+    use ValidatesListPerPageTrait;
 
     public function __construct(
         private CreateCollectionItemAction $createCollectionItemAction,
@@ -44,6 +47,7 @@ class ItemController extends Controller
         private LivePreviewUnsavedDraftService $unsavedLivePreviewDrafts,
         private CollectionItemFormPropsService $formProps,
         private CollectionItemFormSaveService $formSave,
+        private EffectivePermissionResolverService $permissionResolver,
     ) {}
 
     /**
@@ -114,7 +118,12 @@ class ItemController extends Controller
             return redirect()->route('collections.show', $collection);
         }
 
-        return Inertia::render('collections/items/form', $this->formProps->editProps($request, $collection, $item));
+        $activityPerPage = $this->validatedListPerPage($request, default: 10);
+
+        return Inertia::render(
+            'collections/items/form',
+            $this->formProps->editProps($request, $collection, $item, $activityPerPage),
+        );
     }
 
     /**
@@ -175,7 +184,7 @@ class ItemController extends Controller
             $version = 'published';
         }
 
-        // : published workspace is read-only when versioning is enabled.
+        // The published workspace is read-only when versioning is enabled.
         if ($collection->versioning && $version === 'published') {
             return redirect()
                 ->route('collections.items.show', [
@@ -191,10 +200,14 @@ class ItemController extends Controller
         $action = $this->itemSaveAction($request);
 
         if ($action === 'copy' && ! $collection->is_singleton) {
+            // A copy is a new item: the same gates as store (permission incl. groups + Create grant).
+            $user = $request->user();
             abort_unless(
-                $request->user()?->can(PermissionEnum::CanCreateCollections->value),
+                $user instanceof User
+                    && $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateCollections->value),
                 403,
             );
+            Gate::forUser($user)->authorize('createItems', $collection);
 
             $copy = $this->persistNewItem($collection, $data);
 
