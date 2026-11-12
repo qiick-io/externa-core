@@ -164,7 +164,9 @@ export function ItemsTable({
                                     items.data.length > 0 &&
                                     selected.length === items.data.length
                                 }
-                                onCheckedChange={(c) => toggleAll(c === true)}
+                                onCheckedChange={(checked) =>
+                                    toggleAll(checked === true)
+                                }
                                 aria-label={t('a11y.selectAll')}
                                 className={checkboxTargetClassName}
                             />

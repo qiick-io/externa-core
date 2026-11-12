@@ -34,7 +34,6 @@
         "resources/js/pages/chat/index.tsx": 1,
         "resources/js/pages/collections/collections/fields.tsx": 1,
         "resources/js/pages/collections/collections/index.tsx": 6,
-        "resources/js/pages/collections/items/index.tsx": 2,
         "resources/js/pages/collections/items/item-filters-builder.tsx": 4,
         "resources/js/pages/collections/items/items-calendar.tsx": 3,
         "resources/js/pages/collections/items/revisions.tsx": 7,

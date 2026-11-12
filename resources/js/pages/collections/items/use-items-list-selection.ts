@@ -45,7 +45,9 @@ export function useItemsListSelection(
 
     const toggleRow = (id: number): void => {
         setSelected((prev) =>
-            prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id],
+            prev.includes(id)
+                ? prev.filter((selectedId) => selectedId !== id)
+                : [...prev, id],
         );
     };
 
