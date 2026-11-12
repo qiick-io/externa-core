@@ -31,7 +31,6 @@ return [
     // Thin controllers (app-ui v0.2.0): existing debt, a ratchet. Lower an entry when the
     // controller shrinks; never raise it.
     'controllerPublicMethods' => [
-        'App\Http\Controllers\Admin\FileController' => 30,
         'App\Http\Controllers\Admin\RoleController' => 8,
         'App\Http\Controllers\Admin\UserController' => 7,
         'App\Http\Controllers\Admin\UserGroupController' => 7,
@@ -39,7 +38,7 @@ return [
         'App\Http\Controllers\Api\V1\CollectionItemController' => 8,
         'App\Http\Controllers\Api\V1\FileController' => 7,
         'App\Http\Controllers\Chat\ChatHubController' => 15,
-        'App\Http\Controllers\Chat\ChatMessageController' => 31,
+        'App\Http\Controllers\Chat\ChatMessageController' => 18,
         'App\Http\Controllers\Collections\ContentCollectionController' => 11,
         'App\Http\Controllers\Collections\FieldController' => 12,
         'App\Http\Controllers\Collections\ItemChatController' => 20,
