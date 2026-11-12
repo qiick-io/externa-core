@@ -16,6 +16,7 @@ import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer'
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
+import { AiDailyUsage } from '@/components/ai/ai-daily-usage';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
 import { AiImportJobMarker } from '@/components/ai/ai-run-status';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
@@ -1043,6 +1044,7 @@ export default function AiIndexPage({
                                 onDryRunModeChange={chat.setDryRunMode}
                                 onOpenPresets={() => setPresetsOpen(true)}
                             />
+                            <AiDailyUsage className="mt-2" />
                         </div>
                     </AiChatDropZone>
                 </ChatLayout>

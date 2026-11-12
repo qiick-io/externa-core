@@ -2060,6 +2060,11 @@
         "assistantMessagePdfTitle": "Messaggio dell’assistente",
         "callingTool": "Chiamata {{tool}}…",
         "importStatus": "Importazione {{status}}: {{progress}} — {{message}}",
+        "dailyUsage": {
+            "label": "Oggi: {{usage}}",
+            "prompts": "{{used}} / {{limit}} prompt",
+            "tokens": "{{used}} / {{limit}} token"
+        },
         "importState": {
             "queued": "in coda",
             "running": "in corso",
