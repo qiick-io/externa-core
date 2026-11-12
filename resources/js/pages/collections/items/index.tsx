@@ -25,6 +25,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import ItemListController from '@/actions/App/Http/Controllers/Collections/ItemListController';
+import ItemTrashController from '@/actions/App/Http/Controllers/Collections/ItemTrashController';
 import { checkboxTargetClassName } from '@/components/admin/data-table';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
@@ -453,7 +455,7 @@ export default function ItemsIndex({
             setListColumns(columns);
             setColumnAligns(aligns);
             router.put(
-                ItemController.updateListColumns.url(collection.id),
+                ItemListController.updateListColumns.url(collection.id),
                 {
                     columns,
                     aligns,
@@ -691,7 +693,7 @@ export default function ItemsIndex({
 
     const bulk = (action: 'delete' | 'restore' | 'force_delete'): void => {
         router.post(
-            ItemController.bulk.url(collection.id),
+            ItemTrashController.bulk.url(collection.id),
             { ids: selected, action },
             {
                 preserveScroll: true,
@@ -778,7 +780,7 @@ export default function ItemsIndex({
             }
         }
 
-        return `${ItemController.exportMethod.url(collection.id)}?${params.toString()}`;
+        return `${ItemListController.exportMethod.url(collection.id)}?${params.toString()}`;
     };
 
     return (
@@ -1497,7 +1499,7 @@ export default function ItemsIndex({
                                                                     )}
                                                                     onClick={() =>
                                                                         router.post(
-                                                                            ItemController.restore.url(
+                                                                            ItemTrashController.restore.url(
                                                                                 {
                                                                                     collection:
                                                                                         collection.id,
@@ -1677,7 +1679,7 @@ export default function ItemsIndex({
 
                     setConfirmingDestructive(true);
                     router.post(
-                        ItemController.bulk.url(collection.id),
+                        ItemTrashController.bulk.url(collection.id),
                         { ids: selected, action: pendingBulkAction },
                         {
                             preserveScroll: true,
@@ -1721,7 +1723,7 @@ export default function ItemsIndex({
 
                     setConfirmingDestructive(true);
                     router.delete(
-                        ItemController.forceDelete.url({
+                        ItemTrashController.forceDelete.url({
                             collection: collection.id,
                             item: pendingForceDeleteItemId,
                         }),
