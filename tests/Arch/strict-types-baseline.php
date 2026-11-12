@@ -159,7 +159,6 @@ return [
     'App\Http\Requests\Collections\UpdateFieldRequest',
     'App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest',
     'App\Http\Requests\Concerns\AuthorizesWithPermissionTrait',
-    'App\Http\Requests\Concerns\ValidatesListPerPageTrait',
     'App\Http\Requests\Concerns\ValidatesSearchQueryTrait',
     'App\Http\Requests\Notifications\MarkNotificationsReadRequest',
     'App\Http\Requests\Notifications\MarkNotificationsUnreadRequest',

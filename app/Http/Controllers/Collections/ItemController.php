@@ -12,6 +12,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
@@ -36,6 +37,7 @@ use Inertia\Response;
 class ItemController extends Controller
 {
     use AssertsItemBelongsToCollectionTrait;
+    use ValidatesListPerPageTrait;
 
     public function __construct(
         private CreateCollectionItemAction $createCollectionItemAction,
@@ -116,7 +118,12 @@ class ItemController extends Controller
             return redirect()->route('collections.show', $collection);
         }
 
-        return Inertia::render('collections/items/form', $this->formProps->editProps($request, $collection, $item));
+        $activityPerPage = $this->validatedListPerPage($request, default: 10);
+
+        return Inertia::render(
+            'collections/items/form',
+            $this->formProps->editProps($request, $collection, $item, $activityPerPage),
+        );
     }
 
     /**
@@ -177,7 +184,7 @@ class ItemController extends Controller
             $version = 'published';
         }
 
-        // : published workspace is read-only when versioning is enabled.
+        // The published workspace is read-only when versioning is enabled.
         if ($collection->versioning && $version === 'published') {
             return redirect()
                 ->route('collections.items.show', [
