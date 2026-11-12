@@ -74,7 +74,7 @@ Route::middleware([
         ->name('prompts.destroy');
 
     Route::post('/chat', AiChatController::class)
-        ->middleware('throttle:30,1')
+        ->middleware('throttle:ai')
         ->name('chat');
 
     Route::get('/import-jobs/{jobId}', ImportJobStatusController::class)

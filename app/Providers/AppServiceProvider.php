@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Listeners\AddQueueJobLogContextListener;
 use App\Listeners\Ai\LogAiToolApprovalEventsListener;
 use App\Models\ApiKey;
 use App\Models\User;
@@ -22,6 +25,10 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -69,7 +76,22 @@ class AppServiceProvider extends ServiceProvider
         $this->configureActivityLogging();
         $this->registerAuthActivityListeners();
         $this->registerAiToolApprovalListeners();
+        $this->registerQueueJobLogContextListeners();
         $this->configureHttpClientStreaming();
+    }
+
+    /**
+     * Job class and attempt for the `structured` log channel (#209). Registered after the
+     * framework's Context hydration listener, which must run first on JobProcessing.
+     */
+    protected function registerQueueJobLogContextListeners(): void
+    {
+        $listener = AddQueueJobLogContextListener::class;
+
+        Event::listen(JobProcessing::class, [$listener, 'handleProcessing']);
+        Event::listen(JobProcessed::class, [$listener, 'handleFinished']);
+        Event::listen(JobFailed::class, [$listener, 'handleFinished']);
+        Event::listen(JobExceptionOccurred::class, [$listener, 'handleFinished']);
     }
 
     protected function configureRateLimiting(): void
@@ -78,6 +100,22 @@ class AppServiceProvider extends ServiceProvider
             $key = $request->user()?->id ?: $request->ip();
 
             return Limit::perMinute(60)->by((string) $key);
+        });
+
+        /*
+         * AI chat (#275): per user per minute (default 30, the former `throttle:30,1`) and, when
+         * AI_RATE_LIMIT_PER_DAY is set, per user per day. Each limit needs its own key.
+         */
+        RateLimiter::for('ai', function (Request $request) {
+            $key = (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
+            $limits = [Limit::perMinute(max(1, (int) config('ai.rate_limit.per_minute', 30)))->by('ai-minute:'.$key)];
+            $perDay = (int) config('ai.rate_limit.per_day', 0);
+
+            if ($perDay > 0) {
+                $limits[] = Limit::perDay($perDay)->by('ai-day:'.$key);
+            }
+
+            return $limits;
         });
 
         RateLimiter::for('mcp', function (Request $request) {
