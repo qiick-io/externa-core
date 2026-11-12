@@ -28,15 +28,7 @@ return [
 
     'suffixes' => [],
 
-    // Thin controllers (app-ui v0.2.0): existing debt, a ratchet. Lower an entry when the
-    // controller shrinks; never raise it.
-    'controllerPublicMethods' => [
-        'App\Http\Controllers\Admin\RoleController' => 8,
-        'App\Http\Controllers\Admin\UserController' => 7,
-        'App\Http\Controllers\Admin\UserGroupController' => 7,
-        'App\Http\Controllers\Ai\AiConversationController' => 7,
-        'App\Http\Controllers\Api\V1\CollectionItemController' => 8,
-        'App\Http\Controllers\Api\V1\FileController' => 7,
-        'App\Http\Controllers\Settings\ProjectIntegrationsSettingsController' => 6,
-    ],
+    // Thin controllers (app-ui v0.2.0): the debt is paid off (#598), so the five public
+    // methods cap is now enforced for every controller. Never add an entry here.
+    'controllerPublicMethods' => [],
 ];

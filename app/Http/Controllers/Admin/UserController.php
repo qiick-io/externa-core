@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
@@ -21,7 +20,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Admin CRUD and bulk actions for application users, roles, and groups.
+ * Admin list, create, edit, and soft delete for application users and their roles and groups.
+ *
+ * Restore, permanent delete, and bulk actions live in {@see UserTrashController}.
  */
 class UserController extends Controller
 {
@@ -164,53 +165,6 @@ class UserController extends Controller
         return redirect()
             ->route('users.index')
             ->with('success', __('User deleted.'));
-    }
-
-    /**
-     * Restore a soft-deleted user.
-     */
-    public function restore(User $user): RedirectResponse
-    {
-        abort_unless(Gate::allows('restore', $user), 403);
-
-        $user->restore();
-
-        return redirect()
-            ->route('users.index', ['trashed' => 1])
-            ->with('success', __('User restored.'));
-    }
-
-    /**
-     * Permanently delete a soft-deleted user.
-     */
-    public function forceDelete(User $user): RedirectResponse
-    {
-        abort_unless(Gate::allows('forceDelete', $user), 403);
-
-        $user->forceDelete();
-
-        return redirect()
-            ->route('users.index', ['trashed' => 1])
-            ->with('success', __('User permanently deleted.'));
-    }
-
-    /**
-     * Run a bulk delete, restore, or force-delete action on selected users.
-     */
-    public function bulkActions(BulkUserActionRequest $request): RedirectResponse
-    {
-        $action = $request->validated('action');
-        $ids = $request->validated('ids');
-
-        match ($action) {
-            'delete' => User::query()->whereIn('id', $ids)->delete(),
-            'restore' => User::query()->onlyTrashed()->whereIn('id', $ids)->restore(),
-            'force_delete' => User::query()->onlyTrashed()->whereIn('id', $ids)->forceDelete(),
-        };
-
-        return redirect()
-            ->back()
-            ->with('success', __('Bulk action completed.'));
     }
 
     /**
