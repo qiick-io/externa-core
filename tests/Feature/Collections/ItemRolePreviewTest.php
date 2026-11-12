@@ -12,6 +12,7 @@ use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -157,3 +158,50 @@ test('preview as role is forbidden without admin or super-admin', function () {
         'as_public' => 1,
     ]))->assertForbidden();
 });
+
+test('preview as role without a role or the public view returns a translated 422', function () {
+    $admin = User::factory()->create(['locale' => 'it']);
+    $admin->assignRole(RoleEnum::SuperAdmin->value);
+    $this->actingAs($admin);
+
+    $collection = Collection::factory()->create();
+    $item = $collection->items()->create([]);
+
+    $this->getJson(route('collections.items.preview-as-role', [
+        'collection' => $collection,
+        'item' => $item,
+    ]))
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Scegli un ruolo o la vista pubblica da visualizzare in anteprima.');
+});
+
+test('item form clamps the activity log page size to the list page sizes', function (?string $requestedPerPage, int $expectedRows) {
+    $admin = User::factory()->create();
+    $admin->assignRole(RoleEnum::SuperAdmin->value);
+    $this->actingAs($admin);
+
+    $collection = Collection::factory()->create();
+    $item = $collection->items()->create([]);
+    Activity::query()->forSubject($item)->delete();
+
+    for ($entry = 0; $entry < 120; $entry++) {
+        activity()->performedOn($item)->causedBy($admin)->log('updated');
+    }
+
+    $routeParameters = ['collection' => $collection, 'item' => $item];
+
+    if ($requestedPerPage !== null) {
+        $routeParameters['per_page'] = $requestedPerPage;
+    }
+
+    $this->get(route('collections.items.show', $routeParameters))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('collections/items/form')
+            ->has('activityLogs.data', $expectedRows));
+})->with([
+    'default' => [null, 10],
+    'allowed size' => ['50', 50],
+    'unbounded size' => ['100000', 10],
+    'unsupported size' => ['7', 10],
+]);

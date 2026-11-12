@@ -317,7 +317,7 @@ export default function ItemsForm({
 
     const applyRevision = (values: Record<string, unknown>): void => {
         if (formReadonly) {
-            toast.error('Switch to Draft before applying a revision.');
+            toast.error(t('collections.itemToolbar.revisionNeedsDraft'));
 
             return;
         }
@@ -327,7 +327,7 @@ export default function ItemsForm({
             values,
         });
         markFormEdited();
-        toast.success('Revision applied to the form. Save to keep.');
+        toast.success(t('collections.itemToolbar.revisionApplied'));
     };
 
     const lastCrumb: BreadcrumbItem = isNew

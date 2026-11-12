@@ -42,6 +42,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Converting a field type on a large collection keeps only ids and values between the read and write phases, and writes chunk by chunk, instead of holding every item with its relations in memory (#441).
 - The AI import status poll retries a failed check with backoff (4 s up to 30 s, five attempts) instead of stopping for good at the first network error (#441).
 - The TypeScript SDK package builds itself on `npm pack` / `npm publish` (`prepack`) and declares its repository, so it can no longer be published without `dist/` (#441).
+- Item editor: the activity log honours only the list page sizes (10, 20, 50, 100; default 10), so `?per_page=100000` no longer loads the whole log, and "Preview as…" without a role answers with a translated message (#738).
+- Item editor: the stale-save guard keeps catching saves over a peer's newer version after the form remounts (discard, or fields → activity → fields), the published read-only banner and the revision toasts are translated, and the schedule requests use the Wayfinder route (#741).
 
 ## [1.4.0] - 2026-11-10
 

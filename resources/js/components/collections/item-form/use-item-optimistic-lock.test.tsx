@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { COLLECTION_ITEM_FORM_ID } from '@/components/collections/item-form/item-form-helpers';
 import { useItemOptimisticLock } from '@/components/collections/item-form/use-item-optimistic-lock';
@@ -49,6 +49,7 @@ function renderLock(props: Partial<LockProps> = {}) {
 
 describe('useItemOptimisticLock', () => {
     afterEach(() => {
+        cleanup();
         document.body.innerHTML = '';
         notifyItemSaved.mockClear();
     });
@@ -74,6 +75,46 @@ describe('useItemOptimisticLock', () => {
         expect(event?.defaultPrevented).toBe(true);
         expect(hook.result.current.isStaleSaveOpen).toBe(true);
         expect(hook.result.current.isRemoteStale).toBe(true);
+    });
+
+    it('still holds a stale save after the form element remounts', () => {
+        const firstForm = mountItemForm();
+        const hook = renderLock({ remoteUpdatedAt: PEER_SAVED_AT });
+
+        // Discard or fields → activity → fields replaces the form element.
+        firstForm.remove();
+        const remountedForm = mountItemForm();
+
+        let event: SubmitEvent | undefined;
+        act(() => {
+            event = submit(remountedForm);
+        });
+
+        expect(event?.defaultPrevented).toBe(true);
+        expect(hook.result.current.isStaleSaveOpen).toBe(true);
+    });
+
+    it('guards a form that mounts after the peer save arrived', () => {
+        const hook = renderLock({ remoteUpdatedAt: PEER_SAVED_AT });
+        const form = mountItemForm();
+
+        let event: SubmitEvent | undefined;
+        act(() => {
+            event = submit(form);
+        });
+
+        expect(event?.defaultPrevented).toBe(true);
+        expect(hook.result.current.isStaleSaveOpen).toBe(true);
+    });
+
+    it('ignores submits of other forms on the page', () => {
+        mountItemForm();
+        const otherForm = document.createElement('form');
+        document.body.append(otherForm);
+        const hook = renderLock({ remoteUpdatedAt: PEER_SAVED_AT });
+
+        expect(submit(otherForm).defaultPrevented).toBe(false);
+        expect(hook.result.current.isStaleSaveOpen).toBe(false);
     });
 
     it('overwrites on purpose with the peer token after "save anyway"', () => {
