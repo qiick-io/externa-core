@@ -12,8 +12,8 @@ use App\Models\User;
 use App\Services\Api\FileAccessEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Authorization\RequestActorResolverService;
 use App\Support\Api\ApiAccess;
-use App\Support\Authorization\RequestActorResolver;
 use Illuminate\Auth\Access\Response;
 
 /**
@@ -33,7 +33,7 @@ final class FilePolicy
     public function __construct(
         private FileAccessEnforcerService $enforcer,
         private EffectivePermissionResolverService $permissionResolver,
-        private RequestActorResolver $actorResolver,
+        private RequestActorResolverService $actorResolver,
     ) {}
 
     /**

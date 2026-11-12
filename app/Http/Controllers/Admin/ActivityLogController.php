@@ -9,7 +9,7 @@ use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Models\User;
-use App\Support\Activity\FilterableActivityEvents;
+use App\Services\Activity\FilterableActivityEventsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -61,7 +61,7 @@ class ActivityLogController extends Controller
         return Inertia::render('admin/activity-logs/index', [
             'activityLogs' => ActivityLogResource::collection($activityLogs),
             'users' => $users,
-            'events' => FilterableActivityEvents::all(),
+            'events' => FilterableActivityEventsService::all(),
             'logNames' => ['default', 'auth', 'ai', 'chat', 'settings'],
             'filters' => $filters,
             'exportRowLimit' => self::EXPORT_ROW_LIMIT,
@@ -175,7 +175,7 @@ class ActivityLogController extends Controller
             'search' => $search,
             'user_ids' => $userIds,
             'user_id' => count($userIds) === 1 ? $userIds[0] : null,
-            'event' => FilterableActivityEvents::isValid($event) ? $event : '',
+            'event' => FilterableActivityEventsService::isValid($event) ? $event : '',
             'log_name' => $logName,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,

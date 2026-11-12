@@ -7,9 +7,9 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
 use App\Services\FileTransformService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Uploads\ForbiddenUploadExtension;
-use App\Support\Uploads\SafeUploadMime;
-use App\Support\Uploads\UploadSizeLimiter;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
+use App\Services\Uploads\SafeUploadMimeService;
+use App\Services\Uploads\UploadSizeLimiterService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -37,14 +37,14 @@ class ChatAttachmentUploadService
     public function storeSingle(User $user, UploadedFile $uploaded): CollectionItemChatAttachment
     {
         $size = (int) $uploaded->getSize();
-        UploadSizeLimiter::assertWithinCap($this->projectSettings->chatMaxUploadBytes(), $size);
-        UploadSizeLimiter::assertFitsPhpSingleUpload($size);
+        UploadSizeLimiterService::assertWithinCap($this->projectSettings->chatMaxUploadBytes(), $size);
+        UploadSizeLimiterService::assertFitsPhpSingleUpload($size);
 
         $clientName = $uploaded->getClientOriginalName();
         $originalName = $clientName !== '' ? $clientName : 'attachment.bin';
         $contents = $uploaded->getContent();
-        $mimeType = SafeUploadMime::assertChatAllowed($originalName, SafeUploadMime::sniff($contents), 'file', $contents);
-        $extension = SafeUploadMime::extensionOf($originalName);
+        $mimeType = SafeUploadMimeService::assertChatAllowed($originalName, SafeUploadMimeService::sniff($contents), 'file', $contents);
+        $extension = SafeUploadMimeService::extensionOf($originalName);
         $attachmentId = (string) Str::uuid7();
         $safeName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) ?: 'attachment';
         $storagePath = sprintf(
@@ -82,20 +82,20 @@ class ChatAttachmentUploadService
         int $totalChunks,
         ?string $mimeType = null,
     ): ChatAttachmentUpload {
-        UploadSizeLimiter::assertWithinCap(
+        UploadSizeLimiterService::assertWithinCap(
             $this->projectSettings->chatMaxUploadBytes(),
             $totalSize,
             'total_size',
         );
 
         // Reject forbidden / non-allowlisted names at init (content re-checked on complete).
-        $extension = SafeUploadMime::extensionOf($fileName);
-        if ($extension === '' || ! isset(SafeUploadMime::CHAT_EXTENSION_MIMES[$extension])) {
+        $extension = SafeUploadMimeService::extensionOf($fileName);
+        if ($extension === '' || ! isset(SafeUploadMimeService::CHAT_EXTENSION_MIMES[$extension])) {
             throw ValidationException::withMessages([
                 'file_name' => [__('This file type is not allowed.')],
             ]);
         }
-        ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
+        ForbiddenUploadExtensionService::assertAllowed($fileName, 'file_name');
 
         $uploadId = bin2hex(random_bytes(32));
 
@@ -168,7 +168,7 @@ class ChatAttachmentUploadService
             throw new RuntimeException('Not all chunks have been uploaded.');
         }
 
-        UploadSizeLimiter::assertWithinCap(
+        UploadSizeLimiterService::assertWithinCap(
             $this->projectSettings->chatMaxUploadBytes(),
             (int) $fileUpload->total_size,
             'total_size',
@@ -198,13 +198,13 @@ class ChatAttachmentUploadService
         }
 
         // Always re-sniff assembled bytes; never trust client mime_type.
-        $mimeType = SafeUploadMime::assertChatAllowed(
+        $mimeType = SafeUploadMimeService::assertChatAllowed(
             (string) $fileUpload->file_name,
-            SafeUploadMime::sniff($assembled),
+            SafeUploadMimeService::sniff($assembled),
             'file_name',
             $assembled,
         );
-        $extension = SafeUploadMime::extensionOf((string) $fileUpload->file_name);
+        $extension = SafeUploadMimeService::extensionOf((string) $fileUpload->file_name);
 
         $attachmentId = (string) Str::uuid7();
         $storagePath = sprintf(
@@ -281,7 +281,7 @@ class ChatAttachmentUploadService
      */
     private function maybeWritePreview(int $userId, string $attachmentId, string $mimeType, string $contents): ?array
     {
-        if (! SafeUploadMime::isInlineImage($mimeType)) {
+        if (! SafeUploadMimeService::isInlineImage($mimeType)) {
             return null;
         }
 

@@ -4,7 +4,7 @@ namespace App\Services\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
-use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
+use App\Services\Collections\CollectionPacks\CollectionPackRegistryService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -31,7 +31,7 @@ final class ApplyCollectionPackService
      */
     public function apply(string $packKey, array $overrides = []): array
     {
-        $pack = CollectionPackRegistry::find($packKey);
+        $pack = CollectionPackRegistryService::find($packKey);
 
         if ($pack === null) {
             throw new InvalidArgumentException('Unknown collection pack: '.$packKey);
@@ -126,7 +126,7 @@ final class ApplyCollectionPackService
                 return $resolvedByPack[$packKey];
             }
 
-            $relatedPack = CollectionPackRegistry::find($packKey);
+            $relatedPack = CollectionPackRegistryService::find($packKey);
             if ($relatedPack === null) {
                 throw new InvalidArgumentException('Unknown related pack: '.$packKey);
             }

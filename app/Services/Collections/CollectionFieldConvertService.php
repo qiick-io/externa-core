@@ -11,7 +11,6 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -30,7 +29,7 @@ class CollectionFieldConvertService
         private CollectionItemValuesAssemblerService $assembler,
         private CollectionItemValuesWriterService $writer,
         private CollectionItemRevisionRecorderService $revisionRecorder,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionLocaleResolverService $localeResolver,
         private ProjectSettingsService $projectSettings,
     ) {}
 

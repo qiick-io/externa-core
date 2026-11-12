@@ -5,8 +5,6 @@ namespace App\Services\Collections;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 class CollectionItemOptionsService
 {
     public function __construct(
-        private CollectionItemDataAccessor $itemDataAccessor,
+        private CollectionItemDataAccessorService $itemDataAccessor,
     ) {}
 
     /**
@@ -133,7 +131,7 @@ class CollectionItemOptionsService
     {
         $data = $this->itemDataAccessor->flattenForLocale(
             $item,
-            app(CollectionLocaleResolver::class)->resolve(),
+            app(CollectionLocaleResolverService::class)->resolve(),
             false,
         );
 

@@ -2,7 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\StringLimitsService;
 use Database\Seeders\PermissionSeeder;
 use Spatie\Permission\Models\Role;
 
@@ -28,7 +28,7 @@ test('admin search over max length returns 422', function (string $routeName, st
     $this->actingAs($actor);
 
     $this->getJson(route($routeName, [
-        'search' => str_repeat('a', StringLimits::SEARCH + 1),
+        'search' => str_repeat('a', StringLimitsService::SEARCH + 1),
     ]))
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['search']);
@@ -47,6 +47,6 @@ test('user group description over max length returns 422', function () {
 
     $this->post(route('groups.store'), [
         'name' => 'Too long desc '.uniqid(),
-        'description' => str_repeat('d', StringLimits::DESCRIPTION + 1),
+        'description' => str_repeat('d', StringLimitsService::DESCRIPTION + 1),
     ])->assertSessionHasErrors('description');
 });

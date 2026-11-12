@@ -1,0 +1,118 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Uploads;
+
+use Illuminate\Validation\ValidationException;
+
+/**
+ * MIME allowlist + magic-byte checks for upload bytes (after extension denylist).
+ */
+final class MimeTypeValidatorService
+{
+    private const MAGIC_HEADER_BYTES = 16;
+
+    /**
+     * Assert sniffed MIME is allowlisted and (when applicable) magic bytes match.
+     *
+     * @param  string  $bytes  File contents or a prefix; only the first 16 bytes are used for magic.
+     * @return string Normalized sniffed MIME
+     *
+     * @throws ValidationException
+     */
+    public static function assertAllowed(string $fileName, string $bytes, string $field = 'file'): string
+    {
+        $header = substr($bytes, 0, self::MAGIC_HEADER_BYTES);
+        self::assertMagicMatchesExtension($fileName, $header, $field);
+
+        $sniffed = SafeUploadMimeService::sniff($bytes !== '' ? $bytes : $header);
+        $sniffed = strtolower(trim(explode(';', $sniffed, 2)[0]));
+
+        self::assertMimeAllowlisted($sniffed, $field);
+        app(UploadAllowlistService::class)->assertExtensionAllowed($fileName, $field);
+
+        return $sniffed !== '' ? $sniffed : 'application/octet-stream';
+    }
+
+    /**
+     * Assert magic bytes for a path without loading the whole file into memory.
+     *
+     * @throws ValidationException
+     */
+    public static function assertAllowedPath(string $fileName, string $absolutePath, string $field = 'file'): string
+    {
+        $handle = @fopen($absolutePath, 'rb');
+        if ($handle === false) {
+            throw ValidationException::withMessages([
+                $field => [__('Unable to read uploaded file.')],
+            ]);
+        }
+
+        try {
+            $header = fread($handle, self::MAGIC_HEADER_BYTES);
+            if (! is_string($header)) {
+                $header = '';
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        self::assertMagicMatchesExtension($fileName, $header, $field);
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $sniffed = $finfo->file($absolutePath);
+        $sniffed = is_string($sniffed) && $sniffed !== '' && $sniffed !== 'application/x-empty'
+            ? strtolower(trim(explode(';', $sniffed, 2)[0]))
+            : 'application/octet-stream';
+
+        self::assertMimeAllowlisted($sniffed, $field);
+        app(UploadAllowlistService::class)->assertExtensionAllowed($fileName, $field);
+
+        return $sniffed;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private static function assertMimeAllowlisted(string $sniffed, string $field): void
+    {
+        $allowed = app(UploadAllowlistService::class)->allowedMimes();
+
+        if ($allowed !== [] && ! in_array($sniffed, $allowed, true)) {
+            throw ValidationException::withMessages([
+                $field => [__('This file type is not in the project upload allowlist.')],
+            ]);
+        }
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private static function assertMagicMatchesExtension(string $fileName, string $header, string $field): void
+    {
+        $extension = SafeUploadMimeService::extensionOf($fileName);
+        if ($extension === '') {
+            return;
+        }
+
+        /** @var array<string, list<string>> $signatures */
+        $signatures = (array) config('files.upload_magic_signatures', []);
+        $expected = $signatures[$extension] ?? null;
+        if ($expected === null || $expected === []) {
+            return;
+        }
+
+        $hex = strtoupper(bin2hex($header));
+        foreach ($expected as $signature) {
+            $needle = strtoupper(str_replace(' ', '', (string) $signature));
+            if ($needle !== '' && str_starts_with($hex, $needle)) {
+                return;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            $field => [__('File content does not match the declared file type.')],
+        ]);
+    }
+}

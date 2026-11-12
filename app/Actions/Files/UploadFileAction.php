@@ -7,7 +7,7 @@ namespace App\Actions\Files;
 use App\Models\File;
 use App\Services\FileService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Uploads\UploadSizeLimiter;
+use App\Services\Uploads\UploadSizeLimiterService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
@@ -30,8 +30,8 @@ final class UploadFileAction
     public function execute(UploadedFile $uploadedFile, ?int $parentId, string $disk, ?string $name): File
     {
         $size = (int) $uploadedFile->getSize();
-        UploadSizeLimiter::assertWithinCap($this->projectSettings->filesMaxUploadBytes(), $size);
-        UploadSizeLimiter::assertFitsPhpSingleUpload($size);
+        UploadSizeLimiterService::assertWithinCap($this->projectSettings->filesMaxUploadBytes(), $size);
+        UploadSizeLimiterService::assertFitsPhpSingleUpload($size);
 
         return $this->fileService->uploadFile($uploadedFile, $parentId, $disk, $name);
     }

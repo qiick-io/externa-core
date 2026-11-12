@@ -9,10 +9,10 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionPermission;
 use App\Models\User;
+use App\Services\Collections\CollectionItemDataAccessorService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\Request;
@@ -97,7 +97,7 @@ test('project settings persist content locales and resolver reads them', functio
 
     $request = Request::create('/test', 'GET');
     $request->headers->remove('Accept-Language');
-    $resolver = new CollectionLocaleResolver($request, $settings);
+    $resolver = new CollectionLocaleResolverService($request, $settings);
     expect($resolver->allowedLocales())->toBe(['it', 'en', 'de-DE'])
         ->and($resolver->resolve())->toBe('it')
         ->and($resolver->isAllowed('de-DE'))->toBeTrue()
@@ -240,7 +240,7 @@ test('disabling a locale keeps orphan translations in the database', function ()
 
     expect($item->fieldValues()->where('locale', 'it')->exists())->toBeTrue();
 
-    $accessor = app(CollectionItemDataAccessor::class);
+    $accessor = app(CollectionItemDataAccessorService::class);
     $all = $accessor->flattenForLocale($item->fresh(), 'en', true);
     expect($all['title'] ?? null)->not->toHaveKey('it');
 });

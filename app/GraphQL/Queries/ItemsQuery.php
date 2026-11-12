@@ -11,9 +11,9 @@ use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Collections\CollectionItemQueryService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Support\Api\ApiAccess;
 use App\Support\Api\PublicItemSortParser;
-use App\Support\Collections\CollectionLocaleResolver;
 
 final class ItemsQuery
 {
@@ -69,7 +69,7 @@ final class ItemsQuery
 
             $queryLocale = $request->query('locale');
             $localeOverride = is_string($queryLocale) && $queryLocale !== '' ? $queryLocale : null;
-            $locale = app(CollectionLocaleResolver::class)->resolve($localeOverride);
+            $locale = app(CollectionLocaleResolverService::class)->resolve($localeOverride);
 
             $query = CollectionItem::query()
                 ->where('collection_id', $collection->id)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Settings;
 
 use App\Data\Deploy\DeployHookData;
+use App\Services\Collections\ContentLocaleCatalogService;
 use App\Services\Settings\Project\ProjectApiSettingsService;
 use App\Services\Settings\Project\ProjectContentSettingsService;
 use App\Services\Settings\Project\ProjectFilesSettingsService;
@@ -12,12 +13,11 @@ use App\Services\Settings\Project\ProjectGeneralSettingsService;
 use App\Services\Settings\Project\ProjectIntegrationsSettingsService;
 use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 use App\Services\Settings\Project\ProjectSecuritySettingsService;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
+use App\Services\Uploads\UploadAllowlistService;
+use App\Services\Uploads\UploadSizeLimiterService;
 use App\Services\Webhooks\OutboundWebhookCatalogService;
 use App\Support\Api\PublicApiOrigin;
-use App\Support\Collections\ContentLocaleCatalog;
-use App\Support\Uploads\ForbiddenUploadExtension;
-use App\Support\Uploads\UploadAllowlist;
-use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rules\Password;
@@ -639,12 +639,12 @@ class ProjectSettingsService
             'files_max_upload_bytes' => $this->nullablePositiveInt(
                 $raw['files_max_upload_bytes'] ?? null,
                 1,
-                UploadSizeLimiter::SETTING_MAX_BYTES,
+                UploadSizeLimiterService::SETTING_MAX_BYTES,
             ),
             'chat_max_upload_bytes' => $this->nullablePositiveInt(
                 $raw['chat_max_upload_bytes'] ?? null,
                 1,
-                UploadSizeLimiter::SETTING_MAX_BYTES,
+                UploadSizeLimiterService::SETTING_MAX_BYTES,
             ),
             'upload_allowed_mimes' => $this->normalizeUploadMimeList($raw['upload_allowed_mimes'] ?? null),
             'upload_allowed_extensions' => $this->normalizeUploadExtensionList(
@@ -701,8 +701,8 @@ class ProjectSettingsService
         // Hard floor extensions can never be allowlisted via settings.
         $extensions = array_values(array_filter(
             $extensions,
-            static fn (string $ext): bool => ! ForbiddenUploadExtension::isHardFloor("file.{$ext}")
-                || in_array($ext, UploadAllowlist::SVG_EXTENSIONS, true),
+            static fn (string $ext): bool => ! ForbiddenUploadExtensionService::isHardFloor("file.{$ext}")
+                || in_array($ext, UploadAllowlistService::SVG_EXTENSIONS, true),
         ));
 
         return $extensions === [] ? null : $extensions;
@@ -803,7 +803,7 @@ class ProjectSettingsService
                     continue;
                 }
                 // Allow catalog codes and any already-seeded/config codes
-                if (! ContentLocaleCatalog::isKnown($code) && ! in_array($code, $seedLocales, true)) {
+                if (! ContentLocaleCatalogService::isKnown($code) && ! in_array($code, $seedLocales, true)) {
                     continue;
                 }
                 $normalized[$code] = $code;

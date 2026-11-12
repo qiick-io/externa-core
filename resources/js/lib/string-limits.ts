@@ -1,5 +1,5 @@
 /**
- * FE mirrors of App\Support\Validation\StringLimits (BE is source of truth).
+ * FE mirrors of App\Services\Validation\StringLimitsService (BE is source of truth).
  */
 export const STRING_LIMITS = {
     SEARCH: 255,

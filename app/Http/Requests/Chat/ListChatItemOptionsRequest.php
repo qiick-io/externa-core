@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Chat;
 
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\SearchQueryRulesService;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -27,7 +27,7 @@ class ListChatItemOptionsRequest extends FormRequest
     {
         return [
             'collection_id' => ['required', 'integer', 'exists:collections,id'],
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
+            'q' => SearchQueryRulesService::search(StringLimitsService::SEARCH_CHAT_HUB),
         ];
     }
 }

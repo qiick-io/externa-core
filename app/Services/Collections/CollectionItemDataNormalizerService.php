@@ -5,9 +5,6 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Support\Collections\BlocksFieldSchema;
-use App\Support\Collections\CollectionLocaleResolver;
-use App\Support\Collections\MapGeometry;
 use Illuminate\Support\Str;
 
 /**
@@ -16,8 +13,8 @@ use Illuminate\Support\Str;
 class CollectionItemDataNormalizerService
 {
     public function __construct(
-        private CollectionLocaleResolver $localeResolver,
-        private BlocksFieldSchema $blocksFieldSchema,
+        private CollectionLocaleResolverService $localeResolver,
+        private BlocksFieldSchemaService $blocksFieldSchema,
         private WysiwygHtmlSanitizerService $wysiwygHtmlSanitizer,
     ) {}
 
@@ -217,9 +214,9 @@ class CollectionItemDataNormalizerService
      */
     private function normalizeMapCoordinates(CollectionField $field, mixed $value): ?array
     {
-        $mode = MapGeometry::normalizeMode(data_get($field->settings, 'geometry_mode'));
+        $mode = MapGeometryService::normalizeMode(data_get($field->settings, 'geometry_mode'));
 
-        return MapGeometry::normalize($value, $mode);
+        return MapGeometryService::normalize($value, $mode);
     }
 
     private function normalizeStringValue(CollectionField $field, ?string $value): ?string

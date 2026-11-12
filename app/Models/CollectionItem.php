@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Search\MeilisearchSyncDispatcherService;
 use App\Services\Webhooks\OutboundWebhookDispatcherService;
-use App\Support\Collections\CollectionItemDataAccessor;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -212,6 +212,6 @@ class CollectionItem extends Model
      */
     public function getTranslated(string $field, ?string $locale = null): mixed
     {
-        return app(CollectionItemDataAccessor::class)->getTranslated($this, $field, $locale);
+        return app(CollectionItemDataAccessorService::class)->getTranslated($this, $field, $locale);
     }
 }

@@ -8,10 +8,10 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Services\Collections\LivePreviewAsOfResolverService;
 use App\Services\Collections\LivePreviewTokenService;
 use App\Services\Collections\LivePreviewUrlBuilderService;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -28,7 +28,7 @@ class LivePreviewController extends Controller
         LivePreviewTokenService $tokens,
         LivePreviewUrlBuilderService $urlBuilder,
         LivePreviewAsOfResolverService $asOfResolver,
-        CollectionLocaleResolver $locales,
+        CollectionLocaleResolverService $locales,
         CollectionPermissionEnforcerService $permissionEnforcer,
     ): JsonResponse {
         $token = (string) $request->query('token', '');

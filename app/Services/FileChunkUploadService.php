@@ -5,10 +5,10 @@ namespace App\Services;
 use App\Enums\FileTypeEnum;
 use App\Models\File;
 use App\Models\FileUpload;
-use App\Support\Security\PlainTextSanitizer;
-use App\Support\Uploads\ForbiddenUploadExtension;
-use App\Support\Uploads\MimeTypeValidator;
-use App\Support\Uploads\SafeUploadMime;
+use App\Services\Security\PlainTextSanitizerService;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
+use App\Services\Uploads\MimeTypeValidatorService;
+use App\Services\Uploads\SafeUploadMimeService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +26,8 @@ class FileChunkUploadService
     {
         $disk = $this->files()->resolveUploadDisk($disk, $parentId);
 
-        $fileName = PlainTextSanitizer::sanitize($fileName) ?? '';
-        ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
+        $fileName = PlainTextSanitizerService::sanitize($fileName) ?? '';
+        ForbiddenUploadExtensionService::assertAllowed($fileName, 'file_name');
 
         $uploadId = bin2hex(random_bytes(32));
         $expiresAt = now()->addHours(24);
@@ -96,7 +96,7 @@ class FileChunkUploadService
         $files = $this->files();
         $fileUpload = FileUpload::query()->where('upload_id', $uploadId)->firstOrFail();
 
-        ForbiddenUploadExtension::assertAllowed((string) $fileUpload->file_name, 'file_name');
+        ForbiddenUploadExtensionService::assertAllowed((string) $fileUpload->file_name, 'file_name');
 
         if ($fileUpload->isExpired()) {
             throw new \RuntimeException('Upload session has expired.');
@@ -155,12 +155,12 @@ class FileChunkUploadService
             }
 
             // Always re-sniff; client mime_type is a hint only. Magic uses ≤16 bytes.
-            $sniffed = MimeTypeValidator::assertAllowedPath(
+            $sniffed = MimeTypeValidatorService::assertAllowedPath(
                 (string) $fileUpload->file_name,
                 $localTemp,
                 'file_name',
             );
-            $mimeType = SafeUploadMime::assertFilePoolAllowed(
+            $mimeType = SafeUploadMimeService::assertFilePoolAllowed(
                 (string) $fileUpload->file_name,
                 $sniffed,
                 'file_name',

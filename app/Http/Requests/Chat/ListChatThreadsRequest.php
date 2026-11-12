@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Chat;
 
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\SearchQueryRulesService;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,7 +28,7 @@ class ListChatThreadsRequest extends FormRequest
     {
         return [
             'tab' => ['nullable', Rule::in(['collection', 'private'])],
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
+            'q' => SearchQueryRulesService::search(StringLimitsService::SEARCH_CHAT_HUB),
             'collection_id' => ['nullable', 'integer', 'exists:collections,id'],
             'archived' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],

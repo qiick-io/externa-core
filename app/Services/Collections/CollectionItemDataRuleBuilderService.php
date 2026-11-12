@@ -5,10 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Support\Collections\BlocksFieldSchema;
-use App\Support\Collections\CollectionLocaleResolver;
-use App\Support\Collections\MapGeometry;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -22,9 +19,9 @@ class CollectionItemDataRuleBuilderService
 {
     public function __construct(
         private FieldValidationRuleEvaluatorService $validationRuleEvaluator,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionLocaleResolverService $localeResolver,
         private FieldConditionEvaluatorService $conditionEvaluator,
-        private BlocksFieldSchema $blocksFieldSchema,
+        private BlocksFieldSchemaService $blocksFieldSchema,
     ) {}
 
     /**
@@ -399,7 +396,7 @@ class CollectionItemDataRuleBuilderService
                 return;
             }
 
-            if (MapGeometry::normalize($value) === null) {
+            if (MapGeometryService::normalize($value) === null) {
                 $fail('The '.$attribute.' must be GeoJSON Point/MultiPoint or {lat,lng}.');
             }
         };
@@ -494,11 +491,11 @@ class CollectionItemDataRuleBuilderService
     private function defaultStringMax(CollectionField $field): int
     {
         return match ($field->type) {
-            FieldTypeEnum::Textarea => StringLimits::CMS_TEXTAREA,
-            FieldTypeEnum::Markdown => StringLimits::CMS_MARKDOWN,
-            FieldTypeEnum::Code => StringLimits::CMS_CODE,
-            FieldTypeEnum::Wysiwyg => StringLimits::CMS_WYSIWYG,
-            default => StringLimits::CMS_STRING,
+            FieldTypeEnum::Textarea => StringLimitsService::CMS_TEXTAREA,
+            FieldTypeEnum::Markdown => StringLimitsService::CMS_MARKDOWN,
+            FieldTypeEnum::Code => StringLimitsService::CMS_CODE,
+            FieldTypeEnum::Wysiwyg => StringLimitsService::CMS_WYSIWYG,
+            default => StringLimitsService::CMS_STRING,
         };
     }
 

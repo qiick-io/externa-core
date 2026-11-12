@@ -46,7 +46,7 @@ trait EnforcesAiCollectionPermissionsTrait
 
     /**
      * Gate for the actor of {@see aiPermissionRequest()}: the policies then judge that same
-     * request (its `apiAccess` included) through PolicyRequestResolver.
+     * request (its `apiAccess` included) through PolicyRequestResolverService.
      */
     protected function aiCollectionGate(): GateContract
     {
