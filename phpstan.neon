@@ -7,6 +7,11 @@ parameters:
     paths:
         - app/
     level: 6
+    # Read the literal array returned by Model::casts(): without it Larastan only sees the
+    # declared `array<string, string>` and types every `datetime` cast column as string.
+    parseModelCastsMethod: true
+    stubFiles:
+        - stubs/phpstan/laravel-ai-models.stub
     treatPhpDocTypesAsCertain: false
     disallowedMethodCalls:
         -

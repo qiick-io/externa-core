@@ -405,7 +405,7 @@ trait ImportsCollectionRecordsTrait
     }
 
     /**
-     * @param  array<string, true>  $usedNames
+     * @param  array<string, bool>  $usedNames  Names already taken, as keys.
      */
     protected function uniqueFieldNameFromHeader(string $label, array &$usedNames): ?string
     {

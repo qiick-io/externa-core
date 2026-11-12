@@ -17,6 +17,9 @@ class GenericOidcProvider extends AbstractProvider implements ProviderInterface
     /** @var list<string> */
     protected $scopes = ['openid', 'profile', 'email'];
 
+    /**
+     * @param  array<string, mixed>  $guzzle  Guzzle client options, passed through to Socialite.
+     */
     public function __construct(
         $request,
         $clientId,

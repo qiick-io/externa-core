@@ -80,7 +80,7 @@ class CollectionItemOptionsService
             });
         }
 
-        /** @var LengthAwarePaginator<int, CollectionItem> $paginator */
+        /** @var \Illuminate\Pagination\LengthAwarePaginator<int, CollectionItem> $paginator */
         $paginator = $query->paginate($perPage);
 
         return $paginator->through(function (CollectionItem $item) use ($displayField, $displayTemplate): array {

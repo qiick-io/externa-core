@@ -8,6 +8,7 @@ use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Search\MeilisearchSyncDispatcherService;
 use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use App\Traits\LogsApplicationActivityTrait;
+use Carbon\CarbonImmutable;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 
 /**
  * A single record within a collection; field values live in related rows.
@@ -31,13 +31,18 @@ use Illuminate\Support\Carbon;
  * @property string|null $rejection_note
  * @property int|null $submitted_by
  * @property int|null $reviewed_by
- * @property Carbon|null $reviewed_at
- * @property Carbon|null $publish_at
+ * @property-read CarbonImmutable|null $reviewed_at
+ * @property-write \DateTimeInterface|null $reviewed_at
+ * @property-read CarbonImmutable|null $publish_at
+ * @property-write \DateTimeInterface|null $publish_at
  * @property string|null $schedule_error
- * @property Carbon|null $schedule_failed_at
- * @property Carbon|null $unpublish_at
- * @property Carbon|null $published_at
- * @property Carbon|null $deleted_at
+ * @property-read CarbonImmutable|null $schedule_failed_at
+ * @property-write \DateTimeInterface|null $schedule_failed_at
+ * @property-read CarbonImmutable|null $unpublish_at
+ * @property-write \DateTimeInterface|null $unpublish_at
+ * @property-read CarbonImmutable|null $published_at
+ * @property-write \DateTimeInterface|null $published_at
+ * @property CarbonImmutable|null $deleted_at
  */
 class CollectionItem extends Model
 {

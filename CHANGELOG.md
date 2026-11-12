@@ -32,6 +32,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 
+- Larastan baseline down from 152 to 64 errors with type and annotation fixes only: Larastan now reads `Model::casts()` (`parseModelCastsMethod`), so `datetime` columns are typed as `CarbonImmutable` instead of string; model timestamps are documented as `CarbonImmutable`; a stub types the laravel/ai `Conversation` columns; the field-settings rules and normalization move into `App\Traits\NormalizesCollectionFieldSettingsTrait` so the AI settings pipeline no longer inherits request-only methods (#601).
 - qiick standards pack and `@qiick` registry pinned to app-ui v0.4.0 (core and optional UI patterns; none adopted yet); the `confirmation` and `reasoning` overrides are gone, as both files match the registry again (#666).
 - `.env.example` now documents every Externa setting read by `config/` (first super-admin, CORS origins, security headers, activity log, Git export author, hosted AI provider keys, …), and CI checks that new `env()` keys are documented (`npm run lint:env`) (#291).
 - The frontend toolchain is Vite+ (`vite-plus` 1.4.0): `vp dev` / `vp build`, Oxlint for lint (the same rules as before, including jsx-a11y and externa's own rules for hard-coded UI text and admin paths) and Oxfmt for formatting, replacing ESLint and Prettier (#609). The qiick ratcheted rules run in Oxlint (`npm run lint:standards`, new `qiick-lint-baseline.json`). Contributors: run `npm ci` after pulling; editors use the Oxc extension instead of the ESLint and Prettier ones.

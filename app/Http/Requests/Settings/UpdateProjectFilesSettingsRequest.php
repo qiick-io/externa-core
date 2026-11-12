@@ -7,6 +7,7 @@ use App\Services\Uploads\UploadSizeLimiterService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Validate files & media project settings (upload limits + image transforms).
@@ -45,7 +46,7 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
             foreach ($this->input('preset_transformations', []) as $index => $preset) {

@@ -81,6 +81,8 @@ class CollectionField extends Model implements Sortable
 
     /**
      * Scope sortable reordering to fields within the same collection.
+     *
+     * @return Builder<static>
      */
     public function buildSortQuery(): Builder
     {

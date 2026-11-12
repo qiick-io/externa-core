@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Gate;
 final class CollectionsQuery
 {
     /**
+     * @param  array<string, mixed>  $args
      * @return list<array<string, mixed>>
      */
     public function __invoke(mixed $_, array $args): array

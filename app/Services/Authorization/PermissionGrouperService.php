@@ -13,6 +13,7 @@ use Spatie\Permission\Models\Permission;
 class PermissionGrouperService
 {
     /**
+     * @param  Collection<int, Permission>  $permissions
      * @return list<array{
      *     section: string,
      *     label: string,

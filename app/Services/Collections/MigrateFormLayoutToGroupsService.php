@@ -193,7 +193,7 @@ class MigrateFormLayoutToGroupsService
     }
 
     /**
-     * @param  array<string, true>  $usedNames
+     * @param  array<array-key, mixed>  $usedNames  Names already taken, as keys (values are ignored).
      */
     private function uniqueName(string $base, array &$usedNames): string
     {
