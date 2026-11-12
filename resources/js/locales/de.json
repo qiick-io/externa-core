@@ -1716,7 +1716,8 @@
                 "description": "Schreibgeschützte Ansicht der Felddaten nach Collection-ACL und Dateizugriffsregeln (einschließlich <code>access: denied</code>). Kein visueller Editor.",
                 "role": "Rolle",
                 "chooseRole": "Rolle wählen",
-                "notReadable": "Für diese Rolle nicht lesbar."
+                "notReadable": "Für diese Rolle nicht lesbar.",
+                "failed": "Vorschau fehlgeschlagen."
             },
             "compare": {
                 "title": "Revision vergleichen",

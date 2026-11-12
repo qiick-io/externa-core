@@ -42,6 +42,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Fixed
 
 - Field settings drawer: the duplicate-key error and the "Update settings for …" subtitle are translated (en, it, de), and the duplicate-key check no longer waits again from zero each time the drawer re-renders; the unreachable key-format message is gone, since the key is checked as its slug (#744).
+- Preview as role: the "Preview failed" message is translated (en, it, de) and the request URL comes from the generated route helper (#744).
 - Field forms, item table cells and field conditions no longer turn an object-valued setting or option into the text "[object Object]": non-scalar values fall back to the field's default (#671).
 - Converting a field type on a large collection keeps only ids and values between the read and write phases, and writes chunk by chunk, instead of holding every item with its relations in memory (#441).
 - The AI import status poll retries a failed check with backoff (4 s up to 30 s, five attempts) instead of stopping for good at the first network error (#441).

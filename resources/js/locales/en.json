@@ -1716,7 +1716,8 @@
                 "description": "Read-only view of field data after collection ACL and file access rules (including <code>access: denied</code>). Not a visual editor.",
                 "role": "Role",
                 "chooseRole": "Choose role",
-                "notReadable": "Not readable for this role."
+                "notReadable": "Not readable for this role.",
+                "failed": "Preview failed."
             },
             "compare": {
                 "title": "Compare revision",

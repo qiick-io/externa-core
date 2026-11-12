@@ -44,3 +44,30 @@ it('opens preview-as-role with a full-width select and human role labels', funct
         ->assertDontSee('public (public)')
         ->assertNoJavaScriptErrors();
 });
+
+it('runs the preview for the default public role', function () {
+    $user = User::factory()->create();
+    $user->assignRole(RoleEnum::SuperAdmin->value);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create([
+        'name' => 'Preview Run',
+        'slug' => 'preview-run',
+        'is_singleton' => false,
+    ]);
+    CollectionField::factory()->for($collection)->create([
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $item = $collection->items()->create([]);
+
+    $page = visit(route('collections.items.show', [$collection, $item], false));
+
+    $page->assertNoJavaScriptErrors()
+        ->click('[data-test="preview-as-role"]')
+        ->wait(0.4)
+        ->click('[data-test="preview-as-role-run"]')
+        ->wait(0.6)
+        ->assertPresent('[data-test="preview-as-role-result"]')
+        ->assertNoJavaScriptErrors();
+});
