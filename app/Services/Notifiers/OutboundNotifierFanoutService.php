@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Notifiers;
 
 use App\Jobs\DeliverSlackOutboundNotifierJob;
@@ -25,11 +27,11 @@ class OutboundNotifierFanoutService
             return;
         }
 
-        if (! $this->projectSettings->canAllowNotifierEvent($type)) {
+        if (! $this->projectSettings->integrations()->canAllowNotifierEvent($type)) {
             return;
         }
 
-        if ($this->projectSettings->notifierSlackWebhookUrl() !== null) {
+        if ($this->projectSettings->integrations()->notifierSlackWebhookUrl() !== null) {
             $message = OutboundNotifierMessageFormatterService::format(
                 $type,
                 $data,
@@ -41,7 +43,7 @@ class OutboundNotifierFanoutService
             }
         }
 
-        if ($this->projectSettings->isNotifierTelegramConfigured()) {
+        if ($this->projectSettings->integrations()->isNotifierTelegramConfigured()) {
             $message = OutboundNotifierMessageFormatterService::format(
                 $type,
                 $data,

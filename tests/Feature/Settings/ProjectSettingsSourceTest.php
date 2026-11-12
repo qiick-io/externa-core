@@ -41,9 +41,8 @@ it('reads stored secrets from the project group through the same helper', functi
     $projectSettings = app(ProjectSettingsService::class);
 
     expect($projectSettings->storedSecret('webhook_secret'))->toBe('webhook-plain')
-        ->and($projectSettings->webhookSecret())->toBe('webhook-plain')
         ->and($projectSettings->integrations()->webhookSecret())->toBe('webhook-plain')
-        ->and($projectSettings->notifierTelegramBotToken())->toBeNull()
+        ->and($projectSettings->integrations()->notifierTelegramBotToken())->toBeNull()
         ->and($projectSettings->oidcClientSecret())->toBe('oidc-plain')
         ->and($projectSettings->storedSecret('missing_secret'))->toBeNull();
 });

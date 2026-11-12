@@ -1,0 +1,59 @@
+{
+    "name": null,
+    "defaultLanguage": "en",
+    "isRegistrationEnabled": false,
+    "isEmailVerificationRequired": false,
+    "passwordPolicy": "weak",
+    "sidebarModules": [
+        {
+            "id": "ai",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "dashboard",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "files",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "collections",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "chat",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "activity",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "users",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "groups",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "settings",
+            "enabled": true,
+            "locked": false
+        }
+    ],
+    "reportIssueUrl": null,
+    "reportBugUrl": "https:\/\/github.com\/qiick-io\/externa-core\/issues\/new?template=bug_report.yml",
+    "reportErrorUrl": null,
+    "filesMaxUploadBytes": null,
+    "chatMaxUploadBytes": 26214400
+}

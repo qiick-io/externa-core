@@ -113,7 +113,7 @@ class HandleInertiaRequests extends Middleware
                             'id' => $hook->id,
                             'name' => $hook->name,
                         ],
-                        $projectSettings->deployHooks(),
+                        $projectSettings->integrations()->deployHooks(),
                     )
                     : [];
 

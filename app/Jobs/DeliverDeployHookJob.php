@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
@@ -56,7 +58,7 @@ class DeliverDeployHookJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     public function handle(ProjectSettingsService $projectSettings): void
     {
-        $hook = $projectSettings->deployHookById($this->hookId);
+        $hook = $projectSettings->integrations()->deployHookById($this->hookId);
         if ($hook === null) {
             return;
         }
