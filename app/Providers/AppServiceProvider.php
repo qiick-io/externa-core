@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Listeners\AddQueueJobLogContextListener;
 use App\Listeners\Ai\LogAiToolApprovalEventsListener;
 use App\Models\ApiKey;
 use App\Models\User;
@@ -22,6 +25,10 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -69,7 +76,22 @@ class AppServiceProvider extends ServiceProvider
         $this->configureActivityLogging();
         $this->registerAuthActivityListeners();
         $this->registerAiToolApprovalListeners();
+        $this->registerQueueJobLogContextListeners();
         $this->configureHttpClientStreaming();
+    }
+
+    /**
+     * Job class and attempt for the `structured` log channel (#209). Registered after the
+     * framework's Context hydration listener, which must run first on JobProcessing.
+     */
+    protected function registerQueueJobLogContextListeners(): void
+    {
+        $listener = AddQueueJobLogContextListener::class;
+
+        Event::listen(JobProcessing::class, [$listener, 'handleProcessing']);
+        Event::listen(JobProcessed::class, [$listener, 'handleFinished']);
+        Event::listen(JobFailed::class, [$listener, 'handleFinished']);
+        Event::listen(JobExceptionOccurred::class, [$listener, 'handleFinished']);
     }
 
     protected function configureRateLimiting(): void
