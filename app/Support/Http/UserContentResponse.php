@@ -2,7 +2,7 @@
 
 namespace App\Support\Http;
 
-use App\Support\Uploads\SafeUploadMime;
+use App\Services\Uploads\SafeUploadMimeService;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -26,7 +26,7 @@ final class UserContentResponse
         ?string $storedMime,
         array $extraHeaders = [],
     ): StreamedResponse {
-        $serve = SafeUploadMime::forServe($storedMime, $downloadName);
+        $serve = SafeUploadMimeService::forServe($storedMime, $downloadName);
         $disposition = $serve['inline'] ? 'inline' : 'attachment';
 
         $headers = array_merge([

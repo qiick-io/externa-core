@@ -6,11 +6,11 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
+use App\Services\Collections\CollectionItemDataAccessorService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Support\Api\ApiAccess;
 use App\Support\Api\MiniUserMapper;
 use App\Support\Api\PublicApiIncludeParser;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -27,8 +27,8 @@ class RelationIncludeHydratorService
     public const SERIALIZED_CACHE_ATTR = 'api.relation_include_serialized';
 
     public function __construct(
-        private CollectionItemDataAccessor $itemDataAccessor,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionItemDataAccessorService $itemDataAccessor,
+        private CollectionLocaleResolverService $localeResolver,
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private FileFieldExpanderService $fileFieldExpander,
         private PublicApiIncludeParser $includeParser,

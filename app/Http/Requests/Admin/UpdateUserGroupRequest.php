@@ -6,7 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
 use App\Models\UserGroup;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -49,8 +49,8 @@ class UpdateUserGroupRequest extends FormRequest
         $group = $this->route('group');
 
         return [
-            'name' => ['required', 'string', 'max:'.StringLimits::NAME, Rule::unique('user_groups', 'name')->ignore($group->id)],
-            'description' => ['nullable', 'string', 'max:'.StringLimits::DESCRIPTION],
+            'name' => ['required', 'string', 'max:'.StringLimitsService::NAME, Rule::unique('user_groups', 'name')->ignore($group->id)],
+            'description' => ['nullable', 'string', 'max:'.StringLimitsService::DESCRIPTION],
             'user_ids' => ['sometimes', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'role_ids' => ['sometimes', 'array'],

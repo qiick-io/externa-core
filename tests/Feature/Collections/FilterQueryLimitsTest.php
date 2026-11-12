@@ -5,38 +5,38 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Support\Validation\FilterQueryLimits;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\FilterQueryLimitsService;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Validation\ValidationException;
 
 test('filter query rejects oversized string operand', function () {
-    expect(fn () => FilterQueryLimits::assertValid([
-        'title' => str_repeat('x', StringLimits::FILTER_VALUE + 1),
+    expect(fn () => FilterQueryLimitsService::assertValid([
+        'title' => str_repeat('x', StringLimitsService::FILTER_VALUE + 1),
     ]))->toThrow(ValidationException::class);
 });
 
 test('filter query rejects too many keys', function () {
     $filters = [];
-    for ($i = 0; $i < StringLimits::FILTER_MAX_KEYS + 1; $i++) {
+    for ($i = 0; $i < StringLimitsService::FILTER_MAX_KEYS + 1; $i++) {
         $filters['f'.$i] = 'ok';
     }
 
-    expect(fn () => FilterQueryLimits::assertValid($filters))
+    expect(fn () => FilterQueryLimitsService::assertValid($filters))
         ->toThrow(ValidationException::class);
 });
 
 test('filter query rejects relational depth above the hard cap', function () {
-    expect(fn () => FilterQueryLimits::assertValid([
+    expect(fn () => FilterQueryLimitsService::assertValid([
         'author.profile.city' => ['_eq' => 'x'],
     ]))->toThrow(ValidationException::class);
 
-    expect(FilterQueryLimits::assertValid([
+    expect(FilterQueryLimitsService::assertValid([
         'author.name' => ['_eq' => 'Ada'],
     ]))->toBe([
         'author.name' => ['_eq' => 'Ada'],
     ]);
 
-    expect(FilterQueryLimits::relationalKeyCount([
+    expect(FilterQueryLimitsService::relationalKeyCount([
         'title' => 'x',
         'author.name' => ['_eq' => 'Ada'],
         'category.label' => ['_contains' => 'n'],
@@ -62,6 +62,6 @@ test('collection item query service applies filter caps', function () {
     expect(fn () => app(CollectionItemQueryService::class)->applyFilters(
         $query,
         $collection,
-        ['title' => str_repeat('z', StringLimits::FILTER_VALUE + 1)],
+        ['title' => str_repeat('z', StringLimitsService::FILTER_VALUE + 1)],
     ))->toThrow(ValidationException::class);
 });

@@ -4,7 +4,7 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
-use App\Support\Collections\FieldPacks\FieldPackRegistry;
+use App\Services\Collections\FieldPacks\FieldPackRegistryService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,7 +29,7 @@ class ApplyFieldPackRequest extends FormRequest
     {
         return [
             // Route param mirrored for Rule::in; prepareForValidation merges it.
-            'pack' => ['required', 'string', Rule::in(FieldPackRegistry::keys())],
+            'pack' => ['required', 'string', Rule::in(FieldPackRegistryService::keys())],
         ];
     }
 

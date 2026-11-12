@@ -4,8 +4,8 @@ namespace App\Services\Settings;
 
 use App\Enums\ThemePresetEnum;
 use App\Models\File;
+use App\Services\Css\ContrastingForegroundService;
 use App\Services\FileTransformService;
-use App\Support\Css\ContrastingForeground;
 use Illuminate\Support\Collection;
 
 /**
@@ -88,9 +88,9 @@ class ProjectAppearanceService
         );
 
         $primaryForeground = $resolved['brandPrimaryForeground']
-            ?? ContrastingForeground::forHex($projectColor);
+            ?? ContrastingForegroundService::forHex($projectColor);
         $primaryForegroundDark = $resolved['brandPrimaryDarkForeground']
-            ?? ContrastingForeground::forHex($projectColorDark);
+            ?? ContrastingForegroundService::forHex($projectColorDark);
 
         return [
             'projectColor' => $projectColor,
@@ -202,7 +202,7 @@ class ProjectAppearanceService
         $primary = is_string($shared['projectColor'] ?? null) && $shared['projectColor'] !== ''
             ? $shared['projectColor']
             : ($themeCss['light']['primary'] ?? '#0E7C86');
-        $foreground = ContrastingForeground::forHex($primary) ?? ContrastingForeground::WHITE;
+        $foreground = ContrastingForegroundService::forHex($primary) ?? ContrastingForegroundService::WHITE;
 
         return [
             'name' => app(ProjectSettingsService::class)->displayName(),

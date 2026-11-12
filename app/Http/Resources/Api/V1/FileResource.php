@@ -3,7 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\File;
-use App\Support\Files\FileTransformUrlBuilder;
+use App\Services\Files\FileTransformUrlBuilderService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,7 +25,7 @@ class FileResource extends JsonResource
         $file = $this->resource;
 
         $transforms = $file->isFile()
-            ? FileTransformUrlBuilder::urlsFor((int) $file->id, $file->mime_type)
+            ? FileTransformUrlBuilderService::urlsFor((int) $file->id, $file->mime_type)
             : [];
 
         return [

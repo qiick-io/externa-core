@@ -4,7 +4,7 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
-use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
+use App\Services\Collections\CollectionPacks\CollectionPackRegistryService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,7 +28,7 @@ class ApplyCollectionPackRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pack' => ['required', 'string', Rule::in(CollectionPackRegistry::keys())],
+            'pack' => ['required', 'string', Rule::in(CollectionPackRegistryService::keys())],
             'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'slug' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];

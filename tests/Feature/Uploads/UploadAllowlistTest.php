@@ -2,15 +2,15 @@
 
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Uploads\ForbiddenUploadExtension;
-use App\Support\Uploads\MimeTypeValidator;
-use App\Support\Uploads\UploadAllowlist;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
+use App\Services\Uploads\MimeTypeValidatorService;
+use App\Services\Uploads\UploadAllowlistService;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function (): void {
     // Reset project settings memo between cases.
     app()->forgetInstance(ProjectSettingsService::class);
-    app()->forgetInstance(UploadAllowlist::class);
+    app()->forgetInstance(UploadAllowlistService::class);
 });
 
 function setUploadPolicy(array $values): void
@@ -21,34 +21,34 @@ function setUploadPolicy(array $values): void
         $values,
     );
     app()->forgetInstance(ProjectSettingsService::class);
-    app()->forgetInstance(UploadAllowlist::class);
+    app()->forgetInstance(UploadAllowlistService::class);
 }
 
 it('defaults match config MIME allowlist and reject SVG', function (): void {
-    $allowlist = app(UploadAllowlist::class);
+    $allowlist = app(UploadAllowlistService::class);
 
     expect($allowlist->allowSvg())->toBeFalse()
         ->and($allowlist->allowedExtensions())->toBeNull()
         ->and($allowlist->allowedMimes())->toContain('image/png')
-        ->and($allowlist->allowedMimes())->not->toContain(UploadAllowlist::SVG_MIME);
+        ->and($allowlist->allowedMimes())->not->toContain(UploadAllowlistService::SVG_MIME);
 
-    expect(ForbiddenUploadExtension::isForbidden('icon.svg'))->toBeTrue();
-    expect(fn () => ForbiddenUploadExtension::assertAllowed('icon.svg'))
+    expect(ForbiddenUploadExtensionService::isForbidden('icon.svg'))->toBeTrue();
+    expect(fn () => ForbiddenUploadExtensionService::assertAllowed('icon.svg'))
         ->toThrow(ValidationException::class);
 });
 
 it('SVG opt-in allows svg extension and MIME', function (): void {
     setUploadPolicy(['upload_allow_svg' => true]);
 
-    $allowlist = app(UploadAllowlist::class);
+    $allowlist = app(UploadAllowlistService::class);
     expect($allowlist->allowSvg())->toBeTrue()
-        ->and($allowlist->allowedMimes())->toContain(UploadAllowlist::SVG_MIME)
-        ->and(ForbiddenUploadExtension::isForbidden('logo.svg'))->toBeFalse();
+        ->and($allowlist->allowedMimes())->toContain(UploadAllowlistService::SVG_MIME)
+        ->and(ForbiddenUploadExtensionService::isForbidden('logo.svg'))->toBeFalse();
 
-    ForbiddenUploadExtension::assertAllowed('logo.svg');
+    ForbiddenUploadExtensionService::assertAllowed('logo.svg');
 
     $svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>';
-    expect(MimeTypeValidator::assertAllowed('logo.svg', $svg))->toBe(UploadAllowlist::SVG_MIME);
+    expect(MimeTypeValidatorService::assertAllowed('logo.svg', $svg))->toBe(UploadAllowlistService::SVG_MIME);
 });
 
 it('hard floor still blocks php even when listed in allowlist settings', function (): void {
@@ -58,13 +58,13 @@ it('hard floor still blocks php even when listed in allowlist settings', functio
         'upload_allow_svg' => true,
     ]);
 
-    expect(ForbiddenUploadExtension::isHardFloor('shell.php'))->toBeTrue();
-    expect(fn () => ForbiddenUploadExtension::assertAllowed('shell.php'))
+    expect(ForbiddenUploadExtensionService::isHardFloor('shell.php'))->toBeTrue();
+    expect(fn () => ForbiddenUploadExtensionService::assertAllowed('shell.php'))
         ->toThrow(ValidationException::class);
 
     $errors = null;
     try {
-        ForbiddenUploadExtension::assertAllowed('shell.php');
+        ForbiddenUploadExtensionService::assertAllowed('shell.php');
     } catch (ValidationException $e) {
         $errors = $e->errors()['file'][0] ?? null;
     }
@@ -78,9 +78,9 @@ it('extension allowlist rejects unlisted safe types', function (): void {
     ]);
 
     $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
-    expect(MimeTypeValidator::assertAllowed('pixel.png', $png))->toBe('image/png');
+    expect(MimeTypeValidatorService::assertAllowed('pixel.png', $png))->toBe('image/png');
 
-    expect(fn () => MimeTypeValidator::assertAllowed('doc.pdf', "%PDF-1.4\n%âãÏÓ\n"))
+    expect(fn () => MimeTypeValidatorService::assertAllowed('doc.pdf', "%PDF-1.4\n%âãÏÓ\n"))
         ->toThrow(ValidationException::class);
 });
 
@@ -89,6 +89,6 @@ it('MIME allowlist override rejects types outside the project list', function ()
         'upload_allowed_mimes' => ['image/png'],
     ]);
 
-    expect(fn () => MimeTypeValidator::assertAllowed('doc.pdf', "%PDF-1.4\n"))
+    expect(fn () => MimeTypeValidatorService::assertAllowed('doc.pdf', "%PDF-1.4\n"))
         ->toThrow(ValidationException::class);
 });

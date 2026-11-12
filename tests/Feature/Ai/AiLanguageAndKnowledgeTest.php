@@ -130,7 +130,7 @@ test('create_field rejects invalid blocks settings_json with english error', fun
         'is_singleton' => false,
     ]);
 
-    // ponytail: BlocksFieldSchema slugifies/clamps many bad shapes; use a shared settings
+    // ponytail: BlocksFieldSchemaService slugifies/clamps many bad shapes; use a shared settings
     // key that survives normalize but fails HTTP Rule::in (same pipeline as StoreFieldRequest).
     $result = (string) (new ManageCollections)->handle(new Request([
         'action' => 'create_field',
