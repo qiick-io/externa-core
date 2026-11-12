@@ -17,18 +17,20 @@ class AiActivityLogger
     private const MAX_TEXT_LENGTH = 4000;
 
     /**
-     * Log an AI prompt to the activity log.
+     * Log an AI prompt to the activity log. These rows are what the daily prompt cap counts.
+     *
+     * @param  array<string, mixed>  $extra  e.g. `surface` and token `usage` for prompts without a conversation
      */
-    public static function prompt(User $user, string $prompt, ?string $conversationId = null): void
+    public static function prompt(User $user, string $prompt, ?string $conversationId = null, array $extra = []): void
     {
         activity()
             ->causedBy($user)
             ->useLog('ai')
             ->event('ai_prompt')
-            ->withProperties([
+            ->withProperties(array_merge([
                 'conversation_id' => $conversationId,
                 'prompt' => self::truncate($prompt),
-            ])
+            ], $extra))
             ->log('AI prompt');
     }
 

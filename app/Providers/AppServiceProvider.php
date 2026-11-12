@@ -80,6 +80,22 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by((string) $key);
         });
 
+        /*
+         * AI chat (#275): per user per minute (default 30, the former `throttle:30,1`) and, when
+         * AI_RATE_LIMIT_PER_DAY is set, per user per day. Each limit needs its own key.
+         */
+        RateLimiter::for('ai', function (Request $request) {
+            $key = (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
+            $limits = [Limit::perMinute(max(1, (int) config('ai.rate_limit.per_minute', 30)))->by('ai-minute:'.$key)];
+            $perDay = (int) config('ai.rate_limit.per_day', 0);
+
+            if ($perDay > 0) {
+                $limits[] = Limit::perDay($perDay)->by('ai-day:'.$key);
+            }
+
+            return $limits;
+        });
+
         RateLimiter::for('mcp', function (Request $request) {
             $apiKey = $request->attributes->get('mcp_api_key');
             $perMinute = (int) config('ai.mcp.rate_limit_per_minute', 60);

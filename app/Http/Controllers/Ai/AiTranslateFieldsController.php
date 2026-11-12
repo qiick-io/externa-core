@@ -1,10 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Ai;
 
 use App\Ai\Agents\ContentTranslator;
+use App\Ai\Support\AiActivityLogger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Ai\TranslateAiFieldsRequest;
+use App\Models\User;
+use App\Services\Ai\AiDailyBudgetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -16,6 +21,9 @@ class AiTranslateFieldsController extends Controller
 {
     /**
      * Run ContentTranslator and return translated field values.
+     *
+     * Every provider call is logged as an `ai_prompt` activity (field keys only, no content) with
+     * its token usage, so translations count towards the user's daily prompt cap and token budget.
      */
     public function __invoke(TranslateAiFieldsRequest $request): JsonResponse
     {
@@ -52,6 +60,8 @@ class AiTranslateFieldsController extends Controller
             ], 422);
         }
 
+        $usage = null;
+
         try {
             // Herd/nginx often caps idle FastCGI at ~60s; thinking models exceed that on sync POST.
             // Skip in Pest: set_time_limit caps the whole PHPUnit process and kills the suite.
@@ -68,6 +78,7 @@ class AiTranslateFieldsController extends Controller
                 $prompt,
                 model: $model,
             );
+            $usage = $response->usage->toArray();
             $translated = $this->parseFieldsJson((string) $response->text, array_keys($payload));
         } catch (Throwable $exception) {
             Log::warning('AI field translation failed', [
@@ -80,6 +91,20 @@ class AiTranslateFieldsController extends Controller
             return response()->json([
                 'message' => $this->publicFailureMessage($exception),
             ], 502);
+        } finally {
+            /** @var User $user */
+            $user = $request->user();
+
+            AiActivityLogger::prompt(
+                $user,
+                sprintf(
+                    'Translate fields %s → %s: %s',
+                    $validated['source_locale'],
+                    $validated['target_locale'],
+                    implode(', ', array_keys($payload)),
+                ),
+                extra: ['surface' => AiDailyBudgetService::SURFACE_TRANSLATE, 'usage' => $usage],
+            );
         }
 
         if ($translated === null) {
