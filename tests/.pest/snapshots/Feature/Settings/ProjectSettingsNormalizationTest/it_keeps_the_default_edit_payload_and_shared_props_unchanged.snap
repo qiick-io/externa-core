@@ -1,0 +1,152 @@
+{
+    "name": null,
+    "description": null,
+    "url": null,
+    "default_language": "en",
+    "content_locales": [
+        "en",
+        "it"
+    ],
+    "default_content_locale": "en",
+    "fallback_content_locales": [
+        "en",
+        "it"
+    ],
+    "sidebar_modules": [
+        {
+            "id": "ai",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "dashboard",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "files",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "collections",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "chat",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "activity",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "users",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "groups",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "settings",
+            "enabled": true,
+            "locked": false
+        }
+    ],
+    "password_policy": "weak",
+    "login_max_attempts": 5,
+    "registration_enabled": false,
+    "default_user_role": null,
+    "email_verification_required": false,
+    "two_factor_required": false,
+    "allowed_domains": [],
+    "public_api_allowed_origins": [],
+    "allowed_transformations": [
+        "thumbnail"
+    ],
+    "preset_transformations": [
+        {
+            "key": "thumbnail",
+            "fit": "contain",
+            "width": 128,
+            "height": 128,
+            "quality": 82,
+            "without_enlargement": true,
+            "format": "auto"
+        },
+        {
+            "key": "small",
+            "fit": "contain",
+            "width": 64,
+            "height": 64,
+            "quality": 82,
+            "without_enlargement": true,
+            "format": "auto"
+        },
+        {
+            "key": "medium",
+            "fit": "contain",
+            "width": 256,
+            "height": 256,
+            "quality": 82,
+            "without_enlargement": true,
+            "format": "auto"
+        },
+        {
+            "key": "card",
+            "fit": "inside",
+            "width": 512,
+            "height": 512,
+            "quality": 82,
+            "without_enlargement": true,
+            "format": "auto"
+        }
+    ],
+    "report_issue_url": null,
+    "report_bug_url": "https:\/\/github.com\/qiick-io\/externa-core\/issues\/new?template=bug_report.yml",
+    "report_error_url": null,
+    "webhook_url": null,
+    "notifier_slack_webhook_url": null,
+    "notifier_telegram_chat_id": null,
+    "notifier_event_types": [
+        "item.created",
+        "item.updated",
+        "item.published",
+        "item.publish_failed",
+        "item.submitted",
+        "item.approved",
+        "item.rejected",
+        "item.deleted",
+        "item.restored",
+        "collection.created",
+        "collection.updated",
+        "collection.deleted",
+        "file.created",
+        "file.updated",
+        "file.deleted"
+    ],
+    "deploy_hooks": [],
+    "deploy_on_publish": false,
+    "oidc_enabled": false,
+    "oidc_issuer": null,
+    "oidc_client_id": null,
+    "oidc_button_label": null,
+    "oidc_jit_provisioning": false,
+    "preview_url_default": null,
+    "revision_retention_count": null,
+    "revision_retention_days": null,
+    "files_max_upload_bytes": null,
+    "chat_max_upload_bytes": 26214400,
+    "upload_allowed_mimes": null,
+    "upload_allowed_extensions": null,
+    "upload_allow_svg": false,
+    "webhook_secret_configured": false,
+    "notifier_telegram_bot_token_configured": false,
+    "oidc_client_secret_configured": false
+}
