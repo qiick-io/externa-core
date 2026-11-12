@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Ai\BulkDestroyAiConversationsRequest;
 use App\Http\Requests\Ai\SearchAiConversationsRequest;
 use App\Http\Requests\Ai\StoreAiConversationRequest;
-use App\Http\Requests\Ai\TruncateAiConversationRequest;
 use App\Models\User;
 use App\Policies\AiConversationPolicy;
 use App\Services\Ai\AiConversationMessagePresenterService;
@@ -23,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * JSON API for listing, creating, and mutating AI chat conversations.
+ *
+ * Bulk delete lives in {@see AiConversationBulkController}, rewinding in {@see AiConversationTruncateController}.
  */
 class AiConversationController extends Controller
 {
@@ -117,33 +117,6 @@ class AiConversationController extends Controller
     }
 
     /**
-     * Delete multiple owned conversations in one transaction.
-     */
-    public function bulkDestroy(BulkDestroyAiConversationsRequest $request): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        $validated = $request->validated();
-
-        $ids = array_values(array_unique($validated['ids']));
-
-        $ownedIds = $user->conversations()
-            ->whereIn('id', $ids)
-            ->pluck('id')
-            ->all();
-
-        abort_if(count($ownedIds) !== count($ids), Response::HTTP_NOT_FOUND);
-
-        $deleted = $this->mutations->deleteConversations($ownedIds);
-
-        return response()->json([
-            'ok' => true,
-            'deleted' => $deleted,
-        ]);
-    }
-
-    /**
      * Toggle the pinned state of a conversation.
      */
     public function togglePin(Request $request, string $conversation): JsonResponse
@@ -156,34 +129,6 @@ class AiConversationController extends Controller
         return response()->json([
             'ok' => true,
             'conversation' => $owned->only(['id', 'title', 'pinned_at', 'created_at', 'updated_at']),
-        ]);
-    }
-
-    /**
-     * Delete a message and every message that follows it in the conversation.
-     *
-     * Ownership is resolved (404) by the request before validation runs.
-     */
-    public function truncate(TruncateAiConversationRequest $request): JsonResponse
-    {
-        $owned = $request->conversation();
-
-        $validated = $request->validated();
-
-        $anchor = ConversationMessage::query()
-            ->where('conversation_id', $owned->id)
-            ->where('id', $validated['from_message_id'])
-            ->first();
-
-        abort_if($anchor === null, Response::HTTP_NOT_FOUND);
-
-        $deleted = $this->mutations->truncateFromMessage($owned, $anchor);
-
-        $owned->touch();
-
-        return response()->json([
-            'ok' => true,
-            'deleted' => $deleted,
         ]);
     }
 

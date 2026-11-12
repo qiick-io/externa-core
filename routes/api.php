@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CollectionController;
+use App\Http\Controllers\Api\V1\CollectionItemBatchController;
 use App\Http\Controllers\Api\V1\CollectionItemController;
+use App\Http\Controllers\Api\V1\FileContentController;
 use App\Http\Controllers\Api\V1\FileController;
 use App\Http\Controllers\Api\V1\LivePreviewController;
 use App\Http\Controllers\Api\V1\OpenApiController;
@@ -37,9 +39,9 @@ Route::prefix('v1')
 
         Route::get('collections/{slug}/items', [CollectionItemController::class, 'index']);
         Route::post('collections/{slug}/items', [CollectionItemController::class, 'store']);
-        Route::post('collections/{slug}/items/batch', [CollectionItemController::class, 'batchStore']);
-        Route::patch('collections/{slug}/items/batch', [CollectionItemController::class, 'batchUpdate']);
-        Route::delete('collections/{slug}/items/batch', [CollectionItemController::class, 'batchDestroy']);
+        Route::post('collections/{slug}/items/batch', [CollectionItemBatchController::class, 'batchStore']);
+        Route::patch('collections/{slug}/items/batch', [CollectionItemBatchController::class, 'batchUpdate']);
+        Route::delete('collections/{slug}/items/batch', [CollectionItemBatchController::class, 'batchDestroy']);
         Route::get('collections/{slug}/items/{item}', [CollectionItemController::class, 'show']);
         Route::patch('collections/{slug}/items/{item}', [CollectionItemController::class, 'update']);
         Route::delete('collections/{slug}/items/{item}', [CollectionItemController::class, 'destroy']);
@@ -49,8 +51,8 @@ Route::prefix('v1')
         Route::get('files/{id}', [FileController::class, 'show'])->whereNumber('id');
         Route::patch('files/{id}', [FileController::class, 'update'])->whereNumber('id');
         Route::delete('files/{id}', [FileController::class, 'destroy'])->whereNumber('id');
-        Route::get('files/{id}/content', [FileController::class, 'content'])->whereNumber('id');
-        Route::get('files/{id}/transforms/{key}', [FileController::class, 'transform'])
+        Route::get('files/{id}/content', [FileContentController::class, 'content'])->whereNumber('id');
+        Route::get('files/{id}/transforms/{key}', [FileContentController::class, 'transform'])
             ->whereNumber('id')
             ->where('key', '[A-Za-z0-9_-]+');
     });

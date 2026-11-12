@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Roles\SyncRolePermissionsAction;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\BulkRoleActionRequest;
-use App\Http\Requests\Admin\DuplicateRoleRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
@@ -28,7 +27,9 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * Admin CRUD, bulk actions, and permission assignment for application roles.
+ * Admin create, edit, and permission assignment for application roles.
+ *
+ * Duplicating lives in {@see RoleDuplicateController}, deleting in {@see RoleDeletionController}.
  */
 class RoleController extends Controller
 {
@@ -37,6 +38,7 @@ class RoleController extends Controller
     use ValidatesSearchQueryTrait;
 
     public function __construct(
+        private readonly SyncRolePermissionsAction $syncRolePermissions,
         private readonly PermissionGrouperService $permissionGrouper,
         private readonly CollectionPermissionSyncService $collectionPermissionSync,
         private readonly FilePermissionSyncService $filePermissionSync,
@@ -117,7 +119,7 @@ class RoleController extends Controller
             'is_assignable' => true,
         ]);
 
-        $this->syncPermissions($role, $data['permission_ids'] ?? []);
+        $this->syncRolePermissions->execute($role, $data['permission_ids'] ?? []);
 
         if (array_key_exists('collection_permissions', $data)) {
             $this->collectionPermissionSync->sync($role, $data['collection_permissions'] ?? []);
@@ -130,47 +132,6 @@ class RoleController extends Controller
         return redirect()
             ->route('roles.index')
             ->with('success', __('Role created.'));
-    }
-
-    /**
-     * Clone Spatie permissions and collection/file matrices into a new role.
-     *
-     * Does not copy user or group memberships. Locked system sources are rejected.
-     */
-    public function duplicate(DuplicateRoleRequest $request, Role $role): RedirectResponse
-    {
-        Gate::authorize('duplicate', $role);
-
-        $data = $request->validated();
-        $guard = config('auth.defaults.guard', 'web');
-
-        $clone = Role::query()->create([
-            'name' => $data['name'],
-            'guard_name' => $guard,
-            'is_system' => false,
-            'is_assignable' => true,
-        ]);
-
-        $this->syncPermissions(
-            $clone,
-            $role->permissions()->pluck('id')->map(fn ($id) => (int) $id)->all(),
-        );
-
-        $this->collectionPermissionSync->sync(
-            $clone,
-            $this->collectionPermissionSync->matrixForRole($role),
-        );
-
-        $this->filePermissionSync->sync(
-            $clone,
-            $this->filePermissionSync->matrixForRole($role),
-        );
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return redirect()
-            ->route('roles.edit', $clone)
-            ->with('success', __('Role duplicated.'));
     }
 
     /**
@@ -223,7 +184,7 @@ class RoleController extends Controller
         }
 
         if (! $role->isPublic() && array_key_exists('permission_ids', $data)) {
-            $this->syncPermissions($role, $data['permission_ids']);
+            $this->syncRolePermissions->execute($role, $data['permission_ids']);
         }
 
         if (array_key_exists('collection_permissions', $data)) {
@@ -239,59 +200,6 @@ class RoleController extends Controller
         return redirect()
             ->route('roles.index')
             ->with('success', __('Role updated.'));
-    }
-
-    /**
-     * Delete a role unless it is a protected system role.
-     */
-    public function destroy(Role $role): RedirectResponse
-    {
-        Gate::authorize('delete', $role);
-
-        $role->delete();
-
-        return redirect()
-            ->route('roles.index')
-            ->with('success', __('Role deleted.'));
-    }
-
-    /**
-     * Bulk-delete roles, skipping protected roles.
-     */
-    public function bulkActions(BulkRoleActionRequest $request): RedirectResponse
-    {
-        $ids = $request->deletableIds();
-
-        if ($ids !== []) {
-            Role::query()->whereIn('id', $ids)->delete();
-        }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return redirect()
-            ->back()
-            ->with('success', __('Bulk action completed.'));
-    }
-
-    /**
-     * Replace a role's permissions and flush the permission cache.
-     *
-     * @param  list<int>  $permissionIds
-     */
-    private function syncPermissions(Role $role, array $permissionIds): void
-    {
-        $permissions = Permission::query()->whereIn('id', $permissionIds)->get();
-        $role->syncPermissions($permissions);
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        activity()
-            ->performedOn($role)
-            ->event('permissions_synced')
-            ->withProperties([
-                'permission_ids' => $permissions->pluck('id')->values()->all(),
-                'permission_names' => $permissions->pluck('name')->values()->all(),
-            ])
-            ->log('Role permissions synced');
     }
 
     /**

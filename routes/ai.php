@@ -11,7 +11,9 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Ai\AiChatAttachmentController;
 use App\Http\Controllers\Ai\AiChatController;
 use App\Http\Controllers\Ai\AiContextSearchController;
+use App\Http\Controllers\Ai\AiConversationBulkController;
 use App\Http\Controllers\Ai\AiConversationController;
+use App\Http\Controllers\Ai\AiConversationTruncateController;
 use App\Http\Controllers\Ai\AiPageController;
 use App\Http\Controllers\Ai\AiPromptController;
 use App\Http\Controllers\Ai\AiStatusController;
@@ -37,13 +39,13 @@ Route::middleware([
 
     Route::get('/conversations', [AiConversationController::class, 'index'])->name('conversations.index');
     Route::post('/conversations', [AiConversationController::class, 'store'])->name('conversations.store');
-    Route::post('/conversations/bulk-destroy', [AiConversationController::class, 'bulkDestroy'])
+    Route::post('/conversations/bulk-destroy', [AiConversationBulkController::class, 'bulkDestroy'])
         ->name('conversations.bulk-destroy');
     Route::get('/conversations/{conversation}', [AiConversationController::class, 'show'])->name('conversations.show');
     Route::delete('/conversations/{conversation}', [AiConversationController::class, 'destroy'])->name('conversations.destroy');
     Route::post('/conversations/{conversation}/pin', [AiConversationController::class, 'togglePin'])
         ->name('conversations.pin');
-    Route::post('/conversations/{conversation}/truncate', [AiConversationController::class, 'truncate'])
+    Route::post('/conversations/{conversation}/truncate', [AiConversationTruncateController::class, 'truncate'])
         ->name('conversations.truncate');
 
     Route::post('/attachments', [AiChatAttachmentController::class, 'store'])

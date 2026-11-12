@@ -23,8 +23,12 @@ use App\Http\Controllers\Admin\JobMonitorController;
 use App\Http\Controllers\Admin\PendingToolCallController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\RoleDeletionController;
+use App\Http\Controllers\Admin\RoleDuplicateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserGroupController;
+use App\Http\Controllers\Admin\UserGroupTrashController;
+use App\Http\Controllers\Admin\UserTrashController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -44,15 +48,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanDeleteUsers->value)
         ->name('users.destroy');
 
-    Route::post('users/{user}/restore', [UserController::class, 'restore'])
+    Route::post('users/{user}/restore', [UserTrashController::class, 'restore'])
         ->middleware('permission:'.PermissionEnum::CanRestoreUsers->value)
         ->name('users.restore');
 
-    Route::delete('users/{user}/force', [UserController::class, 'forceDelete'])
+    Route::delete('users/{user}/force', [UserTrashController::class, 'forceDelete'])
         ->middleware('permission:'.PermissionEnum::CanForceDeleteUsers->value)
         ->name('users.force-delete');
 
-    Route::post('users/bulk-actions', [UserController::class, 'bulkActions'])
+    Route::post('users/bulk-actions', [UserTrashController::class, 'bulkActions'])
         ->name('users.bulk-actions');
 
     Route::get('groups', [UserGroupController::class, 'index'])
@@ -71,15 +75,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanDeleteGroups->value)
         ->name('groups.destroy');
 
-    Route::post('groups/{group}/restore', [UserGroupController::class, 'restore'])
+    Route::post('groups/{group}/restore', [UserGroupTrashController::class, 'restore'])
         ->middleware('permission:'.PermissionEnum::CanRestoreGroups->value)
         ->name('groups.restore');
 
-    Route::delete('groups/{group}/force', [UserGroupController::class, 'forceDelete'])
+    Route::delete('groups/{group}/force', [UserGroupTrashController::class, 'forceDelete'])
         ->middleware('permission:'.PermissionEnum::CanForceDeleteGroups->value)
         ->name('groups.force-delete');
 
-    Route::post('groups/bulk-actions', [UserGroupController::class, 'bulkActions'])
+    Route::post('groups/bulk-actions', [UserGroupTrashController::class, 'bulkActions'])
         ->name('groups.bulk-actions');
 
     /*
@@ -99,7 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
             ->name('roles.store');
 
-        Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate'])
+        Route::post('roles/{role}/duplicate', [RoleDuplicateController::class, 'duplicate'])
             ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
             ->name('roles.duplicate');
 
@@ -111,11 +115,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:'.PermissionEnum::CanEditRoles->value)
             ->name('roles.update');
 
-        Route::delete('roles/{role}', [RoleController::class, 'destroy'])
+        Route::delete('roles/{role}', [RoleDeletionController::class, 'destroy'])
             ->middleware('permission:'.PermissionEnum::CanDeleteRoles->value)
             ->name('roles.destroy');
 
-        Route::post('roles/bulk-actions', [RoleController::class, 'bulkActions'])
+        Route::post('roles/bulk-actions', [RoleDeletionController::class, 'bulkActions'])
             ->name('roles.bulk-actions');
 
         Route::get('api-keys', [ApiKeyController::class, 'index'])
