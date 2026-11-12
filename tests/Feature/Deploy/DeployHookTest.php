@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Jobs\DeliverDeployHookJob;
@@ -100,7 +102,7 @@ test('private loopback deploy hook url is rejected by ssrf guard', function () {
         ]))
         ->assertSessionHasErrors('deploy_hooks.0.url');
 
-    expect(app(ProjectSettingsService::class)->deployHooks())->toBe([]);
+    expect(app(ProjectSettingsService::class)->integrations()->deployHooks())->toBe([]);
 });
 
 test('deploy hook url is stored encrypted', function () {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Settings;
 
-use App\Data\Deploy\DeployHookData;
 use App\Services\Settings\Project\ProjectApiSettingsService;
 use App\Services\Settings\Project\ProjectContentSettingsService;
 use App\Services\Settings\Project\ProjectFilesSettingsService;
@@ -24,7 +23,8 @@ use Illuminate\Validation\Rules\Password;
  * are normalized and read by its per-section reader under `App\Services\Settings\Project`
  * (General, Localization, Security, API, Content, Files, Integrations, matching the
  * settings pages); {@see normalize()} only composes their pieces. The getters below are
- * thin delegates kept so existing callers do not change.
+ * thin delegates kept until their callers move to the readers; Integrations callers
+ * already use {@see integrations()} directly.
  */
 class ProjectSettingsService
 {
@@ -463,75 +463,14 @@ class ProjectSettingsService
         return $this->files()->uploadAllowedExtensions();
     }
 
-    public function webhookUrl(): ?string
-    {
-        return $this->integrations()->webhookUrl();
-    }
-
-    public function webhookSecret(): ?string
-    {
-        return $this->integrations()->webhookSecret();
-    }
-
     public static function encryptWebhookSecret(string $plain): string
     {
         return self::encryptSecret($plain);
     }
 
-    public function notifierSlackWebhookUrl(): ?string
-    {
-        return $this->integrations()->notifierSlackWebhookUrl();
-    }
-
-    public function notifierTelegramChatId(): ?string
-    {
-        return $this->integrations()->notifierTelegramChatId();
-    }
-
-    public function isNotifierTelegramConfigured(): bool
-    {
-        return $this->integrations()->isNotifierTelegramConfigured();
-    }
-
-    public function canAllowNotifierEvent(string $type): bool
-    {
-        return $this->integrations()->canAllowNotifierEvent($type);
-    }
-
-    public function notifierTelegramBotToken(): ?string
-    {
-        return $this->integrations()->notifierTelegramBotToken();
-    }
-
     public static function encryptNotifierTelegramBotToken(string $plain): string
     {
         return self::encryptSecret($plain);
-    }
-
-    /**
-     * @return list<DeployHookData>
-     */
-    public function deployHooks(): array
-    {
-        return $this->integrations()->deployHooks();
-    }
-
-    public function deployHookById(string $hookId): ?DeployHookData
-    {
-        return $this->integrations()->deployHookById($hookId);
-    }
-
-    public function isDeployOnPublishEnabled(): bool
-    {
-        return $this->integrations()->isDeployOnPublishEnabled();
-    }
-
-    /**
-     * @return list<array{id: string, name: string, url_configured: bool}>
-     */
-    public function deployHooksForEdit(): array
-    {
-        return $this->integrations()->deployHooksForEdit();
     }
 
     public static function encryptDeployHookUrl(string $plain): string
