@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import Sortable from 'sortablejs';
 import type { MoveEvent, SortableEvent } from 'sortablejs';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import FieldLayoutController from '@/actions/App/Http/Controllers/Collections/FieldLayoutController';
 import { FIELD_TYPE_ICONS } from '@/components/collections/collection-field-form';
 import { FieldConvertDialog } from '@/components/collections/field-convert-dialog';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
@@ -562,7 +563,7 @@ function CollectionFieldRowActions({
 
     const toggleFormVisibility = (): void => {
         router.post(
-            FieldController.toggleFormVisibility.url({
+            FieldLayoutController.toggleFormVisibility.url({
                 collection: collectionId,
                 field: field.id,
             }),
@@ -573,7 +574,7 @@ function CollectionFieldRowActions({
 
     const updateLayoutWidth = (nextLayoutWidth: FieldLayoutWidth): void => {
         router.post(
-            FieldController.updateLayoutWidth.url({
+            FieldLayoutController.updateLayoutWidth.url({
                 collection: collectionId,
                 field: field.id,
             }),
@@ -1794,7 +1795,7 @@ function SortableFieldsList({
             const savedScrollTop = scrollParent?.scrollTop ?? 0;
 
             router.post(
-                FieldController.reorder.url(collectionId),
+                FieldLayoutController.reorder.url(collectionId),
                 {
                     ids: currentOrderIds,
                     starts_new_row_ids: currentRowBreakIds,

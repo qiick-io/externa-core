@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
+import CollectionSlugController from '@/actions/App/Http/Controllers/Collections/CollectionSlugController';
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -103,7 +103,7 @@ export function CollectionFormDrawer({
                 params.query.exclude = editing.id;
             }
 
-            void fetch(ContentCollectionController.checkSlug.url(params), {
+            void fetch(CollectionSlugController.checkSlug.url(params), {
                 method: 'GET',
                 headers: jsonRequestHeaders(),
                 credentials: 'same-origin',

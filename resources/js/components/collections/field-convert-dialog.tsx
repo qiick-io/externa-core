@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import FieldConvertController from '@/actions/App/Http/Controllers/Collections/FieldConvertController';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -92,7 +92,7 @@ export function FieldConvertDialog({
             return;
         }
 
-        const url = FieldController.convertTargets.url({
+        const url = FieldConvertController.convertTargets.url({
             collection: collectionId,
             field: field.id,
         });
@@ -131,7 +131,7 @@ export function FieldConvertDialog({
                 .querySelector('meta[name="csrf-token"]')
                 ?.getAttribute('content');
             const response = await fetch(
-                FieldController.convert.url({
+                FieldConvertController.convert.url({
                     collection: collectionId,
                     field: field.id,
                 }),
@@ -173,7 +173,7 @@ export function FieldConvertDialog({
                 .querySelector('meta[name="csrf-token"]')
                 ?.getAttribute('content');
             const response = await fetch(
-                FieldController.convert.url({
+                FieldConvertController.convert.url({
                     collection: collectionId,
                     field: field.id,
                 }),

@@ -190,12 +190,6 @@ parameters:
 			message: '#^Match expression does not handle remaining value\: mixed$#'
 			identifier: match.unhandled
 			count: 1
-			path: app/Http/Controllers/Collections/ContentCollectionController.php
-
-		-
-			message: '#^Match expression does not handle remaining value\: mixed$#'
-			identifier: match.unhandled
-			count: 1
 			path: app/Http/Controllers/Collections/ItemController.php
 
 		-
