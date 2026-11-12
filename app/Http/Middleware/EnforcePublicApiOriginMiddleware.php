@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Models\ApiKey;
@@ -16,7 +18,7 @@ class EnforcePublicApiOriginMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $allowlist = app(ProjectSettingsService::class)->publicApiAllowedOrigins();
+        $allowlist = app(ProjectSettingsService::class)->api()->publicApiAllowedOrigins();
         if ($allowlist === []) {
             return $next($request);
         }

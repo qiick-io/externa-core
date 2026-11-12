@@ -39,7 +39,7 @@ class CollectionLocaleResolverService
             }
         }
 
-        $default = $this->projectSettings->defaultContentLocale();
+        $default = $this->projectSettings->localization()->defaultContentLocale();
         if ($this->isAllowed($default)) {
             return $default;
         }
@@ -82,7 +82,7 @@ class CollectionLocaleResolverService
     public function fallbackChain(string $preferred): array
     {
         $allowed = array_values(array_filter(
-            $this->projectSettings->fallbackContentLocales(),
+            $this->projectSettings->localization()->fallbackContentLocales(),
             fn (string $locale): bool => $this->isAllowed($locale)
         ));
 
@@ -114,7 +114,7 @@ class CollectionLocaleResolverService
      */
     public function allowedLocales(): array
     {
-        return $this->projectSettings->contentLocales();
+        return $this->projectSettings->localization()->contentLocales();
     }
 
     private function parseFirstLanguage(string $acceptLanguage): ?string

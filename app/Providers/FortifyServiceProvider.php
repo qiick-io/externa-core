@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
@@ -60,15 +62,15 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureViews(): void
     {
         Fortify::loginView(function (Request $request) {
-            $project = app(ProjectSettingsService::class);
+            $securitySettings = app(ProjectSettingsService::class)->security();
 
             return Inertia::render('auth/login', [
                 'canResetPassword' => Features::enabled(Features::resetPasswords()),
                 'canRegister' => Features::enabled(Features::registration())
-                    && $project->isRegistrationEnabled(),
+                    && $securitySettings->isRegistrationEnabled(),
                 'canManagePasskeys' => Features::canManagePasskeys(),
-                'canUseOidc' => $project->isOidcLoginAvailable(),
-                'oidcButtonLabel' => $project->oidcButtonLabel(),
+                'canUseOidc' => $securitySettings->isOidcLoginAvailable(),
+                'oidcButtonLabel' => $securitySettings->oidcButtonLabel(),
                 'status' => $request->session()->get('status'),
             ]);
         });
@@ -88,7 +90,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::registerView(function () {
             if (! Features::enabled(Features::registration())
-                || ! app(ProjectSettingsService::class)->isRegistrationEnabled()) {
+                || ! app(ProjectSettingsService::class)->security()->isRegistrationEnabled()) {
                 abort(403);
             }
 
@@ -121,7 +123,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-            $maxAttempts = app(ProjectSettingsService::class)->loginMaxAttempts();
+            $maxAttempts = app(ProjectSettingsService::class)->security()->loginMaxAttempts();
 
             return Limit::perMinute($maxAttempts)->by($throttleKey);
         });

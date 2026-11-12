@@ -10,7 +10,7 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -30,7 +30,7 @@ class CollectionFieldConvertService
         private CollectionItemValuesWriterService $writer,
         private CollectionItemRevisionRecorderService $revisionRecorder,
         private CollectionLocaleResolverService $localeResolver,
-        private ProjectSettingsService $projectSettings,
+        private ProjectLocalizationSettingsService $localizationSettings,
     ) {}
 
     /**
@@ -763,7 +763,7 @@ class CollectionFieldConvertService
 
     private function defaultLocale(): string
     {
-        $default = $this->projectSettings->defaultContentLocale();
+        $default = $this->localizationSettings->defaultContentLocale();
         if ($this->localeResolver->isAllowed($default)) {
             return $default;
         }

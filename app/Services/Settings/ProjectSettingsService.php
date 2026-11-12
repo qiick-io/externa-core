@@ -13,7 +13,6 @@ use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Resolves project-level settings for admin forms and runtime wiring.
@@ -22,9 +21,8 @@ use Illuminate\Validation\Rules\Password;
  * normalized {@see raw()} bag and the {@see decryptSecret()} helper. Each area's keys
  * are normalized and read by its per-section reader under `App\Services\Settings\Project`
  * (General, Localization, Security, API, Content, Files, Integrations, matching the
- * settings pages); {@see normalize()} only composes their pieces. The getters below are
- * thin delegates kept until their callers move to the readers; Integrations callers
- * already use {@see integrations()} directly.
+ * settings pages); {@see normalize()} only composes their pieces. Callers read a value
+ * through its area accessor ({@see security()}, {@see files()}, …) or inject the reader.
  */
 class ProjectSettingsService
 {
@@ -208,7 +206,7 @@ class ProjectSettingsService
         $raw = $this->raw();
 
         return [
-            'name' => $this->projectName(),
+            'name' => $this->general()->projectName(),
             'defaultLanguage' => $raw['default_language'],
             'isRegistrationEnabled' => $raw['registration_enabled'],
             'isEmailVerificationRequired' => $raw['email_verification_required'],
@@ -222,245 +220,9 @@ class ProjectSettingsService
         ];
     }
 
-    public function projectName(): ?string
-    {
-        return $this->general()->projectName();
-    }
-
-    public function displayName(): string
-    {
-        return $this->general()->displayName();
-    }
-
-    public function isSidebarModuleEnabled(string $moduleId): bool
-    {
-        return $this->general()->isSidebarModuleEnabled($moduleId);
-    }
-
-    public function defaultLanguage(): string
-    {
-        return $this->localization()->defaultLanguage();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function contentLocales(): array
-    {
-        return $this->localization()->contentLocales();
-    }
-
-    public function defaultContentLocale(): string
-    {
-        return $this->localization()->defaultContentLocale();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function fallbackContentLocales(): array
-    {
-        return $this->localization()->fallbackContentLocales();
-    }
-
-    /**
-     * @return list<array{code: string, name: string, flag: string}>
-     */
-    public function contentLocaleMeta(): array
-    {
-        return $this->localization()->contentLocaleMeta();
-    }
-
-    public function isRegistrationEnabled(): bool
-    {
-        return $this->security()->isRegistrationEnabled();
-    }
-
-    public function isEmailVerificationRequired(): bool
-    {
-        return $this->security()->isEmailVerificationRequired();
-    }
-
-    public function isTwoFactorRequired(): bool
-    {
-        return $this->security()->isTwoFactorRequired();
-    }
-
-    public function defaultUserRole(): ?string
-    {
-        return $this->security()->defaultUserRole();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function allowedDomains(): array
-    {
-        return $this->security()->allowedDomains();
-    }
-
-    public function loginMaxAttempts(): int
-    {
-        return $this->security()->loginMaxAttempts();
-    }
-
-    public function passwordPolicy(): string
-    {
-        return $this->security()->passwordPolicy();
-    }
-
-    public function passwordRule(): Password
-    {
-        return $this->security()->passwordRule();
-    }
-
-    public function isOidcEnabled(): bool
-    {
-        return $this->security()->isOidcEnabled();
-    }
-
-    public function oidcIssuer(): ?string
-    {
-        return $this->security()->oidcIssuer();
-    }
-
-    public function oidcClientId(): ?string
-    {
-        return $this->security()->oidcClientId();
-    }
-
-    public function oidcButtonLabel(): ?string
-    {
-        return $this->security()->oidcButtonLabel();
-    }
-
-    public function isOidcJitProvisioningEnabled(): bool
-    {
-        return $this->security()->isOidcJitProvisioningEnabled();
-    }
-
-    public function isOidcLoginAvailable(): bool
-    {
-        return $this->security()->isOidcLoginAvailable();
-    }
-
-    public function oidcClientSecret(): ?string
-    {
-        return $this->security()->oidcClientSecret();
-    }
-
     public static function encryptOidcClientSecret(string $plain): string
     {
         return self::encryptSecret($plain);
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function publicApiAllowedOrigins(): array
-    {
-        return $this->api()->publicApiAllowedOrigins();
-    }
-
-    public function forgetPublicApiAllowedOriginsCache(): void
-    {
-        $this->api()->forgetPublicApiAllowedOriginsCache();
-    }
-
-    public function previewUrlDefault(): ?string
-    {
-        return $this->content()->previewUrlDefault();
-    }
-
-    public function revisionRetentionCount(): ?int
-    {
-        return $this->content()->revisionRetentionCount();
-    }
-
-    public function revisionRetentionDays(): ?int
-    {
-        return $this->content()->revisionRetentionDays();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function allowedTransformations(): array
-    {
-        return $this->files()->allowedTransformations();
-    }
-
-    public function isTransformationsEnabled(): bool
-    {
-        return $this->files()->isTransformationsEnabled();
-    }
-
-    /**
-     * @return list<array{
-     *     key: string,
-     *     fit: string,
-     *     width: int|null,
-     *     height: int|null,
-     *     quality: int,
-     *     without_enlargement: bool,
-     *     format: string
-     * }>
-     */
-    public function presetTransformations(): array
-    {
-        return $this->files()->presetTransformations();
-    }
-
-    /**
-     * @return array{
-     *     key: string,
-     *     fit: string,
-     *     width: int|null,
-     *     height: int|null,
-     *     quality: int,
-     *     without_enlargement: bool,
-     *     format: string
-     * }|null
-     */
-    public function transformPreset(string $key): ?array
-    {
-        return $this->files()->transformPreset($key);
-    }
-
-    public function maxTransformSize(): int
-    {
-        return $this->files()->maxTransformSize();
-    }
-
-    public function filesMaxUploadBytes(): ?int
-    {
-        return $this->files()->filesMaxUploadBytes();
-    }
-
-    public function chatMaxUploadBytes(): ?int
-    {
-        return $this->files()->chatMaxUploadBytes();
-    }
-
-    public function uploadAllowSvg(): bool
-    {
-        return $this->files()->uploadAllowSvg();
-    }
-
-    /**
-     * @return list<string>|null
-     */
-    public function uploadAllowedMimes(): ?array
-    {
-        return $this->files()->uploadAllowedMimes();
-    }
-
-    /**
-     * @return list<string>|null
-     */
-    public function uploadAllowedExtensions(): ?array
-    {
-        return $this->files()->uploadAllowedExtensions();
     }
 
     public static function encryptWebhookSecret(string $plain): string

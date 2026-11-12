@@ -91,9 +91,9 @@ test('project settings persist content locales and resolver reads them', functio
         ->assertSessionHasNoErrors();
 
     $settings = app(ProjectSettingsService::class);
-    expect($settings->contentLocales())->toBe(['it', 'en', 'de-DE'])
-        ->and($settings->defaultContentLocale())->toBe('it')
-        ->and($settings->fallbackContentLocales())->toBe(['it', 'en']);
+    expect($settings->localization()->contentLocales())->toBe(['it', 'en', 'de-DE'])
+        ->and($settings->localization()->defaultContentLocale())->toBe('it')
+        ->and($settings->localization()->fallbackContentLocales())->toBe(['it', 'en']);
 
     $request = Request::create('/test', 'GET');
     $request->headers->remove('Accept-Language');

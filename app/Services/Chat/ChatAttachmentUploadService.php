@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Chat;
 
 use App\Models\ChatAttachmentUpload;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
 use App\Services\FileTransformService;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectFilesSettingsService;
 use App\Services\Uploads\ForbiddenUploadExtensionService;
 use App\Services\Uploads\SafeUploadMimeService;
 use App\Services\Uploads\UploadSizeLimiterService;
@@ -27,7 +29,7 @@ class ChatAttachmentUploadService
     public const PREVIEW_MAX_EDGE = 1200;
 
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectFilesSettingsService $filesSettings,
         private readonly FileTransformService $transforms,
     ) {}
 
@@ -37,7 +39,7 @@ class ChatAttachmentUploadService
     public function storeSingle(User $user, UploadedFile $uploaded): CollectionItemChatAttachment
     {
         $size = (int) $uploaded->getSize();
-        UploadSizeLimiterService::assertWithinCap($this->projectSettings->chatMaxUploadBytes(), $size);
+        UploadSizeLimiterService::assertWithinCap($this->filesSettings->chatMaxUploadBytes(), $size);
         UploadSizeLimiterService::assertFitsPhpSingleUpload($size);
 
         $clientName = $uploaded->getClientOriginalName();
@@ -83,7 +85,7 @@ class ChatAttachmentUploadService
         ?string $mimeType = null,
     ): ChatAttachmentUpload {
         UploadSizeLimiterService::assertWithinCap(
-            $this->projectSettings->chatMaxUploadBytes(),
+            $this->filesSettings->chatMaxUploadBytes(),
             $totalSize,
             'total_size',
         );
@@ -169,7 +171,7 @@ class ChatAttachmentUploadService
         }
 
         UploadSizeLimiterService::assertWithinCap(
-            $this->projectSettings->chatMaxUploadBytes(),
+            $this->filesSettings->chatMaxUploadBytes(),
             (int) $fileUpload->total_size,
             'total_size',
         );

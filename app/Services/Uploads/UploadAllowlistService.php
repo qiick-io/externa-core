@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Uploads;
 
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectFilesSettingsService;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -12,7 +12,7 @@ use Throwable;
  * Project upload allowlist layered on the hard ForbiddenUploadExtensionService floor.
  *
  * Empty/null project overrides keep config/files.php defaults (1.3.0 behaviour).
- * SVG is never allowed unless {@see ProjectSettingsService::uploadAllowSvg()} is true.
+ * SVG is never allowed unless {@see ProjectFilesSettingsService::uploadAllowSvg()} is true.
  */
 final class UploadAllowlistService
 {
@@ -24,13 +24,13 @@ final class UploadAllowlistService
     public const SVG_MIME = 'image/svg+xml';
 
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectFilesSettingsService $filesSettings,
     ) {}
 
     public function allowSvg(): bool
     {
         try {
-            return $this->projectSettings->uploadAllowSvg();
+            return $this->filesSettings->uploadAllowSvg();
         } catch (Throwable) {
             // Unit tests without settings table: secure default.
             return (bool) config('files.upload_allow_svg', false);
@@ -46,7 +46,7 @@ final class UploadAllowlistService
     {
         $configured = null;
         try {
-            $configured = $this->projectSettings->uploadAllowedMimes();
+            $configured = $this->filesSettings->uploadAllowedMimes();
         } catch (Throwable) {
             $configured = null;
         }
@@ -71,7 +71,7 @@ final class UploadAllowlistService
     public function allowedExtensions(): ?array
     {
         try {
-            $extensions = $this->projectSettings->uploadAllowedExtensions();
+            $extensions = $this->filesSettings->uploadAllowedExtensions();
         } catch (Throwable) {
             $extensions = null;
         }
