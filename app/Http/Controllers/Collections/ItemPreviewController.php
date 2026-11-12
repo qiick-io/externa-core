@@ -26,6 +26,7 @@ class ItemPreviewController extends Controller
     public function __construct(
         private ItemRolePreviewService $itemRolePreviewService,
         private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
+        private LivePreviewAsOfResolverService $livePreviewAsOfResolver,
     ) {}
 
     /**
@@ -37,7 +38,7 @@ class ItemPreviewController extends Controller
 
         $asPublic = (bool) ($validated['as_public'] ?? false);
         if (! $asPublic && empty($validated['role_id'])) {
-            return response()->json(['message' => 'role_id or as_public is required.'], 422);
+            return response()->json(['message' => __('Choose a role or the public view to preview.')], 422);
         }
 
         $role = $this->itemRolePreviewService->resolveRole(
@@ -70,7 +71,7 @@ class ItemPreviewController extends Controller
             : '';
         if ($asOfRaw !== '') {
             try {
-                $asOf = app(LivePreviewAsOfResolverService::class)->parseBounded($asOfRaw);
+                $asOf = $this->livePreviewAsOfResolver->parseBounded($asOfRaw);
             } catch (InvalidArgumentException $exception) {
                 throw ValidationException::withMessages([
                     'as_of' => [$exception->getMessage()],

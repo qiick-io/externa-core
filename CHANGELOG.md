@@ -25,6 +25,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - MCP: `/mcp` accepts only an owned API key (Bearer). The session-user path is gone: `/mcp` is outside the `web` group and exempt from CSRF, so it was unreachable and would have been unsafe to wire. Failed authentications are limited per IP (`AI_MCP_AUTH_FAILURES_PER_MINUTE`, default 20) before the per-key `throttle:mcp` (#441).
 - Collections: restoring a revision needs the collection Update grant (a Read grant was enough), and restoring a trashed item, alone or in bulk, needs the item inside the actor's write filter (#710).
 - AI daily budget: an optional per-user daily token budget (`AI_DAILY_TOKEN_BUDGET`, default 0 = off) next to the prompt cap (`AI_DAILY_PROMPT_LIMIT`); both now also cover field translation, which is logged as an AI prompt (field keys only) with its token usage, and today's usage shows under the AI composer when a limit is set. The chat route uses a named `ai` limiter (`AI_RATE_LIMIT_PER_MINUTE`, default 30; `AI_RATE_LIMIT_PER_DAY`, default 0 = off) (#275).
+- Chat: a user with a collection grant on some collections no longer sees the others in the chat pickers and mention lists, and can no longer be mentioned in their item chats; chat now uses the collection policy's Read rule, like the item list (#703).
+- Collections: "Save as copy" checks the create permission like creating an item: a `can-create-collections` inherited from a user group now counts (it gave a 403), and a role with collection grants needs the Create grant on the collection (an Update grant was enough) (#704).
+- Roles and groups: the AI `ManageRoles` tool now follows the role policy like the admin UI, so it can no longer delete or rename locked system roles (`is_system`, `public`), also for a super-admin; restoring a trashed group that grants super-admin needs a super-admin on the web too, as it already did through AI. An update of the super-admin role that keeps its name (permissions or matrices only) is no longer refused with a 403 (#707).
 
 ### Changed
 
@@ -45,6 +48,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Chat: deleting a message logs the chat's UUID as `chat_id` in the activity log instead of an integer cast of it (`0` or its leading digits) (#723).
 - Item chat drawer: deleting your own message lowers the message count once with realtime on (the delete reply and its echo no longer both count it); a reaction toggled in another tab of the same user now shows in this one (the reaction request sends `X-Socket-ID` and the server skips only the tab that sent it); edit, add-to-field and attachments no longer assume a thread scope; the reset-on-open state is derived during render instead of in effects (#726).
 - The Lucide icon picker test renders a small mocked catalog instead of all ~1,700 icons (about 0.1 s instead of up to 26 s under load) and checks the real catalog's names without rendering it (#734).
+- Item editor: the activity log honours only the list page sizes (10, 20, 50, 100; default 10), so `?per_page=100000` no longer loads the whole log, and "Preview as…" without a role answers with a translated message (#738).
+- Item editor: the stale-save guard keeps catching saves over a peer's newer version after the form remounts (discard, or fields → activity → fields), the published read-only banner and the revision toasts are translated, and the schedule requests use the Wayfinder route (#741).
 
 ## [1.4.0] - 2026-11-10
 

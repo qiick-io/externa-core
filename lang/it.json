@@ -34,6 +34,7 @@
     "Cannot restore this revision for field :field.": "Cannot restore this revision for field :field.",
     "Cannot restore this revision: field :field was converted and the snapshot value is not compatible with the current type (:type).": "Cannot restore this revision: field :field was converted and the snapshot value is not compatible with the current type (:type).",
     "Choose a project content locale to collapse translatable values.": "Choose a project content locale to collapse translatable values.",
+    "Choose a role or the public view to preview.": "Scegli un ruolo o la vista pubblica da visualizzare in anteprima.",
     "Collection created.": "Collezione creata.",
     "Collection deleted.": "Collezione eliminata.",
     "Collection not found.": "Collezione non trovata.",

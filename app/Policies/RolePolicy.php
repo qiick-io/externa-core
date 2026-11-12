@@ -55,7 +55,8 @@ final class RolePolicy
 
     /**
      * The super-admin role keeps its name (the name is what grants everything), and
-     * locked system roles cannot be renamed.
+     * locked system roles cannot be renamed. Updates that keep the name (no name, or
+     * the same one) stay allowed, so their permissions and matrices remain editable.
      *
      * @param  mixed  $requestedName  The requested new name, or null when the update does not rename.
      */
@@ -65,11 +66,13 @@ final class RolePolicy
             return Response::deny();
         }
 
-        if ($role->name === RoleEnum::SuperAdmin->value && $requestedName !== RoleEnum::SuperAdmin->value) {
+        $isRename = $requestedName !== null && $requestedName !== $role->name;
+
+        if ($role->name === RoleEnum::SuperAdmin->value && $isRename) {
             return Response::deny(__('The super-admin role cannot be renamed.'));
         }
 
-        if ($role->isLockedSystemRole() && $requestedName !== null && $requestedName !== $role->name) {
+        if ($role->isLockedSystemRole() && $isRename) {
             return Response::deny(__('System roles cannot be renamed.'));
         }
 

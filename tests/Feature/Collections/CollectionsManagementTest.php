@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
@@ -9,7 +10,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\File;
+use App\Models\Role;
 use App\Models\User;
+use App\Models\UserGroup;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
@@ -342,6 +345,58 @@ test('item update copy requires create permission', function () {
         'collection_id' => $collection->id,
     ]);
     app(CollectionItemValuesWriterService::class)->sync($item, $collection, app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Old']));
+
+    $this->put(route('collections.items.update', [$collection, $item]), [
+        'data' => ['title' => 'Copy'],
+        'save_action' => 'copy',
+    ])->assertForbidden();
+
+    expect(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(1);
+});
+
+test('item update copy accepts create permission inherited from a user group', function () {
+    $user = grantCollectionPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowCollections->value,
+        PermissionEnum::CanEditCollections->value,
+    ]);
+    $creatorRole = Role::query()->create(['name' => 'group-item-creator', 'guard_name' => 'web']);
+    $creatorRole->syncPermissions([PermissionEnum::CanCreateCollections->value]);
+    $group = UserGroup::query()->create(['name' => 'Creators']);
+    $group->roles()->attach($creatorRole);
+    $user->groups()->attach($group);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['is_singleton' => false]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+
+    $this->put(route('collections.items.update', [$collection, $item]), [
+        'data' => ['title' => 'Copy'],
+        'save_action' => 'copy',
+    ])->assertRedirect();
+
+    expect(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(2);
+});
+
+test('item update copy requires the collection create grant', function () {
+    $collection = Collection::factory()->create(['is_singleton' => false]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+
+    $user = grantCollectionPermissions(User::factory()->create());
+    grantRoleActions($user->roles()->firstOrFail(), $collection, [
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Update,
+    ]);
+    $this->actingAs($user);
 
     $this->put(route('collections.items.update', [$collection, $item]), [
         'data' => ['title' => 'Copy'],

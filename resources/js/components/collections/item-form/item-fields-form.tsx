@@ -139,7 +139,9 @@ export function ItemFieldsForm({
                                 ? t('collections.itemPresence.lockedBy', {
                                       name: lockHolderName ?? '…',
                                   })
-                                : 'Published is read-only. Switch to Draft to edit, then Publish.'}
+                                : t(
+                                      'collections.itemToolbar.publishedReadOnly',
+                                  )}
                         </p>
                     ) : null}
                     <DynamicItemFields
