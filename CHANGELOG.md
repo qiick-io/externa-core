@@ -43,6 +43,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 
+- File manager: saving or replacing a file no longer empties its "where used" list in the detail panel (#758).
 - Field settings drawer: the duplicate-key error and the "Update settings for …" subtitle are translated (en, it, de), and the duplicate-key check no longer waits again from zero each time the drawer re-renders; the unreachable key-format message is gone, since the key is checked as its slug (#744).
 - Preview as role: the "Preview failed" message is translated (en, it, de) and the request URL comes from the generated route helper (#744).
 - Field forms, item table cells and field conditions no longer turn an object-valued setting or option into the text "[object Object]": non-scalar values fall back to the field's default (#671).
@@ -54,6 +55,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - The Lucide icon picker test renders a small mocked catalog instead of all ~1,700 icons (about 0.1 s instead of up to 26 s under load) and checks the real catalog's names without rendering it (#734).
 - Item editor: the activity log honours only the list page sizes (10, 20, 50, 100; default 10), so `?per_page=100000` no longer loads the whole log, and "Preview as…" without a role answers with a translated message (#738).
 - Item editor: the stale-save guard keeps catching saves over a peer's newer version after the form remounts (discard, or fields → activity → fields), the published read-only banner and the revision toasts are translated, and the schedule requests use the Wayfinder route (#741).
+- Collection form layouts: a tab or section label sent as a plain string is stored under the project's default content locale instead of failing with an error (the normalizer called a resolver method that does not exist) (#755).
 
 ## [1.4.0] - 2026-11-10
 

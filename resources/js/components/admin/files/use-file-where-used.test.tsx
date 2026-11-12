@@ -92,4 +92,23 @@ describe('useFileWhereUsed', () => {
 
         expect(mocks.fetchFileWhereUsed).toHaveBeenLastCalledWith(6);
     });
+
+    it('keeps the references when a fresh copy of the same file arrives', async () => {
+        mocks.fetchFileWhereUsed.mockResolvedValue({ references: [reference] });
+        const { result, rerender } = renderHook(
+            ({ file }) => useFileWhereUsed(file),
+            { initialProps: { file: row(5) } },
+        );
+
+        await waitFor(() => {
+            expect(result.current.whereUsedRefs).toEqual([reference]);
+        });
+
+        // A save or replace hands the panel a new object for the same file.
+        rerender({ file: { ...row(5), name: 'renamed' } });
+
+        expect(result.current.whereUsedRefs).toEqual([reference]);
+        expect(result.current.whereUsedLoading).toBe(false);
+        expect(mocks.fetchFileWhereUsed).toHaveBeenCalledTimes(1);
+    });
 });

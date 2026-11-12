@@ -258,7 +258,6 @@ return [
     'App\Services\Collections\ApplyFieldPackService',
     'App\Services\Collections\CollectionFieldGroupService',
     'App\Services\Collections\CollectionFieldRenamerService',
-    'App\Services\Collections\CollectionFormLayoutNormalizerService',
     'App\Services\Collections\CollectionItemApprovalService',
     'App\Services\Collections\CollectionItemDataNormalizerService',
     'App\Services\Collections\CollectionItemDataRuleBuilderService',
