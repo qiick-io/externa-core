@@ -1,0 +1,59 @@
+{
+    "name": "Acme CMS",
+    "defaultLanguage": "en",
+    "isRegistrationEnabled": true,
+    "isEmailVerificationRequired": true,
+    "passwordPolicy": "strong",
+    "sidebarModules": [
+        {
+            "id": "ai",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "users",
+            "enabled": false,
+            "locked": false
+        },
+        {
+            "id": "dashboard",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "files",
+            "enabled": false,
+            "locked": false
+        },
+        {
+            "id": "collections",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "chat",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "activity",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "groups",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "settings",
+            "enabled": true,
+            "locked": false
+        }
+    ],
+    "reportIssueUrl": "https:\/\/acme.test\/issues",
+    "reportBugUrl": null,
+    "reportErrorUrl": null,
+    "filesMaxUploadBytes": 1048576,
+    "chatMaxUploadBytes": null
+}

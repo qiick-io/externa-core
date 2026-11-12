@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Deploy;
 
 use App\Jobs\DeliverDeployHookJob;
@@ -31,7 +33,7 @@ class DeployHookDispatcherService
      */
     public function dispatch(?string $hookId = null, string $source = self::SOURCE_MANUAL): array
     {
-        $hooks = $this->projectSettings->deployHooks();
+        $hooks = $this->projectSettings->integrations()->deployHooks();
         if ($hooks === []) {
             return [];
         }
@@ -76,7 +78,7 @@ class DeployHookDispatcherService
      */
     public function dispatchOnPublish(): array
     {
-        if (! $this->projectSettings->isDeployOnPublishEnabled()) {
+        if (! $this->projectSettings->integrations()->isDeployOnPublishEnabled()) {
             return [];
         }
 

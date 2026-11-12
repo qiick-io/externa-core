@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
@@ -43,7 +45,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
 
     public function handle(ProjectSettingsService $projectSettings): void
     {
-        $url = $projectSettings->webhookUrl();
+        $url = $projectSettings->integrations()->webhookUrl();
         if ($url === null) {
             return;
         }
@@ -58,7 +60,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             return;
         }
 
-        $secret = $projectSettings->webhookSecret();
+        $secret = $projectSettings->integrations()->webhookSecret();
         // Prefer refuse over empty-key HMAC (deterministic, false authenticity).
         if ($secret === null || $secret === '') {
             Log::warning('Outbound webhook delivery refused: signing secret empty', [
