@@ -8,7 +8,7 @@ use App\Models\Collection;
 use App\Models\User;
 use App\Policies\CollectionPolicy;
 use App\Services\Ai\AiDailyBudgetService;
-use App\Support\Collections\CollectionLocaleResolver;
+use App\Services\Collections\CollectionLocaleResolverService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Gate;
@@ -61,7 +61,7 @@ class GenerateItemAiDraftRequest extends FormRequest
     {
         return [
             'prompt' => ['required', 'string', 'min:3', 'max:'.self::MAX_PROMPT_LENGTH],
-            'locale' => ['required', 'string', Rule::in(app(CollectionLocaleResolver::class)->allowedLocales())],
+            'locale' => ['required', 'string', Rule::in(app(CollectionLocaleResolverService::class)->allowedLocales())],
         ];
     }
 }
