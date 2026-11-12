@@ -1,19 +1,19 @@
 <?php
 
-use App\Support\Health\ReadinessChecks;
+use App\Services\Health\ReadinessChecksService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 test('database check returns fail when connection throws', function () {
     DB::shouldReceive('connection')->once()->andThrow(new RuntimeException('db down'));
 
-    expect(app(ReadinessChecks::class)->database())->toBe('fail');
+    expect(app(ReadinessChecksService::class)->database())->toBe('fail');
 });
 
 test('redis check returns fail when ping throws', function () {
     Redis::shouldReceive('connection')->once()->andThrow(new RuntimeException('redis down'));
 
-    expect(app(ReadinessChecks::class)->redis())->toBe('fail');
+    expect(app(ReadinessChecksService::class)->redis())->toBe('fail');
 });
 
 test('redis is required when queue uses redis', function () {
@@ -24,7 +24,7 @@ test('redis is required when queue uses redis', function () {
         'broadcasting.default' => 'null',
     ]);
 
-    expect(app(ReadinessChecks::class)->isRedisRequired())->toBeTrue();
+    expect(app(ReadinessChecksService::class)->isRedisRequired())->toBeTrue();
 });
 
 test('redis is not required for sync queue and array cache', function () {
@@ -35,5 +35,5 @@ test('redis is not required for sync queue and array cache', function () {
         'broadcasting.default' => 'null',
     ]);
 
-    expect(app(ReadinessChecks::class)->isRedisRequired())->toBeFalse();
+    expect(app(ReadinessChecksService::class)->isRedisRequired())->toBeFalse();
 });

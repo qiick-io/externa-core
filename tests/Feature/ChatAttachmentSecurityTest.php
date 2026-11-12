@@ -2,6 +2,7 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Http\Responses\UserContentResponse;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
@@ -10,7 +11,6 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Http\UserContentResponse;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;

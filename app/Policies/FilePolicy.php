@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Http\Middleware\EnsureCanManageFilesMiddleware;
@@ -13,13 +14,12 @@ use App\Services\Api\FileAccessEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Authorization\RequestActorResolverService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Auth\Access\Response;
 
 /**
  * File abilities for both kinds of actor.
  *
- * API actors (public API, API keys, MCP bearer requests: the request carries an {@see ApiAccess})
+ * API actors (public API, API keys, MCP bearer requests: the request carries an {@see ApiAccessData})
  * are judged by {@see FileAccessEnforcerService}: role file ACL, API key `files_scope` /
  * `read_only`, owner ceiling and `read_private`. The request's API actor is judged whoever the
  * gate user is, as the Files API trait did before this policy.

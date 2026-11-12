@@ -5,7 +5,7 @@ namespace App\Http\Exceptions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Support\Auth\HomePath;
+use App\Services\Auth\HomePathService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,7 +36,7 @@ final class RenderNotFoundResponse
 
         return Inertia::render('errors/not-found', [
             'status' => 404,
-            'homeUrl' => HomePath::for($request->user()),
+            'homeUrl' => HomePathService::for($request->user()),
         ])->toResponse($request)->setStatusCode(404);
     }
 

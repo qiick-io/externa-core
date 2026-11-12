@@ -31,7 +31,7 @@ parameters:
                 - 'app/Services/Collections/FieldValidationRuleEvaluatorService.php'
                 - 'app/Services/Files/FileWhereUsedScannerService.php'
                 - 'app/Services/Chat/ChatUnreadService.php'
-                - 'app/Support/Health/ReadinessChecks.php'
+                - 'app/Services/Health/ReadinessChecksService.php'
                 - 'app/Services/Dashboard/DashboardOverviewMetricsService.php'
                 - 'app/Http/Controllers/Admin/FileController.php'
                 - 'app/Http/Controllers/Api/V1/FileController.php'
@@ -53,4 +53,4 @@ parameters:
             message: 'Raw SQL must live in a reviewed allowlisted file (#208).'
             errorIdentifier: externa.rawSql
             allowIn:
-                - 'app/Support/Health/ReadinessChecks.php'
+                - 'app/Services/Health/ReadinessChecksService.php'

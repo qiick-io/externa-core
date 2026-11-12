@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Auth;
+declare(strict_types=1);
+
+namespace App\Services\Auth;
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
@@ -12,7 +14,7 @@ use Throwable;
 /**
  * Resolve the first admin surface a user is allowed to open after login.
  */
-final class HomePath
+final class HomePathService
 {
     /**
      * Guest auth screens that must never be reused as post-login "intended".

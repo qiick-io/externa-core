@@ -16,8 +16,8 @@ use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Authorization\RequestActorResolverService;
+use App\Services\Http\CurlSseStreamerService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Http\CurlSseStreamer;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -139,7 +139,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Herd PHP-FPM + Guzzle `stream => true` returns HTTP 200 with a 0-byte body for
      * LM Studio SSE. Prefer curl_multi progressive streaming; fall back to buffering.
-     * CurlMultiReadableStream also remaps LM Studio reasoning_text → summary_text events
+     * CurlMultiReadableStreamService also remaps LM Studio reasoning_text → summary_text events
      * so laravel/ai yields tokens (keeps nginx fastcgi_read_timeout from idling at 60s).
      */
     protected function configureHttpClientStreaming(): void
@@ -151,7 +151,7 @@ class AppServiceProvider extends ServiceProvider
                 }
 
                 try {
-                    return CurlSseStreamer::stream($request);
+                    return CurlSseStreamerService::stream($request);
                 } catch (Throwable) {
                     // ponytail: if curl_multi fails, buffer the full SSE body so chat still works
                     unset($options['stream']);

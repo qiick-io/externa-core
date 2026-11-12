@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Support\Http;
+declare(strict_types=1);
+
+namespace App\Http\Responses;
 
 use App\Services\Uploads\SafeUploadMimeService;
 use Illuminate\Contracts\Filesystem\Filesystem;

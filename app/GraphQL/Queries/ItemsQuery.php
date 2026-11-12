@@ -2,6 +2,7 @@
 
 namespace App\GraphQL\Queries;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
@@ -10,10 +11,9 @@ use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Api\PublicItemSortParserService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionLocaleResolverService;
-use App\Support\Api\ApiAccess;
-use App\Support\Api\PublicItemSortParser;
 
 final class ItemsQuery
 {
@@ -42,13 +42,13 @@ final class ItemsQuery
         $perPage = min(max((int) ($args['perPage'] ?? 15), 1), $maxPerPage);
         $page = max((int) ($args['page'] ?? 1), 1);
         $request = request();
-        $sortParser = app(PublicItemSortParser::class);
+        $sortParser = app(PublicItemSortParserService::class);
         $sortTokens = isset($args['sort']) && is_array($args['sort']) ? $args['sort'] : null;
         $sortKeys = $sortParser->parseGraphQl($sortTokens, $request, $collection);
 
         $cache = app(PublicApiResponseCacheService::class);
         $version = $cache->version((int) $collection->id);
-        $access = app(ApiAccess::class);
+        $access = app(ApiAccessData::class);
         $roleId = $access->roleId();
         $hash = $cache->hash([
             'filter' => $filters,

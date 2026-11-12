@@ -3,13 +3,13 @@
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\RoleEnum;
+use App\Http\Responses\UserContentResponse;
 use App\Models\ApiKey;
 use App\Models\File;
 use App\Models\FilePermission;
 use App\Models\Role;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\FileChunkUploadService;
-use App\Support\Http\UserContentResponse;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;

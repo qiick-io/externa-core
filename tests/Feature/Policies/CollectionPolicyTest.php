@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
 use App\Models\Role;
 use App\Models\User;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Gate;
@@ -87,7 +87,7 @@ it('narrows an API key role by its collection and read-only scopes', function ()
     ]);
     grantRoleActions($auth['role'], $this->pages, [CollectionPermissionActionEnum::Read]);
     $auth['key']->forceFill(['collection_slugs' => ['posts'], 'read_only' => true])->save();
-    request()->attributes->set('apiAccess', new ApiAccess('api_key', $auth['role'], $auth['key']));
+    request()->attributes->set('apiAccess', new ApiAccessData('api_key', $auth['role'], $auth['key']));
 
     $gate = Gate::forUser(null);
 
@@ -103,7 +103,7 @@ it('caps an owned API key at its owner access', function (): void {
     grantRoleActions($auth['role'], $this->posts, [CollectionPermissionActionEnum::Read]);
     grantRoleActions($auth['role'], $this->pages, [CollectionPermissionActionEnum::Read]);
     $auth['key']->forceFill(['owner_id' => $owner->id])->save();
-    request()->attributes->set('apiAccess', new ApiAccess('api_key', $auth['role'], $auth['key']->fresh()));
+    request()->attributes->set('apiAccess', new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh()));
 
     expect(Gate::forUser(null)->allows('viewItems', $this->posts))->toBeTrue()
         ->and(Gate::forUser(null)->allows('viewItems', $this->pages))->toBeFalse();
@@ -116,7 +116,7 @@ it('denies a guest without an API actor', function (): void {
 it('judges another gate user on their own grants during an API request', function (): void {
     $auth = makeApiKeyForRole();
     grantRoleActions($auth['role'], $this->posts, [CollectionPermissionActionEnum::Read]);
-    request()->attributes->set('apiAccess', new ApiAccess('api_key', $auth['role'], $auth['key']));
+    request()->attributes->set('apiAccess', new ApiAccessData('api_key', $auth['role'], $auth['key']));
     $pagesReader = collectionPolicyAclUser($this->pages, [CollectionPermissionActionEnum::Read]);
 
     expect(Gate::forUser($pagesReader)->allows('viewItems', $this->pages))->toBeTrue()

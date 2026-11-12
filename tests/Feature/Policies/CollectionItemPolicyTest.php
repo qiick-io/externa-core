@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
@@ -15,7 +16,6 @@ use App\Models\User;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Gate;
@@ -122,7 +122,7 @@ it('grants super-admins and Spatie-only editors every item', function (): void {
 });
 
 it('applies the API key role filter to items', function (): void {
-    request()->attributes->set('apiAccess', new ApiAccess('api_key', $this->filteredRole, makeApiKeyForRole($this->filteredRole)['key']));
+    request()->attributes->set('apiAccess', new ApiAccessData('api_key', $this->filteredRole, makeApiKeyForRole($this->filteredRole)['key']));
     $gate = Gate::forUser(null);
 
     expect($gate->allows('view', [$this->published, $this->posts]))->toBeTrue()

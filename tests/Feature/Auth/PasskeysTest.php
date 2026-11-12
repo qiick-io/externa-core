@@ -3,8 +3,8 @@
 use App\Enums\PermissionEnum;
 use App\Http\Responses\PasskeyLoginResponse;
 use App\Models\User;
+use App\Services\Auth\HomePathService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Auth\HomePath;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -141,7 +141,7 @@ test('passkey login response redirects via HomePath', function () {
 
     expect($response->getStatusCode())->toBe(200)
         ->and(json_decode($response->getContent(), true)['redirect'])
-        ->toBe(url(HomePath::for($user)));
+        ->toBe(url(HomePathService::for($user)));
 });
 
 test('users with only a passkey satisfy two factor required', function () {

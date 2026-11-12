@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Support\Api;
+declare(strict_types=1);
+
+namespace App\Services\Api;
 
 /**
  * Normalize and validate browser Origin URLs (scheme + host + optional port, no path).
  */
-final class PublicApiOrigin
+final class PublicApiOriginService
 {
     /**
      * Whether the value is a usable origin URL (http/https, no path/query/fragment).

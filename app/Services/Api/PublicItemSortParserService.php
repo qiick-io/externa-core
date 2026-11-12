@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Support\Api;
+declare(strict_types=1);
+
+namespace App\Services\Api;
 
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Services\Api\CollectionPermissionRulesService;
 use App\Services\Collections\CollectionItemQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  *
  * @phpstan-type SortKey array{name: string, direction: 'asc'|'desc', field: ?CollectionField}
  */
-final class PublicItemSortParser
+final class PublicItemSortParserService
 {
     public const MAX_KEYS = 3;
 
