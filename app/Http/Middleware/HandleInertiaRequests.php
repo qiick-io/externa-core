@@ -128,6 +128,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn (): mixed => $request->session()->get('success'),
                 'error' => fn (): mixed => $request->session()->get('error'),
+                'warning' => fn (): mixed => $request->session()->get('warning'),
                 'plain_text_api_key' => fn (): mixed => $request->session()->get('plain_text_api_key'),
             ],
         ];
