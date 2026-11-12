@@ -12,9 +12,9 @@ use App\Http\Requests\Admin\UpdateFileMetadataRequest;
 use App\Http\Resources\Admin\FileResource;
 use App\Models\File;
 use App\Services\Files\FileFavoriteFlagService;
+use App\Services\Files\FilesDiskService;
 use App\Services\Files\FileWhereUsedScannerService;
 use App\Services\FileService;
-use App\Support\Files\FilesDisk;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -208,7 +208,7 @@ class FileController extends Controller
         $folder = $this->fileService->createFolder(
             $validated['name'],
             $request->validatedParentId(),
-            $validated['disk'] ?? FilesDisk::default(),
+            $validated['disk'] ?? FilesDiskService::default(),
         );
 
         return (new FileResource($folder->load('tags')))

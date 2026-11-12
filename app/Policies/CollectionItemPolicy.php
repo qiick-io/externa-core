@@ -8,7 +8,7 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Support\Authorization\PolicyRequestResolver;
+use App\Services\Authorization\PolicyRequestResolverService;
 use Illuminate\Auth\Access\Response;
 
 /**
@@ -23,7 +23,7 @@ final class CollectionItemPolicy
 {
     public function __construct(
         private CollectionPermissionEnforcerService $enforcer,
-        private PolicyRequestResolver $requestResolver,
+        private PolicyRequestResolverService $requestResolver,
     ) {}
 
     /**

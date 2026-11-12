@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Concerns;
 
-use App\Support\Files\FilesDisk;
+use App\Services\Files\FilesDiskService;
 use Illuminate\Validation\Rule;
 
 /**
@@ -42,7 +42,7 @@ trait ValidatesFileManagerFieldsTrait
      */
     protected function diskRules(): array
     {
-        return ['nullable', 'string', Rule::in(FilesDisk::allowed())];
+        return ['nullable', 'string', Rule::in(FilesDiskService::allowed())];
     }
 
     /**

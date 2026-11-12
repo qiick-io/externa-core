@@ -15,8 +15,8 @@ use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Authorization\RequestActorResolverService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Authorization\RequestActorResolver;
 use App\Support\Http\CurlSseStreamer;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -175,7 +175,7 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
 
-            if (app(RequestActorResolver::class)->hasApiAccess()) {
+            if (app(RequestActorResolverService::class)->hasApiAccess()) {
                 return null;
             }
 

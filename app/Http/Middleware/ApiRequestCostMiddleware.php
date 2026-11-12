@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Validation\FilterQueryLimitsService;
 use App\Support\Api\ApiAccess;
 use App\Support\Api\PublicApiIncludeParser;
-use App\Support\Validation\FilterQueryLimits;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -127,7 +127,7 @@ class ApiRequestCostMiddleware
     private function relationalFilterKeyCount(Request $request): int
     {
         if ($request->is('api/graphql') || $request->routeIs('graphql')) {
-            return FilterQueryLimits::relationalKeyCount($this->graphQlFilterMap($request));
+            return FilterQueryLimitsService::relationalKeyCount($this->graphQlFilterMap($request));
         }
 
         $filters = $request->query('filter', []);
@@ -136,7 +136,7 @@ class ApiRequestCostMiddleware
         }
 
         /** @var array<string, mixed> $filters */
-        return FilterQueryLimits::relationalKeyCount($filters);
+        return FilterQueryLimitsService::relationalKeyCount($filters);
     }
 
     /**

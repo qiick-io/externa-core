@@ -1,7 +1,7 @@
 <?php
 
+use App\Services\Css\OklchHueService;
 use App\Services\Settings\ThemePresetService;
-use App\Support\Css\OklchHue;
 
 test('catalog lists the six built-in theme presets', function () {
     $catalog = app(ThemePresetService::class)->catalog();
@@ -58,11 +58,11 @@ test('custom hex near AI accent hue triggers AI override', function () {
 });
 
 test('oklch hue distance treats violet brand as within thirty degrees of AI accent', function () {
-    $hue = OklchHue::fromHex('#7F35BB');
+    $hue = OklchHueService::fromHex('#7F35BB');
 
     expect($hue)->not->toBeNull()
-        ->and(OklchHue::distanceDegrees($hue, 306.0))->toBeLessThanOrEqual(30.0)
-        ->and(OklchHue::isWithinHue('#0E7C86', 306.0, 30.0))->toBeFalse();
+        ->and(OklchHueService::distanceDegrees($hue, 306.0))->toBeLessThanOrEqual(30.0)
+        ->and(OklchHueService::isWithinHue('#0E7C86', 306.0, 30.0))->toBeFalse();
 });
 
 test('every preset keeps the dark shell one step lighter than the content', function (string $slug) {

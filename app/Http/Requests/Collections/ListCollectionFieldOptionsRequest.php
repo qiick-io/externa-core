@@ -6,7 +6,7 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Requests\Concerns\AuthorizesCollectionRouteAccessTrait;
-use App\Support\Validation\SearchQueryRules;
+use App\Services\Validation\SearchQueryRulesService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -36,7 +36,7 @@ class ListCollectionFieldOptionsRequest extends FormRequest
             'field_id' => ['required', 'integer'],
             'related_collection_id' => ['nullable', 'integer', 'exists:collections,id'],
             'display_field' => ['nullable', 'string', 'max:64'],
-            'search' => SearchQueryRules::search(),
+            'search' => SearchQueryRulesService::search(),
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

@@ -5,7 +5,7 @@ use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\User;
-use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
+use App\Services\Collections\CollectionPacks\CollectionPackRegistryService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Laravel\Ai\Tools\Request;
@@ -16,7 +16,7 @@ beforeEach(function () {
 });
 
 test('collection pack registry lists seo categories pages articles products', function () {
-    expect(CollectionPackRegistry::keys())->toBe([
+    expect(CollectionPackRegistryService::keys())->toBe([
         'seo',
         'categories',
         'pages',
@@ -24,7 +24,7 @@ test('collection pack registry lists seo categories pages articles products', fu
         'products',
     ]);
 
-    $seo = CollectionPackRegistry::find('seo');
+    $seo = CollectionPackRegistryService::find('seo');
     expect($seo)->not->toBeNull()
         ->and(collect($seo['fields'])->pluck('name')->all())->toBe([
             'title',

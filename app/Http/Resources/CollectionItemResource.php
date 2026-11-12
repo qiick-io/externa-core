@@ -6,11 +6,11 @@ use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FileFieldExpanderService;
 use App\Services\Api\RelationIncludeHydratorService;
+use App\Services\Collections\CollectionItemDataAccessorService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Support\Api\ApiAccess;
 use App\Support\Api\MiniUserMapper;
 use App\Support\Api\PublicApiIncludeParser;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,13 +33,13 @@ class CollectionItemResource extends JsonResource
         $item->loadMissing('collection.fields');
 
         $includeAll = $request->boolean('include_all_translations');
-        $resolver = app(CollectionLocaleResolver::class);
+        $resolver = app(CollectionLocaleResolverService::class);
         $queryLocale = $request->query('locale');
         $override = is_string($queryLocale) && $queryLocale !== '' ? $queryLocale : null;
         $resolver->assertRequestedLocaleAllowed($override);
         $locale = $resolver->resolve($override);
 
-        $data = app(CollectionItemDataAccessor::class)->flattenForLocale($item, $locale, $includeAll);
+        $data = app(CollectionItemDataAccessorService::class)->flattenForLocale($item, $locale, $includeAll);
 
         $isPublicV1 = $request->is('api/v1/*');
         $includeParser = app(PublicApiIncludeParser::class);

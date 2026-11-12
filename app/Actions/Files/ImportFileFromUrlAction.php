@@ -7,8 +7,8 @@ namespace App\Actions\Files;
 use App\Ai\Support\SafeRemoteFetcher;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Models\File;
+use App\Services\Files\FilesDiskService;
 use App\Services\FileService;
-use App\Support\Files\FilesDisk;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
@@ -114,7 +114,7 @@ final class ImportFileFromUrlAction
             $file = $this->fileService->uploadFile(
                 $uploaded,
                 $parentId,
-                FilesDisk::default(),
+                FilesDiskService::default(),
                 $fileName,
             );
         } finally {

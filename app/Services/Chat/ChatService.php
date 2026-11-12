@@ -17,8 +17,8 @@ use App\Policies\ChatPolicy;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Support\Collections\CollectionItemDataAccessor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
@@ -36,7 +36,7 @@ class ChatService
         private CollectionPermissionGuardService $permissionGuard,
         private EffectivePermissionResolverService $permissionResolver,
         private ChatParticipantSyncService $participantSync,
-        private CollectionItemDataAccessor $itemDataAccessor,
+        private CollectionItemDataAccessorService $itemDataAccessor,
     ) {}
 
     public function findItemChat(CollectionItem $item): ?Chat

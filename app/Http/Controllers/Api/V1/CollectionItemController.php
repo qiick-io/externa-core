@@ -19,9 +19,9 @@ use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Api\RelationIncludeHydratorService;
 use App\Services\Collections\CollectionItemQueryService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Support\Api\PublicApiIncludeParser;
 use App\Support\Api\PublicItemSortParser;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -93,7 +93,7 @@ class CollectionItemController extends Controller
 
             $queryLocale = $request->query('locale');
             $localeOverride = is_string($queryLocale) && $queryLocale !== '' ? $queryLocale : null;
-            $locale = app(CollectionLocaleResolver::class)->resolve($localeOverride);
+            $locale = app(CollectionLocaleResolverService::class)->resolve($localeOverride);
 
             $query = CollectionItem::query()
                 ->where('collection_id', $collection->id)

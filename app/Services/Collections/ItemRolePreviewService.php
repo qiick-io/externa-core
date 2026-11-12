@@ -11,8 +11,6 @@ use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Api\FileFieldExpanderService;
 use App\Support\Api\ApiAccess;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
 
 /**
@@ -24,8 +22,8 @@ class ItemRolePreviewService
         private CollectionPermissionGuardService $guard,
         private CollectionPermissionEnforcerService $enforcer,
         private FileFieldExpanderService $fileFieldExpander,
-        private CollectionItemDataAccessor $dataAccessor,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionItemDataAccessorService $dataAccessor,
+        private CollectionLocaleResolverService $localeResolver,
     ) {}
 
     /**

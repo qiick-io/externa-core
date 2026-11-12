@@ -11,9 +11,9 @@ use App\Http\Requests\Api\V1\UpdateFileRequest;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
 use App\Services\Api\FilePermissionGuardService;
+use App\Services\Files\FilesDiskService;
 use App\Services\FileService;
 use App\Services\FileTransformService;
-use App\Support\Files\FilesDisk;
 use App\Support\Http\UserContentResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -144,7 +144,7 @@ class FileController extends Controller
         $file = $this->fileService->uploadFile(
             $upload,
             isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
-            $validated['disk'] ?? FilesDisk::default(),
+            $validated['disk'] ?? FilesDiskService::default(),
             $validated['name'] ?? null,
         );
 

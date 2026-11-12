@@ -14,7 +14,7 @@ use App\Http\Requests\Admin\Files\UploadFileRequest;
 use App\Http\Resources\Admin\FileResource;
 use App\Models\File;
 use App\Services\Files\FileFavoriteFlagService;
-use App\Support\Files\FilesDisk;
+use App\Services\Files\FilesDiskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -46,7 +46,7 @@ class FileUploadController extends Controller
         $file = $this->uploadFile->execute(
             $uploaded,
             $request->validatedParentId(),
-            $validated['disk'] ?? FilesDisk::default(),
+            $validated['disk'] ?? FilesDiskService::default(),
             $validated['name'] ?? null,
         );
 

@@ -9,12 +9,12 @@ use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
 use App\Services\Files\FileEffectiveAccessService;
+use App\Services\Files\FilesDiskService;
+use App\Services\Security\PlainTextSanitizerService;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
+use App\Services\Uploads\MimeTypeValidatorService;
+use App\Services\Uploads\SafeUploadMimeService;
 use App\Services\Webhooks\OutboundWebhookDispatcherService;
-use App\Support\Files\FilesDisk;
-use App\Support\Security\PlainTextSanitizer;
-use App\Support\Uploads\ForbiddenUploadExtension;
-use App\Support\Uploads\MimeTypeValidator;
-use App\Support\Uploads\SafeUploadMime;
 use App\Traits\HasFilesTrait;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
@@ -40,7 +40,7 @@ class FileService
      */
     public function createFolder(string $name, ?int $parentId = null, ?string $disk = null): File
     {
-        $disk ??= FilesDisk::default();
+        $disk ??= FilesDiskService::default();
 
         $file = DB::transaction(function () use ($name, $parentId, $disk) {
             $file = File::query()->create([
@@ -69,11 +69,11 @@ class FileService
     public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, ?string $disk = null, ?string $name = null): File
     {
         $disk = $this->resolveUploadDisk($disk, $parentId);
-        $fileName = PlainTextSanitizer::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
+        $fileName = PlainTextSanitizerService::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
         $field = $name !== null ? 'name' : 'file';
         $absolutePath = $this->absolutePathOfUpload($uploadedFile, $field);
-        $sniffed = MimeTypeValidator::assertAllowedPath($fileName, $absolutePath, $field);
-        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, $sniffed, $field);
+        $sniffed = MimeTypeValidatorService::assertAllowedPath($fileName, $absolutePath, $field);
+        $mimeType = SafeUploadMimeService::assertFilePoolAllowed($fileName, $sniffed, $field);
         $fileHash = $this->hashPathSha256($absolutePath);
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($fileName, $disk);
@@ -232,8 +232,8 @@ class FileService
      */
     public function rename(File $file, string $newName): File
     {
-        $newName = PlainTextSanitizer::sanitize($newName) ?? '';
-        ForbiddenUploadExtension::assertAllowed($newName, 'name');
+        $newName = PlainTextSanitizerService::sanitize($newName) ?? '';
+        ForbiddenUploadExtensionService::assertAllowed($newName, 'name');
 
         $renamed = DB::transaction(function () use ($file, $newName) {
             $file->name = $newName;
@@ -283,7 +283,7 @@ class FileService
                     }
                     $value = $attributes[$key];
                     if (in_array($key, $textKeys, true) && (is_string($value) || $value === null)) {
-                        $value = PlainTextSanitizer::sanitize($value);
+                        $value = PlainTextSanitizerService::sanitize($value);
                     }
                     $file->{$key} = $value;
                 }
@@ -337,7 +337,7 @@ class FileService
 
         File::query()
             ->where('type', FileTypeEnum::File)
-            ->whereIn('disk', ['assets', FilesDisk::PRIVATE_ASSETS])
+            ->whereIn('disk', ['assets', FilesDiskService::PRIVATE_ASSETS])
             ->whereNotNull('storage_path')
             ->orderBy('id')
             ->chunkById(100, function ($files) use (&$moved): void {
@@ -362,11 +362,11 @@ class FileService
             return $file;
         }
 
-        if (! FilesDisk::isLocalAssetsFamily($file->disk)) {
+        if (! FilesDiskService::isLocalAssetsFamily($file->disk)) {
             return $file;
         }
 
-        $targetDisk = FilesDisk::forEffectivePrivacy($file->isEffectivelyPrivate(), $file->disk);
+        $targetDisk = FilesDiskService::forEffectivePrivacy($file->isEffectivelyPrivate(), $file->disk);
         if ($targetDisk === $file->disk) {
             return $file;
         }
@@ -410,7 +410,7 @@ class FileService
         File::query()
             ->where('type', FileTypeEnum::File)
             ->where('path', 'like', $folder->path.'/%')
-            ->whereIn('disk', ['assets', FilesDisk::PRIVATE_ASSETS])
+            ->whereIn('disk', ['assets', FilesDiskService::PRIVATE_ASSETS])
             ->whereNotNull('storage_path')
             ->orderBy('id')
             ->chunkById(100, function ($files): void {
@@ -443,8 +443,8 @@ class FileService
 
         $absolutePath = $this->absolutePathOfUpload($uploadedFile, 'file');
         $originalName = $uploadedFile->getClientOriginalName();
-        $sniffed = MimeTypeValidator::assertAllowedPath($originalName, $absolutePath, 'file');
-        $mimeType = SafeUploadMime::assertFilePoolAllowed($originalName, $sniffed, 'file');
+        $sniffed = MimeTypeValidatorService::assertAllowedPath($originalName, $absolutePath, 'file');
+        $mimeType = SafeUploadMimeService::assertFilePoolAllowed($originalName, $sniffed, 'file');
         $fileHash = $this->hashPathSha256($absolutePath);
 
         app(FileTransformService::class)->clearTransforms($file);
@@ -589,7 +589,7 @@ class FileService
     {
         return array_values(array_unique(array_filter(
             array_map(
-                static fn (mixed $tagName): string => PlainTextSanitizer::sanitize((string) $tagName) ?? '',
+                static fn (mixed $tagName): string => PlainTextSanitizerService::sanitize((string) $tagName) ?? '',
                 $tagNames,
             ),
             static fn (string $tagName): bool => $tagName !== '',
@@ -1061,7 +1061,7 @@ class FileService
      */
     public function resolveUploadDisk(?string $disk, ?int $parentId): string
     {
-        $disk ??= FilesDisk::default();
+        $disk ??= FilesDiskService::default();
 
         $parentPrivate = false;
         if ($parentId !== null) {
@@ -1069,7 +1069,7 @@ class FileService
             $parentPrivate = $parent?->isEffectivelyPrivate() ?? false;
         }
 
-        return FilesDisk::forEffectivePrivacy($parentPrivate, $disk);
+        return FilesDiskService::forEffectivePrivacy($parentPrivate, $disk);
     }
 
     protected function generateStoragePath(string $fileName, string $disk): string

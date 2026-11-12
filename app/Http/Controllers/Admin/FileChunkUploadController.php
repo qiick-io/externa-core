@@ -10,8 +10,8 @@ use App\Http\Requests\Admin\Files\InitChunkUploadRequest;
 use App\Http\Requests\Admin\Files\ResolveChunkUploadRequest;
 use App\Http\Requests\Admin\Files\UploadChunkRequest;
 use App\Http\Resources\Admin\FileResource;
+use App\Services\Files\FilesDiskService;
 use App\Services\FileService;
-use App\Support\Files\FilesDisk;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
@@ -38,7 +38,7 @@ class FileChunkUploadController extends Controller
             (int) $validated['total_chunks'],
             $validated['mime_type'] ?? null,
             $request->validatedParentId(),
-            $validated['disk'] ?? FilesDisk::default(),
+            $validated['disk'] ?? FilesDiskService::default(),
         );
 
         return response()->json([
