@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Collections;
 
 use App\Models\Collection;
+use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 
 /**
  * Normalize and validate collection form_layout presentation metadata.
@@ -12,7 +15,7 @@ use App\Models\Collection;
 class CollectionFormLayoutNormalizerService
 {
     public function __construct(
-        private CollectionLocaleResolverService $localeResolver,
+        private ProjectLocalizationSettingsService $localizationSettings,
     ) {}
 
     /**
@@ -182,9 +185,7 @@ class CollectionFormLayoutNormalizerService
         $out = [];
         if (! is_array($label)) {
             if (is_string($label) && trim($label) !== '') {
-                $defaultLocale = $this->localeResolver->defaultLocale() ?? 'en';
-
-                return [$defaultLocale => trim($label)];
+                return [$this->localizationSettings->defaultContentLocale() => trim($label)];
             }
 
             return $out;
