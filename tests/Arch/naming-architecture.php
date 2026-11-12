@@ -12,9 +12,9 @@ return [
     'namespace' => 'App',
 
     'ignoring' => [
-        // Deferred (#260): about 400 files predate strict types. New and touched
-        // files must still declare it; shrink this to the remaining namespaces.
-        'strict types' => ['App'],
+        // Ratchet (#281): the files that predate strict types, one class each. Only shrinks;
+        // RatchetArchitectureTest fails on a stale entry or an unlisted file.
+        'strict types' => require __DIR__.'/strict-types-baseline.php',
         'Http\Middleware' => [
             // Starter-kit middleware, never renamed.
             'App\Http\Middleware\HandleAppearance',
