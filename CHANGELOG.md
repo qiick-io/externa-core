@@ -43,6 +43,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 
+- File manager: saving or replacing a file no longer empties its "where used" list in the detail panel (#758).
 - Field settings drawer: the duplicate-key error and the "Update settings for …" subtitle are translated (en, it, de), and the duplicate-key check no longer waits again from zero each time the drawer re-renders; the unreachable key-format message is gone, since the key is checked as its slug (#744).
 - Preview as role: the "Preview failed" message is translated (en, it, de) and the request URL comes from the generated route helper (#744).
 - Field forms, item table cells and field conditions no longer turn an object-valued setting or option into the text "[object Object]": non-scalar values fall back to the field's default (#671).
