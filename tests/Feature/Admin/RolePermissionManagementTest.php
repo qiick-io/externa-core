@@ -106,6 +106,27 @@ test('super admin role cannot be deleted or included in bulk delete', function (
         ->and(Role::query()->whereKey($deletable->id)->exists())->toBeFalse();
 });
 
+test('the super-admin role stays editable when an update keeps its name, and cannot be renamed', function () {
+    $actor = grantRolePermissions(User::factory()->create(), [
+        PermissionEnum::CanEditRoles->value,
+    ]);
+    $this->actingAs($actor);
+
+    $superAdminRole = Role::query()->firstOrCreate([
+        'name' => RoleEnum::SuperAdmin->value,
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+
+    $this->put(route('roles.update', $superAdminRole), ['permission_ids' => []])
+        ->assertRedirect(route('roles.index'));
+    $this->put(route('roles.update', $superAdminRole), ['name' => RoleEnum::SuperAdmin->value])
+        ->assertRedirect(route('roles.index'));
+    $this->put(route('roles.update', $superAdminRole), ['name' => 'owners'])
+        ->assertForbidden();
+
+    expect($superAdminRole->fresh()->name)->toBe(RoleEnum::SuperAdmin->value);
+});
+
 test('reader cannot access role edit page', function () {
     $reader = User::factory()->create();
     $readerRole = Role::query()->firstOrCreate([

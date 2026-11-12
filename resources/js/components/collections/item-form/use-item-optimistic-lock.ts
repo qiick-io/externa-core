@@ -1,6 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { getItemFormElement } from '@/components/collections/item-form/item-form-helpers';
+import {
+    COLLECTION_ITEM_FORM_ID,
+    getItemFormElement,
+} from '@/components/collections/item-form/item-form-helpers';
 import { isRemoteUpdatedAtStale, notifyItemSaved } from '@/lib/item-presence';
 
 /**
@@ -76,14 +79,19 @@ export function useItemOptimisticLock({
         return () => window.clearTimeout(timer);
     }, [isNew, updatedAt]);
 
+    // The guard listens on the document (capture phase) and picks out the item
+    // form by id, so it keeps working when the form element remounts (discard,
+    // fields → activity → fields) instead of staying on a detached element (#741).
     useEffect(() => {
-        const form = getItemFormElement();
-
-        if (!form) {
-            return;
-        }
-
         const onSubmit = (event: SubmitEvent) => {
+            const isItemFormSubmit =
+                event.target instanceof HTMLFormElement &&
+                event.target.id === COLLECTION_ITEM_FORM_ID;
+
+            if (!isItemFormSubmit) {
+                return;
+            }
+
             if (allowStaleSaveRef.current) {
                 allowStaleSaveRef.current = false;
 
@@ -104,10 +112,10 @@ export function useItemOptimisticLock({
             setIsStaleSaveOpen(true);
         };
 
-        form.addEventListener('submit', onSubmit, true);
+        document.addEventListener('submit', onSubmit, true);
 
         return () => {
-            form.removeEventListener('submit', onSubmit, true);
+            document.removeEventListener('submit', onSubmit, true);
         };
     }, [remoteUpdatedAt]);
 

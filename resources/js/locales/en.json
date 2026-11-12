@@ -1027,7 +1027,10 @@
             "approved": "Approved",
             "rejected": "Rejected",
             "approveBeforePublish": "Approve before publishing",
-            "actions": "Actions"
+            "actions": "Actions",
+            "publishedReadOnly": "Published is read-only. Switch to Draft to edit, then Publish.",
+            "revisionNeedsDraft": "Switch to Draft before applying a revision.",
+            "revisionApplied": "Revision applied to the form. Save to keep."
         },
         "itemPresence": {
             "viewing": "{{count}} other editor(s) viewing",

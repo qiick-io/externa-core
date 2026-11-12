@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Chat;
 
 use App\Enums\CollectionPermissionActionEnum;
@@ -14,6 +16,7 @@ use App\Models\CollectionItemChatMessage;
 use App\Models\User;
 use App\Models\UserGroup;
 use App\Policies\ChatPolicy;
+use App\Policies\CollectionPolicy;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Authorization\EffectivePermissionResolverService;
@@ -214,6 +217,14 @@ class ChatService
         return $userCount > 2;
     }
 
+    /**
+     * Whether the user may read the collection in chat (hub lists, pickers, mentions).
+     *
+     * Delegates to {@see CollectionPolicy::viewItems()} so chat follows the same
+     * rule as the item list: once the user holds any collection_permissions grant, a collection
+     * without a Read grant is closed; only users with no grant at all fall back to
+     * can-show-collections.
+     */
     public function canUserReadCollection(User $user, Collection $collection): bool
     {
         if (! $user->is_active) {
@@ -224,22 +235,7 @@ class ChatService
             return false;
         }
 
-        $roleIds = $this->permissionResolver->effectiveRoleIds($user);
-        $hasGrant = false;
-
-        foreach ($roleIds as $roleId) {
-            $matrix = $this->permissionGuard->matrixForRole($roleId);
-            if (! isset($matrix[(int) $collection->id])) {
-                continue;
-            }
-
-            $hasGrant = true;
-            if ($this->permissionGuard->allows($roleId, (int) $collection->id, CollectionPermissionActionEnum::Read)) {
-                return true;
-            }
-        }
-
-        return ! $hasGrant;
+        return Gate::forUser($user)->allows('viewItems', $collection);
     }
 
     /**

@@ -5,6 +5,7 @@ use App\Ai\Tools\ManageGroups;
 use App\Ai\Tools\ManageRoles;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
+use App\Models\Role as AppRole;
 use App\Models\User;
 use App\Models\UserGroup;
 use Database\Seeders\PermissionSeeder;
@@ -168,6 +169,75 @@ test('manage roles cannot delete or rename super-admin', function () {
     expect($rename)->toContain('cannot be renamed')
         ->and($delete)->toContain('cannot be deleted')
         ->and(Role::query()->where('name', RoleEnum::SuperAdmin->value)->exists())->toBeTrue();
+});
+
+test('manage roles refuses to delete locked system roles, even for a super-admin', function () {
+    $roleManager = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanDeleteRoles->value,
+    ]);
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole(RoleEnum::SuperAdmin->value);
+    $systemRole = AppRole::factory()->system()->create(['name' => 'system-role']);
+    $publicRole = AppRole::findByName(RoleEnum::Public->value);
+
+    foreach ([$roleManager, $superAdmin] as $actor) {
+        $this->actingAs($actor);
+
+        foreach ([$systemRole, $publicRole] as $lockedRole) {
+            $result = (string) (new ManageRoles)->handle(new Request([
+                'action' => 'delete',
+                'role_id' => $lockedRole->id,
+            ]));
+
+            expect($result)->toBe('Error: This role cannot be deleted.');
+        }
+    }
+
+    expect(AppRole::query()->whereKey([$systemRole->id, $publicRole->id])->count())->toBe(2);
+});
+
+test('manage roles refuses to rename locked system roles but still updates their permissions', function () {
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanEditRoles->value,
+    ]);
+    $this->actingAs($user);
+    $systemRole = AppRole::factory()->system()->create(['name' => 'system-role']);
+
+    $rename = (string) (new ManageRoles)->handle(new Request([
+        'action' => 'update',
+        'role_id' => $systemRole->id,
+        'name' => 'renamed-system-role',
+    ]));
+    $permissions = (string) (new ManageRoles)->handle(new Request([
+        'action' => 'update',
+        'role_id' => $systemRole->id,
+        'permission_names_json' => json_encode([PermissionEnum::CanShowCollections->value]),
+    ]));
+
+    expect($rename)->toBe('Error: System roles cannot be renamed.')
+        ->and($permissions)->toContain('"ok": true')
+        ->and($systemRole->fresh()->name)->toBe('system-role')
+        ->and($systemRole->fresh()->hasPermissionTo(PermissionEnum::CanShowCollections->value))->toBeTrue();
+});
+
+test('manage roles updates the super-admin role permissions without renaming it', function () {
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanEditRoles->value,
+    ]);
+    $this->actingAs($user);
+    $superAdminRole = AppRole::findByName(RoleEnum::SuperAdmin->value);
+
+    $result = (string) (new ManageRoles)->handle(new Request([
+        'action' => 'update',
+        'role_id' => $superAdminRole->id,
+        'permission_names_json' => json_encode([PermissionEnum::CanShowCollections->value]),
+    ]));
+
+    expect($result)->toContain('"ok": true')
+        ->and($superAdminRole->fresh()->name)->toBe(RoleEnum::SuperAdmin->value);
 });
 
 test('manage roles updates permissions and deletes custom role', function () {
