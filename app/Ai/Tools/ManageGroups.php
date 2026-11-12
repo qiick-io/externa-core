@@ -10,6 +10,7 @@ use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserGroup;
 use App\Services\Authorization\SuperAdminGuardService;
@@ -18,7 +19,6 @@ use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
-use Spatie\Permission\Models\Role;
 use Stringable;
 
 /**
