@@ -21,7 +21,7 @@ use App\Services\Collections\CollectionFieldConvertService;
 use App\Services\Collections\CollectionFieldGroupService;
 use App\Services\Collections\CollectionFieldRenamerService;
 use App\Services\Collections\CollectionFieldStorageShapeService;
-use App\Support\Collections\FieldPacks\FieldPackRegistry;
+use App\Services\Collections\FieldPacks\FieldPackRegistryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -58,7 +58,7 @@ class FieldController extends Controller
         return Inertia::render('collections/collections/fields', [
             'collection' => $collection,
             'relatedCollections' => $relatedCollections,
-            'fieldPacks' => FieldPackRegistry::summaries(),
+            'fieldPacks' => FieldPackRegistryService::summaries(),
         ]);
     }
 

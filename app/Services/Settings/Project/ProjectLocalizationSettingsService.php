@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Settings\Project;
 
+use App\Services\Collections\ContentLocaleCatalogService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Collections\ContentLocaleCatalog;
 
 /**
  * Reads the Localization project settings: admin UI language and CMS content locales.
@@ -55,6 +55,6 @@ class ProjectLocalizationSettingsService
      */
     public function contentLocaleMeta(): array
     {
-        return ContentLocaleCatalog::metaFor($this->contentLocales());
+        return ContentLocaleCatalogService::metaFor($this->contentLocales());
     }
 }

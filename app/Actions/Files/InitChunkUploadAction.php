@@ -7,7 +7,7 @@ namespace App\Actions\Files;
 use App\Models\FileUpload;
 use App\Services\FileService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Uploads\UploadSizeLimiter;
+use App\Services\Uploads\UploadSizeLimiterService;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -31,7 +31,7 @@ final class InitChunkUploadAction
         ?int $parentId,
         string $disk,
     ): FileUpload {
-        UploadSizeLimiter::assertWithinCap(
+        UploadSizeLimiterService::assertWithinCap(
             $this->projectSettings->filesMaxUploadBytes(),
             $totalSize,
             'total_size',

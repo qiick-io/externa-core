@@ -14,7 +14,7 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\File;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Support\Collections\CollectionLocaleResolver;
+use App\Services\Collections\CollectionLocaleResolverService;
 use Illuminate\Http\Request;
 
 /**
@@ -30,7 +30,7 @@ class AddChatAttachmentToFieldAction
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private CollectionItemValuesAssemblerService $assembler,
         private UpdateCollectionItemAction $updateCollectionItemAction,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionLocaleResolverService $localeResolver,
     ) {}
 
     /**

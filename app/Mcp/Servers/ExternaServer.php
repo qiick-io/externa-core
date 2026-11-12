@@ -21,6 +21,7 @@ use App\Mcp\Tools\PublishItem;
 use App\Mcp\Tools\Search;
 use App\Mcp\Tools\TagFile;
 use App\Mcp\Tools\UpdateItem;
+use App\Services\AppVersionService;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -81,30 +82,6 @@ MARKDOWN;
     ) {
         parent::__construct($transport);
 
-        $this->version = $this->resolveAppVersion();
-    }
-
-    /**
-     * Composer package version (mirrored as app version source of truth).
-     */
-    private function resolveAppVersion(): string
-    {
-        $configured = config('app.version');
-
-        if (is_string($configured) && $configured !== '') {
-            return $configured;
-        }
-
-        $composerPath = base_path('composer.json');
-
-        if (! is_readable($composerPath)) {
-            return 'dev';
-        }
-
-        $composer = json_decode((string) file_get_contents($composerPath), true);
-
-        return is_array($composer) && is_string($composer['version'] ?? null)
-            ? $composer['version']
-            : 'dev';
+        $this->version = app(AppVersionService::class)->current();
     }
 }

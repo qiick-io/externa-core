@@ -3,7 +3,6 @@
 namespace App\Services\Collections;
 
 use App\Models\Collection;
-use App\Support\Collections\CollectionLocaleResolver;
 
 /**
  * Normalize and validate collection form_layout presentation metadata.
@@ -13,7 +12,7 @@ use App\Support\Collections\CollectionLocaleResolver;
 class CollectionFormLayoutNormalizerService
 {
     public function __construct(
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionLocaleResolverService $localeResolver,
     ) {}
 
     /**

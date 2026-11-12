@@ -54,6 +54,8 @@
     "Could not approve tool call: :message": "Impossibile approvare la chiamata strumento: :message",
     "Could not create a temporary file.": "Impossibile creare un file temporaneo.",
     "Could not retry job: :message": "Impossibile riprovare il job: :message",
+    "Daily AI prompt limit reached.": "Limite giornaliero di prompt AI raggiunto.",
+    "Daily AI token budget reached.": "Budget giornaliero di token AI esaurito.",
     "Dashboard metrics cache flushed.": "Cache metriche dashboard svuotata.",
     "Deploy queued for :count hook(s).": "Deploy queued for :count hook(s).",
     "Draft discarded.": "Bozza scartata.",

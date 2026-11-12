@@ -1,7 +1,7 @@
 /**
  * Hex colour maths shared by the theme preview, brand AA checks and solid
  * colour chips: hex parsing, WCAG relative luminance and contrast ratio.
- * Mirrors `App\Support\Css\ContrastingForeground` and `BrandColorDerivation`.
+ * Mirrors `App\Services\Css\ContrastingForegroundService` and `BrandColorDerivationService`.
  */
 
 const FOREGROUND_LIGHT = '#FFFFFF';
@@ -104,7 +104,7 @@ export function contrastingForeground(
 
 /**
  * Brand foreground (white or ink) with the better text contrast, preferring
- * one that meets AA (mirrors BrandColorDerivation).
+ * one that meets AA (mirrors BrandColorDerivationService).
  */
 function pickBrandForeground(hex: string): string {
     const contrastWhite = contrastRatio(hex, FOREGROUND_LIGHT);
@@ -146,7 +146,7 @@ export function brandPassesAa(
 
 /**
  * Whether a colour meets the WCAG 1.4.11 non-text minimum (3:1) on a surface,
- * e.g. a focus ring on the page background (mirrors BrandColorDerivation::meetsUiContrast).
+ * e.g. a focus ring on the page background (mirrors BrandColorDerivationService::meetsUiContrast).
  */
 export function meetsUiContrast(
     hex: string,

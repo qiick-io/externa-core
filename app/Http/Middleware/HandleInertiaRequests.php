@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Enums\PermissionEnum;
+use App\Services\AppVersionService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetricsService;
@@ -55,17 +58,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => $projectSettings->displayName(),
-            // ponytail: composer.json is the single version source; package.json mirrors it for npm tooling
-            'appVersion' => once(function (): string {
-                $composer = json_decode(
-                    (string) file_get_contents(base_path('composer.json')),
-                    true,
-                );
-
-                return is_array($composer) && is_string($composer['version'] ?? null)
-                    ? $composer['version']
-                    : 'dev';
-            }),
+            'appVersion' => app(AppVersionService::class)->current(),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user ? $permissionResolver->permissionsFor($user) : [],

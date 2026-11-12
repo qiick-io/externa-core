@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Concerns;
 
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\SearchQueryRulesService;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Http\Request;
 
 /**
@@ -17,9 +17,9 @@ trait ValidatesSearchQueryTrait
     protected function validatedSearch(
         Request $request,
         string $key = 'search',
-        int $max = StringLimits::SEARCH,
+        int $max = StringLimitsService::SEARCH,
     ): string {
-        $validated = $request->validate(SearchQueryRules::rules($key, $max));
+        $validated = $request->validate(SearchQueryRulesService::rules($key, $max));
 
         return isset($validated[$key])
             ? trim((string) $validated[$key])

@@ -5,10 +5,10 @@ namespace App\Http\Requests\Collections\Concerns;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Services\Collections\BlocksFieldSchemaService;
 use App\Services\Collections\CollectionFieldGroupService;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Services\Collections\FieldConditionEvaluatorService;
-use App\Support\Collections\BlocksFieldSchema;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
@@ -25,7 +25,7 @@ trait ValidatesCollectionFieldSettingsTrait
      */
     protected function fieldSettingsRules(?FieldTypeEnum $fieldType = null): array
     {
-        $localeList = app(CollectionLocaleResolver::class)->allowedLocales();
+        $localeList = app(CollectionLocaleResolverService::class)->allowedLocales();
         if ($localeList === []) {
             $localeList = ['en'];
         }
@@ -79,14 +79,14 @@ trait ValidatesCollectionFieldSettingsTrait
                 'sometimes',
                 'integer',
                 'min:1',
-                'max:'.BlocksFieldSchema::MAX_BLOCKS_DEPTH,
+                'max:'.BlocksFieldSchemaService::MAX_BLOCKS_DEPTH,
             ],
             'settings.block_types' => ['sometimes', 'array'],
             'settings.block_types.*.key' => ['required_with:settings.block_types', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
             'settings.block_types.*.label' => ['required_with:settings.block_types', 'string', 'max:255'],
             'settings.block_types.*.fields' => ['sometimes', 'array'],
             'settings.block_types.*.fields.*.name' => ['required_with:settings.block_types.*.fields', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
-            'settings.block_types.*.fields.*.type' => ['required_with:settings.block_types.*.fields', Rule::in(BlocksFieldSchema::ALLOWED_NESTED_TYPES)],
+            'settings.block_types.*.fields.*.type' => ['required_with:settings.block_types.*.fields', Rule::in(BlocksFieldSchemaService::ALLOWED_NESTED_TYPES)],
             'settings.block_types.*.fields.*.translatable' => ['sometimes', 'boolean'],
             'settings.block_types.*.fields.*.settings' => ['sometimes', 'array'],
             'settings.allow_multiple' => ['sometimes'],
@@ -236,7 +236,7 @@ trait ValidatesCollectionFieldSettingsTrait
      */
     protected function normalizeSettingsArray(array $settings): array
     {
-        $settings = app(BlocksFieldSchema::class)->normalizeSettings($settings);
+        $settings = app(BlocksFieldSchemaService::class)->normalizeSettings($settings);
         $settings = $this->pruneEmptyTranslatedSettings($settings);
 
         if (array_key_exists('options', $settings)) {

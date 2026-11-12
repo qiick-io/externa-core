@@ -6,28 +6,36 @@ namespace App\Http\Requests\Ai;
 
 use App\Models\User;
 use App\Services\Ai\AiConversationContextService;
+use App\Services\Ai\AiDailyBudgetService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Validates a chat prompt (or a resume with tool approval decisions) for the streamed AI assistant.
  *
- * The daily prompt limit is enforced in `authorize()` so it still answers 429 before any validation
- * error, exactly as when the controller checked it first. Resume requests (with `approvals`)
- * skip the limit and require a `conversation_id` instead of a `message`.
+ * The daily budget (prompt cap and token budget) is enforced in `authorize()` so it answers 429
+ * before any validation error and before the provider is called. Resume requests (with
+ * `approvals`) skip the budget and require a `conversation_id` instead of a `message`.
  */
 class SendAiChatMessageRequest extends FormRequest
 {
     /**
-     * @throws HttpResponseException when a new prompt would exceed `ai.daily_prompt_limit`
+     * @throws HttpResponseException when the user's daily AI prompt cap or token budget is used up
      */
     public function authorize(): bool
     {
-        if (! $this->isResume() && $this->hasReachedDailyPromptLimit()) {
+        if ($this->isResume()) {
+            return true;
+        }
+
+        /** @var User $user */
+        $user = $this->user();
+        $exhaustedMessage = app(AiDailyBudgetService::class)->exhaustedMessage($user);
+
+        if ($exhaustedMessage !== null) {
             throw new HttpResponseException(response()->json([
-                'message' => 'Daily AI prompt limit reached.',
+                'message' => $exhaustedMessage,
             ], Response::HTTP_TOO_MANY_REQUESTS));
         }
 
@@ -64,28 +72,5 @@ class SendAiChatMessageRequest extends FormRequest
     public function isResume(): bool
     {
         return $this->filled('approvals');
-    }
-
-    /**
-     * True when the user has already sent `ai.daily_prompt_limit` prompts today (0 disables the limit).
-     */
-    private function hasReachedDailyPromptLimit(): bool
-    {
-        $dailyPromptLimit = (int) config('ai.daily_prompt_limit', 0);
-
-        if ($dailyPromptLimit <= 0) {
-            return false;
-        }
-
-        /** @var User $user */
-        $user = $this->user();
-
-        return Activity::query()
-            ->where('log_name', 'ai')
-            ->where('event', 'ai_prompt')
-            ->where('causer_type', $user->getMorphClass())
-            ->where('causer_id', $user->id)
-            ->where('created_at', '>=', now()->startOfDay())
-            ->count() >= $dailyPromptLimit;
     }
 }

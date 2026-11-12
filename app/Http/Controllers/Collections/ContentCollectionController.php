@@ -21,9 +21,9 @@ use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionPacks\CollectionPackRegistryService;
 use App\Services\Collections\FieldConditionEvaluatorService;
-use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
-use App\Support\Collections\UniqueCollectionSlugGenerator;
+use App\Services\Collections\UniqueCollectionSlugGeneratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,7 +106,7 @@ class ContentCollectionController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
             ],
-            'collectionPacks' => CollectionPackRegistry::summaries(),
+            'collectionPacks' => CollectionPackRegistryService::summaries(),
         ]);
     }
 
@@ -121,7 +121,7 @@ class ContentCollectionController extends Controller
         $excludeId = isset($validated['exclude']) ? (int) $validated['exclude'] : null;
         $excludeId = $excludeId !== null && $excludeId > 0 ? $excludeId : null;
 
-        $generator = app(UniqueCollectionSlugGenerator::class);
+        $generator = app(UniqueCollectionSlugGeneratorService::class);
         $available = $slug !== ''
             && (bool) preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)
             && $generator->isAvailable($slug, $excludeId);

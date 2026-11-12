@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Ai;
 
-use App\Support\Validation\SearchQueryRules;
+use App\Services\Validation\SearchQueryRulesService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -26,7 +26,7 @@ class SearchAiPickerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search' => SearchQueryRules::search(),
+            'search' => SearchQueryRulesService::search(),
         ];
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Collections;
 
-use App\Support\Validation\SearchQueryRules;
+use App\Services\Validation\SearchQueryRulesService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,7 +40,7 @@ class ListContentCollectionsRequest extends FormRequest
     {
         return [
             'trashed' => ['sometimes', 'boolean'],
-            'search' => SearchQueryRules::search(),
+            'search' => SearchQueryRulesService::search(),
             'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
             'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
         ];

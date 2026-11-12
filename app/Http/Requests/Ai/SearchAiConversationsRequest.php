@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Ai;
 
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\SearchQueryRulesService;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -27,7 +27,7 @@ class SearchAiConversationsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
+            'q' => SearchQueryRulesService::search(StringLimitsService::SEARCH_CHAT_HUB),
         ];
     }
 }
