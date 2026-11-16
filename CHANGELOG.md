@@ -43,6 +43,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 
+- Field list: a field dragged from a group up to the root list is restored to its pre-drag position before React reconciles, so the drop no longer fails with a `removeChild` `NotFoundError` (#762).
 - Frontend build: the React Compiler now actually runs (`@vitejs/plugin-react` 6 ignores its old `babel` option; it now goes through `@rolldown/plugin-babel` with `reactCompilerPreset()`, like excubia-app), and the rich text toolbar reads its active marks with TipTap's `useEditorState`, so the Bold / Italic / … toggles follow the selection under memoization (#751).
 - File manager: saving or replacing a file no longer empties its "where used" list in the detail panel (#758).
 - `externa:upgrade --sync-upstream` works on a `composer create-project` install in its own repository: when the repository shares no history with upstream, the first sync links it at the installed version's tag (`git merge -s ours`, no file changes) before the normal merge, `--dry-run` shows that step, and a version without a tag stops with the manual command (#768).
