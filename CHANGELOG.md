@@ -45,6 +45,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 - Frontend build: the React Compiler now actually runs (`@vitejs/plugin-react` 6 ignores its old `babel` option; it now goes through `@rolldown/plugin-babel` with `reactCompilerPreset()`, like excubia-app), and the rich text toolbar reads its active marks with TipTap's `useEditorState`, so the Bold / Italic / … toggles follow the selection under memoization (#751).
 - File manager: saving or replacing a file no longer empties its "where used" list in the detail panel (#758).
+- `externa:upgrade --sync-upstream` works on a `composer create-project` install in its own repository: when the repository shares no history with upstream, the first sync links it at the installed version's tag (`git merge -s ours`, no file changes) before the normal merge, `--dry-run` shows that step, and a version without a tag stops with the manual command (#768).
 - Field settings drawer: the duplicate-key error and the "Update settings for …" subtitle are translated (en, it, de), and the duplicate-key check no longer waits again from zero each time the drawer re-renders; the unreachable key-format message is gone, since the key is checked as its slug (#744).
 - Preview as role: the "Preview failed" message is translated (en, it, de) and the request URL comes from the generated route helper (#744).
 - Field forms, item table cells and field conditions no longer turn an object-valued setting or option into the text "[object Object]": non-scalar values fall back to the field's default (#671).
