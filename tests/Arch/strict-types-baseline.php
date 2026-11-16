@@ -63,7 +63,6 @@ return [
     'App\Console\Commands\RepairRenamedFieldDraftsCommand',
     'App\Console\Commands\RunAiSyncSourcesCommand',
     'App\Console\Commands\SyncPermissionsCommand',
-    'App\Console\Commands\UpgradeCommand',
     'App\Console\Concerns\ManagesDotEnvTrait',
     'App\Data\Deploy\DeployHookData',
     'App\Enums\ApiKeyFilesScopeEnum',

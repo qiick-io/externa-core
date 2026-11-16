@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Console\Commands\UpgradeCommand;
 use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Process\PendingProcess;
@@ -98,6 +100,7 @@ it('dry-runs --sync-upstream and lists changing files without merging', function
         'remote' => Process::result("origin\nupstream\n"),
         'fetch --tags upstream' => Process::result(''),
         'rev-parse --verify refs/tags/v1.0.0' => Process::result("abc123\n"),
+        'merge-base HEAD v1.0.0' => Process::result("abc123\n"),
         'diff --name-status HEAD v1.0.0' => Process::result("M\tREADME.md\nA\tapp/New.php\n"),
     ]);
 
@@ -122,6 +125,7 @@ it('applies --sync-upstream merge with --yes then continues upgrade subset', fun
         'remote add upstream https://github.com/qiick-io/externa-core.git' => Process::result(''),
         'fetch --tags upstream' => Process::result(''),
         'rev-parse --verify refs/tags/v1.0.0' => Process::result("abc123\n"),
+        'merge-base HEAD v1.0.0' => Process::result("abc123\n"),
         'diff --name-status HEAD v1.0.0' => Process::result("M\tREADME.md\n"),
         'merge --no-edit v1.0.0' => Process::result("Merge made\n"),
     ]);
@@ -144,6 +148,7 @@ it('aborts apply when confirm is declined', function () {
         'remote' => Process::result("origin\nupstream\n"),
         'fetch --tags upstream' => Process::result(''),
         'rev-parse --verify refs/tags/v1.0.0' => Process::result("abc123\n"),
+        'merge-base HEAD v1.0.0' => Process::result("abc123\n"),
         'diff --name-status HEAD v1.0.0' => Process::result("M\tREADME.md\n"),
     ]);
 
@@ -166,6 +171,7 @@ it('fails clearly when merge conflicts', function () {
         'remote' => Process::result("origin\nupstream\n"),
         'fetch --tags upstream' => Process::result(''),
         'rev-parse --verify refs/tags/v1.0.0' => Process::result("abc123\n"),
+        'merge-base HEAD v1.0.0' => Process::result("abc123\n"),
         'diff --name-status HEAD v1.0.0' => Process::result("M\tREADME.md\n"),
         'merge --no-edit v1.0.0' => Process::result(
             output: "CONFLICT (content): Merge conflict in README.md\n",

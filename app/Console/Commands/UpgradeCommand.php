@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
+use App\Services\AppVersionService;
+use App\Services\Upgrade\UpgradeGitService;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Process\ProcessResult;
-use Illuminate\Support\Facades\Process;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
@@ -146,9 +149,33 @@ class UpgradeCommand extends Command
             return self::FAILURE;
         }
 
-        $diff = $this->git(['diff', '--name-status', 'HEAD', $tag]);
+        $mergeBase = $this->git(['merge-base', 'HEAD', $tag]);
+        $hasSharedHistory = $mergeBase->successful() && trim($mergeBase->output()) !== '';
+
+        if (! $hasSharedHistory && $mergeBase->exitCode() !== 1) {
+            $this->error('Could not compute the merge base of HEAD and '.$tag.': '.trim($mergeBase->errorOutput() ?: $mergeBase->output()));
+
+            return self::FAILURE;
+        }
+
+        $installedTag = null;
+
+        if (! $hasSharedHistory) {
+            $installedTag = $this->installedVersionTag();
+
+            if ($installedTag === null) {
+                return self::FAILURE;
+            }
+
+            $this->explainHistoryLink($installedTag, $dryRun);
+        }
+
+        // Once the histories are linked at the installed tag, the merge brings exactly what
+        // upstream changed between that tag and the target, so that is the diff to preview.
+        $diffBase = $installedTag ?? 'HEAD';
+        $diff = $this->git(['diff', '--name-status', $diffBase, $tag]);
         if (! $diff->successful()) {
-            $this->error('Could not diff HEAD..'.$tag.': '.trim($diff->errorOutput() ?: $diff->output()));
+            $this->error('Could not diff '.$diffBase.'..'.$tag.': '.trim($diff->errorOutput() ?: $diff->output()));
 
             return self::FAILURE;
         }
@@ -157,7 +184,7 @@ class UpgradeCommand extends Command
         $count = count($lines);
 
         if ($count === 0) {
-            $this->info("No file differences between HEAD and {$tag}.");
+            $this->info("No file differences between {$diffBase} and {$tag}.");
         } else {
             $this->info("{$count} file(s) would change relative to {$tag}:");
             foreach ($lines as $line) {
@@ -180,6 +207,10 @@ class UpgradeCommand extends Command
             }
         }
 
+        if ($installedTag !== null && ! $this->linkUpstreamHistory($installedTag)) {
+            return self::FAILURE;
+        }
+
         $merge = $this->git(['merge', '--no-edit', $tag]);
         if (! $merge->successful()) {
             $this->error('Merge failed (conflicts or other git error). Resolve manually; do not migrate until the tree is clean.');
@@ -194,6 +225,72 @@ class UpgradeCommand extends Command
         $this->info('Synced from '.self::UPSTREAM_REMOTE." tag {$tag}.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The upstream tag of the installed version (`AppVersionService`), checked to exist locally.
+     *
+     * A `composer create-project` tree was created from exactly that tag, so it is the only
+     * honest ancestor to record. A dev build or an unreadable version has no tag: the command
+     * stops instead of guessing one, because a wrong ancestor would silently drop upstream changes.
+     */
+    private function installedVersionTag(): ?string
+    {
+        $installedVersion = app(AppVersionService::class)->current();
+        $installedTag = str_starts_with($installedVersion, 'v') ? $installedVersion : 'v'.$installedVersion;
+        $verify = $this->git(['rev-parse', '--verify', '--quiet', 'refs/tags/'.$installedTag]);
+
+        if ($verify->successful()) {
+            return $installedTag;
+        }
+
+        $this->error("This repository shares no history with upstream, and the installed version ({$installedVersion}) has no matching tag {$installedTag}.");
+        $this->line('Link the histories by hand at the release tag this tree was created from, then re-run:');
+        $this->line('  git merge -s ours --allow-unrelated-histories -m "chore: link upstream history at vA.B.C" vA.B.C');
+        $this->line('Or start from a clone of '.self::UPSTREAM_URL.' at a release tag.');
+
+        return null;
+    }
+
+    private function explainHistoryLink(string $installedTag, bool $dryRun): void
+    {
+        $this->warn('This repository shares no history with upstream (typical after composer create-project).');
+        $this->line(($dryRun ? 'Would first link' : 'First linking').' the histories at the installed version, without changing any file:');
+        $this->line("  git merge -s ours --allow-unrelated-histories -m \"chore: link upstream history at {$installedTag}\" {$installedTag}");
+        $this->line('Later syncs merge normally from that point.');
+        $this->newLine();
+    }
+
+    /**
+     * Records the installed tag as an ancestor of HEAD with the `ours` strategy (no file
+     * changes), so the following merge is a three-way merge instead of add/add conflicts.
+     *
+     * Side effect: creates one merge commit in the working repository.
+     */
+    private function linkUpstreamHistory(string $installedTag): bool
+    {
+        $link = $this->git($this->historyLinkArguments($installedTag));
+
+        if (! $link->successful()) {
+            $this->error('Could not link the upstream history at '.$installedTag.': '.trim($link->errorOutput() ?: $link->output()));
+
+            return false;
+        }
+
+        $this->info("Linked upstream history at {$installedTag}.");
+
+        return true;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function historyLinkArguments(string $installedTag): array
+    {
+        return [
+            'merge', '-s', 'ours', '--allow-unrelated-histories',
+            '-m', "chore: link upstream history at {$installedTag}", $installedTag,
+        ];
     }
 
     private function ensureUpstreamRemote(): bool
@@ -265,6 +362,6 @@ class UpgradeCommand extends Command
      */
     private function git(array $args): ProcessResult
     {
-        return Process::path(base_path())->run(array_merge(['git'], $args));
+        return app(UpgradeGitService::class)->run($args);
     }
 }
