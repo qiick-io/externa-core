@@ -200,7 +200,14 @@ export function restoreFieldDomToStart(
         // detach leaves-first... detach all list children instead.)
     }
 
-    for (const list of rootList.querySelectorAll('[data-field-list]')) {
+    // querySelectorAll matches descendants only, so the root list is added by
+    // hand: fields dropped at root level live directly in it.
+    const fieldLists = [
+        rootList,
+        ...rootList.querySelectorAll<HTMLElement>('[data-field-list]'),
+    ];
+
+    for (const list of fieldLists) {
         if (!(list instanceof HTMLElement)) {
             continue;
         }
@@ -218,7 +225,7 @@ export function restoreFieldDomToStart(
         }
     }
 
-    for (const list of rootList.querySelectorAll('[data-field-list]')) {
+    for (const list of fieldLists) {
         if (!(list instanceof HTMLElement)) {
             continue;
         }

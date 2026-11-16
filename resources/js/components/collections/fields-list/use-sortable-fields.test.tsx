@@ -104,4 +104,25 @@ describe('field list DOM helpers', () => {
 
         expect(readDomFieldOrder(rootList).ids).toEqual([1, 3, 4, 5]);
     });
+
+    it('puts a root-level node dragged into a group back under the root list', () => {
+        const rootList = board();
+        const nestedList = rootList.querySelector<HTMLElement>(
+            '[data-group-parent="details"]',
+        )!;
+        const movedField = rootList.querySelector<HTMLElement>(
+            '[data-sortable-id="1"]',
+        )!;
+        nestedList.appendChild(movedField);
+
+        const groups = new Map<number, string | null>([
+            [1, null],
+            [3, null],
+            [4, 'details'],
+        ]);
+        restoreFieldDomToStart(rootList, [1, 3, 4], groups);
+
+        expect(readDomFieldOrder(rootList).ids).toEqual([1, 3, 4]);
+        expect(movedField.parentElement).toBe(rootList);
+    });
 });
