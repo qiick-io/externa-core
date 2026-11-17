@@ -1,6 +1,18 @@
 parameters:
 	ignoreErrors:
 		-
+			message: '#^Method App\\Actions\\Chat\\SendChatMessageAction\:\:claimOrphanAttachments\(\) should return list\<App\\Models\\CollectionItemChatAttachment\> but returns array\<int, App\\Models\\CollectionItemChatAttachment\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Actions/Chat/SendChatMessageAction.php
+
+		-
+			message: '#^Property App\\Models\\CollectionItemChatAttachment\:\:\$transferred_file_id \(int\<0, max\>\|null\) does not accept int\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Chat/TransferChatAttachmentToFileAction.php
+
+		-
 			message: '#^Match arm comparison between App\\Enums\\FieldTypeEnum and App\\Enums\\FieldTypeEnum\:\:Blocks is always false\.$#'
 			identifier: match.alwaysFalse
 			count: 1
@@ -25,6 +37,48 @@ parameters:
 			path: app/Ai/Support/SafeRemoteUrlValidator.php
 
 		-
+			message: '#^Parameter \#1 \$types of static method App\\Ai\\Support\\FieldTypeCookbook\:\:resolveTypeKeys\(\) expects list\<string\>\|string\|null, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/DescribeFieldTypes.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/DescribeFieldTypes.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ExportCollection.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ExtractPdfText.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/GetImportJobStatus.php
+
+		-
+			message: '#^Parameter \#1 \$matrix of method App\\Ai\\Tools\\ImportCollectionCsv\:\:rowsFromMatrix\(\) expects list\<array\<int, mixed\>\>, array\<array\<mixed\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ImportCollectionCsv.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ImportCollectionCsv.php
+
+		-
 			message: '#^Strict comparison using \=\=\= between non\-empty\-list\<string\|null\> and array\{\} will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
@@ -37,16 +91,166 @@ parameters:
 			path: app/Ai/Tools/ImportRemoteJson.php
 
 		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ImportRemoteJson.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageAiSyncSources.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageCollectionItems.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageCollections.php
+
+		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Ai/Tools/ManageCollections.php
 
 		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageFiles.php
+
+		-
+			message: '#^Parameter \#1 \$roleNames of method App\\Services\\Authorization\\SuperAdminGuardService\:\:hasSuperAdminRoleName\(\) expects array\<int, string\>, array\<int\|string, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageGroups.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageGroups.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageRoles.php
+
+		-
+			message: '#^Parameter \#1 \$roleNames of method App\\Services\\Authorization\\SuperAdminGuardService\:\:hasSuperAdminRoleName\(\) expects array\<int, string\>, array\<int\|string, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageUsers.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageUsers.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/QueryActivityLogs.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/QueryCollectionItems.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/RollbackLastAiTurn.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Ai\\EmbeddingSimilarityService\:\:topMatches\(\) expects list\<float\>, non\-empty\-array\<float\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/SearchSimilarCollectionItems.php
+
+		-
+			message: '#^Parameter \#2 \$subject of static method App\\Ai\\Support\\AiActivityLogger\:\:mutation\(\) expects Illuminate\\Database\\Eloquent\\Model, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/SearchSimilarCollectionItems.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\GitExportSyncCommand\:\:collections\(\) should return list\<App\\Models\\Collection\> but returns array\<int, App\\Models\\Collection\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Console/Commands/GitExportSyncCommand.php
+
+		-
+			message: '#^Parameter \#1 \$connection of method App\\Console\\Commands\\InstallCommand\:\:runArtisanProcess\(\) expects string, int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/InstallCommand.php
+
+		-
+			message: '#^Parameter \#1 \$db of method App\\Console\\Commands\\InstallCommand\:\:applyRuntimeConfig\(\) expects string, int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/InstallCommand.php
+
+		-
+			message: '#^Parameter \#1 \$db of method App\\Console\\Commands\\InstallCommand\:\:runMigrate\(\) expects string, int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/InstallCommand.php
+
+		-
+			message: '#^Parameter \#2 \$db of method App\\Console\\Commands\\InstallCommand\:\:applyDatabase\(\) expects string, int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/InstallCommand.php
+
+		-
+			message: '#^Parameter \#2 \$stack of method App\\Console\\Commands\\InstallCommand\:\:applyRuntimeConfig\(\) expects string, int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/InstallCommand.php
+
+		-
+			message: '#^Parameter \#2 \$stack of method App\\Console\\Commands\\InstallCommand\:\:applyStack\(\) expects string, int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/InstallCommand.php
+
+		-
 			message: '#^Method App\\GraphQL\\Queries\\CollectionQuery\:\:__invoke\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
 			path: app/GraphQL/Queries/CollectionQuery.php
+
+		-
+			message: '#^Method App\\GraphQL\\Queries\\CollectionsQuery\:\:__invoke\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, name\: string, slug\: string, is_singleton\: bool\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/GraphQL/Queries/CollectionsQuery.php
+
+		-
+			message: '#^Method App\\GraphQL\\Queries\\ItemsQuery\:\:__invoke\(\) should return array\{data\: list\<array\<string, mixed\>\>, meta\: array\<string, int\>\} but returns array\{data\: array\<int, array\<string, mixed\>\>, meta\: array\{current_page\: int, last_page\: int, per_page\: int, total\: int\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/GraphQL/Queries/ItemsQuery.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Admin\\FileController\:\:resolveTagFilters\(\) should return array\{list\<int\>, list\<string\>\} but returns array\{array\<int, int\<1, max\>\>, array\<int, non\-empty\-string\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Admin/FileController.php
 
 		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
@@ -67,6 +271,12 @@ parameters:
 			path: app/Http/Controllers/Admin/FileOrganizationController.php
 
 		-
+			message: '#^Parameter \#2 \$permissionIds of method App\\Actions\\Roles\\SyncRolePermissionsAction\:\:execute\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/RoleDuplicateController.php
+
+		-
 			message: '#^Match expression does not handle remaining value\: mixed$#'
 			identifier: match.unhandled
 			count: 1
@@ -79,6 +289,30 @@ parameters:
 			path: app/Http/Controllers/Admin/UserTrashController.php
 
 		-
+			message: '#^Parameter \#3 \$itemIds of method App\\Services\\Ai\\AiConversationContextService\:\:resolveForSend\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/AiChatController.php
+
+		-
+			message: '#^Parameter \#4 \$fileIds of method App\\Services\\Ai\\AiConversationContextService\:\:resolveForSend\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/AiChatController.php
+
+		-
+			message: '#^Parameter \#5 \$promptIds of method App\\Services\\Ai\\AiConversationContextService\:\:resolveForSend\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/AiChatController.php
+
+		-
+			message: '#^Parameter \#1 \$conversationIds of method App\\Services\\Ai\\AiConversationMutationService\:\:deleteConversations\(\) expects list\<string\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/AiConversationBulkController.php
+
+		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 1
@@ -89,6 +323,24 @@ parameters:
 			identifier: argument.templateType
 			count: 1
 			path: app/Http/Controllers/Ai/AiStatusController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Collection\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Collection\>\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/CollectionImportWebhookController.php
+
+		-
+			message: '#^Parameter \#1 \$collection of method App\\Http\\Controllers\\Ai\\CollectionImportWebhookController\:\:importAssociativeRows\(\) expects App\\Models\\Collection, App\\Models\\Collection\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Collection\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/CollectionImportWebhookController.php
+
+		-
+			message: '#^Parameter \#2 \$rows of method App\\Http\\Controllers\\Ai\\CollectionImportWebhookController\:\:importAssociativeRows\(\) expects list\<array\<string, string\>\>, array\<array\<string\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/CollectionImportWebhookController.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between int and null will always evaluate to false\.$#'
@@ -97,6 +349,60 @@ parameters:
 			path: app/Http/Controllers/Api/V1/CollectionItemController.php
 
 		-
+			message: '#^Parameter \#2 \$collection of method App\\Services\\Chat\\ChatService\:\:findOrCreateItemChat\(\) expects App\\Models\\Collection, App\\Models\\Collection\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Collection\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Chat/ChatHubController.php
+
+		-
+			message: '#^Parameter \#3 \$item of method App\\Services\\Chat\\ChatService\:\:findOrCreateItemChat\(\) expects App\\Models\\CollectionItem, App\\Models\\CollectionItem\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\CollectionItem\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Chat/ChatHubController.php
+
+		-
+			message: '#^Parameter \#1 \$relatedCollection of method App\\Services\\Collections\\CollectionItemOptionsService\:\:paginateForCollection\(\) expects App\\Models\\Collection, App\\Models\\Collection\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Collection\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Chat/ChatItemOptionController.php
+
+		-
+			message: '#^Parameter \#2 \$collection of method App\\Services\\Api\\CollectionPermissionEnforcerService\:\:isItemReadable\(\) expects App\\Models\\Collection, App\\Models\\Collection\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Collection\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Chat/ChatItemOptionController.php
+
+		-
+			message: '#^Parameter \#2 \$collection of method App\\Services\\Chat\\ChatService\:\:canUserReadCollection\(\) expects App\\Models\\Collection, App\\Models\\Collection\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Collection\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Chat/ChatItemOptionController.php
+
+		-
+			message: '#^Parameter \#1 \$rows of method App\\Http\\Controllers\\Chat\\ChatRecipientOptionController\:\:paginateRows\(\) expects list\<array\<string, mixed\>\>, array\<int, array\{type\: string, id\: int, name\: string, email\: string, first_name\: string, last_name\: string\}\|array\{type\: string, id\: int, name\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Chat/ChatRecipientOptionController.php
+
+		-
+			message: '#^Parameter \#2 \$ids of method App\\Actions\\Collections\\ReorderCollectionFieldsAction\:\:execute\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Collections/FieldLayoutController.php
+
+		-
+			message: '#^Parameter \#3 \$version of method App\\Services\\Collections\\LivePreviewUrlBuilderService\:\:build\(\) expects ''draft''\|''published'', string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Collections/ItemPreviewController.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Admin\\BulkRoleActionRequest\:\:deletableIds\(\) should return list\<int\> but returns array\<int, mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Admin/BulkRoleActionRequest.php
+
+		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 1
@@ -107,6 +413,24 @@ parameters:
 			identifier: argument.templateType
 			count: 1
 			path: app/Http/Requests/Admin/BulkRoleActionRequest.php
+
+		-
+			message: '#^Property App\\Models\\Chat\:\:\$collection_id \(int\<0, max\>\|null\) does not accept int\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Http/Requests/Chat/StoreChatMessageRequest.php
+
+		-
+			message: '#^Property App\\Models\\Chat\:\:\$collection_item_id \(int\<0, max\>\|null\) does not accept int\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Http/Requests/Chat/StoreChatMessageRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Collections/UpdateCollectionItemRequest.php
 
 		-
 			message: '#^Negated boolean expression is always true\.$#'
@@ -115,6 +439,18 @@ parameters:
 			path: app/Http/Requests/Collections/UpdateContentCollectionRequest.php
 
 		-
+			message: '#^Access to an undefined property App\\Models\\File\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\File\>\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Settings/UpdateAppearanceSettingsRequest.php
+
+		-
+			message: '#^Parameter \#1 \$modules of method App\\Http\\Requests\\Settings\\UpdateAppearanceSidebarSettingsRequest\:\:pinSidebarModules\(\) expects list\<array\{id\: string, enabled\: bool, locked\: bool\}\>, array\<int, array\{id\: mixed, enabled\: bool, locked\: bool\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Settings/UpdateAppearanceSidebarSettingsRequest.php
+
+		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 2
@@ -163,6 +499,12 @@ parameters:
 			path: app/Http/Requests/Settings/UpdateProjectSecuritySettingsRequest.php
 
 		-
+			message: '#^Parameter \#1 \$file of method App\\Services\\FileService\:\:forceDelete\(\) expects App\\Models\\File, App\\Models\\File\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\File\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Jobs/EmptyFilesTrashJob.php
+
+		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 1
@@ -173,6 +515,48 @@ parameters:
 			identifier: argument.templateType
 			count: 1
 			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Method App\\Services\\Admin\\JobMonitorQueryService\:\:snapshot\(\) should return array\{pending_count\: int, pending\: list\<array\<string, mixed\>\>, failed\: list\<array\<string, mixed\>\>\} but returns array\{pending_count\: int\<0, max\>, pending\: array\<int, array\{id\: mixed, queue\: mixed, display_name\: string, attempts\: mixed, available_at\: mixed, created_at\: mixed\}\>, failed\: array\<int, array\{id\: mixed, uuid\: mixed, queue\: mixed, display_name\: string, exception\: string, failed_at\: mixed\}\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Admin/JobMonitorQueryService.php
+
+		-
+			message: '#^Method App\\Services\\Ai\\AiConversationContextService\:\:searchFiles\(\) should return list\<array\{id\: int, name\: string, mime\: string\|null, size\: int\|null, type\: string\}\> but returns array\<int, array\{id\: int, name\: string, mime\: string\|null, size\: int\|null, type\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Ai/AiConversationContextService.php
+
+		-
+			message: '#^Method App\\Services\\Ai\\AiConversationMessagePresenterService\:\:present\(\) should return array\{id\: string, role\: string, content\: string, attachments\: list\<array\{id\: string\|null, name\: string, mime\: string\|null, size\: int\|null\}\>, tool_calls\: list\<array\<string, mixed\>\>, tool_results\: list\<array\<string, mixed\>\>, pending_approvals\: list\<array\<string, mixed\>\>, steps\: list\<array\{reasoning\: string, content\: string, tools\: list\<array\<string, mixed\>\>, provider_tools\: list\<array\<string, mixed\>\>\}\>, \.\.\.\} but returns array\{id\: string, role\: string, content\: string, attachments\: list\<array\{id\: string\|null, name\: string, mime\: string\|null, size\: int\|null\}\>, tool_calls\: array, tool_results\: array, pending_approvals\: list\<array\{id\: string, tool\: string, arguments\: array\<string, mixed\>, reason\: string\|null\}\>, steps\: list\<array\{reasoning\: string, content\: string, tools\: list\<array\<string, mixed\>\>, provider_tools\: list\<array\<string, mixed\>\>\}\>, \.\.\.\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Ai/AiConversationMessagePresenterService.php
+
+		-
+			message: '#^Method App\\Services\\Ai\\AiConversationMessagePresenterService\:\:presentToolCall\(\) should return array\{id\: string, name\: string, arguments\: mixed, state\: string, result\: mixed, error\: string\|null\} but returns array\{id\: string, name\: string, arguments\: mixed, state\: ''approval\-requested''\|''input\-available''\|''output\-available''\|''output\-denied''\|''output\-error'', result\: mixed, error\: string\|false\|null\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Ai/AiConversationMessagePresenterService.php
+
+		-
+			message: '#^Parameter \#2 \$permissions of method App\\Services\\Ai\\AiToolRegistryService\:\:userCanAny\(\) expects list\<App\\Enums\\PermissionEnum\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Ai/AiToolRegistryService.php
+
+		-
+			message: '#^Parameter \#2 \$b of method App\\Services\\Ai\\EmbeddingSimilarityService\:\:cosine\(\) expects list\<float\>, non\-empty\-array\<int, float\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Ai/EmbeddingSimilarityService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionEnforcerService\:\:itemWriteDenialMessage\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Api/CollectionPermissionEnforcerService.php
 
 		-
 			message: '#^Offset int on array\<int, array\<mixed, mixed\>\> on left side of \?\? always exists and is not nullable\.$#'
@@ -181,8 +565,20 @@ parameters:
 			path: app/Services/Api/CollectionPermissionGuardService.php
 
 		-
+			message: '#^Parameter \#1 \$rules of method App\\Services\\Collections\\FieldConditionEvaluatorService\:\:isMatchingRules\(\) expects list\<mixed\>, non\-empty\-array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Api/CollectionPermissionRulesService.php
+
+		-
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
 			identifier: cast.string
+			count: 1
+			path: app/Services/Api/CollectionPermissionSyncService.php
+
+		-
+			message: '#^Method App\\Services\\Api\\CollectionPermissionSyncService\:\:collectionsPayload\(\) should return list\<array\{id\: int, name\: string, slug\: string, fields\: list\<array\{name\: string, type\: string\}\>\}\> but returns array\<int, array\{id\: int, name\: string, slug\: string, fields\: array\<int, array\{name\: string, type\: string\}\>\}\>\.$#'
+			identifier: return.type
 			count: 1
 			path: app/Services/Api/CollectionPermissionSyncService.php
 
@@ -193,8 +589,20 @@ parameters:
 			path: app/Services/Api/CollectionPermissionSyncService.php
 
 		-
+			message: '#^Method App\\Services\\Api\\FilePermissionGuardService\:\:effectivelyPrivateIds\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Api/FilePermissionGuardService.php
+
+		-
 			message: '#^Method App\\Services\\Api\\RelationIncludeHydratorService\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
+			count: 1
+			path: app/Services/Api/RelationIncludeHydratorService.php
+
+		-
+			message: '#^Parameter \#4 \$serializedCache of method App\\Services\\Api\\RelationIncludeHydratorService\:\:hydrateFieldValue\(\) expects array\<int, array\<string, mixed\>\>, array\<int\|string, array\<string, mixed\>\> given\.$#'
+			identifier: argument.type
 			count: 1
 			path: app/Services/Api/RelationIncludeHydratorService.php
 
@@ -205,10 +613,106 @@ parameters:
 			path: app/Services/Api/RelationIncludeHydratorService.php
 
 		-
+			message: '#^Method App\\Services\\Authorization\\EffectivePermissionResolverService\:\:resolve\(\) should return array\{permissions\: list\<string\>, role_names\: list\<string\>, role_ids\: list\<int\>\} but returns array\{permissions\: array\<int, mixed\>, role_names\: array\<int, mixed\>, role_ids\: array\<int, int\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Authorization/EffectivePermissionResolverService.php
+
+		-
+			message: '#^Property App\\Services\\Authorization\\EffectivePermissionResolverService\:\:\$cache \(array\<int, array\{permissions\: list\<string\>, role_names\: list\<string\>, role_ids\: list\<int\>\}\>\) does not accept non\-empty\-array\<int, array\{permissions\: array\<int, mixed\>, role_names\: array\<int, mixed\>, role_ids\: array\<int, int\>\}\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Authorization/EffectivePermissionResolverService.php
+
+		-
+			message: '#^Method App\\Services\\Authorization\\PermissionGrouperService\:\:permissionPayload\(\) should return array\{id\: int, name\: string\} but returns array\{id\: int\|string, name\: string\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Authorization/PermissionGrouperService.php
+
+		-
+			message: '#^Offset ''show_permission'' might not exist on array\{child_permissions\: non\-empty\-list\<array\{id\: int, name\: string\}\>\}\|array\{section\: string, label\: string, show_permission\: array\{id\: int, name\: string\}\|null, child_permissions\: list\<array\{id\: int, name\: string\}\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Services/Authorization/PermissionGrouperService.php
+
+		-
+			message: '#^Parameter \#2 \$groupMap of method App\\Services\\Authorization\\PermissionGrouperService\:\:matchSection\(\) expects array\<string, array\{section\: string, label\: string, show_permission\: array\{id\: int, name\: string\}\|null, child_permissions\: list\<array\{id\: int, name\: string\}\>\}\>, array\<string, array\{child_permissions\: non\-empty\-list\<array\{id\: int, name\: string\}\>\}\|array\{section\: string, label\: string, show_permission\: array\{id\: int, name\: string\}\|null, child_permissions\: list\<array\{id\: int, name\: string\}\>\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Authorization/PermissionGrouperService.php
+
+		-
+			message: '#^Property App\\Models\\ChatAttachmentUpload\:\:\$chunks_info \(array\<string, mixed\>\|null\) does not accept array\<int\|string, mixed\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Chat/ChatAttachmentUploadService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatMentionService\:\:mentionCollections\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatMentionService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatMentionService\:\:mentionUsers\(\) should return list\<array\{id\: int, name\: string, email\: string\}\> but returns array\<int, array\{id\: int, name\: string, email\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatMentionService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatMessageFeedService\:\:page\(\) should return array\{messages\: list\<array\<string, mixed\>\>, pinned\: list\<array\<string, mixed\>\>, meta\: array\<string, mixed\>\} but returns array\{messages\: array\<int, array\<string, mixed\>\>, pinned\: array\<int, array\<string, mixed\>\>, meta\: array\{total\: int\<0, max\>, has_more\: bool, per_page\: int, notify\: bool, chat_id\: string, kind\: string, visibility_hint\: bool\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatMessageFeedService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatMessageSerializerService\:\:serializeMentions\(\) should return array\{mentioned_users\: list\<array\{id\: int, name\: string, role\: string\|null\}\>, mentioned_collections\: list\<array\{id\: int, name\: string\}\>\} but returns array\{mentioned_users\: array\<int, array\{id\: int, name\: string, role\: string\|null\}\>, mentioned_collections\: array\<int, array\{id\: int, name\: string\}\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatMessageSerializerService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatMessageSerializerService\:\:serializeReactions\(\) should return list\<array\{emoji\: string, count\: int, reacted\: bool, users\: list\<array\{id\: int, name\: string\}\>\}\> but returns list\<array\{emoji\: string, count\: int\<0, max\>, reacted\: bool, users\: array\<int, array\{id\: int, name\: string\}\>\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatMessageSerializerService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatService\:\:mentionableUserIds\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatService.php
+
+		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 2
 			path: app/Services/Chat/ChatService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatUnreadService\:\:recipientIds\(\) should return list\<int\> but returns array\<int, int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatUnreadService.php
+
+		-
+			message: '#^Parameter \$error of class App\\Data\\Collections\\FieldConvertResultData constructor expects string\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Collections/CollectionFieldConvertService.php
+
+		-
+			message: '#^Parameter \$items of class App\\Data\\Collections\\FieldConvertResultData constructor expects list\<array\{item_id\: int, status\: ''failed''\|''ok''\|''skipped''\|''unchanged'', reason\: string\|null, has_draft\: bool, published_before\: mixed, published_after\: mixed, draft_before\: mixed, draft_after\: mixed\}\>, list\<array\{item_id\: int, status\: string, reason\: string\|null, has_draft\: bool, published_before\: mixed, published_after\: mixed, draft_before\: mixed, draft_after\: mixed\}\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Collections/CollectionFieldConvertService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionFormLayoutNormalizerService\:\:resolveRenderGroups\(\) should return list\<array\{section\: array\<string, mixed\>\|null, field_ids\: list\<int\>\}\> but returns array\{array\{section\: null, field_ids\: array\<int, int\>\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Collections/CollectionFormLayoutNormalizerService.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
@@ -223,10 +727,76 @@ parameters:
 			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
 
 		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemDataRuleBuilderService\:\:nonTranslatableRules\(\) should return list\<Illuminate\\Contracts\\Validation\\ValidationRule\|string\> but returns non\-empty\-list\<Closure\|Illuminate\\Contracts\\Validation\\ValidationRule\|Illuminate\\Validation\\Rules\\Exists\|Illuminate\\Validation\\Rules\\In\|string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
+
+		-
 			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
 			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemExportService\:\:collectRows\(\) should return array\{rows\: list\<array\<string, mixed\>\>, truncated\: bool, total_matched\: int\} but returns array\{rows\: array\<int, non\-empty\-array\<string, mixed\>\>, truncated\: bool, total_matched\: int\<0, max\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Collections/CollectionItemExportService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemFormPropsService\:\:previewRoles\(\) should return list\<array\{id\: int, name\: string, is_public\: bool\}\> but returns array\<int, array\{id\: int, name\: string, is_public\: bool\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Collections/CollectionItemFormPropsService.php
+
+		-
+			message: '#^Parameter \#3 \$items of method App\\Services\\Collections\\CollectionItemListService\:\:mapItemRows\(\) expects list\<App\\Models\\CollectionItem\>, array\<int, App\\Models\\CollectionItem\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Services/Collections/CollectionItemListService.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionItemOptionsService\:\:collectionsForSelect\(\) should return list\<array\{id\: int, name\: string, slug\: string\}\> but returns array\<int, array\{id\: int, name\: string, slug\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Collections/CollectionItemOptionsService.php
+
+		-
+			message: '#^Parameter \#1 \$sql of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItemValue\>\:\:whereRaw\(\) expects Illuminate\\Contracts\\Database\\Query\\Expression\|literal\-string, non\-falsy\-string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Collections/CollectionItemOptionsService.php
+
+		-
+			message: '#^Parameter \#1 \$expression of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItemValue\>\:\:selectRaw\(\) expects literal\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Parameter \#1 \$sql of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItem\>\:\:orderByRaw\(\) expects literal\-string, non\-falsy\-string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Parameter \#1 \$sql of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItemValue\>\:\:whereRaw\(\) expects Illuminate\\Contracts\\Database\\Query\\Expression\|literal\-string, non\-falsy\-string given\.$#'
+			identifier: argument.type
+			count: 5
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Parameter \#1 \$sql of method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:whereRaw\(\) expects Illuminate\\Contracts\\Database\\Query\\Expression\|literal\-string, non\-falsy\-string given\.$#'
+			identifier: argument.type
+			count: 8
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Property App\\Services\\Collections\\CollectionItemValuesWriterService\:\:\$pendingRows \(list\<array\{item_id\: int, field_id\: int, locale\: string\|null, position\: int, value\: mixed, created_at\: Illuminate\\Support\\Carbon, updated_at\: Illuminate\\Support\\Carbon\}\>\) does not accept non\-empty\-list\<array\{item_id\: int, field_id\: int, locale\: string\|null, position\: int, value\: mixed, created_at\: Illuminate\\Support\\Carbon, updated_at\: Illuminate\\Support\\Carbon\}\|array\{item_id\: int, field_id\: int, locale\: string\|null, position\: int, value\: non\-empty\-string, created_at\: Carbon\\CarbonImmutable, updated_at\: Carbon\\CarbonImmutable\}\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Collections/CollectionItemValuesWriterService.php
 
 		-
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
@@ -247,9 +817,87 @@ parameters:
 			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
+			message: '#^Parameter \#1 \$rules of method App\\Services\\Collections\\FieldConditionEvaluatorService\:\:isMatchingRules\(\) expects list\<mixed\>, non\-empty\-array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Collections/FieldConditionEvaluatorService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardHealthMetricsService\:\:horizonMetrics\(\) should return array\{available\: bool, status\: string, masters\: int, processes\: int, pending\: int, failed\: int, jobs_per_minute\: int\|null, throughput\: int\|null, \.\.\.\} but returns array\{available\: true, status\: ''running''\|''stopped'', masters\: int\<0, max\>, processes\: int, pending\: int, failed\: int, jobs_per_minute\: int, throughput\: int, \.\.\.\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardHealthMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:collectionCounts\(\) should return list\<array\{id\: int, name\: string, slug\: string, items_count\: int\}\> but returns array\<int, array\{id\: int, name\: string, slug\: string, items_count\: int\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:fileStatsByDisk\(\) should return list\<array\{disk\: string, files_count\: int, files_size_sum\: int\}\> but returns array\<int, array\{disk\: string, files_count\: int, files_size_sum\: int\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:largestFiles\(\) should return list\<array\{id\: int, name\: string, path\: string, disk\: string, size\: int, created_at\: string\|null\}\> but returns array\<int, array\{id\: int, name\: string, path\: string, disk\: string, size\: int, created_at\: string\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:latestActivity\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, log_name\: string\|null, event\: string\|null, description\: string, created_at\: string\|null, causer\: array\{id\: mixed, label\: mixed\}\|null, subject\: array\{type\: string\|null, id\: mixed, label\: mixed\}\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:mostActiveUsers\(\) should return list\<array\{id\: int, label\: string, activity_count\: int\}\> but returns array\<int, array\{id\: int, label\: string, activity_count\: int\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:stuckOrphanUploads\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, upload_id\: string, file_name\: string, disk\: string, parent_id\: int\|null, total_size\: int, uploaded_chunks\: int, total_chunks\: int, \.\.\.\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Method App\\Services\\Dashboard\\DashboardOverviewMetricsService\:\:suspiciousEvents\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, log_name\: string\|null, event\: string\|null, description\: string, created_at\: string\|null, causer\: array\{id\: mixed, label\: mixed\}\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Dashboard/DashboardOverviewMetricsService.php
+
+		-
+			message: '#^Property App\\Models\\FileUpload\:\:\$chunks_info \(array\<string, mixed\>\|null\) does not accept array\<int\|string, mixed\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/FileChunkUploadService.php
+
+		-
 			message: '#^Comparison operation "\<" between int\<1, max\> and 1 is always false\.$#'
 			identifier: smaller.alwaysFalse
 			count: 2
+			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Parameter \#1 \$width of function imagecreatetruecolor expects int\<1, max\>, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Parameter \#2 \$height of function imagecreatetruecolor expects int\<1, max\>, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Parameter \#4 \$color of function imagefill expects int, int\<0, max\>\|false given\.$#'
+			identifier: argument.type
+			count: 1
 			path: app/Services/FileTransformService.php
 
 		-
@@ -265,6 +913,54 @@ parameters:
 			path: app/Services/FileTransformService.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$access\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Files/FileEffectiveAccessService.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$parent_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Files/FileEffectiveAccessService.php
+
+		-
+			message: '#^Method App\\Services\\Files\\FileMetadataService\:\:bulkFavorite\(\) should return list\<App\\Models\\File\> but returns array\<int, App\\Models\\File\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Files/FileMetadataService.php
+
+		-
+			message: '#^Method App\\Services\\Files\\FileMetadataService\:\:bulkTag\(\) should return list\<App\\Models\\File\> but returns array\<int, App\\Models\\File\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Files/FileMetadataService.php
+
+		-
+			message: '#^Parameter \#1 \$paths of method Illuminate\\Filesystem\\FilesystemAdapter\:\:delete\(\) expects array\|string, string\|false given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Files/FileUploadService.php
+
+		-
+			message: '#^Parameter \#2 \$path of method App\\Services\\Files\\FileUploadService\:\:extractImageMeta\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Files/FileUploadService.php
+
+		-
+			message: '#^Parameter \#2 \$path of method App\\Services\\Files\\FileUploadService\:\:imageMetaContent\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Files/FileUploadService.php
+
+		-
+			message: '#^Parameter \#2 \$storagePath of method App\\Services\\Files\\FileUploadService\:\:resolveOrCreateVersion\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Files/FileUploadService.php
+
+		-
 			message: '#^If condition is always false\.$#'
 			identifier: if.alwaysFalse
 			count: 1
@@ -277,6 +973,12 @@ parameters:
 			path: app/Services/Http/CurlMultiReadableStreamService.php
 
 		-
+			message: '#^Method App\\Services\\Settings\\Project\\ProjectFilesSettingsService\:\:normalizeTransformations\(\) should return list\<string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Settings/Project/ProjectFilesSettingsService.php
+
+		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 2
@@ -287,6 +989,12 @@ parameters:
 			identifier: arrayValues.list
 			count: 1
 			path: app/Services/Settings/Project/ProjectGeneralSettingsService.php
+
+		-
+			message: '#^Method App\\Services\\Settings\\Project\\ProjectSecuritySettingsService\:\:normalizeDomains\(\) should return list\<string\> but returns array\<int, non\-falsy\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Settings/Project/ProjectSecuritySettingsService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
