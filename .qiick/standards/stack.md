@@ -19,10 +19,10 @@ Every qiick app runs the same stack, so code, rules and registry items move betw
 
 ## Local development
 
-**Laravel Herd** serves the app at `https://<app>.test` (`herd link`, `herd secure`); `composer run dev` starts Vite, the queue worker and Pail. No Sail or Docker for day-to-day work: Docker is the distribution image, not the dev environment.
+A local PHP environment (Flock, Laravel Herd or Valet) serves the app at `https://<app>.test` and runs its database and Redis; `composer run dev` starts Vite, the queue worker and Pail. Nothing in a repo depends on one tool: PHP comes from `PATH` (or `PHP_BINARY`), Vite HTTPS from `VITE_DEV_SERVER_KEY` / `VITE_DEV_SERVER_CERT`, Reverb from `php artisan reverb:start`. No Sail or Docker for day-to-day work: Docker is the distribution image, not the dev environment.
 
 - **One database per app**, named after it (`externa_core`, `excubia_app`). Local data is disposable: for a clean state, empty and re-seed it (`php artisan migrate:fresh --seed`); never create per-version or per-branch copies. Before dropping a database, check which `.env` files use it. Production databases only when the maintainer says so.
-- **Clean up after a task.** Worktrees, clones, Herd sites or workspaces and extra databases are fine while a task needs them; when its PR is merged or the work is dropped, remove them (`git worktree remove`, `herd unlink`, drop the database) after checking for unpushed work.
+- **Clean up after a task.** Worktrees, clones, local sites or workspaces and extra databases are fine while a task needs them; when its PR is merged or the work is dropped, remove them (`git worktree remove`, unlink the site, drop the database) after checking for unpushed work.
 
 ## Bootstrap
 

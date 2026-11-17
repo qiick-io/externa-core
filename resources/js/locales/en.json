@@ -46,7 +46,8 @@
         "system": "System",
         "sort": "Sort",
         "collapse": "Collapse",
-        "expand": "Expand"
+        "expand": "Expand",
+        "pageOf": "Page {{page}} of {{total}}"
     },
     "picker": {
         "search": "Search…",
@@ -290,7 +291,8 @@
         "toDate": "To date",
         "removeRule": "Remove rule",
         "removeLocale": "Remove locale {{code}}",
-        "selectRow": "Select {{name}}"
+        "selectRow": "Select {{name}}",
+        "scrollableTable": "Scrollable table"
     },
     "auth": {
         "login": {
