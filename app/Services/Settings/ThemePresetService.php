@@ -11,7 +11,7 @@ use App\Services\Css\OklchHueService;
  *
  * Tokens: the shared `base` surfaces from config/theme-presets.php, with the
  * selected preset's brand colours merged over them.
- * Precedence: custom brand hex → selected preset → default teal.
+ * Precedence: custom brand hex → selected preset → default Ottanio.
  * AI override: preset `ai_override` or custom hex within ~30° of OKLCH hue 306°.
  *
  * @phpstan-type ThemeCssBag array{
@@ -55,6 +55,7 @@ class ThemePresetService
     /**
      * Presets for the appearance picker, each with its full base + brand token
      * maps so the page previews them without a client-side copy of the config.
+     * `name` is the preset's translation key, translated by the picker.
      *
      * @return list<array{
      *     slug: string,

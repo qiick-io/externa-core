@@ -19,7 +19,7 @@ return [
             'default_appearance',
         ],
         'defaults' => [
-            'theme_preset' => 'teal',
+            'theme_preset' => 'ottanio',
             'project_color' => null,
             'project_color_dark' => null,
             'project_logo' => null,

@@ -1,13 +1,13 @@
 export type ThemePresetSlug =
-    | 'teal'
-    | 'blue'
-    | 'indigo'
-    | 'violet'
-    | 'rose'
-    | 'slate';
+    | 'ottanio'
+    | 'indaco'
+    | 'ametista'
+    | 'robbia'
+    | 'ardesia';
 
 export type ThemePresetCatalogItem = {
     slug: ThemePresetSlug;
+    /** Translation key of the preset name (config/theme-presets.php). */
     name: string;
     aiOverride: boolean;
     swatchLight: string;

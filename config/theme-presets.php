@@ -9,11 +9,15 @@
  * is merged over the base by ThemePresetService. The appearance page preview
  * gets the merged tokens from the server, so this file is the only source.
  *
+ * A preset's `name` is a translation key (en / it / de in resources/js/locales),
+ * never a display string: the picker translates it on the client.
+ *
  * @see https://github.com/qiick-io/externa-core/issues/243
+ * @see https://github.com/qiick-io/externa-core/issues/779
  */
 
 return [
-    'default' => 'teal',
+    'default' => 'ottanio',
     'ai_accent_hue' => 306.0,
     'ai_override_hue_tolerance' => 30.0,
     'ai_override_light' => [
@@ -89,8 +93,8 @@ return [
         ],
     ],
     'presets' => [
-        'teal' => [
-            'name' => 'Teal (default)',
+        'ottanio' => [
+            'name' => 'settings.appearance.themePresetOttanio',
             'ai_override' => false,
             'light' => [
                 'primary' => '#0E7C86',
@@ -123,43 +127,8 @@ return [
                 'ai-border' => '#AD70E6',
             ],
         ],
-        'blue' => [
-            // Excubia's brand blue: Refactoring UI "Light Blue Vivid" scale, primary = the logo #1375A7.
-            'name' => 'Blue',
-            'ai_override' => false,
-            'light' => [
-                'primary' => '#1375A7',
-                'ring' => '#1375A7',
-                'chart-1' => '#1375A7',
-                'chart-2' => '#0E7C86',
-                'sidebar-primary' => '#1375A7',
-                'sidebar-accent' => '#E3F8FF',
-                'sidebar-accent-foreground' => '#035388',
-                'sidebar-ring' => '#1375A7',
-                'ai' => '#7F35BB',
-                'ai-hover' => '#69279B',
-                'ai-bg' => '#F7F0FF',
-                'ai-text' => '#521B79',
-                'ai-border' => '#9650D3',
-            ],
-            'dark' => [
-                'primary' => '#2BB0ED',
-                'ring' => '#2BB0ED',
-                'chart-1' => '#2BB0ED',
-                'chart-2' => '#2CB1BC',
-                'sidebar-primary' => '#2BB0ED',
-                'sidebar-accent' => '#04364F',
-                'sidebar-accent-foreground' => '#81DEFD',
-                'sidebar-ring' => '#2BB0ED',
-                'ai' => '#C497F2',
-                'ai-hover' => '#D8B8FA',
-                'ai-bg' => '#3A0F57',
-                'ai-text' => '#D8B8FA',
-                'ai-border' => '#AD70E6',
-            ],
-        ],
-        'indigo' => [
-            'name' => 'Indigo',
+        'indaco' => [
+            'name' => 'settings.appearance.themePresetIndaco',
             'ai_override' => false,
             'light' => [
                 'primary' => '#6259C7',
@@ -192,8 +161,8 @@ return [
                 'ai-border' => '#AD70E6',
             ],
         ],
-        'violet' => [
-            'name' => 'Violet',
+        'ametista' => [
+            'name' => 'settings.appearance.themePresetAmetista',
             'ai_override' => true,
             'light' => [
                 'primary' => '#7E4BC0',
@@ -226,8 +195,8 @@ return [
                 'ai-border' => '#1A95A2',
             ],
         ],
-        'rose' => [
-            'name' => 'Rose',
+        'robbia' => [
+            'name' => 'settings.appearance.themePresetRobbia',
             'ai_override' => false,
             'light' => [
                 'primary' => '#AF3774',
@@ -260,8 +229,8 @@ return [
                 'ai-border' => '#AD70E6',
             ],
         ],
-        'slate' => [
-            'name' => 'Slate',
+        'ardesia' => [
+            'name' => 'settings.appearance.themePresetArdesia',
             'ai_override' => false,
             'light' => [
                 'primary' => '#48586D',
