@@ -82,6 +82,12 @@ class AuthenticateMcpRequestMiddleware
         $canWrite = (bool) config('ai.mcp.write_enabled', false)
             && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite);
 
+        // Declared divergence (#781): the owner is set on the default (session) guard for this
+        // request only, not on a separate `api-key` guard. Spatie resolves roles and permissions
+        // against the default guard's name, so a separate guard would make every permission
+        // lookup in the MCP tools fail. No session is started (`/mcp` is outside the `web`
+        // group), and a key can never reach key management, which is session-only
+        // (ApiKeyManagementTest). Do not "fix" this into a registered guard.
         Auth::guard(config('auth.defaults.guard', 'web'))->setUser($owner);
         Auth::shouldUse(config('auth.defaults.guard', 'web'));
 
