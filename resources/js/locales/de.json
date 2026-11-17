@@ -46,7 +46,8 @@
         "system": "System",
         "sort": "Sortieren",
         "collapse": "Einklappen",
-        "expand": "Ausklappen"
+        "expand": "Ausklappen",
+        "pageOf": "Seite {{page}} von {{total}}"
     },
     "picker": {
         "search": "Suchen…",
@@ -290,7 +291,8 @@
         "toDate": "Bis Datum",
         "removeRule": "Regel entfernen",
         "removeLocale": "Locale {{code}} entfernen",
-        "selectRow": "{{name}} auswählen"
+        "selectRow": "{{name}} auswählen",
+        "scrollableTable": "Scrollbare Tabelle"
     },
     "auth": {
         "login": {

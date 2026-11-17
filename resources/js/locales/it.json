@@ -46,7 +46,8 @@
         "system": "Sistema",
         "sort": "Ordina",
         "collapse": "Comprimi",
-        "expand": "Espandi"
+        "expand": "Espandi",
+        "pageOf": "Pagina {{page}} di {{total}}"
     },
     "picker": {
         "search": "Cerca…",
@@ -290,7 +291,8 @@
         "toDate": "Data a",
         "removeRule": "Rimuovi regola",
         "removeLocale": "Rimuovi locale {{code}}",
-        "selectRow": "Seleziona {{name}}"
+        "selectRow": "Seleziona {{name}}",
+        "scrollableTable": "Tabella scorrevole"
     },
     "auth": {
         "login": {

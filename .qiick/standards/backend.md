@@ -50,7 +50,7 @@ Broadcasting is optional: `BROADCAST_CONNECTION=null` must leave the app fully u
 
 ## AI
 
-AI is off for writes by default: read-only tools only, write and destructive tools behind an env kill switch, an allowlist and a per-call approval; every tool call is logged; tests fake the agent. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/ai-backend.md
+AI writes are on by default: read and reversible write tools work out of the box (in-app with approval, over MCP with an `mcp:write` key), an env switch turns writes off; destructive and security tools are off by default and approved one call at a time, and security actions never reach MCP. Every tool acts with the user's own permissions and every call is logged; tests fake the agent. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/ai-backend.md
 
 ## Operations
 
