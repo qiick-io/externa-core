@@ -290,7 +290,9 @@
         "toDate": "Data a",
         "removeRule": "Rimuovi regola",
         "removeLocale": "Rimuovi locale {{code}}",
-        "selectRow": "Seleziona {{name}}"
+        "selectRow": "Seleziona {{name}}",
+        "collapseSidebar": "Comprimi barra laterale",
+        "expandSidebar": "Espandi barra laterale"
     },
     "auth": {
         "login": {

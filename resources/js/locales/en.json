@@ -290,7 +290,9 @@
         "toDate": "To date",
         "removeRule": "Remove rule",
         "removeLocale": "Remove locale {{code}}",
-        "selectRow": "Select {{name}}"
+        "selectRow": "Select {{name}}",
+        "collapseSidebar": "Collapse sidebar",
+        "expandSidebar": "Expand sidebar"
     },
     "auth": {
         "login": {

@@ -44,6 +44,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 
+- Sidebar toggle: its hover background and focus ring are no longer cut at the header's left edge, and its tooltip says what a click does ("Collapse sidebar" / "Expand sidebar") with the ⌘B / Ctrl+B shortcut; the header gains app-ui's `leading` slot for icon controls after the toggle (#776).
 - Field list: a field dragged from a group up to the root list is restored to its pre-drag position before React reconciles, so the drop no longer fails with a `removeChild` `NotFoundError` (#762).
 - Frontend build: the React Compiler now actually runs (`@vitejs/plugin-react` 6 ignores its old `babel` option; it now goes through `@rolldown/plugin-babel` with `reactCompilerPreset()`, like excubia-app), and the rich text toolbar reads its active marks with TipTap's `useEditorState`, so the Bold / Italic / … toggles follow the selection under memoization (#751).
 - File manager: saving or replacing a file no longer empties its "where used" list in the detail panel (#758).

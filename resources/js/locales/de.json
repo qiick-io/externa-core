@@ -290,7 +290,9 @@
         "toDate": "Bis Datum",
         "removeRule": "Regel entfernen",
         "removeLocale": "Locale {{code}} entfernen",
-        "selectRow": "{{name}} auswählen"
+        "selectRow": "{{name}} auswählen",
+        "collapseSidebar": "Seitenleiste einklappen",
+        "expandSidebar": "Seitenleiste ausklappen"
     },
     "auth": {
         "login": {
