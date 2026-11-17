@@ -44,13 +44,13 @@ Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activit
 
 | Requirement | Notes |
 | --- | --- |
-| **PHP 8.4.27+** | `composer.json` requires `^8.4.27`; `.php-version` selects the PHP 8.4 line for Herd and other version managers. Herd PHP 8.4 recommended on macOS. Required for CVE-2026-109618 / CVE-2026-109619. |
+| **PHP 8.4.27+** | `composer.json` requires `^8.4.27`; `.php-version` selects the PHP 8.4 line for Flock, Herd and other version managers. Required for CVE-2026-109618 / CVE-2026-109619. |
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
 | **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 15+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.qiick.io/externa/supported-databases). |
 | **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. Prod without Redis: [docs](https://docs.qiick.io/externa/production-without-redis). |
 
-Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; Pro adds shared Reverb on `:8080`). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
+Optional: a local PHP environment that serves `<app>.test` hosts and runs PostgreSQL / MySQL / Redis (Flock, [Laravel Herd](https://herd.laravel.com) or Valet). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
 
 ## Quick start
 
@@ -71,7 +71,7 @@ Pin a release if needed: `qiick/externa-core:1.4.0`. Pre-tag smoke from git: `co
 
 Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.qiick.io/externa/installation) · [Packagist & create-project](https://docs.qiick.io/externa/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
 
-**Local paths:** [Laravel Herd](https://herd.laravel.com) (PHP / nginx / `.test`) or Docker Compose / GHCR quick-deploy — see [Deploy with Docker](https://docs.qiick.io/externa/deploy-with-docker) and sections below. Health: `GET /health/live`, `GET /health/ready`.
+**Local paths:** a local PHP environment serving `<app>.test` (Flock, Herd, Valet) or Docker Compose / GHCR quick-deploy — see [Deploy with Docker](https://docs.qiick.io/externa/deploy-with-docker) and sections below. Health: `GET /health/live`, `GET /health/ready`.
 
 **CI / non-interactive:** `composer setup` runs install → copy `.env` if missing → `key:generate` → migrate → `npm install` → `npm run build`. Still run `db:seed`, `storage:link`, and Wayfinder when needed. Do **not** use `composer setup` as the human create-project happy path.
 
@@ -107,27 +107,28 @@ composer run dev
 # serve + queue:listen + pail + vite
 ```
 
-Or with Herd serving the site: keep Vite + a queue worker (`php artisan queue:listen --tries=1 --timeout=0`). For Herd HTTPS (`herd secure`), set `HERD_SITE` to your hostname (e.g. `my-app.test`) so Vite can detect TLS certs.
+Or with a local environment serving the site at `<app>.test`: keep Vite + a queue worker (`php artisan queue:listen --tries=1 --timeout=0`). For HTTPS on a secured site, set `VITE_DEV_SERVER_KEY` and `VITE_DEV_SERVER_CERT` to the site's key and certificate so Vite serves over TLS too.
 
 **Full stack** (Redis + realtime + Pulse — matches `.env.example` defaults):
 
-1. Enable Redis (and Herd Pro Reverb on `:8080` if available).
+1. Start Redis.
 2. Keep `QUEUE_CONNECTION=redis`, `BROADCAST_CONNECTION=reverb`, and Reverb/Pulse keys from `.env.example`.
-3. Start workers (Herd Reverb is already up — do **not** also `reverb:start` on the same port):
+3. Start the workers and Reverb (`:8080`; skip `reverb:start` if a login agent already runs it):
 
 ```bash
 php artisan horizon
+php artisan reverb:start --host=127.0.0.1 --port=8080
 php artisan pulse:work
 npm run dev
 ```
 
-Standalone all-in-one (starts its own Reverb — conflicts if Herd already binds `:8080`):
+Standalone all-in-one (starts its own Reverb — conflicts if another Reverb already binds `:8080`):
 
 ```bash
 composer run dev:full
 ```
 
-Open `APP_URL` (your Herd host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
+Open `APP_URL` (your `<app>.test` host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
 
 ### Dev Container (VS Code / Codespaces)
 
@@ -142,8 +143,8 @@ Image base is pinned to **`php:8.4.27-fpm-bookworm`**. Runtime hardening lives i
 ```bash
 cp .env.docker.example .env
 docker compose up --build
-# App: http://localhost:8000  (COMPOSE_APP_URL overrides Herd APP_URL inside containers)
-# Reverb published on host :8081 (avoids Herd Reverb on :8080)
+# App: http://localhost:8000  (COMPOSE_APP_URL overrides the host APP_URL inside containers)
+# Reverb published on host :8081 (avoids a host Reverb on :8080)
 # MinIO: docker compose --profile minio up --build
 # MySQL: docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
@@ -261,7 +262,7 @@ Copy from `.env.example` and tune. Full reference: [Environment variables](https
 
 | Group | Keys (curated) | Notes |
 | --- | --- | --- |
-| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://*.test` hosts are not secure — browsers hide `PublicKeyCredential`. Local HTTPS: `herd secure <site>`, matching `APP_URL=https://…`, and `HERD_SITE=<site>` for Vite TLS detection. After switching back to HTTP (`herd unsecure`), clear **http + https** cookies for the site or browsers may keep Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](https://docs.qiick.io/externa/passkeys). |
+| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://*.test` hosts are not secure — browsers hide `PublicKeyCredential`. Local HTTPS: secure the site in your local environment, set a matching `APP_URL=https://…`, and `VITE_DEV_SERVER_KEY` / `VITE_DEV_SERVER_CERT` for Vite. After switching back to HTTP, clear **http + https** cookies for the site or browsers may keep Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](https://docs.qiick.io/externa/passkeys). |
 | **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. Also `pgsql`, `mysql`, `mariadb` — see [Supported databases](https://docs.qiick.io/externa/supported-databases). |
 | **Session / cache** | `SESSION_DRIVER`, `CACHE_STORE` | Default `database`. |
 | **Queue** | `QUEUE_CONNECTION` | Full: `redis` + Horizon. Minimal: `database` + `queue:listen`. |
@@ -278,7 +279,7 @@ See `.env.example` for every key and inline comments.
 | Service | When you need it |
 | --- | --- |
 | **Horizon** | Redis queues, dashboard Health Horizon cards, `/horizon` (super-admin). |
-| **Reverb + Echo** | Live admin notifications, presence / avatar connection indicator. Prefer Herd Pro Reverb locally. |
+| **Reverb + Echo** | Live admin notifications, presence / avatar connection indicator. Locally: `php artisan reverb:start` (or `composer run dev:full`). |
 | **Pulse** | Metrics for dashboard **Health**; full UI at `/pulse`. Needs ingest worker when using redis ingest. |
 | **Queue worker** | Always needed for zip downloads, large/bulk duplicates, and collection imports — even on the minimal stack. |
 

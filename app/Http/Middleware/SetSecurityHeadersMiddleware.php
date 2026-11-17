@@ -65,7 +65,7 @@ class SetSecurityHeadersMiddleware
             return trim($override);
         }
 
-        // Vite dev server from public/hot (http://127.0.0.1:5173, or https://{HERD_SITE}:5173).
+        // Vite dev server from public/hot (http://127.0.0.1:5173, or https://<app>.test:5173 with VITE_DEV_SERVER_CERT).
         $developmentServerOrigins = $this->originsOf([Vite::devServerUrl()]);
         // Public file URLs (FileTransformService::publicUrl) live on the files disk `url`.
         $filesDiskOrigins = $this->originsOf([

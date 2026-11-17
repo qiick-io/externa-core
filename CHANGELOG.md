@@ -32,6 +32,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 
+- Local setup no longer assumes Laravel Herd: Vite's Wayfinder step runs `PHP_BINARY` or the `php` on PATH, Vite HTTPS uses laravel-vite-plugin's `VITE_DEV_SERVER_KEY` / `VITE_DEV_SERVER_CERT` instead of `HERD_SITE`, and `.env.example` / README describe Reverb via `php artisan reverb:start` with a neutral example key (#774).
 - Larastan baseline down from 152 to 64 errors with type and annotation fixes only: Larastan now reads `Model::casts()` (`parseModelCastsMethod`), so `datetime` columns are typed as `CarbonImmutable` instead of string; model timestamps are documented as `CarbonImmutable`; a stub types the laravel/ai `Conversation` columns; the field-settings rules and normalization move into `App\Traits\NormalizesCollectionFieldSettingsTrait` so the AI settings pipeline no longer inherits request-only methods (#601).
 - qiick standards pack and `@qiick` registry pinned to app-ui v0.4.0 (core and optional UI patterns; none adopted yet); the `confirmation` and `reasoning` overrides are gone, as both files match the registry again (#666).
 - `.env.example` now documents every Externa setting read by `config/` (first super-admin, CORS origins, security headers, activity log, Git export author, hosted AI provider keys, …), and CI checks that new `env()` keys are documented (`npm run lint:env`) (#291).
