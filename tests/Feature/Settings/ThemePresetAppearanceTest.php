@@ -25,7 +25,7 @@ beforeEach(function () {
     $this->withoutVite();
 });
 
-test('appearance form defaults to teal preset and persists selection', function () {
+test('appearance form defaults to ottanio preset and persists selection', function () {
     $user = grantThemePresetPermissions(User::factory()->create());
 
     $this->actingAs($user)
@@ -33,14 +33,14 @@ test('appearance form defaults to teal preset and persists selection', function 
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/appearance')
-            ->where('appearance.theme_preset', 'teal')
-            ->has('appearance.theme_presets', 6)
-            ->where('projectAppearance.themePreset', 'teal')
+            ->where('appearance.theme_preset', 'ottanio')
+            ->has('appearance.theme_presets', 5)
+            ->where('projectAppearance.themePreset', 'ottanio')
         );
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'rose',
+            'theme_preset' => 'robbia',
             'project_color' => null,
             'project_color_dark' => null,
             'default_appearance' => 'system',
@@ -51,15 +51,15 @@ test('appearance form defaults to teal preset and persists selection', function 
     $repository = app(SettingsRepositoryService::class);
 
     expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
-        ->toBe('rose');
+        ->toBe('robbia');
 
     $this->actingAs($user)
         ->get(route('appearance.edit'))
         ->assertOk()
         ->assertSee('--primary: #AF3774', false)
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('appearance.theme_preset', 'rose')
-            ->where('projectAppearance.themePreset', 'rose')
+            ->where('appearance.theme_preset', 'robbia')
+            ->where('projectAppearance.themePreset', 'robbia')
             ->where('projectAppearance.themeCss.light.primary', '#AF3774')
             ->where('projectAppearance.aiOverrideApplied', false)
         );
@@ -70,7 +70,7 @@ test('custom brand hex overrides preset primary via brand CSS variables', functi
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'indigo',
+            'theme_preset' => 'indaco',
             'project_color' => '#0f172a',
             'project_color_dark' => '#38bdf8',
             'default_appearance' => 'light',
@@ -87,18 +87,18 @@ test('custom brand hex overrides preset primary via brand CSS variables', functi
         ->assertSee('--sidebar-accent: #F7F8FF', false)
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('projectAppearance.projectColor', '#0f172a')
-            ->where('projectAppearance.themePreset', 'indigo')
+            ->where('projectAppearance.themePreset', 'indaco')
             ->where('projectAppearance.themeCss.brandPrimary', '#0f172a')
             ->missing('projectAppearance.themeCss.light.primary')
         );
 });
 
-test('violet preset renders teal AI CSS variables', function () {
+test('ametista preset renders teal AI CSS variables', function () {
     $user = grantThemePresetPermissions(User::factory()->create());
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'violet',
+            'theme_preset' => 'ametista',
             'project_color' => null,
             'project_color_dark' => null,
             'default_appearance' => 'system',
@@ -116,12 +116,12 @@ test('violet preset renders teal AI CSS variables', function () {
         );
 });
 
-test('violet-ish custom hex applies AI override on teal preset', function () {
+test('violet-ish custom hex applies AI override on ottanio preset', function () {
     $user = grantThemePresetPermissions(User::factory()->create());
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'teal',
+            'theme_preset' => 'ottanio',
             'project_color' => '#7F35BB',
             'project_color_dark' => null,
             'default_appearance' => 'system',
@@ -145,7 +145,7 @@ test('saving appearance keeps the stored preset when theme_preset is omitted', f
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'slate',
+            'theme_preset' => 'ardesia',
             'default_appearance' => 'system',
         ])
         ->assertSessionHasNoErrors();
@@ -160,7 +160,7 @@ test('saving appearance keeps the stored preset when theme_preset is omitted', f
         ->assertRedirect(route('appearance.edit'));
 
     expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
-        ->toBe('slate')
+        ->toBe('ardesia')
         ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'default_appearance'))
         ->toBe('dark');
 });
@@ -175,7 +175,7 @@ test('first save without theme_preset stores the default preset', function () {
         ->assertSessionHasNoErrors();
 
     expect(app(SettingsRepositoryService::class)->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
-        ->toBe('teal');
+        ->toBe('ottanio');
 });
 
 test('an unknown theme_preset is rejected and the stored preset is kept', function () {
@@ -184,7 +184,7 @@ test('an unknown theme_preset is rejected and the stored preset is kept', functi
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'indigo',
+            'theme_preset' => 'indaco',
             'default_appearance' => 'system',
         ])
         ->assertSessionHasNoErrors();
@@ -198,7 +198,7 @@ test('an unknown theme_preset is rejected and the stored preset is kept', functi
         ->assertSessionHasErrors('theme_preset');
 
     expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
-        ->toBe('indigo');
+        ->toBe('indaco');
 });
 
 test('low-contrast brand colour falls back to the teal focus ring in dark mode', function () {
@@ -207,7 +207,7 @@ test('low-contrast brand colour falls back to the teal focus ring in dark mode',
     // #0F172A is ~1.1:1 on the dark background #0E171E but ~17:1 on white (#453).
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'teal',
+            'theme_preset' => 'ottanio',
             'project_color' => '#0F172A',
             'project_color_dark' => null,
             'default_appearance' => 'dark',
@@ -230,7 +230,7 @@ test('brand colours with at least 3:1 contrast are used as the focus ring', func
 
     $this->actingAs($user)
         ->put(route('appearance.update'), [
-            'theme_preset' => 'indigo',
+            'theme_preset' => 'indaco',
             'project_color' => '#0f172a',
             'project_color_dark' => '#38bdf8',
             'default_appearance' => 'system',
@@ -248,9 +248,21 @@ test('brand colours with at least 3:1 contrast are used as the focus ring', func
 });
 
 test('low-contrast light brand colour falls back to the teal focus ring in light mode', function () {
-    $resolved = app(ThemePresetService::class)->resolve('teal', '#F5F5F5', '#38bdf8');
+    $resolved = app(ThemePresetService::class)->resolve('ottanio', '#F5F5F5', '#38bdf8');
 
     expect($resolved['light']['ring'])->toBe('var(--color-teal-600)')
         ->and($resolved['light']['sidebar-ring'])->toBe('var(--color-teal-600)')
         ->and($resolved['dark']['ring'])->toBe('#38bdf8');
 });
+
+test('the former english slugs and the removed blue preset are rejected', function (string $formerSlug) {
+    $user = grantThemePresetPermissions(User::factory()->create());
+
+    $this->actingAs($user)
+        ->from(route('appearance.edit'))
+        ->put(route('appearance.update'), [
+            'theme_preset' => $formerSlug,
+            'default_appearance' => 'system',
+        ])
+        ->assertSessionHasErrors('theme_preset');
+})->with(['teal', 'blue', 'indigo', 'violet', 'rose', 'slate']);

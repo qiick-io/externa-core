@@ -35,9 +35,9 @@ function presetFixture(
 }
 
 const PRESETS = {
-    teal: presetFixture('teal', '#0E7C86', '#2CB1BC'),
-    indigo: presetFixture('indigo', '#4F46E5', '#A5B4FC'),
-    rose: presetFixture('rose', '#BE185D', '#F9A8D4'),
+    ottanio: presetFixture('ottanio', '#0E7C86', '#2CB1BC'),
+    indaco: presetFixture('indaco', '#4F46E5', '#A5B4FC'),
+    robbia: presetFixture('robbia', '#BE185D', '#F9A8D4'),
 };
 
 const AI_OVERRIDE: ThemeAiOverride = {
@@ -61,27 +61,27 @@ afterEach(() => {
 
 describe('applyThemeCss', () => {
     it('uses the dark preset palette in dark mode', () => {
-        const indigo = PRESETS.indigo;
+        const indaco = PRESETS.indaco;
         document.documentElement.classList.add('dark');
 
         applyThemeCss(
-            buildPreviewThemeCss(PRESETS.indigo, AI_OVERRIDE, null, null),
+            buildPreviewThemeCss(PRESETS.indaco, AI_OVERRIDE, null, null),
         );
 
-        expect(computedVariable('--background')).toBe(indigo.dark.background);
-        expect(computedVariable('--primary')).toBe(indigo.dark.primary);
+        expect(computedVariable('--background')).toBe(indaco.dark.background);
+        expect(computedVariable('--primary')).toBe(indaco.dark.primary);
         expect(document.documentElement.getAttribute('style') ?? '').toBe('');
     });
 
     it('uses the light preset palette in light mode', () => {
-        const indigo = PRESETS.indigo;
+        const indaco = PRESETS.indaco;
 
         applyThemeCss(
-            buildPreviewThemeCss(PRESETS.indigo, AI_OVERRIDE, null, null),
+            buildPreviewThemeCss(PRESETS.indaco, AI_OVERRIDE, null, null),
         );
 
-        expect(computedVariable('--background')).toBe(indigo.light.background);
-        expect(computedVariable('--primary')).toBe(indigo.light.primary);
+        expect(computedVariable('--background')).toBe(indaco.light.background);
+        expect(computedVariable('--primary')).toBe(indaco.light.primary);
     });
 
     it('rewrites the server-rendered theme block instead of adding a new one', () => {
@@ -91,14 +91,16 @@ describe('applyThemeCss', () => {
         document.head.appendChild(serverStyle);
 
         applyThemeCss(
-            buildPreviewThemeCss(PRESETS.rose, AI_OVERRIDE, null, null),
+            buildPreviewThemeCss(PRESETS.robbia, AI_OVERRIDE, null, null),
         );
 
         expect(
             document.querySelectorAll(`#${THEME_STYLE_ELEMENT_ID}`),
         ).toHaveLength(1);
         expect(computedVariable('--brand-primary')).toBe('');
-        expect(computedVariable('--primary')).toBe(PRESETS.rose.light.primary);
+        expect(computedVariable('--primary')).toBe(
+            PRESETS.robbia.light.primary,
+        );
     });
 
     it('applies custom brand colours as brand variables in the style block', () => {
@@ -106,7 +108,7 @@ describe('applyThemeCss', () => {
 
         applyThemeCss(
             buildPreviewThemeCss(
-                PRESETS.teal,
+                PRESETS.ottanio,
                 AI_OVERRIDE,
                 '#0f172a',
                 '#38bdf8',
@@ -123,7 +125,7 @@ describe('applyThemeCss', () => {
 
         // #0f172a is ~1.1:1 on the dark background but ~17:1 on white (#453).
         const themeCss = buildPreviewThemeCss(
-            PRESETS.teal,
+            PRESETS.ottanio,
             AI_OVERRIDE,
             '#0f172a',
             null,
@@ -138,7 +140,7 @@ describe('applyThemeCss', () => {
 
     it('falls back to the teal focus ring when the brand has under 3:1 contrast in light mode', () => {
         const themeCss = buildPreviewThemeCss(
-            PRESETS.teal,
+            PRESETS.ottanio,
             AI_OVERRIDE,
             '#f5f5f5',
             '#38bdf8',
@@ -153,7 +155,7 @@ describe('applyThemeCss', () => {
     it('swaps in the AI override tokens for a custom colour near the configured AI hue', () => {
         // #8e44ad is a violet (~283° HSL), inside 306° ± 30°.
         const themeCss = buildPreviewThemeCss(
-            PRESETS.teal,
+            PRESETS.ottanio,
             AI_OVERRIDE,
             '#8e44ad',
             null,
@@ -166,7 +168,7 @@ describe('applyThemeCss', () => {
     it('skips values that would break out of the declaration block', () => {
         applyThemeCss(
             buildPreviewThemeCss(
-                PRESETS.teal,
+                PRESETS.ottanio,
                 AI_OVERRIDE,
                 '#000000; } body { color: red',
                 null,

@@ -10,16 +10,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { contrastingForeground } from '@/lib/color-contrast';
 import type { ThemePresetCatalogItem, ThemePresetSlug } from '@/types';
 
-/** Translation keys for the built-in preset names (en / de / it). */
-const PRESET_NAME_KEYS: Record<ThemePresetSlug, string> = {
-    teal: 'settings.appearance.themePresetTeal',
-    blue: 'settings.appearance.themePresetBlue',
-    indigo: 'settings.appearance.themePresetIndigo',
-    violet: 'settings.appearance.themePresetViolet',
-    rose: 'settings.appearance.themePresetRose',
-    slate: 'settings.appearance.themePresetSlate',
-};
-
 type ThemePresetFieldProps = {
     /** Presets offered by the server (`appearance.theme_presets`). */
     catalog: ThemePresetCatalogItem[];
@@ -32,7 +22,8 @@ type ThemePresetFieldProps = {
  * Theme preset picker for the Appearance settings form (#243, #437).
  *
  * Renders one radio choice card per preset with light and dark swatches, and
- * submits the selection as the `theme_preset` form field.
+ * submits the selection as the `theme_preset` form field. Each preset `name`
+ * from the server is a translation key (#779).
  */
 export function ThemePresetField({
     catalog,
@@ -77,7 +68,7 @@ export function ThemePresetField({
                                 <FieldTitle
                                     id={`theme-preset-${preset.slug}-name`}
                                 >
-                                    {t(PRESET_NAME_KEYS[preset.slug])}
+                                    {t(preset.name)}
                                 </FieldTitle>
                                 <div className="flex gap-2" aria-hidden="true">
                                     <PresetSwatch

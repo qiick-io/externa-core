@@ -4,7 +4,7 @@ use App\Services\Settings\ThemePresetService;
 
 /**
  * resources/css/app.css carries fallback theme tokens (used before or without the
- * server-rendered preset <style>). They must equal the default Teal preset that
+ * server-rendered preset <style>). They must equal the default Ottanio preset that
  * ThemePresetService renders, so config/theme-presets.php stays the one source.
  */
 
@@ -47,11 +47,11 @@ function appCssBlock(string $css, string $selector): array
     return collect($pairs)->mapWithKeys(fn (array $pair): array => [$pair[1] => $pair[2]])->all();
 }
 
-test('app.css fallback tokens match the default Teal preset', function () {
+test('app.css fallback tokens match the default Ottanio preset', function () {
     $css = file_get_contents(resource_path('css/app.css'));
     preg_match_all('/--(color-[a-z]+-\d+):\s*(#[0-9a-fA-F]{6})/', $css, $paletteMatches, PREG_SET_ORDER);
     $palette = collect($paletteMatches)->mapWithKeys(fn (array $pair): array => [$pair[1] => strtoupper($pair[2])])->all();
-    $resolved = app(ThemePresetService::class)->resolve('teal', null, null);
+    $resolved = app(ThemePresetService::class)->resolve('ottanio', null, null);
 
     foreach (['light' => ':root', 'dark' => '.dark'] as $mode => $selector) {
         $block = appCssBlock($css, $selector);

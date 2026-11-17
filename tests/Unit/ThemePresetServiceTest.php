@@ -3,18 +3,41 @@
 use App\Services\Css\OklchHueService;
 use App\Services\Settings\ThemePresetService;
 
-test('catalog lists the six built-in theme presets', function () {
+test('catalog lists the five built-in theme presets', function () {
     $catalog = app(ThemePresetService::class)->catalog();
 
-    expect($catalog)->toHaveCount(6)
+    expect($catalog)->toHaveCount(5)
         ->and(collect($catalog)->pluck('slug')->all())
-        ->toBe(['teal', 'blue', 'indigo', 'violet', 'rose', 'slate']);
+        ->toBe(['ottanio', 'indaco', 'ametista', 'robbia', 'ardesia']);
 });
 
-test('unset preset resolves to teal tokens without brand overrides', function () {
+test('catalog offers no sibling product brand colour', function () {
+    $catalog = collect(app(ThemePresetService::class)->catalog());
+
+    // #1375A7 is Excubia's accent: the former `blue` preset (#779).
+    expect($catalog->pluck('slug')->all())->not->toContain('blue')
+        ->and($catalog->pluck('swatchLight')->all())->not->toContain('#1375A7');
+});
+
+test('every preset name is a translation key present in en, it and de', function () {
+    $locales = collect(['en', 'it', 'de'])->mapWithKeys(fn (string $locale): array => [
+        $locale => json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true),
+    ]);
+
+    foreach (app(ThemePresetService::class)->catalog() as $preset) {
+        expect($preset['name'])->toStartWith('settings.appearance.themePreset');
+
+        foreach ($locales as $locale => $translations) {
+            expect(data_get($translations, $preset['name']))
+                ->toBeString("{$preset['name']} is missing in {$locale}.json");
+        }
+    }
+});
+
+test('unset preset resolves to ottanio tokens without brand overrides', function () {
     $resolved = app(ThemePresetService::class)->resolve(null, null, null);
 
-    expect($resolved['themePreset'])->toBe('teal')
+    expect($resolved['themePreset'])->toBe('ottanio')
         ->and($resolved['brandPrimary'])->toBeNull()
         ->and($resolved['aiOverrideApplied'])->toBeFalse()
         ->and($resolved['light']['primary'])->toBe('#0E7C86')
@@ -24,9 +47,9 @@ test('unset preset resolves to teal tokens without brand overrides', function ()
 });
 
 test('custom brand hex strips brand-linked preset keys and keeps other tokens', function () {
-    $resolved = app(ThemePresetService::class)->resolve('indigo', '#112233', '#38bdf8');
+    $resolved = app(ThemePresetService::class)->resolve('indaco', '#112233', '#38bdf8');
 
-    expect($resolved['themePreset'])->toBe('indigo')
+    expect($resolved['themePreset'])->toBe('indaco')
         ->and($resolved['brandPrimary'])->toBe('#112233')
         ->and($resolved['brandPrimaryDark'])->toBe('#38bdf8')
         ->and($resolved['light'])->not->toHaveKey('primary')
@@ -35,8 +58,8 @@ test('custom brand hex strips brand-linked preset keys and keeps other tokens', 
         ->and($resolved['brandPrimaryForeground'])->toBe('#FFFFFF');
 });
 
-test('violet preset applies teal AI override tokens', function () {
-    $resolved = app(ThemePresetService::class)->resolve('violet', null, null);
+test('ametista preset applies teal AI override tokens', function () {
+    $resolved = app(ThemePresetService::class)->resolve('ametista', null, null);
 
     expect($resolved['aiOverrideApplied'])->toBeTrue()
         ->and($resolved['light']['ai'])->toBe('#0E7C86')
@@ -50,7 +73,7 @@ test('custom hex near AI accent hue triggers AI override', function () {
     // #7F35BB is the AI accent violet (~306° OKLCH).
     expect($service->customHexNeedsAiOverride('#7F35BB'))->toBeTrue();
 
-    $resolved = $service->resolve('teal', '#7F35BB', null);
+    $resolved = $service->resolve('ottanio', '#7F35BB', null);
 
     expect($resolved['aiOverrideApplied'])->toBeTrue()
         ->and($resolved['light']['ai'])->toBe('#0E7C86')
@@ -70,7 +93,7 @@ test('every preset keeps the dark shell one step lighter than the content', func
 
     expect($dark['sidebar'])->toBe('#17232C')
         ->and($dark['sidebar'])->not->toBe($dark['background']);
-})->with(['teal', 'blue', 'indigo', 'violet', 'rose', 'slate']);
+})->with(['ottanio', 'indaco', 'ametista', 'robbia', 'ardesia']);
 
 test('presets only carry brand colours; surfaces live once in the shared base', function () {
     $base = config('theme-presets.base');
