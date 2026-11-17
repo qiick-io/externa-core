@@ -35,7 +35,9 @@ describe('AppSidebarHeader', () => {
         render(
             <TooltipProvider delayDuration={0}>
                 <SidebarProvider>
-                    <AppSidebarHeader leading={<span>leading</span>} />
+                    <AppSidebarHeader
+                        leading={<span data-testid="leading-slot" />}
+                    />
                 </SidebarProvider>
             </TooltipProvider>,
         );
@@ -51,7 +53,7 @@ describe('AppSidebarHeader', () => {
         expect(
             (await screen.findAllByText('a11y.collapseSidebar')).length,
         ).toBeGreaterThan(0);
-        expect(screen.getByText('leading')).toBeInTheDocument();
+        expect(screen.getByTestId('leading-slot')).toBeInTheDocument();
 
         await act(async () => {
             fireEvent.click(toggle);
