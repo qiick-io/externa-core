@@ -46,7 +46,8 @@
         "system": "Sistema",
         "sort": "Ordina",
         "collapse": "Comprimi",
-        "expand": "Espandi"
+        "expand": "Espandi",
+        "pageOf": "Pagina {{page}} di {{total}}"
     },
     "picker": {
         "search": "Cerca…",
@@ -291,6 +292,7 @@
         "removeRule": "Rimuovi regola",
         "removeLocale": "Rimuovi locale {{code}}",
         "selectRow": "Seleziona {{name}}",
+        "scrollableTable": "Tabella scorrevole",
         "collapseSidebar": "Comprimi barra laterale",
         "expandSidebar": "Espandi barra laterale"
     },

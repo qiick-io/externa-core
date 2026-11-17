@@ -46,7 +46,8 @@
         "system": "System",
         "sort": "Sortieren",
         "collapse": "Einklappen",
-        "expand": "Ausklappen"
+        "expand": "Ausklappen",
+        "pageOf": "Seite {{page}} von {{total}}"
     },
     "picker": {
         "search": "Suchen…",
@@ -291,6 +292,7 @@
         "removeRule": "Regel entfernen",
         "removeLocale": "Locale {{code}} entfernen",
         "selectRow": "{{name}} auswählen",
+        "scrollableTable": "Scrollbare Tabelle",
         "collapseSidebar": "Seitenleiste einklappen",
         "expandSidebar": "Seitenleiste ausklappen"
     },

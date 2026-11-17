@@ -338,9 +338,13 @@
     /* red-300 on ink-900 = 6.38:1 (red-400 fails AA) */
     --destructive: var(--color-red-300);
     --destructive-foreground: var(--color-ink-950);
-    --success: var(--color-green-400);
+    /*
+     * Status 300 steps: text on the badge tint (X/15) ≥ 4.85:1 on every
+     * surface up to ink-800 (popover, muted); the 400 steps fell to 3.87:1 (#122).
+     */
+    --success: var(--color-green-300);
     --success-foreground: var(--color-ink-950);
-    --warning: var(--color-amber-400);
+    --warning: var(--color-amber-300);
     --warning-foreground: var(--color-ink-950);
     /* amber-400 ≥ 5.61:1 on ink-950…ink-800 */
     --warning-text: var(--color-amber-400);
@@ -759,4 +763,80 @@ html.reduce-motion .ai-field-translating::before {
 
 [data-fields-dnd] .sortable-drag {
     opacity: 0;
+}
+
+/*
+ * Scroll cue (core list pattern, docs/list-page.md). A scroller that hides
+ * columns fades its content out over the last 2rem on that side, so a phone
+ * user sees that the table continues. `useScrollRegion` (Table, TablePanel)
+ * sets `data-scroll-cue-left` / `data-scroll-cue-right` only while content is
+ * hidden there, so tables that fit are untouched.
+ *
+ * A mask instead of a shadow: it uses no colour at all (`black` below is mask
+ * alpha, not a colour), so it is right on every surface in light, dark and
+ * high contrast, and sticky or hovered rows cannot cover it. The vertical
+ * scrollbar width (`--scroll-cue-scrollbar`) stays unmasked. Keyboard focus
+ * drops the mask so the inset focus ring stays whole.
+ * ponytail: in right-to-left layouts the vertical scrollbar can sit on the
+ * left and gets faded there; flip the gradient with :dir(rtl) when an app
+ * ships an RTL locale.
+ */
+@property --scroll-cue-left {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+}
+
+@property --scroll-cue-right {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+}
+
+[data-scroll-cue-left] {
+    --scroll-cue-left: 2rem;
+}
+
+[data-scroll-cue-right] {
+    --scroll-cue-right: 2rem;
+}
+
+[data-scroll-cue-left],
+[data-scroll-cue-right] {
+    mask-image: linear-gradient(
+        to right,
+        transparent,
+        black var(--scroll-cue-left),
+        black
+            calc(
+                100% - var(--scroll-cue-scrollbar, 0px) -
+                    var(--scroll-cue-right)
+            ),
+        transparent calc(100% - var(--scroll-cue-scrollbar, 0px)),
+        black calc(100% - var(--scroll-cue-scrollbar, 0px))
+    );
+}
+
+[data-slot='table-container'],
+[data-slot='table-panel-scroll'] {
+    transition:
+        --scroll-cue-left 150ms ease-out,
+        --scroll-cue-right 150ms ease-out;
+}
+
+[data-scroll-cue-left]:focus-visible,
+[data-scroll-cue-right]:focus-visible {
+    mask-image: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-slot='table-container'],
+    [data-slot='table-panel-scroll'] {
+        transition: none;
+    }
+}
+
+html.reduce-motion [data-slot='table-container'],
+html.reduce-motion [data-slot='table-panel-scroll'] {
+    transition: none;
 }

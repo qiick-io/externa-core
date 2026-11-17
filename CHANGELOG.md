@@ -32,6 +32,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 
+- app-ui upgraded from v0.4.0 to v0.9.0 (#776): the synced qiick standards follow (local development no longer tied to one tool, AI writes on by default, the PHP quality floor), and the registry fixes come in.
+    - List pagination stays compact at large page counts: first, last and the current page with its neighbours, gaps as ellipses; below `sm` it reads "Page 3 of 120". Page numbers and the row counter follow the UI language's number format.
+    - Wide tables on small screens fade out on the side that hides columns, and their scroller is a named, keyboard-focusable region ("Scrollable table").
+    - Dark mode status badges (`success`, `warning`) meet WCAG AA on popovers and muted rows.
 - Local setup no longer assumes Laravel Herd: Vite's Wayfinder step runs `PHP_BINARY` or the `php` on PATH, Vite HTTPS uses laravel-vite-plugin's `VITE_DEV_SERVER_KEY` / `VITE_DEV_SERVER_CERT` instead of `HERD_SITE`, and `.env.example` / README describe Reverb via `php artisan reverb:start` with a neutral example key (#774).
 - Larastan baseline down from 152 to 64 errors with type and annotation fixes only: Larastan now reads `Model::casts()` (`parseModelCastsMethod`), so `datetime` columns are typed as `CarbonImmutable` instead of string; model timestamps are documented as `CarbonImmutable`; a stub types the laravel/ai `Conversation` columns; the field-settings rules and normalization move into `App\Traits\NormalizesCollectionFieldSettingsTrait` so the AI settings pipeline no longer inherits request-only methods (#601).
 - qiick standards pack and `@qiick` registry pinned to app-ui v0.4.0 (core and optional UI patterns; none adopted yet); the `confirmation` and `reasoning` overrides are gone, as both files match the registry again (#666).

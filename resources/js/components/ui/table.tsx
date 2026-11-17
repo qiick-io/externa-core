@@ -1,11 +1,25 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
+import { useScrollRegion } from "@/hooks/use-scroll-region"
 import { cn } from "@/lib/utils"
 
+/**
+ * shadcn new-york-v4 table. qiick change: the container is a scroll region
+ * (`useScrollRegion`), so a table wider than its card can be scrolled with
+ * the keyboard and fades out on the side that hides columns (the scroll cue,
+ * docs/list-page.md). Inside a `TablePanel` the panel scrolls instead.
+ */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const { t } = useTranslation()
+  const scrollRegionRef = useScrollRegion<HTMLDivElement>(
+    t("a11y.scrollableTable")
+  )
+
   return (
     <div
+      ref={scrollRegionRef}
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="relative w-full overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
     >
       <table
         data-slot="table"
