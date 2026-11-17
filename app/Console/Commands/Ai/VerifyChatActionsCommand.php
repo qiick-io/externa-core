@@ -186,7 +186,7 @@ class VerifyChatActionsCommand extends Command
             $this->newLine();
             $this->info('Running deterministic tool+DB suite…');
             $toolDb = Process::fromShellCommandline(
-                'herd php artisan test --compact tests/Feature/Ai/AiToolActionsDbTest.php',
+                'php artisan test --compact tests/Feature/Ai/AiToolActionsDbTest.php',
                 base_path(),
             );
             $toolDb->setTimeout(120);

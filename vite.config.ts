@@ -3,26 +3,19 @@ import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { exec } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { promisify } from 'node:util';
 import { defineConfig, type Plugin, type PluginContext } from 'vite';
 import { lazyPlugins } from 'vite-plus';
 
 const execAsync = promisify(exec);
 
+/**
+ * The PHP binary Wayfinder runs with: `PHP_BINARY` when set (a specific
+ * version), otherwise the `php` on PATH that the local environment (Flock,
+ * Herd or a system install) provides.
+ */
 function resolvePhpBinary(): string {
-    const herdPhp84 = path.join(
-        os.homedir(),
-        'Library/Application Support/Herd/bin/php84',
-    );
-
-    if (existsSync(herdPhp84)) {
-        return herdPhp84;
-    }
-
-    return 'php';
+    return process.env.PHP_BINARY?.trim() || 'php';
 }
 
 function isWayfinderWatchedFile(file: string, root: string): boolean {
@@ -75,18 +68,6 @@ function wayfinderVite8(command: string): Plugin {
         },
     };
 }
-
-// Optional Laravel Herd HTTPS: set HERD_SITE to your Valet/Herd hostname
-// (e.g. my-app.test) when using `herd secure`. Unset → Vite stays on HTTP.
-const herdSite = process.env.HERD_SITE?.trim() || '';
-const herdCertDir = path.join(
-    os.homedir(),
-    'Library/Application Support/Herd/config/valet/Certificates',
-);
-const herdTlsHost =
-    herdSite !== '' && existsSync(path.join(herdCertDir, `${herdSite}.crt`))
-        ? herdSite
-        : false;
 
 export default defineConfig({
     lint: {
@@ -652,7 +633,9 @@ export default defineConfig({
             {
                 // Registry copy (@qiick, drift-checked): resets its typed confirmation in an effect
                 // when the dialog closes; the fix belongs upstream in app-ui, not in this copy.
-                files: ['resources/js/components/confirm-destructive-dialog.tsx'],
+                files: [
+                    'resources/js/components/confirm-destructive-dialog.tsx',
+                ],
                 rules: {
                     'react/set-state-in-effect': 'off',
                 },
@@ -708,8 +691,10 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
-            // Herd `secure` → hot URL https://{HERD_SITE}:5173 (not 127.0.0.1).
-            detectTls: herdTlsHost,
+            // HTTPS for a secured *.test site: set VITE_DEV_SERVER_KEY and
+            // VITE_DEV_SERVER_CERT in .env (read natively by laravel-vite-plugin).
+            // No guessing from a tool's certificate folder: HTTP otherwise.
+            detectTls: false,
         }),
         react(),
         // @vitejs/plugin-react 6 no longer reads a `babel` option: the React Compiler runs

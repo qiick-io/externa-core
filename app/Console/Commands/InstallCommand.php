@@ -140,7 +140,7 @@ class InstallCommand extends Command
 
         $this->newLine();
         $this->info('Install complete.');
-        $this->line('Next: composer run dev   (or Herd + queue worker)');
+        $this->line('Next: composer run dev   (or a local *.test site + queue worker)');
         $this->line('Docs: https://docs.qiick.io/externa/installation');
 
         return self::SUCCESS;
