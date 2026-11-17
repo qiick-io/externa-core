@@ -292,7 +292,9 @@
         "removeRule": "Regel entfernen",
         "removeLocale": "Locale {{code}} entfernen",
         "selectRow": "{{name}} auswählen",
-        "scrollableTable": "Scrollbare Tabelle"
+        "scrollableTable": "Scrollbare Tabelle",
+        "collapseSidebar": "Seitenleiste einklappen",
+        "expandSidebar": "Seitenleiste ausklappen"
     },
     "auth": {
         "login": {

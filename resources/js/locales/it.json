@@ -292,7 +292,9 @@
         "removeRule": "Rimuovi regola",
         "removeLocale": "Rimuovi locale {{code}}",
         "selectRow": "Seleziona {{name}}",
-        "scrollableTable": "Tabella scorrevole"
+        "scrollableTable": "Tabella scorrevole",
+        "collapseSidebar": "Comprimi barra laterale",
+        "expandSidebar": "Espandi barra laterale"
     },
     "auth": {
         "login": {

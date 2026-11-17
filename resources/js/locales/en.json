@@ -292,7 +292,9 @@
         "removeRule": "Remove rule",
         "removeLocale": "Remove locale {{code}}",
         "selectRow": "Select {{name}}",
-        "scrollableTable": "Scrollable table"
+        "scrollableTable": "Scrollable table",
+        "collapseSidebar": "Collapse sidebar",
+        "expandSidebar": "Expand sidebar"
     },
     "auth": {
         "login": {
