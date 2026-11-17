@@ -40,6 +40,9 @@ beforeEach(function (): void {
 });
 
 /**
+ * Owned key with the given MCP scopes; collections and files are `write` when the key may write
+ * over MCP and `read` otherwise (the 1.4.0 `read_only` these tests were written against).
+ *
  * @param  list<string>  $scopes
  * @return array{user: User, key: ApiKey, plain: string, role: Role}
  */
@@ -59,6 +62,9 @@ function makeOwnedMcpKey(array $scopes = ['mcp:read'], array $permissions = []):
     $user = User::factory()->create(['is_active' => true]);
     $user->syncRoles([$role]);
 
+    $resourceAccess = in_array(ApiKeyScopeEnum::McpWrite->value, $scopes, true) ? 'write' : 'read';
+    $resourceScopes = ['collections:'.$resourceAccess, 'files:'.$resourceAccess];
+
     $secret = ApiKey::generateSecret();
     $key = ApiKey::query()->create([
         'name' => 'MCP key',
@@ -67,8 +73,7 @@ function makeOwnedMcpKey(array $scopes = ['mcp:read'], array $permissions = []):
         'role_id' => $role->id,
         'owner_id' => $user->id,
         'created_by' => $user->id,
-        'scopes' => $scopes,
-        'read_only' => ! in_array(ApiKeyScopeEnum::McpWrite->value, $scopes, true),
+        'scopes' => [...$scopes, ...$resourceScopes],
     ]);
 
     return ['user' => $user, 'key' => $key, 'plain' => $secret['plain'], 'role' => $role];

@@ -6,8 +6,9 @@ namespace App\Http\Middleware;
 
 use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyScopeEnum;
-use App\Enums\RoleEnum;
-use App\Models\ApiKey;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\Api\ApiKeyAuthenticatorService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Authenticate MCP requests with an owned API key (mcp:read), sent as a Bearer token.
+ * Authenticate MCP requests with an owned API key holding `mcp:read` (or `mcp:write`, which
+ * implies it), sent as a Bearer token. The key checks are {@see ApiKeyAuthenticatorService}'s,
+ * shared with the public API; write tools additionally need `mcp:write`.
  *
  * Ownerless keys are rejected (#215). The key owner's permissions are the ceiling.
  *
@@ -27,6 +30,10 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
  */
 class AuthenticateMcpRequestMiddleware
 {
+    public function __construct(
+        private readonly ApiKeyAuthenticatorService $apiKeyAuthenticator,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $failureKey = 'mcp-auth-failures:'.$request->ip();
@@ -60,44 +67,20 @@ class AuthenticateMcpRequestMiddleware
      */
     private function authenticateApiKey(Request $request, string $bearer, Closure $next): Response
     {
-        $hash = ApiKey::hashSecret($bearer);
-        $apiKey = ApiKey::query()->with(['role', 'owner'])->where('key_hash', $hash)->first();
+        $apiKey = $this->apiKeyAuthenticator->authenticate(
+            $request,
+            $bearer,
+            isOwnerRequired: true,
+            requiredScope: ApiKeyScopeEnum::McpRead,
+        );
 
-        if ($apiKey === null || ! $apiKey->isActive()) {
-            abort(401, 'Invalid or inactive API key.');
-        }
-
-        if (! $apiKey->hasOwner()) {
-            abort(401, 'MCP requires an API key with an owner.');
-        }
-
+        /** @var User $owner checked by the authenticator */
         $owner = $apiKey->owner;
-
-        if ($owner === null || ! $owner->is_active || $owner->trashed()) {
-            abort(401, 'Invalid or inactive API key owner.');
-        }
-
-        if (! $apiKey->allowsIp((string) $request->ip())) {
-            abort(401, 'API key is not allowed from this IP address.');
-        }
-
-        if (! $apiKey->hasScope(ApiKeyScopeEnum::McpRead)) {
-            abort(403, 'API key lacks mcp:read scope.');
-        }
-
+        /** @var Role $role checked by the authenticator */
         $role = $apiKey->role;
 
-        if ($role === null) {
-            abort(401, 'API key role is missing.');
-        }
-
-        if ($role->name === RoleEnum::SuperAdmin->value) {
-            abort(401, 'API keys cannot use the super-admin role.');
-        }
-
         $canWrite = (bool) config('ai.mcp.write_enabled', false)
-            && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite)
-            && ! $apiKey->read_only;
+            && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite);
 
         Auth::guard(config('auth.defaults.guard', 'web'))->setUser($owner);
         Auth::shouldUse(config('auth.defaults.guard', 'web'));
@@ -108,8 +91,6 @@ class AuthenticateMcpRequestMiddleware
         $request->attributes->set('apiAccess', $access);
         $request->attributes->set('mcp_api_key', $apiKey);
         $request->attributes->set('mcp_can_write', $canWrite);
-
-        $apiKey->forceFill(['last_used_at' => now()])->saveQuietly();
 
         return $next($request);
     }

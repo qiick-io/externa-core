@@ -58,8 +58,7 @@ type ApiKeyRow = {
     owner_id?: number | null;
     owner?: { id: number; name: string; email: string } | null;
     collection_slugs?: string[] | null;
-    read_only?: boolean;
-    files_scope?: 'none' | 'read' | 'all';
+    scopes?: string[];
     ip_allowlist?: string[] | null;
     rate_limit_per_minute?: number | null;
     expires_at?: string | null;
@@ -78,6 +77,27 @@ type OwnerOption = {
     name: string;
     email: string;
 };
+
+/**
+ * The scopes a key is created with, from the interim read-only and file-access controls:
+ * collections always, files unless "None", everything `read` when read-only (#781). The
+ * registry scope picker replaces both controls once it ships.
+ */
+function scopesFromAccessControls(
+    isReadOnly: boolean,
+    filesAccess: 'none' | 'read' | 'all',
+): string[] {
+    const collectionsAccess = isReadOnly ? 'read' : 'write';
+
+    if (filesAccess === 'none') {
+        return [`collections:${collectionsAccess}`];
+    }
+
+    const filesScopeAccess =
+        isReadOnly || filesAccess === 'read' ? 'read' : 'write';
+
+    return [`collections:${collectionsAccess}`, `files:${filesScopeAccess}`];
+}
 
 /**
  * List project API keys; creation opens from a header primary button Dialog.
@@ -158,6 +178,14 @@ export default function AdminApiKeysIndex({
         expires_at: '' as string,
     });
 
+    // The server validates `scopes` (built on submit), so its errors land on the file-access field.
+    const formErrors: Partial<Record<string, string>> = form.errors;
+    const scopesError =
+        formErrors.scopes ??
+        Object.entries(formErrors).find(([field]) =>
+            field.startsWith('scopes.'),
+        )?.[1];
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('settings.layout.title'),
@@ -186,8 +214,7 @@ export default function AdminApiKeysIndex({
             role_id: Number(data.role_id),
             owner_id: data.owner_id ? Number(data.owner_id) : null,
             collection_slugs: collectionSlugsText,
-            read_only: data.read_only,
-            files_scope: data.files_scope,
+            scopes: scopesFromAccessControls(data.read_only, data.files_scope),
             ip_allowlist: ipText,
             rate_limit_per_minute: data.rate_limit_per_minute
                 ? Number(data.rate_limit_per_minute)
@@ -235,12 +262,7 @@ export default function AdminApiKeysIndex({
 
                 return (
                     [
-                        key.read_only
-                            ? t('settings.apiKeys.readOnlyBadge')
-                            : null,
-                        key.files_scope && key.files_scope !== 'all'
-                            ? `files:${key.files_scope}`
-                            : null,
+                        key.scopes?.length ? key.scopes.join(', ') : null,
                         key.collection_slugs?.length
                             ? key.collection_slugs.join(', ')
                             : null,
@@ -633,9 +655,7 @@ export default function AdminApiKeysIndex({
                             </Field>
                             <Field
                                 className="md:col-span-2"
-                                data-invalid={
-                                    form.errors.files_scope ? true : undefined
-                                }
+                                data-invalid={scopesError ? true : undefined}
                             >
                                 <FieldLabel htmlFor="files_scope">
                                     {t('settings.apiKeys.filesScope')}
@@ -653,12 +673,10 @@ export default function AdminApiKeysIndex({
                                     <SelectTrigger
                                         id="files_scope"
                                         aria-invalid={
-                                            form.errors.files_scope
-                                                ? true
-                                                : undefined
+                                            scopesError ? true : undefined
                                         }
                                         aria-describedby={
-                                            form.errors.files_scope
+                                            scopesError
                                                 ? 'api-key-files-scope-error'
                                                 : 'api-key-files-scope-hint'
                                         }
@@ -687,7 +705,7 @@ export default function AdminApiKeysIndex({
                                     {t('settings.apiKeys.filesScopeHelp')}
                                 </FieldDescription>
                                 <FieldError id="api-key-files-scope-error">
-                                    {form.errors.files_scope}
+                                    {scopesError}
                                 </FieldError>
                             </Field>
                             <Field

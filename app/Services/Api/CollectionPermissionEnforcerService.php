@@ -117,7 +117,8 @@ class CollectionPermissionEnforcerService
     /**
      * Soft collection action check (API role grant ∩ key scopes, or admin user grant / Spatie-only).
      *
-     * For API keys, scopes only narrow the role: collection_slugs allowlist and read_only.
+     * For API keys, scopes only narrow the role: the collection_slugs allowlist and the
+     * `collections:read` / `collections:write` scope.
      * Relation includes and item readability share this gate via {@see isItemReadable()}.
      */
     public function allowsCollectionAction(
@@ -138,7 +139,7 @@ class CollectionPermissionEnforcerService
 
             if (
                 ! $apiKey->allowsCollectionSlug((string) $collection->slug)
-                || ! $apiKey->allowsAction($action)
+                || ! $apiKey->allowsCollectionAction($action)
             ) {
                 return false;
             }

@@ -79,14 +79,14 @@ it('grants super-admins every item action', function (): void {
     }
 });
 
-it('narrows an API key role by its collection and read-only scopes', function (): void {
+it('narrows an API key role by its collection slugs and collections:read scope', function (): void {
     $auth = makeApiKeyForRole();
     grantRoleActions($auth['role'], $this->posts, [
         CollectionPermissionActionEnum::Read,
         CollectionPermissionActionEnum::Update,
     ]);
     grantRoleActions($auth['role'], $this->pages, [CollectionPermissionActionEnum::Read]);
-    $auth['key']->forceFill(['collection_slugs' => ['posts'], 'read_only' => true])->save();
+    $auth['key']->forceFill(['collection_slugs' => ['posts'], 'scopes' => ['collections:read']])->save();
     request()->attributes->set('apiAccess', new ApiAccessData('api_key', $auth['role'], $auth['key']));
 
     $gate = Gate::forUser(null);

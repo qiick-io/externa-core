@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Data\Api\ApiAccessData;
-use App\Enums\ApiKeyFilesScopeEnum;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
@@ -73,11 +73,11 @@ it('requires read_private for an effectively private file', function (): void {
     expect(Gate::allows('view', $file->fresh()))->toBeTrue();
 });
 
-it('narrows the role to the API key files_scope', function (): void {
+it('narrows the role to the API key files:read scope', function (): void {
     $role = filePolicyRole();
     grantFileActions($role, [FilePermissionActionEnum::Read, FilePermissionActionEnum::Create]);
     $apiKey = makeApiKeyForRole($role)['key'];
-    $apiKey->update(['files_scope' => ApiKeyFilesScopeEnum::Read]);
+    $apiKey->update(['scopes' => [ApiKeyScopeEnum::CollectionsWrite->value, ApiKeyScopeEnum::FilesRead->value]]);
     actAsFileApiActor($role, $apiKey->fresh());
 
     expect(Gate::allows('viewAny', File::class))->toBeTrue()
