@@ -469,9 +469,8 @@ export function FileFieldInput({
     const canReplaceFile = can(PermissionEnum.CanReplaceFiles);
 
     useEffect(() => {
+        // Clearing the field already resets the preview in `clear`; nothing to fetch.
         if (fileId === null) {
-            setPreview(null);
-
             return;
         }
 
@@ -702,7 +701,7 @@ export function MultipleFilesFieldInput({
         return () => {
             cancelled = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- fileIdsKey tracks fileIds
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- fileIdsKey tracks fileIds
     }, [fileIdsKey]);
 
     const addFiles = (incoming: AdminFileRow[]): void => {

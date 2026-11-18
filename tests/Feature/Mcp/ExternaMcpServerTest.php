@@ -40,6 +40,9 @@ beforeEach(function (): void {
 });
 
 /**
+ * Owned key with the given MCP scopes; collections and files are `write` when the key may write
+ * over MCP and `read` otherwise (the 1.4.0 `read_only` these tests were written against).
+ *
  * @param  list<string>  $scopes
  * @return array{user: User, key: ApiKey, plain: string, role: Role}
  */
@@ -59,6 +62,9 @@ function makeOwnedMcpKey(array $scopes = ['mcp:read'], array $permissions = []):
     $user = User::factory()->create(['is_active' => true]);
     $user->syncRoles([$role]);
 
+    $resourceAccess = in_array(ApiKeyScopeEnum::McpWrite->value, $scopes, true) ? 'write' : 'read';
+    $resourceScopes = ['collections:'.$resourceAccess, 'files:'.$resourceAccess];
+
     $secret = ApiKey::generateSecret();
     $key = ApiKey::query()->create([
         'name' => 'MCP key',
@@ -67,8 +73,7 @@ function makeOwnedMcpKey(array $scopes = ['mcp:read'], array $permissions = []):
         'role_id' => $role->id,
         'owner_id' => $user->id,
         'created_by' => $user->id,
-        'scopes' => $scopes,
-        'read_only' => ! in_array(ApiKeyScopeEnum::McpWrite->value, $scopes, true),
+        'scopes' => [...$scopes, ...$resourceScopes],
     ]);
 
     return ['user' => $user, 'key' => $key, 'plain' => $secret['plain'], 'role' => $role];
@@ -280,5 +285,24 @@ it('rate limits MCP requests per API key', function (): void {
 
     $this->postJson('/mcp', mcpJsonRpc('ping', id: 1), $headers)->assertSuccessful();
     $this->postJson('/mcp', mcpJsonRpc('ping', id: 2), $headers)->assertSuccessful();
+    $this->postJson('/mcp', mcpJsonRpc('ping', id: 3), $headers)->assertStatus(429);
+});
+
+it('does not accept a session user without an API key (#441)', function (): void {
+    $user = User::factory()->create(['is_active' => true]);
+
+    $this->actingAs($user)
+        ->postJson('/mcp', mcpJsonRpc('ping'), mcpHeaders('ping'))
+        ->assertUnauthorized();
+});
+
+it('limits failed MCP authentications per IP before the per-key throttle (#441)', function (): void {
+    config(['ai.mcp.auth_failures_per_minute' => 2]);
+    RateLimiter::clear('mcp-auth-failures:127.0.0.1');
+
+    $headers = [...mcpHeaders('ping'), 'Authorization' => 'Bearer not-a-key'];
+
+    $this->postJson('/mcp', mcpJsonRpc('ping', id: 1), $headers)->assertUnauthorized();
+    $this->postJson('/mcp', mcpJsonRpc('ping', id: 2), $headers)->assertUnauthorized();
     $this->postJson('/mcp', mcpJsonRpc('ping', id: 3), $headers)->assertStatus(429);
 });

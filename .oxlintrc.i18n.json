@@ -1,0 +1,13 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "jsPlugins": ["eslint-plugin-i18next"],
+    "ignorePatterns": [
+        "resources/js/components/ui/**",
+        "resources/js/actions/**",
+        "resources/js/routes/**",
+        "resources/js/wayfinder/**"
+    ],
+    "rules": {
+        "i18next/no-literal-string": ["warn", { "mode": "jsx-text-only" }]
+    }
+}

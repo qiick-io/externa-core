@@ -20,15 +20,15 @@ composer install
 npm ci           # prepare installs Lefthook hooks when .git is present
 ```
 
-Docs: [Contributing](https://docs.externa.qiick.io/docs/contributing).
+Docs: [Contributing](https://docs.qiick.io/externa/contributing).
 
 ## Local git hooks (Lefthook)
 
 | Hook | What runs |
 | --- | --- |
-| `pre-commit` | Pint on dirty PHP; ESLint + Prettier on staged JS/TS/CSS |
+| `pre-commit` | Pint on dirty PHP; Oxlint + Oxfmt (`vp lint` / `vp fmt`) on staged JS/TS/CSS |
 | `commit-msg` | commitlint (Conventional Commits) |
-| `pre-push` | `pint --test` + `eslint` — **not** full Pest |
+| `pre-push` | `pint --test` + `npm run lint:check` (Oxlint) — **not** full Pest |
 
 `npm` `prepare` runs `lefthook install` only when `.git` exists (clone/checkout). Docker/`npm ci` without a git checkout no-ops — image builds stay green.
 
@@ -96,8 +96,8 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Skip link first focusable → `#main-content`; exactly one `<main>` per page.
   - Test at 320px width and ~400% zoom; never set `maximum-scale` / `user-scalable=no` on the viewport meta.
   - One a11y concern per PR when practical (rules, landmarks, forms, tooling).
-  - Lint: `eslint-plugin-jsx-a11y` errors on `components/` / `layouts/` / `hooks/` (shadcn `components/ui/*` ignored — covered by axe); warnings elsewhere with `--max-warnings 0`.
-  - Axe smoke: `tests/Browser/A11ySmokeBrowserTest.php` (critical/serious) gates the `browser` CI check on code PRs.
+  - Lint: Oxlint's `jsx-a11y` rules (`vite.config.ts`) error on `components/` / `layouts/` / `hooks/` (shadcn `components/ui/*` ignored — covered by axe); warnings elsewhere, and warnings fail too (`denyWarnings`).
+  - Axe smoke: `tests/Browser/A11ySmokeBrowserTest.php` (critical/serious) gates the `browser` CI check on code PRs. A PR that changes a toolchain or stack file (`package.json`, lockfiles, `composer.json`, `vite.config.ts`, `vitest.config.ts`, `tsconfig.json`, `qiick-standards.json`), a file under `database/migrations/`, or `app/Console/Commands/UpgradeCommand.php` runs the full matrix and the whole browser suite instead (#669, #789); for other UI changes, run `php artisan test tests/Browser` locally before merging.
   - Manual AT pass: [`docs/a11y-screen-reader-checklist.md`](./docs/a11y-screen-reader-checklist.md) before release.
   - Third-party limits (TipTap, CodeMirror, Leaflet, …): [`docs/a11y-third-party-limits.md`](./docs/a11y-third-party-limits.md) — labelled wrappers + keyboard alternatives, no forks.
 
@@ -107,4 +107,4 @@ Tracking issues: [#226](https://github.com/qiick-io/externa-core/issues/226) (qi
 
 **Do not auto-ship to `main`.** Opening a `develop` → `main` release PR (full body + assignee + milestone) is fine. **Maintainers** merge that PR, create the `vX.Y.Z` tag, and publish the GitHub Release.
 
-Agents must **not** merge the release PR, create git tags, or run `gh release create` unless the user explicitly asks. Docs: [Releasing & versions](https://docs.externa.qiick.io/docs/releasing).
+Agents must **not** merge the release PR, create git tags, or run `gh release create` unless the user explicitly asks. Docs: [Releasing & versions](https://docs.qiick.io/externa/releasing).

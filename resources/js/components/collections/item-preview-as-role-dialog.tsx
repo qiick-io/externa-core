@@ -1,6 +1,7 @@
 import { Eye } from 'lucide-react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import ItemPreviewController from '@/actions/App/Http/Controllers/Collections/ItemPreviewController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -86,11 +87,15 @@ export function ItemPreviewAsRoleDialog({
         try {
             const asPublic = roleKey.startsWith('public:');
             const roleId = Number(roleKey.split(':')[1]);
-            const params = new URLSearchParams(
-                asPublic ? { as_public: '1' } : { role_id: String(roleId) },
-            );
             const response = await fetch(
-                `/collections/${collectionId}/items/${itemId}/preview-as-role?${params}`,
+                ItemPreviewController.previewAsRole.url(
+                    { collection: collectionId, item: itemId },
+                    {
+                        query: asPublic
+                            ? { as_public: '1' }
+                            : { role_id: String(roleId) },
+                    },
+                ),
                 {
                     method: 'GET',
                     headers: jsonRequestHeaders(),
@@ -99,13 +104,18 @@ export function ItemPreviewAsRoleDialog({
             );
 
             if (!response.ok) {
-                throw new Error((await response.text()) || 'Preview failed');
+                throw new Error(
+                    (await response.text()) ||
+                        t('collections.items.previewAsRole.failed'),
+                );
             }
 
             setResult((await response.json()) as PreviewResult);
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : 'Preview failed',
+                error instanceof Error
+                    ? error.message
+                    : t('collections.items.previewAsRole.failed'),
             );
         } finally {
             setLoading(false);

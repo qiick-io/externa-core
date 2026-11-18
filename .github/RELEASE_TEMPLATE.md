@@ -37,5 +37,5 @@
 ### Links
 
 - CHANGELOG: `CHANGELOG.md`
-- Docs: https://docs.externa.qiick.io
+- Docs: https://docs.qiick.io/externa
 - Full diff: https://github.com/qiick-io/externa-core/compare/vPREV...vX.Y.Z

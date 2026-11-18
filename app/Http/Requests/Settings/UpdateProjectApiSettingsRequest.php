@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Http\Requests\Settings\Concerns\AuthorizesProjectSettingsTrait;
-use App\Support\Api\PublicApiOrigin;
+use App\Services\Api\PublicApiOriginService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -25,7 +25,7 @@ class UpdateProjectApiSettingsRequest extends FormRequest
                 'string',
                 'max:2048',
                 function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (! is_string($value) || ! PublicApiOrigin::isValid($value)) {
+                    if (! is_string($value) || ! PublicApiOriginService::isValid($value)) {
                         $fail('Each public API origin must be an http(s) origin URL with no path (e.g. https://www.example.com).');
                     }
                 },
@@ -41,7 +41,7 @@ class UpdateProjectApiSettingsRequest extends FormRequest
         $validated = $this->validated();
 
         $origins = collect($validated['public_api_allowed_origins'] ?? [])
-            ->map(fn (string $origin): ?string => PublicApiOrigin::normalize($origin))
+            ->map(fn (string $origin): ?string => PublicApiOriginService::normalize($origin))
             ->filter()
             ->unique()
             ->values()

@@ -2,15 +2,14 @@
 
 namespace App\GraphQL\Queries;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
-use App\Support\Api\ApiAccess;
 
 final class ItemQuery
 {
@@ -29,7 +28,7 @@ final class ItemQuery
         $request = request();
         $cache = app(PublicApiResponseCacheService::class);
         $version = $cache->version((int) $collection->id);
-        $access = app(ApiAccess::class);
+        $access = app(ApiAccessData::class);
         $roleId = $access->roleId();
         $hash = $cache->hash([
             'locale' => $request->query('locale'),
@@ -58,7 +57,7 @@ final class ItemQuery
                 return null;
             }
 
-            app(CollectionPermissionEnforcerService::class)->assertItemReadable($request, $collection, $item);
+            $this->authorizeItemRead($collection, $item);
 
             return (new CollectionItemResource($item))->toArray($request);
         });

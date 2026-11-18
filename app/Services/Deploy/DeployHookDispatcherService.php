@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Deploy;
 
 use App\Jobs\DeliverDeployHookJob;
@@ -14,6 +16,12 @@ class DeployHookDispatcherService
 
     public const SOURCE_PUBLISH = 'publish';
 
+    /**
+     * Publish-triggered builds wait this long, so a burst of publishes (a scheduled batch,
+     * a bulk publish) collapses into one queued delivery per hook (#441).
+     */
+    public const PUBLISH_DEBOUNCE_SECONDS = 30;
+
     public function __construct(
         private readonly ProjectSettingsService $projectSettings,
     ) {}
@@ -25,7 +33,7 @@ class DeployHookDispatcherService
      */
     public function dispatch(?string $hookId = null, string $source = self::SOURCE_MANUAL): array
     {
-        $hooks = $this->projectSettings->deployHooks();
+        $hooks = $this->projectSettings->integrations()->deployHooks();
         if ($hooks === []) {
             return [];
         }
@@ -51,6 +59,10 @@ class DeployHookDispatcherService
                 $hookIds,
             );
 
+            if ($source === self::SOURCE_PUBLISH) {
+                $pending->delay(now()->addSeconds(self::PUBLISH_DEBOUNCE_SECONDS));
+            }
+
             if (! app()->runningUnitTests()) {
                 $pending->afterCommit();
             }
@@ -66,7 +78,7 @@ class DeployHookDispatcherService
      */
     public function dispatchOnPublish(): array
     {
-        if (! $this->projectSettings->isDeployOnPublishEnabled()) {
+        if (! $this->projectSettings->integrations()->isDeployOnPublishEnabled()) {
             return [];
         }
 

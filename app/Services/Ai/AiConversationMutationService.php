@@ -48,13 +48,16 @@ class AiConversationMutationService
      */
     public function truncateFromMessage(Conversation $conversation, ConversationMessage $anchor): int
     {
-        return (int) DB::transaction(function () use ($conversation, $anchor): int {
+        // The vendor model documents no timestamps, so read the column through getAttribute().
+        $anchorCreatedAt = $anchor->getAttribute('created_at');
+
+        return (int) DB::transaction(function () use ($conversation, $anchor, $anchorCreatedAt): int {
             return ConversationMessage::query()
                 ->where('conversation_id', $conversation->id)
-                ->where(function ($query) use ($anchor): void {
-                    $query->where('created_at', '>', $anchor->created_at)
-                        ->orWhere(function ($sameInstant) use ($anchor): void {
-                            $sameInstant->where('created_at', $anchor->created_at)
+                ->where(function ($query) use ($anchor, $anchorCreatedAt): void {
+                    $query->where('created_at', '>', $anchorCreatedAt)
+                        ->orWhere(function ($sameInstant) use ($anchor, $anchorCreatedAt): void {
+                            $sameInstant->where('created_at', $anchorCreatedAt)
                                 ->where('id', '>=', $anchor->id);
                         });
                 })

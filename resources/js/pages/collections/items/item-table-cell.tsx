@@ -10,6 +10,7 @@ import { formatDateTime } from '@/lib/format';
 import i18n from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 type ItemTableCellProps = {
     path: string;
@@ -174,7 +175,7 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
         case 'checkbox_group_tree': {
             const tags = Array.isArray(value)
                 ? value.map(String)
-                : [String(value)];
+                : [scalarToString(value)];
             const text = tags.join(', ');
 
             if (!text) {
@@ -238,11 +239,11 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span className="max-w-[10rem] truncate font-mono text-xs">
-                            {String(value)}
+                            {scalarToString(value)}
                         </span>
                     </TooltipTrigger>
                     <TooltipContent className="font-mono">
-                        {String(value)}
+                        {scalarToString(value)}
                     </TooltipContent>
                 </Tooltip>
             );
@@ -252,10 +253,10 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                     <span
                         className={cn('size-3.5 rounded-sm border')}
                         style={{
-                            backgroundColor: String(value),
+                            backgroundColor: scalarToString(value),
                         }}
                     />
-                    {String(value)}
+                    {scalarToString(value)}
                 </span>
             );
         case 'blocks': {
@@ -263,7 +264,7 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
             const labels = blocks
                 .map((entry) =>
                     entry && typeof entry === 'object' && 'type' in entry
-                        ? String((entry as { type?: unknown }).type ?? '')
+                        ? scalarToString((entry as { type?: unknown }).type, '')
                         : '',
                 )
                 .filter(Boolean);
@@ -281,7 +282,7 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                 <span className="max-w-[16rem] truncate text-sm">
                     {typeof value === 'object'
                         ? JSON.stringify(value)
-                        : String(value)}
+                        : scalarToString(value)}
                 </span>
             );
     }

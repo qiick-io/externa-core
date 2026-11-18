@@ -6,7 +6,12 @@ namespace App\Services\Ai;
 
 use App\Ai\Support\AiActivityLogger;
 use App\Data\Ai\AiToolExecutionResultData;
+use App\Data\Api\ApiAccessData;
+use App\Enums\AiToolKindEnum;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\PendingToolCallStatusEnum;
+use App\Enums\RoleEnum;
+use App\Models\ApiKey;
 use App\Models\PendingToolCall;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -15,6 +20,9 @@ use Throwable;
 
 /**
  * Resolves the actor, validates arguments, applies write/approval policy, then runs a registry tool.
+ *
+ * Each call is gated by its own kind ({@see AiToolRegistryService::callKind()}): a read runs, a
+ * write runs when the write gate allows it, a destructive call only when destructive tools are on.
  */
 class AiToolExecutorService
 {
@@ -122,7 +130,39 @@ class AiToolExecutorService
             );
         }
 
-        $isMutating = $definition->kind()->isMutating();
+        $callKind = $this->registry->callKind($definition, $arguments);
+
+        if ($surface === 'mcp' && $this->registry->isSecurityTool($name)) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Tool [%s] changes users, roles or groups and is not available over MCP.', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
+            );
+        }
+
+        // Checked before any approval, and again when an approved call runs: switching
+        // destructive tools off also stops the calls still waiting for approval.
+        if ($callKind === AiToolKindEnum::Destructive && ! $this->writeGate->isDestructiveEnabled()) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Tool [%s] call is destructive, and destructive AI tools are off (AI_TOOLS_DESTRUCTIVE_ENABLED).', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
+            );
+        }
+
+        $isMutating = $callKind->isMutating();
         $skipApproval = (bool) ($options['skip_approval'] ?? false);
         $pendingId = is_string($options['pending_id'] ?? null) ? (string) $options['pending_id'] : null;
         $approver = $options['approved_by'] ?? null;
@@ -142,8 +182,20 @@ class AiToolExecutorService
             );
         }
 
-        if ($isMutating && $surface === 'mcp' && $pendingId === null && ! $skipApproval) {
-            $pending = $this->approvals->createPending($name, $arguments, $surface, $actor);
+        // An `mcp:write` key is the user's consent to MCP writes, so writes run directly;
+        // destructive calls always wait for one-at-a-time approval, and an install can park
+        // every MCP write with AI_MCP_WRITE_REQUIRES_APPROVAL (#766).
+        $isApprovalRequired = $callKind === AiToolKindEnum::Destructive
+            || (bool) config('ai.mcp.write_requires_approval', false);
+
+        if ($isMutating && $isApprovalRequired && $surface === 'mcp' && $pendingId === null && ! $skipApproval) {
+            $pending = $this->approvals->createPending(
+                $name,
+                $arguments,
+                $surface,
+                $actor,
+                apiKey: app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey : null,
+            );
 
             return $this->finish(
                 new AiToolExecutionResultData(
@@ -160,7 +212,9 @@ class AiToolExecutorService
             );
         }
 
-        if ($isMutating && $pendingId !== null) {
+        // A pending id is always checked, whatever the call's kind: a call that claims an
+        // approval must hold a live, approved one for this tool.
+        if ($pendingId !== null) {
             $pending = PendingToolCall::query()->where('uuid', $pendingId)->first();
 
             if ($pending === null) {
@@ -301,6 +355,7 @@ class AiToolExecutorService
     public function approveAndExecute(PendingToolCall $pending, User $approver): AiToolExecutionResultData
     {
         try {
+            $apiAccess = $this->apiAccessForApprovedCall($pending);
             $this->approvals->markApproved($pending, $approver);
         } catch (InvalidArgumentException $e) {
             return $this->finish(
@@ -322,7 +377,7 @@ class AiToolExecutorService
         $pending->refresh();
         $actor = $pending->requester;
 
-        return $this->execute(
+        return $this->withApiAccess($apiAccess, fn (): AiToolExecutionResultData => $this->execute(
             $pending->tool,
             is_array($pending->arguments) ? $pending->arguments : [],
             $actor,
@@ -332,7 +387,89 @@ class AiToolExecutorService
                 'approved_by' => $approver,
                 'include_write' => true,
             ],
-        );
+        ));
+    }
+
+    /**
+     * The API key access an approved MCP call runs under: the key's role and scopes (collection
+     * slugs and scopes), not the owner's full permissions (#441). Null for calls from any other
+     * surface. The key is checked again, because it may have been revoked, expired or narrowed
+     * while the call waited.
+     *
+     * An MCP call without a key fails closed: `/mcp` only accepts API keys, so a keyless MCP row
+     * was parked before `api_key_id` existed (an upgrade from 1.4.0) or lost its key to
+     * `nullOnDelete`, and running it would give it the requester's full permissions.
+     *
+     * @throws InvalidArgumentException when the requesting key is missing or can no longer run a write
+     */
+    private function apiAccessForApprovedCall(PendingToolCall $pending): ?ApiAccessData
+    {
+        if ($pending->api_key_id === null) {
+            if ($pending->surface === 'mcp') {
+                throw new InvalidArgumentException('This MCP call has no API key on record, so it cannot run under the key scopes. Ask the agent to send it again.');
+            }
+
+            return null;
+        }
+
+        $apiKey = ApiKey::query()->with(['role', 'owner'])->find($pending->api_key_id);
+        $owner = $apiKey?->owner;
+        $role = $apiKey?->role;
+
+        $isUsable = $apiKey !== null
+            && $apiKey->isActive()
+            && $apiKey->hasOwner()
+            && $owner instanceof User && $owner->is_active && ! $owner->trashed()
+            && $role !== null && $role->name !== RoleEnum::SuperAdmin->value
+            && (bool) config('ai.mcp.write_enabled', true)
+            && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite);
+
+        if (! $isUsable) {
+            throw new InvalidArgumentException('The API key that requested this call can no longer run writes.');
+        }
+
+        return new ApiAccessData(actor: 'api_key', role: $role, apiKey: $apiKey);
+    }
+
+    /**
+     * Binds the API key access where the MCP middleware puts it (the `apiAccess` request attribute,
+     * read by the collection and file enforcers, and the container) while the callback runs, then
+     * restores what was there before.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $callback
+     * @return TReturn
+     */
+    private function withApiAccess(?ApiAccessData $apiAccess, callable $callback): mixed
+    {
+        if ($apiAccess === null) {
+            return $callback();
+        }
+
+        $attributes = request()->attributes;
+        $hadAttribute = $attributes->has('apiAccess');
+        $previousAttribute = $attributes->get('apiAccess');
+        $previousBinding = app()->bound(ApiAccessData::class) ? app(ApiAccessData::class) : null;
+
+        $attributes->set('apiAccess', $apiAccess);
+        app()->instance(ApiAccessData::class, $apiAccess);
+
+        try {
+            return $callback();
+        } finally {
+            if ($hadAttribute) {
+                $attributes->set('apiAccess', $previousAttribute);
+            } else {
+                $attributes->remove('apiAccess');
+            }
+
+            if ($previousBinding instanceof ApiAccessData) {
+                app()->instance(ApiAccessData::class, $previousBinding);
+            } else {
+                app()->forgetInstance(ApiAccessData::class);
+            }
+        }
     }
 
     /**
@@ -359,9 +496,26 @@ class AiToolExecutorService
             approver: $approver,
             result: $result ?? $outcome->result ?? $outcome->message,
             pendingId: $pendingId ?? $outcome->pendingId,
+            extra: ['api_key_id' => $this->authorisingApiKeyId($pendingId ?? $outcome->pendingId)],
         );
 
         return $outcome;
+    }
+
+    /**
+     * The API key that authorised this call, so the audit entry says which key did what: the
+     * key of the current MCP request, or, for an approved call, the key that asked for it
+     * (`pending_tool_calls.api_key_id`). Null for session users.
+     */
+    private function authorisingApiKeyId(?string $pendingId): ?int
+    {
+        $apiKeyId = app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey?->id : null;
+
+        if ($apiKeyId !== null || $pendingId === null) {
+            return $apiKeyId;
+        }
+
+        return PendingToolCall::query()->where('uuid', $pendingId)->value('api_key_id');
     }
 
     private function resolveActor(): ?Authenticatable

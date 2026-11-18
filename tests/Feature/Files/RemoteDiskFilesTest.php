@@ -9,10 +9,10 @@ use App\Models\File;
 use App\Models\User;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Files\FilesDiskService;
 use App\Services\Files\FileWhereUsedScannerService;
 use App\Services\FileService;
-use App\Support\Files\FilesDisk;
-use App\Support\Storage\AbsolutePath;
+use App\Services\Storage\AbsolutePathService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
@@ -28,8 +28,8 @@ beforeEach(function (): void {
 });
 
 test('FILES_DISK defaults to configured s3 disk', function () {
-    expect(FilesDisk::default())->toBe('s3')
-        ->and(FilesDisk::allowed())->toContain('s3', 'assets', FilesDisk::PRIVATE_ASSETS);
+    expect(FilesDiskService::default())->toBe('s3')
+        ->and(FilesDiskService::allowed())->toContain('s3', 'assets', FilesDiskService::PRIVATE_ASSETS);
 });
 
 test('file manager upload and download work on FILES_DISK=s3', function () {
@@ -111,7 +111,7 @@ test('where-used finds references for files stored on s3 disk', function () {
         ->and($refs[0]['item_id'])->toBe($item->id);
 });
 
-test('AbsolutePath materializes non-local disks to a temp file', function () {
+test('AbsolutePathService materializes non-local disks to a temp file', function () {
     Config::set('filesystems.disks.remote.driver', 's3');
 
     $disk = Mockery::mock(Filesystem::class);
@@ -120,7 +120,7 @@ test('AbsolutePath materializes non-local disks to a temp file', function () {
 
     Storage::shouldReceive('disk')->once()->with('remote')->andReturn($disk);
 
-    $resolved = AbsolutePath::resolve('remote', 'chat/note.txt');
+    $resolved = AbsolutePathService::resolve('remote', 'chat/note.txt');
 
     expect(is_file($resolved))->toBeTrue()
         ->and(file_get_contents($resolved))->toBe('hello-remote');

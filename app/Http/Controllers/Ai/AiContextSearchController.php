@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\SearchAiContextFilesRequest;
+use App\Http\Requests\Ai\SearchAiContextItemsRequest;
+use App\Http\Requests\Ai\SearchAiPickerRequest;
 use App\Models\Collection;
 use App\Models\User;
 use App\Services\Ai\AiConversationContextService;
 use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Permission-filtered item/file search for the AppAssistant context attach picker.
@@ -24,14 +25,12 @@ class AiContextSearchController extends Controller
     /**
      * List collections the actor may read (for the item attach picker).
      */
-    public function collections(Request $request): JsonResponse
+    public function collections(SearchAiPickerRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'search' => SearchQueryRules::search(),
-        ]);
+        $validated = $request->validated();
 
         $search = isset($validated['search']) ? trim((string) $validated['search']) : '';
 
@@ -63,16 +62,12 @@ class AiContextSearchController extends Controller
     /**
      * Search items the actor may read.
      */
-    public function items(Request $request): JsonResponse
+    public function items(SearchAiContextItemsRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'collection_id' => ['nullable', 'integer', 'exists:collections,id'],
-            'search' => SearchQueryRules::search(),
-            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $items = $this->contextService->searchItems(
             $user,
@@ -88,15 +83,12 @@ class AiContextSearchController extends Controller
     /**
      * Search files the actor may list.
      */
-    public function files(Request $request): JsonResponse
+    public function files(SearchAiContextFilesRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'search' => SearchQueryRules::search(),
-            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $files = $this->contextService->searchFiles(
             $user,

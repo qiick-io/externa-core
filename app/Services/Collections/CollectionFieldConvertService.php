@@ -10,8 +10,7 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Settings\ProjectSettingsService;
-use App\Support\Collections\CollectionLocaleResolver;
+use App\Services\Settings\Project\ProjectLocalizationSettingsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -30,8 +29,8 @@ class CollectionFieldConvertService
         private CollectionItemValuesAssemblerService $assembler,
         private CollectionItemValuesWriterService $writer,
         private CollectionItemRevisionRecorderService $revisionRecorder,
-        private CollectionLocaleResolver $localeResolver,
-        private ProjectSettingsService $projectSettings,
+        private CollectionLocaleResolverService $localeResolver,
+        private ProjectLocalizationSettingsService $localizationSettings,
     ) {}
 
     /**
@@ -373,7 +372,9 @@ class CollectionFieldConvertService
             $fieldName,
             $fieldId,
         ): void {
-            /** @var list<array{item: CollectionItem, assembled: array<string, mixed>, draft: ?array<string, mixed>, touch_published: bool}> $plans */
+            // Plans keep ids and values only: holding every CollectionItem with its fieldValues and
+            // collection.fields until the write phase grew memory with the collection size (#441).
+            /** @var array<int, array{assembled: array<string, mixed>, draft: ?array<string, mixed>, touch_published: bool}> $plans */
             $plans = [];
 
             $itemIds = array_keys($rowsById);
@@ -402,13 +403,14 @@ class CollectionFieldConvertService
                         $draft[$fieldName] = $row['draft_after'];
                     }
 
-                    $plans[] = [
-                        'item' => $item,
+                    $plans[(int) $item->id] = [
                         'assembled' => $assembled,
                         'draft' => $draft,
                         'touch_published' => $touchPublished,
                     ];
                 }
+
+                unset($items);
             }
 
             $field->update([
@@ -420,37 +422,65 @@ class CollectionFieldConvertService
             $collection->unsetRelation('fields');
             $collection->load(['fields' => fn ($query) => $query->ordered()]);
 
-            foreach ($plans as $plan) {
-                if ($plan['touch_published']) {
-                    $this->writer->sync(
-                        $plan['item'],
-                        $collection,
-                        $plan['assembled'],
-                        created: false,
-                        revisionMeta: [
-                            'source' => 'convert',
-                            'field_id' => $fieldId,
-                            'field' => $fieldName,
-                            'from_type' => $fromType,
-                            'to_type' => $options->toType->value,
-                        ],
-                    );
+            // Write chunk by chunk, reloading the items, so only one chunk of models is in memory.
+            foreach (array_chunk(array_keys($plans), $chunkSize) as $chunk) {
+                $items = CollectionItem::withTrashed()
+                    ->whereIn('id', $chunk)
+                    ->with('fieldValues')
+                    ->get();
+
+                foreach ($items as $item) {
+                    $plan = $plans[(int) $item->id];
+                    $this->writePlan($item, $collection, $plan, $fieldId, $fieldName, $fromType, $options);
                 }
 
-                if ($plan['draft'] !== null) {
-                    $plan['item']->draft_data = $plan['draft'];
-                    $plan['item']->save();
-                    $this->revisionRecorder->record($plan['item'], [
-                        'source' => 'convert',
-                        'version' => 'draft',
-                        'field_id' => $fieldId,
-                        'field' => $fieldName,
-                        'from_type' => $fromType,
-                        'to_type' => $options->toType->value,
-                    ], $plan['draft']);
-                }
+                unset($items);
             }
         });
+    }
+
+    /**
+     * Writes one item's converted published values (with a revision) and its draft.
+     *
+     * @param  array{assembled: array<string, mixed>, draft: ?array<string, mixed>, touch_published: bool}  $plan
+     */
+    private function writePlan(
+        CollectionItem $item,
+        Collection $collection,
+        array $plan,
+        int $fieldId,
+        string $fieldName,
+        string $fromType,
+        FieldConvertOptionsData $options,
+    ): void {
+        if ($plan['touch_published']) {
+            $this->writer->sync(
+                $item,
+                $collection,
+                $plan['assembled'],
+                created: false,
+                revisionMeta: [
+                    'source' => 'convert',
+                    'field_id' => $fieldId,
+                    'field' => $fieldName,
+                    'from_type' => $fromType,
+                    'to_type' => $options->toType->value,
+                ],
+            );
+        }
+
+        if ($plan['draft'] !== null) {
+            $item->draft_data = $plan['draft'];
+            $item->save();
+            $this->revisionRecorder->record($item, [
+                'source' => 'convert',
+                'version' => 'draft',
+                'field_id' => $fieldId,
+                'field' => $fieldName,
+                'from_type' => $fromType,
+                'to_type' => $options->toType->value,
+            ], $plan['draft']);
+        }
     }
 
     /**
@@ -733,7 +763,7 @@ class CollectionFieldConvertService
 
     private function defaultLocale(): string
     {
-        $default = $this->projectSettings->defaultContentLocale();
+        $default = $this->localizationSettings->defaultContentLocale();
         if ($this->localeResolver->isAllowed($default)) {
             return $default;
         }

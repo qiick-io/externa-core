@@ -57,7 +57,7 @@ class CollectionPermissionRulesService
     }
 
     /**
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $normalized
      */
     public function isFieldAllowed(array $normalized, string $fieldName, string $operation): bool
     {
@@ -76,7 +76,7 @@ class CollectionPermissionRulesService
     }
 
     /**
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $normalized
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -102,7 +102,7 @@ class CollectionPermissionRulesService
     /**
      * Reject write payload keys that are not writable for create|update.
      *
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $normalized
      * @param  array<string, mixed>  $data
      * @return list<string> Denied field names
      */
@@ -126,7 +126,7 @@ class CollectionPermissionRulesService
     }
 
     /**
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $normalized
      * @param  array<string, mixed>  $data
      */
     public function isMatchingItem(array $normalized, array $data): bool
@@ -147,9 +147,9 @@ class CollectionPermissionRulesService
     /**
      * Merge multiple normalized rule sets (OR across roles — most permissive).
      *
-     * @param  list<array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}>  $sets
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}|null
-     *                                                                                                               null when no sets (caller treats as unrestricted); empty fields + null filter when any set is unrestricted
+     * @param  list<array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}>  $sets
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}|null
+     *                                                                                                                                  null when no sets (caller treats as unrestricted); empty fields + null filter when any set is unrestricted
      */
     public function merge(array $sets): ?array
     {
@@ -203,7 +203,7 @@ class CollectionPermissionRulesService
     }
 
     /**
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $normalized
      * @param  array<string, mixed>  $data
      */
     public function isMatchingMergedItem(array $normalized, array $data): bool

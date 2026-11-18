@@ -6,7 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Support\Activity\FilterableActivityEvents;
+use App\Services\Activity\FilterableActivityEventsService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -226,7 +226,7 @@ class QueryActivityLogs implements Tool
                 default => $normalized,
             };
 
-            if (FilterableActivityEvents::isValid($normalized)) {
+            if (FilterableActivityEventsService::isValid($normalized)) {
                 $events[] = $normalized;
             }
         }

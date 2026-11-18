@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\FieldTypeEnum;
-use App\Support\Collections\MapGeometry;
+use App\Services\Collections\MapGeometryService;
 use Database\Seeders\PermissionSeeder;
 use Tests\Support\FieldSettingsTestHelpers as H;
 
@@ -75,7 +75,7 @@ test('map geometry and defaults persist; multipoint mode accepted', function () 
         'default_zoom' => 12,
     ]);
 
-    expect(MapGeometry::normalizeMode(data_get($field->fresh()->settings, 'geometry_mode')))->toBe('multipoint');
+    expect(MapGeometryService::normalizeMode(data_get($field->fresh()->settings, 'geometry_mode')))->toBe('multipoint');
 
     H::storeItem($this, $collection, [
         'location' => [

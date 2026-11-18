@@ -118,16 +118,19 @@ export function AiContextAttachDialog({
         useState<AiSavedPrompt | null>(null);
     const [isDeletingPrompt, setIsDeletingPrompt] = useState(false);
 
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
+    const [wasOpen, setWasOpen] = useState(open);
 
-        setSearch('');
-        setSelected([]);
-        setPromptDraft(null);
-        setTab('items');
-    }, [open]);
+    // Reset during render when the dialog opens (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
+        if (open) {
+            setSearch('');
+            setSelected([]);
+            setPromptDraft(null);
+            setTab('items');
+        }
+    }
 
     useEffect(() => {
         if (!open) {

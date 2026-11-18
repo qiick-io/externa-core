@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
-use App\Support\Api\ApiAccess;
-use App\Support\Api\PublicApiIncludeParser;
-use App\Support\Validation\FilterQueryLimits;
+use App\Data\Api\ApiAccessData;
+use App\Services\Api\PublicApiIncludeParserService;
+use App\Services\Validation\FilterQueryLimitsService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -50,9 +50,7 @@ class ApiRequestCostMiddleware
             ]);
         }
 
-        for ($i = 0; $i < $cost; $i++) {
-            RateLimiter::hit($key, 60);
-        }
+        RateLimiter::increment($key, 60, $cost);
 
         $remaining = max(0, $limit - RateLimiter::attempts($key));
 
@@ -67,7 +65,7 @@ class ApiRequestCostMiddleware
     private function bucketKey(Request $request): string
     {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess && $access->apiKey !== null) {
+        if ($access instanceof ApiAccessData && $access->apiKey !== null) {
             return 'api-cost:'.$access->apiKey->id;
         }
 
@@ -96,14 +94,31 @@ class ApiRequestCostMiddleware
         $cost = max(1, $base);
 
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-            $cost += max(0, $mutationCost);
+            $cost += max(0, $mutationCost) * $this->batchEntryCount($request);
         }
 
-        $tokens = app(PublicApiIncludeParser::class)->parse($request->query('include'));
+        $tokens = app(PublicApiIncludeParserService::class)->parse($request->query('include'));
         $cost += count($tokens) * max(0, $includeCost);
         $cost += $this->relationalFilterKeyCount($request) * max(0, $relationFilterCost);
 
         return $cost;
+    }
+
+    /**
+     * Entries a write carries: the size of `items` (batch create / update) or `ids` (batch
+     * delete) on `/items/batch`, else 1. A 100-item batch is charged like 100 writes (#441).
+     * Capped at `api.max_batch_size`, the most the batch endpoints accept.
+     */
+    private function batchEntryCount(Request $request): int
+    {
+        if (! $request->is('api/v1/collections/*/items/batch')) {
+            return 1;
+        }
+
+        $entries = $request->input($request->isMethod('DELETE') ? 'ids' : 'items');
+        $count = is_array($entries) ? count($entries) : 1;
+
+        return max(1, min($count, (int) config('api.max_batch_size', 100)));
     }
 
     /**
@@ -112,7 +127,7 @@ class ApiRequestCostMiddleware
     private function relationalFilterKeyCount(Request $request): int
     {
         if ($request->is('api/graphql') || $request->routeIs('graphql')) {
-            return FilterQueryLimits::relationalKeyCount($this->graphQlFilterMap($request));
+            return FilterQueryLimitsService::relationalKeyCount($this->graphQlFilterMap($request));
         }
 
         $filters = $request->query('filter', []);
@@ -121,7 +136,7 @@ class ApiRequestCostMiddleware
         }
 
         /** @var array<string, mixed> $filters */
-        return FilterQueryLimits::relationalKeyCount($filters);
+        return FilterQueryLimitsService::relationalKeyCount($filters);
     }
 
     /**

@@ -5,10 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Support\Collections\BlocksFieldSchema;
-use App\Support\Collections\CollectionLocaleResolver;
-use App\Support\Collections\MapGeometry;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -22,10 +19,31 @@ class CollectionItemDataRuleBuilderService
 {
     public function __construct(
         private FieldValidationRuleEvaluatorService $validationRuleEvaluator,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionLocaleResolverService $localeResolver,
         private FieldConditionEvaluatorService $conditionEvaluator,
-        private BlocksFieldSchema $blocksFieldSchema,
+        private BlocksFieldSchemaService $blocksFieldSchema,
     ) {}
+
+    /**
+     * False on the copy {@see withoutRequiredRules()} returns: presence rules are skipped.
+     */
+    private bool $isEnforcingRequired = true;
+
+    /**
+     * A copy that builds every type, format, length, option and unknown-key rule but no presence
+     * rule (static, conditional, `validation_rules` required, nested block fields).
+     *
+     * For previews of a half-filled form (unsaved Live Preview): saving keeps the full rules.
+     * A copy, not a flag on this instance, because the closures in the rules run later and
+     * capture the builder they were built by.
+     */
+    public function withoutRequiredRules(): static
+    {
+        $builder = clone $this;
+        $builder->isEnforcingRequired = false;
+
+        return $builder;
+    }
 
     /**
      * Validation rules for the full data payload on create or update.
@@ -234,7 +252,7 @@ class CollectionItemDataRuleBuilderService
         ?int $excludeItemId,
     ): array {
         $presence = $required ? 'required' : 'nullable';
-        $extraRules = $this->validationRuleEvaluator->rulesForField($field, $prefix, $excludeItemId);
+        $extraRules = $this->extraRulesForField($field, $prefix, $excludeItemId);
 
         return match ($field->type) {
             FieldTypeEnum::Tag,
@@ -324,7 +342,7 @@ class CollectionItemDataRuleBuilderService
         ?int $excludeItemId,
     ): array {
         $presence = $required ? 'required' : 'nullable';
-        $extraRules = $this->validationRuleEvaluator->rulesForField($field, 'data.'.$field->name, $excludeItemId);
+        $extraRules = $this->extraRulesForField($field, 'data.'.$field->name, $excludeItemId);
 
         return match ($field->type) {
             FieldTypeEnum::String,
@@ -399,7 +417,7 @@ class CollectionItemDataRuleBuilderService
                 return;
             }
 
-            if (MapGeometry::normalize($value) === null) {
+            if (MapGeometryService::normalize($value) === null) {
                 $fail('The '.$attribute.' must be GeoJSON Point/MultiPoint or {lat,lng}.');
             }
         };
@@ -494,11 +512,11 @@ class CollectionItemDataRuleBuilderService
     private function defaultStringMax(CollectionField $field): int
     {
         return match ($field->type) {
-            FieldTypeEnum::Textarea => StringLimits::CMS_TEXTAREA,
-            FieldTypeEnum::Markdown => StringLimits::CMS_MARKDOWN,
-            FieldTypeEnum::Code => StringLimits::CMS_CODE,
-            FieldTypeEnum::Wysiwyg => StringLimits::CMS_WYSIWYG,
-            default => StringLimits::CMS_STRING,
+            FieldTypeEnum::Textarea => StringLimitsService::CMS_TEXTAREA,
+            FieldTypeEnum::Markdown => StringLimitsService::CMS_MARKDOWN,
+            FieldTypeEnum::Code => StringLimitsService::CMS_CODE,
+            FieldTypeEnum::Wysiwyg => StringLimitsService::CMS_WYSIWYG,
+            default => StringLimitsService::CMS_STRING,
         };
     }
 
@@ -671,6 +689,10 @@ class CollectionItemDataRuleBuilderService
      */
     private function fieldIsEffectivelyRequired(CollectionField $field, array $data): bool
     {
+        if (! $this->isEnforcingRequired) {
+            return false;
+        }
+
         $flags = $this->conditionEvaluator->effectiveFlags($field, $data);
 
         if ($flags['hidden']) {
@@ -708,6 +730,10 @@ class CollectionItemDataRuleBuilderService
      */
     private function presenceRule(CollectionField $field, bool $creating, array $data): mixed
     {
+        if (! $this->isEnforcingRequired) {
+            return $creating ? 'nullable' : 'sometimes';
+        }
+
         if ($this->fieldIsStaticallyRequired($field)) {
             $flags = $this->conditionEvaluator->effectiveFlags($field, $data);
             if ($flags['hidden']) {
@@ -820,7 +846,7 @@ class CollectionItemDataRuleBuilderService
                 }
 
                 $nestedPrefix = 'data.'.$nestedField->name;
-                $required = $flags['required'];
+                $required = $this->isEnforcingRequired && $flags['required'];
 
                 if ($nestedField->translatable) {
                     $nestedRules = array_merge(
@@ -875,5 +901,23 @@ class CollectionItemDataRuleBuilderService
         }
 
         return $rules;
+    }
+
+    /**
+     * Rules from the field's `validation_rules` settings, minus `required` on a {@see withoutRequiredRules()} copy.
+     *
+     * @return list<string|ValidationRule>
+     */
+    private function extraRulesForField(CollectionField $field, string $prefix, ?int $excludeItemId): array
+    {
+        $extraRules = $this->validationRuleEvaluator->rulesForField($field, $prefix, $excludeItemId);
+        if ($this->isEnforcingRequired) {
+            return $extraRules;
+        }
+
+        return array_values(array_filter(
+            $extraRules,
+            static fn (mixed $rule): bool => $rule !== 'required',
+        ));
     }
 }

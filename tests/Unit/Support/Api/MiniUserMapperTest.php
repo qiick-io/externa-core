@@ -1,10 +1,10 @@
 <?php
 
 use App\Models\User;
-use App\Support\Api\MiniUserMapper;
+use App\Services\Api\MiniUserMapperService;
 
 test('mini user mapper returns null for missing user', function () {
-    expect(app(MiniUserMapper::class)->toArray(null))->toBeNull();
+    expect(app(MiniUserMapperService::class)->toArray(null))->toBeNull();
 });
 
 test('mini user mapper maps id name email', function () {
@@ -15,7 +15,7 @@ test('mini user mapper maps id name email', function () {
     ]);
     $user->id = 42;
 
-    expect(app(MiniUserMapper::class)->toArray($user))->toBe([
+    expect(app(MiniUserMapperService::class)->toArray($user))->toBe([
         'id' => 42,
         'name' => 'Ada Lovelace',
         'email' => 'ada@example.com',
@@ -30,7 +30,7 @@ test('mini user mapper falls back to email then id when name empty', function ()
     ]);
     $withEmail->id = 7;
 
-    expect(app(MiniUserMapper::class)->toArray($withEmail))->toBe([
+    expect(app(MiniUserMapperService::class)->toArray($withEmail))->toBe([
         'id' => 7,
         'name' => 'anon@example.com',
         'email' => 'anon@example.com',
@@ -43,7 +43,7 @@ test('mini user mapper falls back to email then id when name empty', function ()
     ]);
     $bare->id = 9;
 
-    expect(app(MiniUserMapper::class)->toArray($bare))->toBe([
+    expect(app(MiniUserMapperService::class)->toArray($bare))->toBe([
         'id' => 9,
         'name' => '#9',
         'email' => null,

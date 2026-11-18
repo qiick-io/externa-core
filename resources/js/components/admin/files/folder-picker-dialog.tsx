@@ -159,7 +159,12 @@ export function FolderPickerDialog({
         return () => clearTimeout(timer);
     }, [open, loadFolders, search]);
 
-    useEffect(() => {
+    const [wasOpen, setWasOpen] = useState(open);
+
+    // Reset during render when the dialog closes (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
         if (!open) {
             setBrowseParentId(null);
             setBreadcrumbs([]);
@@ -170,7 +175,7 @@ export function FolderPickerDialog({
             setError(null);
             setSubmitting(false);
         }
-    }, [open]);
+    }
 
     const openFolder = (folder: AdminFileRow): void => {
         if (isBlockedFolder(folder, blockedFolders)) {

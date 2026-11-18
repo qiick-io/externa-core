@@ -87,7 +87,7 @@ export default function ConfirmPassword({
                                 name="password"
                                 placeholder={t('common.password')}
                                 autoComplete="current-password"
-                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                                 aria-invalid={
                                     errors.password ? true : undefined

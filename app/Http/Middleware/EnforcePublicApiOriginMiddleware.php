@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
-use App\Models\ApiKey;
+use App\Services\Api\ApiKeyAuthenticatorService;
+use App\Services\Api\PublicApiOriginService;
 use App\Services\Settings\ProjectSettingsService;
-use App\Support\Api\PublicApiOrigin;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,14 +18,14 @@ class EnforcePublicApiOriginMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $allowlist = app(ProjectSettingsService::class)->publicApiAllowedOrigins();
+        $allowlist = app(ProjectSettingsService::class)->api()->publicApiAllowedOrigins();
         if ($allowlist === []) {
             return $next($request);
         }
 
         $originHeader = $request->headers->get('Origin');
         if (is_string($originHeader) && $originHeader !== '') {
-            $origin = PublicApiOrigin::normalize($originHeader);
+            $origin = PublicApiOriginService::normalize($originHeader);
             if ($origin === null || ! in_array($origin, $allowlist, true)) {
                 return response()->json(['message' => 'Origin not allowed.'], 403);
             }
@@ -41,9 +43,7 @@ class EnforcePublicApiOriginMiddleware
 
     private function isValidApiKey(string $bearer): bool
     {
-        $apiKey = ApiKey::query()
-            ->where('key_hash', ApiKey::hashSecret($bearer))
-            ->first();
+        $apiKey = app(ApiKeyAuthenticatorService::class)->findByToken($bearer);
 
         return $apiKey !== null && $apiKey->isActive();
     }

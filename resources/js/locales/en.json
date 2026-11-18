@@ -46,7 +46,8 @@
         "system": "System",
         "sort": "Sort",
         "collapse": "Collapse",
-        "expand": "Expand"
+        "expand": "Expand",
+        "pageOf": "Page {{page}} of {{total}}"
     },
     "picker": {
         "search": "Search…",
@@ -290,7 +291,10 @@
         "toDate": "To date",
         "removeRule": "Remove rule",
         "removeLocale": "Remove locale {{code}}",
-        "selectRow": "Select {{name}}"
+        "selectRow": "Select {{name}}",
+        "scrollableTable": "Scrollable table",
+        "collapseSidebar": "Collapse sidebar",
+        "expandSidebar": "Expand sidebar"
     },
     "auth": {
         "login": {
@@ -412,7 +416,6 @@
             "owner": "Owner",
             "ownerHelp": "Permission ceiling: the key cannot do more than this user. Defaults to you.",
             "readOnly": "Read-only (block create, update, and delete)",
-            "readOnlyBadge": "read-only",
             "scopes": "Scopes",
             "filesScope": "File access",
             "filesScopeHelp": "none = no Files API; read = list/download only; all = read+write (still subject to read-only and role).",
@@ -731,12 +734,11 @@
             },
             "themePresetTitle": "Theme preset",
             "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
-            "themePresetTeal": "Teal (default)",
-            "themePresetBlue": "Blue",
-            "themePresetIndigo": "Indigo",
-            "themePresetViolet": "Violet",
-            "themePresetRose": "Rose",
-            "themePresetSlate": "Slate",
+            "themePresetOttanio": "Ottanio",
+            "themePresetIndaco": "Indaco",
+            "themePresetAmetista": "Ametista",
+            "themePresetRobbia": "Robbia",
+            "themePresetArdesia": "Ardesia",
             "customColorTitle": "Custom brand colour",
             "customColorDescription": "Optional override for primary. Leave empty to use the selected preset.",
             "clearCustomColor": "Clear custom colour",
@@ -825,13 +827,43 @@
             "breadcrumb": "AI write tools",
             "head": "AI write tools",
             "title": "AI write tools",
-            "description": "Choose which mutating AI tool classes may run after human approval. The AI_WRITE_TOOLS env kill switch must be on.",
+            "description": "Choose which AI write tool classes may run; all are allowed by default. Destructive actions (deletes, users, roles, groups) also need AI_TOOLS_DESTRUCTIVE_ENABLED=true and are approved one call at a time.",
             "killSwitchLabel": "Env kill switch",
-            "killSwitchOn": "enabled",
-            "killSwitchOff": "disabled (default)",
-            "killSwitchHint": "Set AI_WRITE_TOOLS=true (or AI_TOOLS_WRITE_ENABLED=true) in the environment to allow any write tools.",
+            "killSwitchOn": "enabled (default)",
+            "killSwitchOff": "disabled",
+            "killSwitchHint": "Set AI_TOOLS_WRITE_ENABLED=false in the environment for a read-only assistant and MCP.",
             "ttlHint": "MCP approvals expire after {{minutes}} minutes. Tool audit rows are retained for {{days}} days.",
-            "save": "Save"
+            "save": "Save",
+            "models": {
+                "title": "Models",
+                "description": "The models this install uses, set in the environment (config/ai.php). Models outside the catalog, such as LOCAL_AI_MODEL, stay allowed and show as unverified. Run php artisan ai:models for the same list.",
+                "catalogTitle": "Model catalog",
+                "catalogDescription": "Curated models per provider. Prefer a recommended model: small models may report tool calls that never ran.",
+                "deprecatedWarning": "Deprecated AI model in use: {{models}}. Switch to a recommended model.",
+                "usage": "Used for",
+                "provider": "Provider",
+                "model": "Model",
+                "capabilities": "Capabilities",
+                "statusLabel": "Status",
+                "usages": {
+                    "assistant": "Assistant",
+                    "default": "Default text",
+                    "translate": "Field translation",
+                    "item_drafts": "Item drafts",
+                    "embeddings": "Embeddings"
+                },
+                "capability": {
+                    "tools": "Tools",
+                    "vision": "Vision",
+                    "embeddings": "Embeddings"
+                },
+                "status": {
+                    "recommended": "Recommended",
+                    "supported": "Supported",
+                    "deprecated": "Deprecated",
+                    "unverified": "Unverified"
+                }
+            }
         }
     },
     "collections": {
@@ -982,9 +1014,26 @@
             "copy": "Save as Copy",
             "discard": "Discard All Changes"
         },
+        "aiDraft": {
+            "button": "AI draft",
+            "title": "Draft with AI",
+            "description": "Describe the item. AI proposes values for the text fields; you review them, fill the form, and save as usual.",
+            "prompt": "Brief",
+            "promptPlaceholder": "e.g. A news post announcing the spring release, friendly tone",
+            "locale": "Language",
+            "generate": "Generate",
+            "regenerate": "Generate again",
+            "preview": "Proposed values",
+            "empty": "AI proposed no usable values. Try a more detailed brief.",
+            "dropped": "Left out (did not match the field rules)",
+            "apply": "Fill form",
+            "applied": "Draft added to the form. Review it and save to keep it.",
+            "error": "The AI draft could not be generated."
+        },
         "itemToolbar": {
             "previewAs": "Preview as…",
             "livePreview": "Live Preview",
+            "livePreviewUnsaved": "Live Preview (unsaved, nothing is created)",
             "livePreviewError": "Could not open Live Preview. Check the collection preview URL.",
             "livePreviewAt": "Preview at…",
             "livePreviewAtHint": "Render the item as it will look when scheduled changes go live (max 90 days ahead).",
@@ -1010,7 +1059,10 @@
             "approved": "Approved",
             "rejected": "Rejected",
             "approveBeforePublish": "Approve before publishing",
-            "actions": "Actions"
+            "actions": "Actions",
+            "publishedReadOnly": "Published is read-only. Switch to Draft to edit, then Publish.",
+            "revisionNeedsDraft": "Switch to Draft before applying a revision.",
+            "revisionApplied": "Revision applied to the form. Save to keep."
         },
         "itemPresence": {
             "viewing": "{{count}} other editor(s) viewing",
@@ -1627,7 +1679,9 @@
                 "key": "Key",
                 "nameHint": "Translated label shown in the admin UI and item form.",
                 "note": "Note",
-                "noteHint": "Optional helper text shown under the field control in the item form."
+                "noteHint": "Optional helper text shown under the field control in the item form.",
+                "keyDuplicate": "A field with this key already exists in this collection.",
+                "updateSubtitle": "Update settings for {{name}}."
             },
             "blocks": {
                 "blockTypes": "Block types",
@@ -1694,7 +1748,8 @@
                 "description": "Read-only view of field data after collection ACL and file access rules (including <code>access: denied</code>). Not a visual editor.",
                 "role": "Role",
                 "chooseRole": "Choose role",
-                "notReadable": "Not readable for this role."
+                "notReadable": "Not readable for this role.",
+                "failed": "Preview failed."
             },
             "compare": {
                 "title": "Compare revision",
@@ -2060,6 +2115,11 @@
         "assistantMessagePdfTitle": "Assistant message",
         "callingTool": "Calling {{tool}}…",
         "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "dailyUsage": {
+            "label": "Today: {{usage}}",
+            "prompts": "{{used}} / {{limit}} prompts",
+            "tokens": "{{used}} / {{limit}} tokens"
+        },
         "importState": {
             "queued": "queued",
             "running": "running",
@@ -2918,5 +2978,10 @@
         "goToPage": "Go to page {{page}}",
         "goToPreviousPage": "Go to previous page",
         "goToNextPage": "Go to next page"
+    },
+    "dateRangePicker": {
+        "startTime": "Start time",
+        "endTime": "End time",
+        "apply": "Apply"
     }
 }

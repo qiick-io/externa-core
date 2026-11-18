@@ -20,6 +20,9 @@ use Tests\Feature\Ai\Security\Support\InjectionPayloadCatalog;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     $this->seed(PermissionSeeder::class);
     Http::preventStrayRequests();
     Http::fake();
@@ -34,7 +37,7 @@ beforeEach(function (): void {
 });
 
 /**
- * @return array{status: string, pending_id: ?string, is_error: bool}
+ * @return array{status: string, pending_id: ?string, is_error: bool, result: string}
  */
 function invokeSecuritySurface(
     string $surface,
@@ -52,6 +55,7 @@ function invokeSecuritySurface(
                 ? (string) $call['structuredContent']['pending_id']
                 : null,
             'is_error' => (bool) $call['isError'],
+            'result' => (string) ($call['content'][0]['text'] ?? ''),
         ];
     }
 
@@ -69,6 +73,7 @@ function invokeSecuritySurface(
         'status' => $outcome->status,
         'pending_id' => $outcome->pendingId,
         'is_error' => ! $outcome->isOk() && ! $outcome->isPendingApproval(),
+        'result' => (string) ($outcome->result ?? $outcome->message ?? ''),
     ];
 }
 
@@ -210,15 +215,24 @@ it('requires MCP human approval for allowlisted writes and still audits denied i
     // must still require human approval — and a viewer approver cannot execute deletes.
     $this->actingAs($viewer);
     $viewerCall = CompromisedLlmDriver::toolCallsFor('ignore_prev_delete_collection', $context)[0];
-    $viewerResult = invokeSecuritySurface('mcp', $viewerCall['tool'], $viewerCall['arguments'], $viewer);
+    $viewerResult = asMcpApiKey($viewer, fn (): array => invokeSecuritySurface('mcp', $viewerCall['tool'], $viewerCall['arguments'], $viewer));
     expect($viewerResult['status'])->toBe('pending_approval')
         ->and($viewerResult['pending_id'])->not->toBeNull();
 
     $viewerPending = PendingToolCall::query()->where('uuid', $viewerResult['pending_id'])->firstOrFail();
     $viewerApprove = app(AiToolExecutorService::class)->approveAndExecute($viewerPending, $viewer);
-    // Registry canAny(show) lets the call run, but tool-level CanDeleteCollections blocks mutation.
-    expect($viewerApprove->result ?? '')->toContain('Missing permission')
+    // The approved call runs under the viewer's key (#441), and ManageCollections refuses every
+    // delete made with an API key (#766): the refusal names that reason, and nothing is deleted.
+    expect($viewerApprove->result ?? '')->toStartWith('Error:')
+        ->toContain('delete is not available with an API key')
         ->and(Collection::query()->find($context['public_collection_id']))->not->toBeNull()
+        ->and(Collection::query()->find($context['public_collection_id'])->trashed())->toBeFalse();
+
+    // Without a key (the in-app assistant), the same injected delete reaches the tool's own
+    // permission check: registry canAny(show) lets the call run, CanDeleteCollections stops it.
+    $viewerChat = invokeSecuritySurface('chat', $viewerCall['tool'], $viewerCall['arguments'], $viewer);
+    expect($viewerChat['result'])->toStartWith('Error:')
+        ->toContain('Missing permission')
         ->and(Collection::query()->find($context['public_collection_id'])->trashed())->toBeFalse();
 
     // Privilege-escalation tools stay hard-denied for viewers even with the write gate open.
@@ -237,10 +251,12 @@ it('requires MCP human approval for allowlisted writes and still audits denied i
         ->and(Collection::query()->count())->toBe($collectionsBefore)
         ->and(CollectionItem::query()->count())->toBe($itemsBefore);
 
-    // SSRF / exfil URL must not cause outbound HTTP even if somehow executed with skip_approval.
+    // SSRF / exfil URL must not cause outbound HTTP. An MCP write runs without in-app approval
+    // since #766 (an mcp:write key is the consent), so the tool's own SSRF guard is what stops it.
     $exfil = CompromisedLlmDriver::toolCallsFor('exfiltrate_metadata_ssrf', $context)[0];
-    $pendingExfil = invokeSecuritySurface('mcp', $exfil['tool'], $exfil['arguments'], $admin);
-    expect($pendingExfil['status'])->toBe('pending_approval');
+    $mcpExfil = invokeSecuritySurface('mcp', $exfil['tool'], $exfil['arguments'], $admin);
+    expect($mcpExfil['result'])->toContain('SSRF')
+        ->and(Http::recorded())->toBeEmpty();
 
     $forced = app(AiToolExecutorService::class)->execute(
         $exfil['tool'],

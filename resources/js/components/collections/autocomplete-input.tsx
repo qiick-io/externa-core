@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import type {
     ComponentProps,
     KeyboardEvent,
@@ -66,6 +66,8 @@ export function AutocompleteInput({
     ...inputProps
 }: AutocompleteInputProps) {
     const anchorRef = useRef<HTMLDivElement>(null);
+    // The combobox names the popup it controls (ARIA 1.2: aria-controls with aria-expanded).
+    const suggestionsPopupId = useId();
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const [highlightedValue, setHighlightedValue] = useState('');
     /** The suggestion list the user last moved through with keys or pointer. */
@@ -127,6 +129,7 @@ export function AutocompleteInput({
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={isOpen}
+            aria-controls={suggestionsPopupId}
             autoComplete="off"
             onChange={(event) => {
                 onChange?.(event);
@@ -172,25 +175,28 @@ export function AutocompleteInput({
                         }
                     }}
                 >
-                    <CommandList onPointerMove={() => markNavigated()}>
-                        <CommandGroup>
-                            {suggestions.map((suggestion) => (
-                                <CommandItem
-                                    key={suggestion.value}
-                                    value={suggestion.value}
-                                    onMouseDown={(event) =>
-                                        event.preventDefault()
-                                    }
-                                    onSelect={() => {
-                                        onSelectSuggestion(suggestion);
-                                        setOpen(false);
-                                    }}
-                                >
-                                    {suggestion.label}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
+                    {/* cmdk sets its own id on the listbox, so the combobox points at this wrapper. */}
+                    <div id={suggestionsPopupId}>
+                        <CommandList onPointerMove={() => markNavigated()}>
+                            <CommandGroup>
+                                {suggestions.map((suggestion) => (
+                                    <CommandItem
+                                        key={suggestion.value}
+                                        value={suggestion.value}
+                                        onMouseDown={(event) =>
+                                            event.preventDefault()
+                                        }
+                                        onSelect={() => {
+                                            onSelectSuggestion(suggestion);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        {suggestion.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </div>
                 </PopoverContent>
             </Popover>
         </Command>

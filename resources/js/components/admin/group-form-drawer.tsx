@@ -87,7 +87,7 @@ export function GroupFormDrawer({
             form.reset();
             form.clearErrors();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the drawer opens or the edited group changes; Inertia useForm identity changes every render
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset only when the drawer opens or the edited group changes; Inertia useForm identity changes every render
     }, [editing, open]);
 
     const submit = (): void => {

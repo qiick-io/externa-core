@@ -1,29 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ListFilesRequest;
+use App\Http\Requests\Api\V1\StoreFileRequest;
+use App\Http\Requests\Api\V1\UpdateFileRequest;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
 use App\Services\Api\FilePermissionGuardService;
+use App\Services\Files\FilesDiskService;
 use App\Services\FileService;
-use App\Services\FileTransformService;
-use App\Support\Files\FilesDisk;
-use App\Support\Http\UserContentResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Gate;
 
 /**
- * Public CMS API: file list/metadata/content/transforms gated by file_permissions.
+ * Public CMS API: file list, metadata, upload, and delete gated by file_permissions.
+ *
+ * File bytes and image transforms are streamed by {@see FileContentController}.
  */
 class FileController extends Controller
 {
@@ -31,19 +32,11 @@ class FileController extends Controller
 
     public function __construct(
         private FileService $fileService,
-        private FileTransformService $fileTransformService,
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(ListFilesRequest $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Read);
-
-        $validated = $request->validate([
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'search' => ['nullable', 'string', 'max:255'],
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('api.max_per_page', 100))],
-        ]);
+        $validated = $request->validated();
 
         $maxPerPage = max(1, (int) config('api.max_per_page', 100));
         $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), $maxPerPage);
@@ -76,79 +69,16 @@ class FileController extends Controller
             abort(404);
         }
 
-        $this->authorizeFileRead($request, $file);
+        Gate::authorize('view', $file);
 
         return response()->json([
             'data' => (new FileResource($file))->toArray($request),
         ]);
     }
 
-    public function content(Request $request, int $id): StreamedResponse|Response
+    public function store(StoreFileRequest $request): JsonResponse
     {
-        $file = File::query()->find($id);
-        if ($file === null || ! $file->isFile() || ! $file->storage_path) {
-            abort(404);
-        }
-
-        $this->authorizeFileRead($request, $file);
-
-        if (! Storage::disk($file->disk)->exists($file->storage_path)) {
-            abort(404);
-        }
-
-        return UserContentResponse::fromDisk(
-            Storage::disk($file->disk),
-            $file->storage_path,
-            $file->downloadFilename(),
-            $file->mime_type,
-            [
-                'Cache-Control' => 'private, max-age=3600',
-            ],
-        );
-    }
-
-    public function transform(Request $request, int $id, string $key): StreamedResponse|Response
-    {
-        $file = File::query()->find($id);
-        if ($file === null || ! $this->fileTransformService->isImage($file)) {
-            abort(404);
-        }
-
-        $this->authorizeFileRead($request, $file);
-
-        try {
-            if (preg_match('/^size-(\d+)$/', $key, $matches) === 1) {
-                $cachePath = $this->fileTransformService->ensureThumbnail($file, (int) $matches[1]);
-            } else {
-                $cachePath = $this->fileTransformService->ensureTransform($file, key: $key);
-            }
-        } catch (\Throwable) {
-            abort(404);
-        }
-
-        $transformMime = $this->fileTransformService->mimeForPath($cachePath);
-
-        return UserContentResponse::fromDisk(
-            Storage::disk($file->disk),
-            $cachePath,
-            basename($cachePath),
-            $transformMime,
-            [
-                'Cache-Control' => 'private, max-age=86400',
-            ],
-        );
-    }
-
-    public function store(Request $request): JsonResponse
-    {
-        $this->authorizeFile($request, FilePermissionActionEnum::Create);
-
-        $validated = $request->validate([
-            'file' => ['required', 'file'],
-            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $upload */
         $upload = $validated['file'];
@@ -156,7 +86,7 @@ class FileController extends Controller
         $file = $this->fileService->uploadFile(
             $upload,
             isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
-            $validated['disk'] ?? FilesDisk::default(),
+            $validated['disk'] ?? FilesDiskService::default(),
             $validated['name'] ?? null,
         );
 
@@ -165,24 +95,10 @@ class FileController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateFileRequest $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Update);
-
-        $file = File::query()->find($id);
-        if ($file === null) {
-            abort(404);
-        }
-
-        $validated = $request->validate([
-            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
-            'location' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'download_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'focal_point_x' => ['sometimes', 'nullable', 'numeric', 'between:0,1'],
-            'focal_point_y' => ['sometimes', 'nullable', 'numeric', 'between:0,1'],
-            'name' => ['sometimes', 'string', 'max:255'],
-        ]);
+        $file = $request->targetFile();
+        $validated = $request->validated();
 
         if (array_key_exists('name', $validated) && $validated['name'] !== $file->name) {
             $file = $this->fileService->rename($file, $validated['name']);
@@ -200,7 +116,7 @@ class FileController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Delete);
+        Gate::authorize('delete', File::class);
 
         $file = File::query()->find($id);
         if ($file === null) {

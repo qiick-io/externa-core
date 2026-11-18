@@ -150,9 +150,23 @@ export default function ChatHubPage({
         }
     }, [loadThreads, cacheKey]);
 
-    useEffect(() => {
+    const [previousRouteFilters, setPreviousRouteFilters] = useState({
+        tabProp,
+        qProp,
+    });
+
+    // Adopt the tab and query from a new visit during render (React's "adjust
+    // state on prop change" pattern); the chat store is synced in the effect below.
+    if (
+        previousRouteFilters.tabProp !== tabProp ||
+        previousRouteFilters.qProp !== qProp
+    ) {
+        setPreviousRouteFilters({ tabProp, qProp });
         setTab(tabProp);
         setQ(qProp);
+    }
+
+    useEffect(() => {
         setHubTab(tabProp);
         setHubQuery(qProp);
     }, [tabProp, qProp, setHubTab, setHubQuery]);

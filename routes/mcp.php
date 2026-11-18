@@ -6,7 +6,8 @@ declare(strict_types=1);
  * Optional first-party MCP streamable HTTP endpoint (#121).
  *
  * Disabled by default (`AI_MCP_ENABLED`). Auth: owned API key with mcp:read
- * (Bearer) or session user. OAuth/Passport is not wired in this MVP.
+ * (Bearer); failed attempts are limited per IP in the auth middleware. OAuth/Passport
+ * is not wired in this MVP.
  */
 
 use App\Http\Middleware\AuthenticateMcpRequestMiddleware;

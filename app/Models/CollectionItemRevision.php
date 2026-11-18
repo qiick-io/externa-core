@@ -36,11 +36,17 @@ class CollectionItemRevision extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<CollectionItem, $this>
+     */
     public function item(): BelongsTo
     {
         return $this->belongsTo(CollectionItem::class, 'item_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

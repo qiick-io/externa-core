@@ -66,7 +66,28 @@ return [
     'webhook_token_previous' => env('AI_WEBHOOK_TOKEN_PREVIOUS'),
     'webhook_token_previous_expires_at' => env('AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT'),
 
+    /*
+    | Per-user daily budget (#275), counted from midnight in the app timezone. 0 = off.
+    | The prompt cap and the token budget cover the chat and field translation. The `ai`
+    | rate limiter counts chat requests per minute and per day (per day 0 = off).
+    */
     'daily_prompt_limit' => (int) env('AI_DAILY_PROMPT_LIMIT', 0),
+    'daily_token_budget' => (int) env('AI_DAILY_TOKEN_BUDGET', 0),
+
+    'rate_limit' => [
+        'per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 30),
+        'per_day' => (int) env('AI_RATE_LIMIT_PER_DAY', 0),
+    ],
+
+    /*
+    | AI drafts for collection items (#210): off by default. The model falls back to the
+    | default provider's text model when empty; max_tokens caps one draft response.
+    */
+    'item_drafts' => [
+        'enabled' => (bool) env('AI_ITEM_DRAFTS', false),
+        'model' => env('AI_ITEM_DRAFTS_MODEL'),
+        'max_tokens' => (int) env('AI_ITEM_DRAFTS_MAX_TOKENS', 2000),
+    ],
 
     'embeddings' => [
         'enabled' => (bool) env('AI_EMBEDDINGS_ENABLED', false),
@@ -75,8 +96,14 @@ return [
     'mcp' => [
         'enabled' => (bool) env('AI_MCP_ENABLED', false),
         // When false, write/mutating MCP tools are not registered (even if AI_WRITE_TOOLS is on).
-        'write_enabled' => (bool) env('AI_MCP_WRITE_ENABLED', false),
+        // On by default (#766): an `mcp:write` key is the user's consent to MCP writes.
+        'write_enabled' => (bool) env('AI_MCP_WRITE_ENABLED', true),
+        // Stricter opt-in: park every MCP write for in-app approval, not only destructive ones.
+        // For installs whose keys drive headless agents, where no MCP client asks before a call.
+        'write_requires_approval' => (bool) env('AI_MCP_WRITE_REQUIRES_APPROVAL', false),
         'rate_limit_per_minute' => (int) env('AI_MCP_RATE_LIMIT_PER_MINUTE', 60),
+        // Failed authentications per IP per minute before /mcp answers 429 (#441).
+        'auth_failures_per_minute' => (int) env('AI_MCP_AUTH_FAILURES_PER_MINUTE', 20),
     ],
 
     /*
@@ -84,17 +111,29 @@ return [
     | Shared AI / MCP tool registry (#202 / #203)
     |--------------------------------------------------------------------------
     |
-    | Write / destructive tools are denied by default. The env kill switch
-    | (AI_WRITE_TOOLS / AI_TOOLS_WRITE_ENABLED) must be true AND the tool class
-    | must be listed in write_allow (env) and/or project setting ai.write_tools.
-    | Mutating MCP calls then require human approval (PendingToolCall).
+    | Write tools are on by default (#766). The env kill switch
+    | (AI_WRITE_TOOLS / AI_TOOLS_WRITE_ENABLED) turns every write off. The
+    | allowlist is write_allow (env) together with the project setting
+    | ai.write_tools; when neither is set, every write tool is allowed.
+    |
+    | Destructive actions (deleting items, collections, fields or files,
+    | emptying the trash, rolling back an AI turn, and every change to users,
+    | roles or groups) are off by default (AI_TOOLS_DESTRUCTIVE_ENABLED) and,
+    | once on, approved one call at a time. In-app writes ask the user first;
+    | MCP writes run for an `mcp:write` key unless ai.mcp.write_requires_approval
+    | is on, and destructive MCP calls always wait for approval (PendingToolCall).
     |
     */
 
     'tools' => [
         'enabled' => (bool) env('AI_TOOLS_ENABLED', true),
-        // AI_WRITE_TOOLS is the #203 kill switch; AI_TOOLS_WRITE_ENABLED kept for #202 compat.
-        'write_enabled' => (bool) env('AI_WRITE_TOOLS', env('AI_TOOLS_WRITE_ENABLED', false)),
+        // AI_WRITE_TOOLS is the #203 kill switch and wins when set; AI_TOOLS_WRITE_ENABLED (#202,
+        // the standard's name) applies otherwise. Kept as in 1.4.0 so no upgraded .env changes
+        // meaning: every install that had writes off stays off or is kept off by
+        // AI_TOOLS_WRITE_ENABLED=false.
+        'write_enabled' => (bool) env('AI_WRITE_TOOLS', env('AI_TOOLS_WRITE_ENABLED', true)),
+        'destructive_enabled' => (bool) env('AI_TOOLS_DESTRUCTIVE_ENABLED', false),
+        // Empty = every write tool (unless the ai.write_tools project setting narrows it).
         'write_allow' => array_values(array_filter(array_map(
             'trim',
             explode(',', (string) env('AI_TOOLS_WRITE_ALLOW', '')),

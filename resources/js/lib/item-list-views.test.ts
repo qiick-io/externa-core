@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { buildItemListQuery, itemRowTitle } from '@/lib/item-list-views';
 import type { ItemRow } from '@/types';
 

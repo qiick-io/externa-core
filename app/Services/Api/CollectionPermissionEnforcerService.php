@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Api;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -10,7 +13,6 @@ use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -28,12 +30,12 @@ class CollectionPermissionEnforcerService
     ) {}
 
     /**
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}|null
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}|null
      */
     public function resolveRules(Request $request, Collection $collection): ?array
     {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($access instanceof ApiAccessData) {
             $keyRules = $this->guard->rulesFor($access->roleId(), (int) $collection->id);
             $owner = $access->apiKey?->owner;
             if (! $owner instanceof User) {
@@ -115,7 +117,8 @@ class CollectionPermissionEnforcerService
     /**
      * Soft collection action check (API role grant ∩ key scopes, or admin user grant / Spatie-only).
      *
-     * For API keys, scopes only narrow the role: collection_slugs allowlist and read_only.
+     * For API keys, scopes only narrow the role: the collection_slugs allowlist and the
+     * `collections:read` / `collections:write` scope.
      * Relation includes and item readability share this gate via {@see isItemReadable()}.
      */
     public function allowsCollectionAction(
@@ -124,7 +127,7 @@ class CollectionPermissionEnforcerService
         CollectionPermissionActionEnum $action,
     ): bool {
         $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($access instanceof ApiAccessData) {
             if (! $this->guard->allows($access->roleId(), (int) $collection->id, $action)) {
                 return false;
             }
@@ -136,7 +139,7 @@ class CollectionPermissionEnforcerService
 
             if (
                 ! $apiKey->allowsCollectionSlug((string) $collection->slug)
-                || ! $apiKey->allowsAction($action)
+                || ! $apiKey->allowsCollectionAction($action)
             ) {
                 return false;
             }
@@ -197,17 +200,33 @@ class CollectionPermissionEnforcerService
 
     public function assertItemWritable(Request $request, Collection $collection, CollectionItem $item): void
     {
+        $denialMessage = $this->itemWriteDenialMessage($request, $collection, $item);
+        if ($denialMessage !== null) {
+            abort(403, $denialMessage);
+        }
+    }
+
+    /**
+     * Soft write check behind {@see assertItemWritable()}: the 403 message, or null when the item is writable.
+     *
+     * ACL-scoped actors without rules for the collection fail closed; everyone else must keep
+     * the item inside their item_filter.
+     */
+    public function itemWriteDenialMessage(Request $request, Collection $collection, CollectionItem $item): ?string
+    {
         $rules = $this->resolveRules($request, $collection);
         if ($rules === null) {
-            $this->abortIfAclScopedWithoutRules($request);
-
-            return;
+            return $this->isAclScopedActor($request)
+                ? __('This action is unauthorized for the collection.')
+                : null;
         }
 
         $data = $this->assembler->assemble($item);
         if (! $this->rulesService->isMatchingMergedItem($rules, $data)) {
-            abort(403, __('This item is outside your permission filter.'));
+            return __('This item is outside your permission filter.');
         }
+
+        return null;
     }
 
     /**
@@ -299,15 +318,23 @@ class CollectionPermissionEnforcerService
      */
     private function abortIfAclScopedWithoutRules(Request $request): void
     {
-        $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
+        if ($this->isAclScopedActor($request)) {
             abort(403, __('This action is unauthorized for the collection.'));
+        }
+    }
+
+    /**
+     * API role actors, and admin users holding at least one collection_permissions grant.
+     */
+    private function isAclScopedActor(Request $request): bool
+    {
+        if ($request->attributes->get('apiAccess') instanceof ApiAccessData) {
+            return true;
         }
 
         $user = $request->user();
-        if ($user instanceof User && $this->userHasAnyCollectionGrant($user)) {
-            abort(403, __('This action is unauthorized for the collection.'));
-        }
+
+        return $user instanceof User && $this->userHasAnyCollectionGrant($user);
     }
 
     private function userHasAnyCollectionGrant(User $user): bool
@@ -325,9 +352,9 @@ class CollectionPermissionEnforcerService
     /**
      * Field ACL ∩ item_filter: empty fields map = unrestricted.
      *
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $a
-     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $b
-     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $a
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}  $b
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: array<string, mixed>|null}
      */
     private function intersectNormalizedRules(array $a, array $b): array
     {

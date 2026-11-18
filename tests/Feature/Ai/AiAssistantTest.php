@@ -26,6 +26,9 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => [
@@ -1218,6 +1221,30 @@ test('conversation truncate is forbidden for foreign conversations', function ()
     $this->actingAs($intruder)
         ->postJson(route('ai.conversations.truncate', $conversationId), [
             'from_message_id' => $messageId,
+        ])
+        ->assertNotFound();
+});
+
+test('conversation truncate answers 404 for foreign conversations before validating the payload', function () {
+    $owner = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    $intruder = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+
+    $conversationId = (string) Str::uuid7();
+
+    Conversation::query()->create([
+        'id' => $conversationId,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
+        'title' => 'Private',
+    ]);
+
+    $this->actingAs($intruder)
+        ->postJson(route('ai.conversations.truncate', $conversationId), [
+            'from_message_id' => 'not-a-uuid',
         ])
         ->assertNotFound();
 });

@@ -7,8 +7,6 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\File;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 
 /**
  * Batch-resolve relation/file labels (and nested 1-level values) for item list rows.
@@ -19,8 +17,8 @@ class CollectionListDisplayEnricherService
 
     public function __construct(
         private CollectionItemOptionsService $optionsService,
-        private CollectionItemDataAccessor $itemDataAccessor,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionItemDataAccessorService $itemDataAccessor,
+        private CollectionLocaleResolverService $localeResolver,
     ) {}
 
     /**

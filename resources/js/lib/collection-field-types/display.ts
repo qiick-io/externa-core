@@ -1,5 +1,6 @@
 import { fieldTypeNeedsOptions, fieldTypeNeedsTreeOptions } from './catalog';
 import type { FieldOptionRow, FieldTreeOptionRow } from './catalog';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 function settingsFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1';
@@ -380,8 +381,9 @@ export function parseValidationRules(
         .filter((entry) => entry && typeof entry === 'object')
         .map((entry) => {
             const rule = entry as { operator?: unknown; value?: unknown };
-            const operator = String(
-                rule.operator ?? '',
+            const operator = scalarToString(
+                rule.operator,
+                '',
             ) as FieldValidationOperator;
 
             if (!allowed.has(operator)) {
@@ -407,7 +409,7 @@ export function parseValidationRules(
                         operator === 'min' ||
                         operator === 'max'
                             ? Number(value)
-                            : String(value),
+                            : scalarToString(value),
                 };
             }
 
@@ -605,7 +607,7 @@ export function flattenSettingsForForm(
             return;
         }
 
-        entries.push({ name: base, value: String(value) });
+        entries.push({ name: base, value: scalarToString(value) });
     };
 
     for (const [key, value] of Object.entries(settings)) {

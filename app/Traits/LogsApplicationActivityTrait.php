@@ -14,10 +14,6 @@ trait LogsApplicationActivityTrait
 
     /**
      * Configure Spatie activity-log options for the using model.
-
-     *
-
-     * @return \Spatie\Activitylog\LogOptions
      */
     public function getActivitylogOptions(): LogOptions
     {

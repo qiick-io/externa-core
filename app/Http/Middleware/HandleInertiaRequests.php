@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Enums\PermissionEnum;
+use App\Services\AppVersionService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetricsService;
@@ -54,18 +57,8 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
-            'name' => $projectSettings->displayName(),
-            // ponytail: composer.json is the single version source; package.json mirrors it for npm tooling
-            'appVersion' => once(function (): string {
-                $composer = json_decode(
-                    (string) file_get_contents(base_path('composer.json')),
-                    true,
-                );
-
-                return is_array($composer) && is_string($composer['version'] ?? null)
-                    ? $composer['version']
-                    : 'dev';
-            }),
+            'name' => $projectSettings->general()->displayName(),
+            'appVersion' => app(AppVersionService::class)->current(),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user ? $permissionResolver->permissionsFor($user) : [],
@@ -75,9 +68,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'availableLocales' => config('i18n.available_locales', ['en' => 'English']),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'collectionLocales' => $projectSettings->contentLocales(),
-            'collectionLocaleMeta' => $projectSettings->contentLocaleMeta(),
-            'defaultContentLocale' => $projectSettings->defaultContentLocale(),
+            'collectionLocales' => $projectSettings->localization()->contentLocales(),
+            'collectionLocaleMeta' => $projectSettings->localization()->contentLocaleMeta(),
+            'defaultContentLocale' => $projectSettings->localization()->defaultContentLocale(),
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
@@ -120,7 +113,7 @@ class HandleInertiaRequests extends Middleware
                             'id' => $hook->id,
                             'name' => $hook->name,
                         ],
-                        $projectSettings->deployHooks(),
+                        $projectSettings->integrations()->deployHooks(),
                     )
                     : [];
 
@@ -135,6 +128,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn (): mixed => $request->session()->get('success'),
                 'error' => fn (): mixed => $request->session()->get('error'),
+                'warning' => fn (): mixed => $request->session()->get('warning'),
                 'plain_text_api_key' => fn (): mixed => $request->session()->get('plain_text_api_key'),
             ],
         ];

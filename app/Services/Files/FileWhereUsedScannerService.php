@@ -5,7 +5,7 @@ namespace App\Services\Files;
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
 use App\Models\CollectionItemValue;
-use App\Support\Collections\BlocksFieldSchema;
+use App\Services\Collections\BlocksFieldSchemaService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +20,7 @@ class FileWhereUsedScannerService
     private const CACHE_SECONDS = 30;
 
     public function __construct(
-        private BlocksFieldSchema $blocksFieldSchema,
+        private BlocksFieldSchemaService $blocksFieldSchema,
     ) {}
 
     /**

@@ -1,0 +1,24 @@
+<?php
+
+/*
+ * PHPStan stub for the laravel/ai Conversation model (#601).
+ *
+ * The model resolves its table name from config at runtime, so Larastan cannot read its columns
+ * from the migrations. Stub validation only sees PHP core and the stubs themselves, so the
+ * timestamps use DateTimeInterface (they are CarbonImmutable at runtime through
+ * Date::use(CarbonImmutable::class)); `pinned_at` has no cast on the vendor model, so it reads
+ * back as a string.
+ */
+
+namespace Laravel\Ai\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * @property string $id
+ * @property string|null $title
+ * @property \DateTimeInterface|string|null $pinned_at
+ * @property \DateTimeInterface|null $created_at
+ * @property \DateTimeInterface|null $updated_at
+ */
+class Conversation extends Model {}

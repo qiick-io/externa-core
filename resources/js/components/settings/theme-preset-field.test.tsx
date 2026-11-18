@@ -9,7 +9,7 @@ import {
     expect,
     it,
     vi,
-} from 'vitest';
+} from 'vite-plus/test';
 import { ThemePresetField } from '@/components/settings/theme-preset-field';
 import type { ThemePresetCatalogItem, ThemePresetSlug } from '@/types';
 
@@ -18,8 +18,8 @@ vi.mock('react-i18next', () => ({
         t: (key: string) => {
             const translations: Record<string, string> = {
                 'settings.appearance.themePresetTitle': 'Theme preset',
-                'settings.appearance.themePresetTeal': 'Teal (default)',
-                'settings.appearance.themePresetRose': 'Rose',
+                'settings.appearance.themePresetOttanio': 'Ottanio',
+                'settings.appearance.themePresetRobbia': 'Robbia',
             };
 
             return translations[key] ?? key;
@@ -29,15 +29,15 @@ vi.mock('react-i18next', () => ({
 
 const catalog: ThemePresetCatalogItem[] = [
     {
-        slug: 'teal',
-        name: 'Teal (default)',
+        slug: 'ottanio',
+        name: 'settings.appearance.themePresetOttanio',
         aiOverride: false,
         swatchLight: '#0E7C86',
         swatchDark: '#2CB1BC',
     },
     {
-        slug: 'rose',
-        name: 'Rose',
+        slug: 'robbia',
+        name: 'settings.appearance.themePresetRobbia',
         aiOverride: false,
         swatchLight: '#AF3774',
         swatchDark: '#F07AAE',
@@ -93,34 +93,41 @@ afterAll(() => {
 describe('ThemePresetField', () => {
     it('shows the saved preset as checked and submits it as theme_preset', () => {
         render(
-            <ThemePresetFieldHarness initialValue="rose" onChange={vi.fn()} />,
+            <ThemePresetFieldHarness
+                initialValue="robbia"
+                onChange={vi.fn()}
+            />,
         );
 
         expect(
             screen.getByRole('radiogroup', { name: 'Theme preset' }),
         ).toBeInTheDocument();
-        expect(screen.getByRole('radio', { name: 'Rose' })).toBeChecked();
+        expect(screen.getByRole('radio', { name: 'Robbia' })).toBeChecked();
         expect(
             new FormData(screen.getByTestId('appearance-form')).get(
                 'theme_preset',
             ),
-        ).toBe('rose');
+        ).toBe('robbia');
     });
 
     it('names every preset radio after its visible preset name', () => {
         render(
-            <ThemePresetFieldHarness initialValue="teal" onChange={vi.fn()} />,
+            <ThemePresetFieldHarness
+                initialValue="ottanio"
+                onChange={vi.fn()}
+            />,
         );
 
         const radios = screen.getAllByRole('radio');
 
         expect(radios).toHaveLength(catalog.length);
-        expect(
-            screen.getByRole('radio', { name: 'Teal (default)' }),
-        ).toHaveAttribute('aria-labelledby', 'theme-preset-teal-name');
-        expect(screen.getByRole('radio', { name: 'Rose' })).toHaveAttribute(
+        expect(screen.getByRole('radio', { name: 'Ottanio' })).toHaveAttribute(
             'aria-labelledby',
-            'theme-preset-rose-name',
+            'theme-preset-ottanio-name',
+        );
+        expect(screen.getByRole('radio', { name: 'Robbia' })).toHaveAttribute(
+            'aria-labelledby',
+            'theme-preset-robbia-name',
         );
 
         for (const radio of radios) {
@@ -128,23 +135,40 @@ describe('ThemePresetField', () => {
         }
     });
 
+    it('shows the translated preset name, never the raw key from the server', () => {
+        render(
+            <ThemePresetFieldHarness
+                initialValue="ottanio"
+                onChange={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByText('Ottanio')).toBeInTheDocument();
+        expect(
+            screen.queryByText('settings.appearance.themePresetOttanio'),
+        ).not.toBeInTheDocument();
+    });
+
     it('selects another preset when its card is chosen', async () => {
         const user = userEvent.setup();
         const onChange = vi.fn();
 
         render(
-            <ThemePresetFieldHarness initialValue="teal" onChange={onChange} />,
+            <ThemePresetFieldHarness
+                initialValue="ottanio"
+                onChange={onChange}
+            />,
         );
 
-        await user.click(screen.getByText('Rose'));
+        await user.click(screen.getByText('Robbia'));
 
-        expect(onChange).toHaveBeenLastCalledWith('rose');
-        expect(screen.getByRole('radio', { name: 'Rose' })).toBeChecked();
+        expect(onChange).toHaveBeenLastCalledWith('robbia');
+        expect(screen.getByRole('radio', { name: 'Robbia' })).toBeChecked();
         expect(
             new FormData(screen.getByTestId('appearance-form')).get(
                 'theme_preset',
             ),
-        ).toBe('rose');
+        ).toBe('robbia');
     });
 
     it('links the validation error to the radio group', () => {
@@ -152,7 +176,7 @@ describe('ThemePresetField', () => {
             <form>
                 <ThemePresetField
                     catalog={catalog}
-                    value="teal"
+                    value="ottanio"
                     onChange={vi.fn()}
                     error="The selected theme preset is invalid."
                 />

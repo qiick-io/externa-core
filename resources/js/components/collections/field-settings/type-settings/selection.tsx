@@ -11,6 +11,7 @@ import {
     parseSelectFieldSettings,
 } from '@/lib/collection-field-types';
 import type { TranslatedText } from '@/lib/collection-field-types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 type SelectionSettingsProps = {
     fieldType: string;
@@ -58,7 +59,7 @@ export function SelectionSettings({
     }
 
     if (fieldType === 'date') {
-        const dateMode = String(settings?.date_mode ?? 'datetime');
+        const dateMode = scalarToString(settings?.date_mode, 'datetime');
 
         return (
             <div className="space-y-6">
@@ -251,7 +252,10 @@ export function SelectionSettings({
                 <NativeSelect
                     id="value_combining"
                     name="settings[value_combining]"
-                    defaultValue={String(settings?.value_combining ?? 'all')}
+                    defaultValue={scalarToString(
+                        settings?.value_combining,
+                        'all',
+                    )}
                     className="w-full"
                 >
                     <option value="all">

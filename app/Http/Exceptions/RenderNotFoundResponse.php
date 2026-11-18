@@ -5,19 +5,19 @@ namespace App\Http\Exceptions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Support\Auth\HomePath;
+use App\Services\Auth\HomePathService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Web 404s: guests → login; auth → Inertia shell or smart redirect for missing models.
  */
 final class RenderNotFoundResponse
 {
-    public static function render(NotFoundHttpException $exception, Request $request): ?Response
+    public static function render(HttpException $exception, Request $request): ?Response
     {
         if (self::shouldUseDefaultResponse($request)) {
             return null;
@@ -36,7 +36,7 @@ final class RenderNotFoundResponse
 
         return Inertia::render('errors/not-found', [
             'status' => 404,
-            'homeUrl' => HomePath::for($request->user()),
+            'homeUrl' => HomePathService::for($request->user()),
         ])->toResponse($request)->setStatusCode(404);
     }
 
@@ -66,7 +66,7 @@ final class RenderNotFoundResponse
     }
 
     private static function redirectForMissingModel(
-        NotFoundHttpException $exception,
+        HttpException $exception,
         Request $request,
     ): ?Response {
         $previous = $exception->getPrevious();

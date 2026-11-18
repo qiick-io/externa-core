@@ -2,6 +2,7 @@
 
 namespace App\Services\Collections;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
@@ -10,9 +11,6 @@ use App\Models\Role;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Api\FileFieldExpanderService;
-use App\Support\Api\ApiAccess;
-use App\Support\Collections\CollectionItemDataAccessor;
-use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
 
 /**
@@ -24,8 +22,8 @@ class ItemRolePreviewService
         private CollectionPermissionGuardService $guard,
         private CollectionPermissionEnforcerService $enforcer,
         private FileFieldExpanderService $fileFieldExpander,
-        private CollectionItemDataAccessor $dataAccessor,
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionItemDataAccessorService $dataAccessor,
+        private CollectionLocaleResolverService $localeResolver,
     ) {}
 
     /**
@@ -38,7 +36,7 @@ class ItemRolePreviewService
      */
     public function preview(Request $request, Collection $collection, CollectionItem $item, Role $role): array
     {
-        $access = new ApiAccess(
+        $access = new ApiAccessData(
             actor: $role->isPublic() ? 'public' : 'api_key',
             role: $role,
         );

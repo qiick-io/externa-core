@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { AdminFileRow } from '@/types/files';
 
 /**
@@ -13,10 +13,14 @@ export function useFilesSelection(
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [anchorId, setAnchorId] = useState<number | null>(null);
 
-    useEffect(() => {
+    const [selectionResetKey, setSelectionResetKey] = useState(resetKey);
+
+    // Reset during render when the key changes (React's "adjust state on prop change" pattern).
+    if (selectionResetKey !== resetKey) {
+        setSelectionResetKey(resetKey);
         setSelectedIds([]);
         setAnchorId(null);
-    }, [resetKey]);
+    }
 
     const selectedFiles = files.filter((file) => selectedIds.includes(file.id));
 

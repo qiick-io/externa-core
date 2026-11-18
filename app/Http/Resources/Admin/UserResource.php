@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -33,9 +34,10 @@ class UserResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'deleted_at' => $this->deleted_at?->toIso8601String(),
-            'roles' => $this->whenLoaded('roles', fn () => $this->roles->map(fn ($role) => [
-                'id' => $role->id,
-                'name' => $role->name,
+            // spatie/laravel-permission types roles() with the configured role model as plain Model.
+            'roles' => $this->whenLoaded('roles', fn (): array => $this->roles->map(fn (Model $role): array => [
+                'id' => $role->getKey(),
+                'name' => $role->getAttribute('name'),
             ])->values()->all()),
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($group) => [
                 'id' => $group->id,

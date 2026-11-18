@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PendingToolCallStatusEnum;
+use Carbon\CarbonImmutable;
 use Database\Factories\PendingToolCallFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,12 +24,13 @@ use Illuminate\Support\Str;
  * @property PendingToolCallStatusEnum $status
  * @property int|null $requested_by
  * @property int|null $resolved_by
- * @property Carbon $expires_at
- * @property Carbon|null $resolved_at
+ * @property CarbonImmutable $expires_at
+ * @property CarbonImmutable|null $resolved_at
  * @property string|null $result
  * @property string|null $decision_note
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property int|null $api_key_id
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 class PendingToolCall extends Model
 {
@@ -45,6 +47,7 @@ class PendingToolCall extends Model
         'arguments',
         'status',
         'requested_by',
+        'api_key_id',
         'resolved_by',
         'expires_at',
         'resolved_at',
@@ -80,6 +83,16 @@ class PendingToolCall extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /**
+     * The API key an MCP call came through; its role and scopes apply when the call runs.
+     *
+     * @return BelongsTo<ApiKey, $this>
+     */
+    public function apiKey(): BelongsTo
+    {
+        return $this->belongsTo(ApiKey::class);
     }
 
     /**

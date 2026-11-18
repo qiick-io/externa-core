@@ -76,3 +76,4 @@ tests/Browser/*.png
 
 # Accidental local/Swift build cache (never ship)
 .build/
+.vitest/

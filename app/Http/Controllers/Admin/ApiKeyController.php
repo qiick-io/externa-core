@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\PermissionEnum;
+use App\Actions\ApiKeys\CreateApiKeyAction;
+use App\Actions\ApiKeys\RevokeApiKeyAction;
+use App\Data\Api\ApiKeyData;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreApiKeyRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Resources\Admin\ApiKeyResource;
 use App\Models\ApiKey;
@@ -14,6 +17,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,12 +26,11 @@ use Inertia\Response;
  */
 class ApiKeyController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
     use ValidatesListPerPageTrait;
 
     public function index(Request $request): Response
     {
-        $this->authorizePermission(PermissionEnum::CanShowApiKeys->value);
+        abort_unless(Gate::allows('viewAny', ApiKey::class), 403);
 
         $keys = ApiKey::query()
             ->with(['role:id,name', 'owner:id,first_name,last_name,email'])
@@ -59,42 +62,27 @@ class ApiKeyController extends Controller
         ]);
     }
 
-    public function store(StoreApiKeyRequest $request): RedirectResponse
+    public function store(StoreApiKeyRequest $request, CreateApiKeyAction $createApiKeyAction): RedirectResponse
     {
-        $data = $request->validated();
-        $secret = ApiKey::generateSecret();
-        $creatorId = $request->user()?->id;
-        $ownerId = isset($data['owner_id']) ? (int) $data['owner_id'] : $creatorId;
-
-        ApiKey::query()->create([
-            'name' => $data['name'],
-            'key_prefix' => $secret['prefix'],
-            'key_hash' => $secret['hash'],
-            'role_id' => $data['role_id'],
-            'collection_slugs' => $data['collection_slugs'] ?? null,
-            'read_only' => (bool) ($data['read_only'] ?? false),
-            'files_scope' => $data['files_scope'] ?? 'all',
-            'scopes' => $data['scopes'] ?? null,
-            'ip_allowlist' => $data['ip_allowlist'] ?? null,
-            'rate_limit_per_minute' => $data['rate_limit_per_minute'] ?? null,
-            'expires_at' => $data['expires_at'] ?? null,
-            'created_by' => $creatorId,
-            'owner_id' => $ownerId,
-        ]);
+        /** @var User $creator */
+        $creator = $request->user();
+        $issuedApiKey = $createApiKeyAction->execute(ApiKeyData::fromValidated($creator, $request->validated()));
 
         // Flash then redirect so index can pull the one-time secret into props
-        $request->session()->flash('plain_text_api_key', $secret['plain']);
+        $request->session()->flash('plain_text_api_key', $issuedApiKey->plainTextKey);
 
         return redirect()
             ->route('api-keys.index')
             ->with('success', __('API key created.'));
     }
 
-    public function destroy(ApiKey $apiKey): RedirectResponse
+    public function destroy(Request $request, ApiKey $apiKey, RevokeApiKeyAction $revokeApiKeyAction): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanManageApiKeys->value);
+        abort_unless(Gate::allows('delete', $apiKey), 403);
 
-        $apiKey->forceFill(['revoked_at' => now()])->save();
+        /** @var User $actor */
+        $actor = $request->user();
+        $revokeApiKeyAction->execute($apiKey, $actor);
 
         return redirect()
             ->route('api-keys.index')

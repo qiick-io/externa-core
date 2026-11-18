@@ -2,6 +2,7 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Http\Responses\UserContentResponse;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
@@ -10,7 +11,6 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
-use App\Support\Http\UserContentResponse;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -115,7 +115,7 @@ test('item chat attachment routes succeed with can-show-chat and fail when chat 
         'sidebar_modules',
         $modules,
     );
-    expect(app(ProjectSettingsService::class)->isSidebarModuleEnabled('chat'))->toBeFalse();
+    expect(app(ProjectSettingsService::class)->general()->isSidebarModuleEnabled('chat'))->toBeFalse();
 
     $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
         'file' => secRealUpload('notes2.txt', "hello again\n"),
@@ -184,7 +184,7 @@ test('chat upload over default size cap is rejected', function () {
     ]);
     $this->actingAs($user);
 
-    expect(app(ProjectSettingsService::class)->chatMaxUploadBytes())->toBe(25 * 1024 * 1024);
+    expect(app(ProjectSettingsService::class)->files()->chatMaxUploadBytes())->toBe(25 * 1024 * 1024);
 
     $over = (25 * 1024 * 1024) + 1;
     $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [

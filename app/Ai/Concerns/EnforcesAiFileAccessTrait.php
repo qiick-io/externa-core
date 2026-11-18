@@ -1,50 +1,60 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Ai\Concerns;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\FilePermissionActionEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Models\File;
+use App\Policies\FilePolicy;
 use App\Services\Api\FilePermissionGuardService;
-use App\Support\Api\ApiAccess;
 use Illuminate\Database\Eloquent\Builder;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 
 /**
- * Apply the public Files API ACL ({@see AuthorizesFileAccessTrait}) inside AI / MCP tools.
+ * Apply the public Files API ACL ({@see FilePolicy}) inside AI / MCP tools.
  *
  * Only API-key actors (MCP bearer requests carrying `apiAccess`) are gated: role file ACL,
- * `read_private`, the key's `files_scope` / `read_only`, and the owner ceiling. Session
+ * `read_private`, the key's `files:read` / `files:write` scope, and the owner ceiling. Session
  * actors keep the Spatie file permissions the admin file manager uses. Returns English
  * `Error:` strings instead of HTTP aborts.
  */
 trait EnforcesAiFileAccessTrait
 {
-    use AuthorizesFileAccessTrait;
-
     /**
      * API access of the current MCP bearer request, or null for session actors.
      */
-    protected function aiRequestApiAccess(): ?ApiAccess
+    protected function aiRequestApiAccess(): ?ApiAccessData
     {
         $access = request()->attributes->get('apiAccess');
 
-        return $access instanceof ApiAccess ? $access : null;
+        return $access instanceof ApiAccessData ? $access : null;
     }
 
+    /**
+     * @throws InvalidArgumentException for `read_private`, which is a per-file check ({@see guardAiFileReadable()})
+     */
     protected function guardAiFileAction(FilePermissionActionEnum $action): ?string
     {
         if ($this->aiRequestApiAccess() === null) {
             return null;
         }
 
-        try {
-            $this->authorizeFile(request(), $action);
-        } catch (HttpExceptionInterface) {
-            return 'Error: This action is unauthorized for files.';
-        }
+        $ability = match ($action) {
+            FilePermissionActionEnum::Read => 'viewAny',
+            FilePermissionActionEnum::Create => 'create',
+            FilePermissionActionEnum::Update => 'update',
+            FilePermissionActionEnum::Delete => 'delete',
+            FilePermissionActionEnum::ReadPrivate => throw new InvalidArgumentException(
+                'read_private is checked per file: use guardAiFileReadable().',
+            ),
+        };
 
-        return null;
+        return Gate::inspect($ability, File::class)->allowed()
+            ? null
+            : 'Error: This action is unauthorized for files.';
     }
 
     /**
@@ -56,13 +66,7 @@ trait EnforcesAiFileAccessTrait
             return null;
         }
 
-        try {
-            $this->authorizeFileRead(request(), $file);
-        } catch (HttpExceptionInterface) {
-            return 'Error: File not found.';
-        }
-
-        return null;
+        return Gate::inspect('view', $file)->allowed() ? null : 'Error: File not found.';
     }
 
     /**

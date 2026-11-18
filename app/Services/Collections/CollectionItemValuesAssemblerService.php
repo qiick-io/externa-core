@@ -6,7 +6,6 @@ use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
-use App\Support\Collections\MapGeometry;
 use Illuminate\Support\Collection;
 
 /**
@@ -96,6 +95,6 @@ class CollectionItemValuesAssemblerService
             return $value;
         }
 
-        return MapGeometry::toGeoJson($value);
+        return MapGeometryService::toGeoJson($value);
     }
 }

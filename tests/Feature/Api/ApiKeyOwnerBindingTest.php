@@ -1,5 +1,6 @@
 <?php
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
@@ -11,7 +12,6 @@ use App\Models\User;
 use App\Services\Api\ApiKeyOwnerService;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Authorization\EffectivePermissionResolverService;
-use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Spatie\Activitylog\Models\Activity;
@@ -59,6 +59,7 @@ it('defaults owner_id to the creator when storing an API key', function (): void
     $managerRole->syncPermissions([
         PermissionEnum::CanShowApiKeys->value,
         PermissionEnum::CanManageApiKeys->value,
+        PermissionEnum::CanShowCollections->value,
     ]);
     $creator->syncRoles([$managerRole]);
 
@@ -66,6 +67,7 @@ it('defaults owner_id to the creator when storing an API key', function (): void
         ->post(route('api-keys.store'), [
             'name' => 'Partner key',
             'role_id' => $role->id,
+            'scopes' => ['collections:read'],
         ])
         ->assertRedirect(route('api-keys.index'));
 
@@ -382,9 +384,9 @@ it('partitions response cache factors by owner_id', function (): void {
         'owner_id' => null,
     ]);
 
-    $factorsA = (new ApiAccess('api_key', $role, $keyA))->responseCacheScopeFactors();
-    $factorsB = (new ApiAccess('api_key', $role, $keyB))->responseCacheScopeFactors();
-    $factorsLegacy = (new ApiAccess('api_key', $role, $keyLegacy))->responseCacheScopeFactors();
+    $factorsA = (new ApiAccessData('api_key', $role, $keyA))->responseCacheScopeFactors();
+    $factorsB = (new ApiAccessData('api_key', $role, $keyB))->responseCacheScopeFactors();
+    $factorsLegacy = (new ApiAccessData('api_key', $role, $keyLegacy))->responseCacheScopeFactors();
 
     expect($factorsA['api_key_scopes']['owner_id'])->toBe($ownerA->id)
         ->and($factorsB['api_key_scopes']['owner_id'])->toBe($ownerB->id)

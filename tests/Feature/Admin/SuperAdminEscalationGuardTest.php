@@ -12,6 +12,9 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->withoutVite();
@@ -94,6 +97,34 @@ test('group manager cannot edit or delete a group that grants super-admin', func
 
     expect($this->superAdminGroup->users()->count())->toBe(0)
         ->and($this->superAdminGroup->fresh()->trashed())->toBeFalse();
+});
+
+test('group manager cannot restore a group that grants super-admin, on the web or through AI', function () {
+    $restorer = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanShowGroups->value,
+        PermissionEnum::CanRestoreGroups->value,
+    ]);
+    $this->superAdminGroup->delete();
+    $this->actingAs($restorer);
+
+    $this->post(route('groups.restore', $this->superAdminGroup))->assertForbidden();
+    $aiRestore = (string) (new ManageGroups)->handle(new Request([
+        'action' => 'restore',
+        'group_id' => $this->superAdminGroup->id,
+    ]));
+
+    expect($aiRestore)->toContain('Only a super-admin can change a group that grants super-admin')
+        ->and($this->superAdminGroup->fresh()->trashed())->toBeTrue();
+
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole($this->superAdminRole);
+    $this->actingAs($superAdmin);
+
+    $this->post(route('groups.restore', $this->superAdminGroup))
+        ->assertRedirect(route('groups.index', ['trashed' => 1]));
+
+    expect($this->superAdminGroup->fresh()->trashed())->toBeFalse();
 });
 
 test('user manager can still assign ordinary roles', function () {

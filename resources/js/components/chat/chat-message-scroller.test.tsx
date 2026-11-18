@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),

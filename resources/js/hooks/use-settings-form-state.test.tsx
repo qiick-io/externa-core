@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { useSettingsFormState } from '@/hooks/use-settings-form-state';
 import { UnsavedChangesContext } from '@/hooks/use-unsaved-changes';
 import type { UnsavedChangesContextValue } from '@/hooks/use-unsaved-changes';
@@ -37,12 +37,16 @@ describe('useSettingsFormState', () => {
 
         expect(hook.result.current.isDirty).toBe(false);
 
-        act(() => hook.result.current.setForm({ name: 'Renamed' }));
+        act(() => {
+            hook.result.current.setForm({ name: 'Renamed' });
+        });
         expect(hook.result.current.form.name).toBe('Renamed');
         expect(hook.result.current.isDirty).toBe(true);
         expect(registrations.at(-1)?.isDirty()).toBe(true);
 
-        act(() => hook.result.current.markSaved());
+        act(() => {
+            hook.result.current.markSaved();
+        });
         expect(hook.result.current.isDirty).toBe(false);
         expect(hook.result.current.form.name).toBe('Renamed');
     });
@@ -50,8 +54,12 @@ describe('useSettingsFormState', () => {
     it('restores the initial form when the guard discards', () => {
         const { hook, registrations } = renderSettingsForm();
 
-        act(() => hook.result.current.setForm({ name: 'Draft' }));
-        act(() => registrations.at(-1)?.onDiscard?.());
+        act(() => {
+            hook.result.current.setForm({ name: 'Draft' });
+        });
+        act(() => {
+            registrations.at(-1)?.onDiscard?.();
+        });
 
         expect(hook.result.current.form.name).toBe('Externa');
         expect(hook.result.current.isDirty).toBe(false);

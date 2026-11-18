@@ -99,7 +99,7 @@ export function UserFormDrawer({
             form.reset();
             form.clearErrors();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- Inertia form identity is unstable
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- Inertia form identity is unstable
     }, [editing, open]);
 
     const submit = (): void => {

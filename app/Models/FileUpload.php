@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Traits\LogsApplicationActivityTrait;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * In-progress chunked upload session tracked until merge completes or expiry.
@@ -20,7 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $disk
  * @property int|null $parent_id
  * @property array<string, mixed>|null $chunks_info
- * @property Carbon $expires_at
+ * @property CarbonImmutable $expires_at
  * @property-read File|null $parent
  */
 class FileUpload extends Model

@@ -1,15 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
-use App\Enums\PermissionEnum;
-use App\Enums\RoleEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -17,25 +17,15 @@ use Illuminate\Validation\Rule;
  */
 class UpdateRoleRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-
     /**
      * Require permission to edit roles.
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanEditRoles->value);
-
         /** @var Role $role */
         $role = $this->route('role');
 
-        if ($role->name === RoleEnum::SuperAdmin->value && $this->input('name') !== RoleEnum::SuperAdmin->value) {
-            abort(403, __('The super-admin role cannot be renamed.'));
-        }
-
-        if ($role->isLockedSystemRole() && $this->filled('name') && $this->input('name') !== $role->name) {
-            abort(403, __('System roles cannot be renamed.'));
-        }
+        Gate::authorize('update', [$role, $this->filled('name') ? $this->input('name') : null]);
 
         return true;
     }

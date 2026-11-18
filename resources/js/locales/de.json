@@ -46,7 +46,8 @@
         "system": "System",
         "sort": "Sortieren",
         "collapse": "Einklappen",
-        "expand": "Ausklappen"
+        "expand": "Ausklappen",
+        "pageOf": "Seite {{page}} von {{total}}"
     },
     "picker": {
         "search": "Suchen…",
@@ -290,7 +291,10 @@
         "toDate": "Bis Datum",
         "removeRule": "Regel entfernen",
         "removeLocale": "Locale {{code}} entfernen",
-        "selectRow": "{{name}} auswählen"
+        "selectRow": "{{name}} auswählen",
+        "scrollableTable": "Scrollbare Tabelle",
+        "collapseSidebar": "Seitenleiste einklappen",
+        "expandSidebar": "Seitenleiste ausklappen"
     },
     "auth": {
         "login": {
@@ -412,7 +416,6 @@
             "owner": "Besitzer",
             "ownerHelp": "Berechtigungsobergrenze: der Schlüssel kann nicht mehr als dieser Benutzer. Standard: Sie.",
             "readOnly": "Nur Lesen (Create, Update und Delete blockieren)",
-            "readOnlyBadge": "nur lesen",
             "scopes": "Scopes",
             "filesScope": "Datei-Zugriff",
             "filesScopeHelp": "none = keine Files-API; read = nur Liste/Download; all = lesen+schreiben (weiterhin read-only und Rolle).",
@@ -731,12 +734,11 @@
             },
             "themePresetTitle": "Theme-Preset",
             "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
-            "themePresetTeal": "Teal (Standard)",
-            "themePresetBlue": "Blau",
-            "themePresetIndigo": "Indigo",
-            "themePresetViolet": "Violett",
-            "themePresetRose": "Rose",
-            "themePresetSlate": "Schiefer",
+            "themePresetOttanio": "Ottanio",
+            "themePresetIndaco": "Indaco",
+            "themePresetAmetista": "Ametista",
+            "themePresetRobbia": "Robbia",
+            "themePresetArdesia": "Ardesia",
             "customColorTitle": "Eigene Markenfarbe",
             "customColorDescription": "Optionaler Override für Primary. Leer lassen, um den gewählten Preset zu nutzen.",
             "clearCustomColor": "Eigene Farbe entfernen",
@@ -825,13 +827,43 @@
             "breadcrumb": "KI-Schreibwerkzeuge",
             "head": "KI-Schreibwerkzeuge",
             "title": "KI-Schreibwerkzeuge",
-            "description": "Wählen Sie, welche mutierenden KI-Tool-Klassen nach menschlicher Freigabe laufen dürfen. Der AI_WRITE_TOOLS-Kill-Switch muss aktiv sein.",
+            "description": "Wählen Sie, welche KI-Schreibwerkzeug-Klassen laufen dürfen; standardmäßig sind alle erlaubt. Destruktive Aktionen (Löschen, Benutzer, Rollen, Gruppen) brauchen zusätzlich AI_TOOLS_DESTRUCTIVE_ENABLED=true und werden einzeln freigegeben.",
             "killSwitchLabel": "Env-Kill-Switch",
-            "killSwitchOn": "aktiviert",
-            "killSwitchOff": "deaktiviert (Standard)",
-            "killSwitchHint": "Setzen Sie AI_WRITE_TOOLS=true (oder AI_TOOLS_WRITE_ENABLED=true) in der Umgebung, um Schreibwerkzeuge zuzulassen.",
+            "killSwitchOn": "aktiviert (Standard)",
+            "killSwitchOff": "deaktiviert",
+            "killSwitchHint": "Setzen Sie AI_TOOLS_WRITE_ENABLED=false in der Umgebung für einen schreibgeschützten Assistenten und MCP.",
             "ttlHint": "MCP-Freigaben laufen nach {{minutes}} Minuten ab. Tool-Audit-Einträge werden {{days}} Tage aufbewahrt.",
-            "save": "Speichern"
+            "save": "Speichern",
+            "models": {
+                "title": "Modelle",
+                "description": "Die Modelle dieser Installation, gesetzt in der Umgebung (config/ai.php). Modelle außerhalb des Katalogs, etwa LOCAL_AI_MODEL, bleiben erlaubt und gelten als nicht verifiziert. php artisan ai:models zeigt dieselbe Liste.",
+                "catalogTitle": "Modellkatalog",
+                "catalogDescription": "Ausgewählte Modelle je Anbieter. Bevorzuge ein empfohlenes Modell: kleine Modelle melden mitunter Werkzeugaufrufe, die nie ausgeführt wurden.",
+                "deprecatedWarning": "Veraltetes KI-Modell in Verwendung: {{models}}. Wechsle zu einem empfohlenen Modell.",
+                "usage": "Verwendet für",
+                "provider": "Anbieter",
+                "model": "Modell",
+                "capabilities": "Fähigkeiten",
+                "statusLabel": "Status",
+                "usages": {
+                    "assistant": "Assistent",
+                    "default": "Standardtext",
+                    "translate": "Feldübersetzung",
+                    "item_drafts": "Eintragsentwürfe",
+                    "embeddings": "Embeddings"
+                },
+                "capability": {
+                    "tools": "Werkzeuge",
+                    "vision": "Bildverständnis",
+                    "embeddings": "Embeddings"
+                },
+                "status": {
+                    "recommended": "Empfohlen",
+                    "supported": "Unterstützt",
+                    "deprecated": "Veraltet",
+                    "unverified": "Nicht verifiziert"
+                }
+            }
         }
     },
     "collections": {
@@ -982,9 +1014,26 @@
             "copy": "Als Kopie speichern",
             "discard": "Alle Änderungen verwerfen"
         },
+        "aiDraft": {
+            "button": "KI-Entwurf",
+            "title": "Mit KI entwerfen",
+            "description": "Beschreibe den Eintrag. Die KI schlägt Werte für die Textfelder vor; du prüfst sie, füllst das Formular und speicherst wie gewohnt.",
+            "prompt": "Briefing",
+            "promptPlaceholder": "z. B. Eine News zum Frühjahrs-Release, freundlicher Ton",
+            "locale": "Sprache",
+            "generate": "Erstellen",
+            "regenerate": "Erneut erstellen",
+            "preview": "Vorgeschlagene Werte",
+            "empty": "Die KI hat keine verwendbaren Werte vorgeschlagen. Versuche ein ausführlicheres Briefing.",
+            "dropped": "Weggelassen (entspricht nicht den Feldregeln)",
+            "apply": "Formular füllen",
+            "applied": "Entwurf ins Formular übernommen. Prüfe ihn und speichere, um ihn zu behalten.",
+            "error": "Der KI-Entwurf konnte nicht erstellt werden."
+        },
         "itemToolbar": {
             "previewAs": "Vorschau als…",
             "livePreview": "Live Preview",
+            "livePreviewUnsaved": "Live-Vorschau (ungespeichert, es wird nichts angelegt)",
             "livePreviewError": "Live Preview konnte nicht geöffnet werden. Prüfe die Vorschau-URL der Collection.",
             "livePreviewAt": "Vorschau zum…",
             "livePreviewAtHint": "Zeigt den Eintrag so, wie er bei geplanten Änderungen live aussehen wird (max. 90 Tage voraus).",
@@ -1010,7 +1059,10 @@
             "approved": "Freigegeben",
             "rejected": "Abgelehnt",
             "approveBeforePublish": "Vor dem Veröffentlichen freigeben",
-            "actions": "Aktionen"
+            "actions": "Aktionen",
+            "publishedReadOnly": "Die veröffentlichte Version ist schreibgeschützt. Wechsle zum Entwurf, um zu bearbeiten, und veröffentliche dann.",
+            "revisionNeedsDraft": "Wechsle zum Entwurf, bevor du eine Revision anwendest.",
+            "revisionApplied": "Revision in das Formular übernommen. Speichere, um sie zu behalten."
         },
         "itemPresence": {
             "viewing": "{{count}} weitere(r) Bearbeiter sieht zu",
@@ -1627,7 +1679,9 @@
                 "key": "Schlüssel",
                 "nameHint": "Übersetzte Beschriftung in der Admin-Oberfläche und im Eintragsformular.",
                 "note": "Hinweis",
-                "noteHint": "Optionaler Hilfetext, der im Eintragsformular unter dem Feld angezeigt wird."
+                "noteHint": "Optionaler Hilfetext, der im Eintragsformular unter dem Feld angezeigt wird.",
+                "keyDuplicate": "In dieser Collection gibt es bereits ein Feld mit diesem Schlüssel.",
+                "updateSubtitle": "Einstellungen für {{name}} aktualisieren."
             },
             "blocks": {
                 "blockTypes": "Blocktypen",
@@ -1694,7 +1748,8 @@
                 "description": "Schreibgeschützte Ansicht der Felddaten nach Collection-ACL und Dateizugriffsregeln (einschließlich <code>access: denied</code>). Kein visueller Editor.",
                 "role": "Rolle",
                 "chooseRole": "Rolle wählen",
-                "notReadable": "Für diese Rolle nicht lesbar."
+                "notReadable": "Für diese Rolle nicht lesbar.",
+                "failed": "Vorschau fehlgeschlagen."
             },
             "compare": {
                 "title": "Revision vergleichen",
@@ -2060,6 +2115,11 @@
         "assistantMessagePdfTitle": "Assistentennachricht",
         "callingTool": "{{tool}} wird aufgerufen…",
         "importStatus": "Import {{status}}: {{progress}} — {{message}}",
+        "dailyUsage": {
+            "label": "Heute: {{usage}}",
+            "prompts": "{{used}} / {{limit}} Prompts",
+            "tokens": "{{used}} / {{limit}} Tokens"
+        },
         "importState": {
             "queued": "in Warteschlange",
             "running": "läuft",
@@ -2918,5 +2978,10 @@
         "goToPage": "Zu Seite {{page}}",
         "goToPreviousPage": "Zur vorherigen Seite",
         "goToNextPage": "Zur nächsten Seite"
+    },
+    "dateRangePicker": {
+        "startTime": "Startzeit",
+        "endTime": "Endzeit",
+        "apply": "Anwenden"
     }
 }

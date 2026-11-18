@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
@@ -7,6 +9,7 @@ use App\Models\User;
 use App\Services\Ai\AiConversationMessagePresenterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Ai\Models\Conversation;
@@ -35,16 +38,14 @@ class AiPageController extends Controller
      */
     public function show(Request $request, string $conversation): Response
     {
-        /** @var User $user */
-        $user = $request->user();
+        $selected = Conversation::query()->find($conversation);
 
-        $owned = $user->conversations()
-            ->where('id', $conversation)
-            ->exists();
+        abort_unless(
+            $selected instanceof Conversation && Gate::allows('view', $selected),
+            HttpResponse::HTTP_NOT_FOUND,
+        );
 
-        abort_unless($owned, HttpResponse::HTTP_NOT_FOUND);
-
-        return $this->renderPage($request, $conversation);
+        return $this->renderPage($request, $selected);
     }
 
     /**
@@ -52,7 +53,7 @@ class AiPageController extends Controller
      *
      * ponytail: keep the open chat visible even when it falls outside page 1 of the sidebar list.
      */
-    private function renderPage(Request $request, ?string $selectedId): Response
+    private function renderPage(Request $request, ?Conversation $selected): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -65,16 +66,9 @@ class AiPageController extends Controller
             ->paginate(25)
             ->through(fn (Conversation $conversation): array => $this->conversationSummary($conversation));
 
-        $selected = null;
         $messages = [];
 
-        if (is_string($selectedId) && $selectedId !== '') {
-            $selected = $user->conversations()
-                ->where('id', $selectedId)
-                ->first(['id', 'title', 'pinned_at', 'created_at', 'updated_at']);
-
-            abort_if($selected === null, HttpResponse::HTTP_NOT_FOUND);
-
+        if ($selected !== null) {
             $rows = ConversationMessage::query()
                 ->where('conversation_id', $selected->id)
                 ->orderBy('created_at')

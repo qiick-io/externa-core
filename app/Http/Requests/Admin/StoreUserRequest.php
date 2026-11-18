@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
+use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
@@ -16,7 +18,6 @@ use Illuminate\Validation\Validator;
  */
 class StoreUserRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
     use GuardsSuperAdminGrantsTrait;
 
     /**
@@ -24,7 +25,7 @@ class StoreUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanCreateUsers->value);
+        abort_unless(Gate::allows('create', User::class), 403);
 
         return true;
     }

@@ -52,11 +52,24 @@ beforeEach(function (): void {
 });
 
 /**
+ * Loads the axe-core build bundled with pest-plugin-browser. Since plugin v5, axe is only
+ * injected inside `assertNoAccessibilityIssues()`, and these tests call `window.axe.run`
+ * directly to run four specific rules.
+ */
+function injectBundledAxe($page): void
+{
+    if ($page->script('typeof window.axe === "undefined"') === true) {
+        $page->script((string) file_get_contents(base_path('vendor/pestphp/pest-plugin-browser/resources/js/axe.min.js')));
+    }
+}
+
+/**
  * @return list<array{id: string, nodes: list<string>}>
  */
 function axeRuleViolations($page): array
 {
     $page->wait(0.5);
+    injectBundledAxe($page);
 
     return $page->script(<<<'JS'
 (async () => {

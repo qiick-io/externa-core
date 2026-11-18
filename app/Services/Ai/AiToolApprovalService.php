@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Ai;
 
 use App\Enums\PendingToolCallStatusEnum;
+use App\Models\ApiKey;
 use App\Models\PendingToolCall;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -23,6 +24,7 @@ class AiToolApprovalService
 
     /**
      * @param  array<string, mixed>  $arguments
+     * @param  ApiKey|null  $apiKey  The key an MCP call came through, so the approved call keeps its scopes.
      */
     public function createPending(
         string $tool,
@@ -30,6 +32,7 @@ class AiToolApprovalService
         string $surface = 'mcp',
         ?Authenticatable $actor = null,
         ?Carbon $expiresAt = null,
+        ?ApiKey $apiKey = null,
     ): PendingToolCall {
         $ttl = max(1, (int) config('ai.tools.approval_ttl_minutes', 15));
 
@@ -40,6 +43,7 @@ class AiToolApprovalService
             'arguments' => $arguments,
             'status' => PendingToolCallStatusEnum::Pending,
             'requested_by' => $actor instanceof User ? $actor->id : null,
+            'api_key_id' => $apiKey?->id,
             'expires_at' => $expiresAt ?? now()->addMinutes($ttl),
         ]);
     }
@@ -80,12 +84,7 @@ class AiToolApprovalService
     {
         $this->assertStillPending($pending);
 
-        $pending->forceFill([
-            'status' => PendingToolCallStatusEnum::Rejected,
-            'resolved_by' => $approver->id,
-            'resolved_at' => now(),
-            'decision_note' => $note ?? 'rejected',
-        ])->save();
+        $this->resolveOnce($pending, PendingToolCallStatusEnum::Rejected, $approver, $note ?? 'rejected');
 
         return $pending->refresh();
     }
@@ -101,12 +100,7 @@ class AiToolApprovalService
             throw new InvalidArgumentException('Write tools are disabled for this tool class.');
         }
 
-        $pending->forceFill([
-            'status' => PendingToolCallStatusEnum::Approved,
-            'resolved_by' => $approver->id,
-            'resolved_at' => now(),
-            'decision_note' => $note ?? 'approved',
-        ])->save();
+        $this->resolveOnce($pending, PendingToolCallStatusEnum::Approved, $approver, $note ?? 'approved');
 
         return $pending->refresh();
     }
@@ -129,6 +123,36 @@ class AiToolApprovalService
         ])->save();
 
         return $pending->refresh();
+    }
+
+    /**
+     * Moves a still-pending, unexpired call to its decision in one conditional UPDATE, so two
+     * concurrent clicks cannot both approve (and run) or reject the same call (#441).
+     *
+     * @throws InvalidArgumentException when another request decided the call first
+     */
+    private function resolveOnce(
+        PendingToolCall $pending,
+        PendingToolCallStatusEnum $decision,
+        User $approver,
+        string $note,
+    ): void {
+        $now = now();
+
+        $updated = PendingToolCall::query()
+            ->whereKey($pending->getKey())
+            ->where('status', PendingToolCallStatusEnum::Pending)
+            ->where('expires_at', '>', $now)
+            ->update([
+                'status' => $decision,
+                'resolved_by' => $approver->id,
+                'resolved_at' => $now,
+                'decision_note' => $note,
+            ]);
+
+        if ($updated !== 1) {
+            throw new InvalidArgumentException('This tool call is no longer awaiting approval.');
+        }
     }
 
     private function assertStillPending(PendingToolCall $pending): void

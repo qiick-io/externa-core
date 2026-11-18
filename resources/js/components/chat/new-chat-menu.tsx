@@ -140,16 +140,19 @@ function ItemsDrawer({
         [t],
     );
 
-    useEffect(() => {
-        if (open) {
-            return;
-        }
+    const [wasOpen, setWasOpen] = useState(open);
 
-        setQ('');
-        setGroups([]);
-        setMeta(null);
-        setCreatingId(null);
-    }, [open]);
+    // Reset during render when the drawer closes (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
+        if (!open) {
+            setQ('');
+            setGroups([]);
+            setMeta(null);
+            setCreatingId(null);
+        }
+    }
 
     useEffect(() => {
         if (!open) {

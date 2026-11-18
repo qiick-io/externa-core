@@ -39,11 +39,11 @@ export function useItemPresence(options: {
     const realtimeOn = isRealtimeEnabled(page.props.realtime);
     // Keep the join baseline stable — re-joining on every save drops peer whispers (#315).
     const initialUpdatedAtRef = useRef(options.loadedUpdatedAt);
+    const isPresenceActive =
+        options.enabled && realtimeOn && options.viewerId > 0;
 
     useEffect(() => {
-        if (!options.enabled || !realtimeOn || options.viewerId <= 0) {
-            setSnapshot(emptySnapshot);
-
+        if (!isPresenceActive) {
             return;
         }
 
@@ -68,12 +68,11 @@ export function useItemPresence(options: {
             leaveItemPresence(echo);
         };
     }, [
-        options.enabled,
+        isPresenceActive,
         options.collectionId,
         options.itemId,
         options.viewerId,
         options.viewerName,
-        realtimeOn,
     ]);
 
     useEffect(() => {
@@ -97,7 +96,8 @@ export function useItemPresence(options: {
     ]);
 
     return {
-        ...snapshot,
+        // Derived rather than reset in the effect: the subscription replays the current snapshot on re-join.
+        ...(isPresenceActive ? snapshot : emptySnapshot),
         claimLock: claimItemEditLock,
         releaseLock: releaseItemEditLock,
         takeOverLock: takeOverItemEditLock,

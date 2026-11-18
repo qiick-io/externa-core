@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Services\Settings\ProjectSettingsService;
@@ -36,8 +38,8 @@ class DeliverTelegramOutboundNotifierJob implements ShouldQueue
 
     public function handle(ProjectSettingsService $projectSettings): void
     {
-        $token = $projectSettings->notifierTelegramBotToken();
-        $chatId = $projectSettings->notifierTelegramChatId();
+        $token = $projectSettings->integrations()->notifierTelegramBotToken();
+        $chatId = $projectSettings->integrations()->notifierTelegramChatId();
         if ($token === null || $chatId === null) {
             return;
         }

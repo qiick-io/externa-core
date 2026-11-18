@@ -1,10 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\BulkUserGroupActionRequest;
 use App\Http\Requests\Admin\StoreUserGroupRequest;
 use App\Http\Requests\Admin\UpdateUserGroupRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
@@ -13,15 +13,17 @@ use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
 use App\Models\UserGroup;
-use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Admin CRUD and bulk actions for user groups and their memberships.
+ * Admin list, create, edit, and soft delete for user groups and their memberships.
+ *
+ * Restore, permanent delete, and bulk actions live in {@see UserGroupTrashController}.
  */
 class UserGroupController extends Controller
 {
@@ -40,7 +42,7 @@ class UserGroupController extends Controller
      */
     public function index(Request $request): Response|JsonResponse
     {
-        $this->authorizePermission(PermissionEnum::CanShowGroups->value);
+        abort_unless(Gate::allows('viewAny', UserGroup::class), 403);
 
         $search = $this->validatedSearch($request);
         $sort = $request->string('sort')->toString();
@@ -65,7 +67,7 @@ class UserGroupController extends Controller
         }
 
         if ($search !== '') {
-            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = $query->getModel()->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($builder) use ($search, $like): void {
                 $builder->where('name', $like, "%{$search}%")
                     ->orWhere('description', $like, "%{$search}%");
@@ -176,74 +178,11 @@ class UserGroupController extends Controller
      */
     public function destroy(UserGroup $group): RedirectResponse
     {
-        $this->authorizePermission(PermissionEnum::CanDeleteGroups->value);
-        $this->abortIfSuperAdminGroupProtected($group);
+        abort_unless(Gate::allows('delete', $group), 403);
 
         $group->delete();
 
         return redirect()->route('groups.index')
             ->with('success', __('User group deleted.'));
-    }
-
-    /**
-     * Restore a soft-deleted user group.
-     */
-    public function restore(UserGroup $group): RedirectResponse
-    {
-        $this->authorizePermission(PermissionEnum::CanRestoreGroups->value);
-
-        $group->restore();
-
-        return redirect()
-            ->route('groups.index', ['trashed' => 1])
-            ->with('success', __('User group restored.'));
-    }
-
-    /**
-     * Permanently delete a soft-deleted user group.
-     */
-    public function forceDelete(UserGroup $group): RedirectResponse
-    {
-        $this->authorizePermission(PermissionEnum::CanForceDeleteGroups->value);
-        $this->abortIfSuperAdminGroupProtected($group);
-
-        $group->forceDelete();
-
-        return redirect()
-            ->route('groups.index', ['trashed' => 1])
-            ->with('success', __('User group permanently deleted.'));
-    }
-
-    /**
-     * Run a bulk delete, restore, or force-delete action on selected groups.
-     */
-    public function bulkActions(BulkUserGroupActionRequest $request): RedirectResponse
-    {
-        $action = $request->validated('action');
-        $ids = $request->validated('ids');
-
-        match ($action) {
-            'delete' => UserGroup::query()->whereIn('id', $ids)->delete(),
-            'restore' => UserGroup::query()->onlyTrashed()->whereIn('id', $ids)->restore(),
-            'force_delete' => UserGroup::query()->onlyTrashed()->whereIn('id', $ids)->forceDelete(),
-        };
-
-        return redirect()
-            ->back()
-            ->with('success', __('Bulk action completed.'));
-    }
-
-    /**
-     * Only super-admins may delete a group that grants the super-admin role.
-     */
-    private function abortIfSuperAdminGroupProtected(UserGroup $group): void
-    {
-        $superAdminGuard = app(SuperAdminGuardService::class);
-
-        abort_if(
-            ! $superAdminGuard->canManageSuperAdmins(auth()->user())
-                && $superAdminGuard->hasSuperAdminGroup([$group->id]),
-            403,
-        );
     }
 }

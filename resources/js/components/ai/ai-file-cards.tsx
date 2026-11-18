@@ -15,7 +15,8 @@ import type { AdminFileRow } from '@/types/files';
 export type AiFileCardItem = {
     id: number;
     parent_id?: number | null;
-    type: 'file' | 'folder' | string;
+    /** File type from the API (`file`, `folder`, `link`, `external`, …); only folders render differently. */
+    type: string;
     name: string;
     path?: string | null;
     storage_path?: string | null;

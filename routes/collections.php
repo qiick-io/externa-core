@@ -8,11 +8,33 @@
  */
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Collections\CollectionPackController;
+use App\Http\Controllers\Collections\CollectionSingletonContentController;
+use App\Http\Controllers\Collections\CollectionSlugController;
+use App\Http\Controllers\Collections\CollectionTrashController;
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
+use App\Http\Controllers\Collections\FieldConvertController;
+use App\Http\Controllers\Collections\FieldLayoutController;
+use App\Http\Controllers\Collections\FieldPackController;
+use App\Http\Controllers\Collections\ItemAiDraftController;
+use App\Http\Controllers\Collections\ItemApprovalController;
+use App\Http\Controllers\Collections\ItemBoardController;
+use App\Http\Controllers\Collections\ItemChatActivityController;
+use App\Http\Controllers\Collections\ItemChatAttachmentController;
+use App\Http\Controllers\Collections\ItemChatAttachmentTransferController;
+use App\Http\Controllers\Collections\ItemChatAttachmentUploadController;
 use App\Http\Controllers\Collections\ItemChatController;
+use App\Http\Controllers\Collections\ItemChatReactionController;
 use App\Http\Controllers\Collections\ItemController;
+use App\Http\Controllers\Collections\ItemFieldOptionController;
+use App\Http\Controllers\Collections\ItemListController;
+use App\Http\Controllers\Collections\ItemLivePreviewDraftController;
+use App\Http\Controllers\Collections\ItemPreviewController;
 use App\Http\Controllers\Collections\ItemRevisionController;
+use App\Http\Controllers\Collections\ItemTrashController;
+use App\Http\Controllers\Collections\ItemWorkflowController;
+use App\Http\Middleware\EnsureAiItemDraftsEnabledMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])
@@ -27,14 +49,14 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.store');
 
-        Route::post('collections/bulk', [ContentCollectionController::class, 'bulk'])
+        Route::post('collections/bulk', [CollectionTrashController::class, 'bulk'])
             ->name('collections.bulk');
 
-        Route::post('collections/packs/{pack}', [ContentCollectionController::class, 'applyPack'])
+        Route::post('collections/packs/{pack}', [CollectionPackController::class, 'applyPack'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.packs.apply');
 
-        Route::get('collections/slug-available', [ContentCollectionController::class, 'checkSlug'])
+        Route::get('collections/slug-available', [CollectionSlugController::class, 'checkSlug'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.slug-available');
 
@@ -50,15 +72,15 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanDeleteCollections->value)
             ->name('collections.destroy');
 
-        Route::post('collections/{collection}/restore', [ContentCollectionController::class, 'restore'])
+        Route::post('collections/{collection}/restore', [CollectionTrashController::class, 'restore'])
             ->middleware('permission:'.PermissionEnum::CanRestoreCollections->value)
             ->name('collections.restore');
 
-        Route::delete('collections/{collection}/force', [ContentCollectionController::class, 'forceDelete'])
+        Route::delete('collections/{collection}/force', [CollectionTrashController::class, 'forceDelete'])
             ->middleware('permission:'.PermissionEnum::CanForceDeleteCollections->value)
             ->name('collections.force-delete');
 
-        Route::put('collections/{collection}/singleton-content', [ContentCollectionController::class, 'upsertSingletonContent'])
+        Route::put('collections/{collection}/singleton-content', [CollectionSingletonContentController::class, 'upsertSingletonContent'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.singleton-content');
 
@@ -70,15 +92,35 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.items.new');
 
-        Route::get('collections/{collection}/items/options', [ItemController::class, 'fieldOptions'])
+        // Registered before `items/{item}` so DELETE does not bind `live-preview-draft` as an item.
+        Route::post('collections/{collection}/items/live-preview-draft', [ItemLivePreviewDraftController::class, 'store'])
+            ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+            ->name('collections.items.live-preview-draft.store');
+
+        Route::delete('collections/{collection}/items/live-preview-draft', [ItemLivePreviewDraftController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+            ->name('collections.items.live-preview-draft.destroy');
+
+        // Off unless AI_ITEM_DRAFTS (404); needs can-use-ai AND ai.draft; createItems / updateItems and
+        // the daily AI budget are checked in the form request (#210).
+        Route::post('collections/{collection}/items/ai-draft', ItemAiDraftController::class)
+            ->middleware([
+                EnsureAiItemDraftsEnabledMiddleware::class,
+                'permission:'.PermissionEnum::CanUseAi->value,
+                'permission:'.PermissionEnum::CanUseAiItemDrafts->value,
+                'throttle:20,1',
+            ])
+            ->name('collections.items.ai-draft');
+
+        Route::get('collections/{collection}/items/options', [ItemFieldOptionController::class, 'fieldOptions'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.field-options');
 
-        Route::get('collections/{collection}/items/kanban-column', [ItemController::class, 'kanbanColumn'])
+        Route::get('collections/{collection}/items/kanban-column', [ItemBoardController::class, 'kanbanColumn'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.kanban-column');
 
-        Route::get('collections/{collection}/items/calendar-month', [ItemController::class, 'calendarMonth'])
+        Route::get('collections/{collection}/items/calendar-month', [ItemBoardController::class, 'calendarMonth'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.calendar-month');
 
@@ -90,23 +132,23 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.revisions.restore');
 
-        Route::get('collections/{collection}/items/{item}/chat/mentions', [ItemChatController::class, 'mentions'])
+        Route::get('collections/{collection}/items/{item}/chat/mentions', [ItemChatActivityController::class, 'mentions'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.mentions');
 
-        Route::put('collections/{collection}/items/{item}/chat/notify', [ItemChatController::class, 'updateNotify'])
+        Route::put('collections/{collection}/items/{item}/chat/notify', [ItemChatActivityController::class, 'updateNotify'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.notify');
 
-        Route::post('collections/{collection}/items/{item}/chat/read', [ItemChatController::class, 'markRead'])
+        Route::post('collections/{collection}/items/{item}/chat/read', [ItemChatActivityController::class, 'markRead'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.read');
 
-        Route::post('collections/{collection}/items/{item}/chat/stop-viewing', [ItemChatController::class, 'stopViewing'])
+        Route::post('collections/{collection}/items/{item}/chat/stop-viewing', [ItemChatActivityController::class, 'stopViewing'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.stop-viewing');
 
-        Route::post('collections/{collection}/items/{item}/chat/attachments', [ItemChatController::class, 'storeAttachment'])
+        Route::post('collections/{collection}/items/{item}/chat/attachments', [ItemChatAttachmentController::class, 'storeAttachment'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -114,7 +156,7 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.store');
 
-        Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/init', [ItemChatController::class, 'initAttachmentUpload'])
+        Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/init', [ItemChatAttachmentUploadController::class, 'initAttachmentUpload'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -122,7 +164,7 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.uploads.init');
 
-        Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/chunk', [ItemChatController::class, 'uploadAttachmentChunk'])
+        Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/chunk', [ItemChatAttachmentUploadController::class, 'uploadAttachmentChunk'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -130,7 +172,7 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.uploads.chunk');
 
-        Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/complete', [ItemChatController::class, 'completeAttachmentUpload'])
+        Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/complete', [ItemChatAttachmentUploadController::class, 'completeAttachmentUpload'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -138,7 +180,7 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.uploads.complete');
 
-        Route::get('collections/{collection}/items/{item}/chat/attachments/uploads/status', [ItemChatController::class, 'attachmentUploadStatus'])
+        Route::get('collections/{collection}/items/{item}/chat/attachments/uploads/status', [ItemChatAttachmentUploadController::class, 'attachmentUploadStatus'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -146,7 +188,7 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.uploads.status');
 
-        Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'showAttachment'])
+        Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatAttachmentController::class, 'showAttachment'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -154,7 +196,7 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.show');
 
-        Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}/preview', [ItemChatController::class, 'showAttachmentPreview'])
+        Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}/preview', [ItemChatAttachmentController::class, 'showAttachmentPreview'])
             ->middleware([
                 'permission:'.PermissionEnum::CanShowCollections->value,
                 'permission:'.PermissionEnum::CanShowChat->value,
@@ -162,15 +204,15 @@ Route::middleware(['auth', 'verified'])
             ])
             ->name('collections.items.chat.attachments.preview');
 
-        Route::delete('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'destroyAttachment'])
+        Route::delete('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatAttachmentController::class, 'destroyAttachment'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.attachments.destroy');
 
-        Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/save-to-files', [ItemChatController::class, 'saveToFiles'])
+        Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/save-to-files', [ItemChatAttachmentTransferController::class, 'saveToFiles'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.attachments.save-to-files');
 
-        Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/add-to-field', [ItemChatController::class, 'addToField'])
+        Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/add-to-field', [ItemChatAttachmentTransferController::class, 'addToField'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.chat.attachments.add-to-field');
 
@@ -194,51 +236,51 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.pin');
 
-        Route::post('collections/{collection}/items/{item}/chat/{message}/reactions', [ItemChatController::class, 'react'])
+        Route::post('collections/{collection}/items/{item}/chat/{message}/reactions', [ItemChatReactionController::class, 'react'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.chat.react');
 
-        Route::post('collections/{collection}/items/{item}/publish', [ItemController::class, 'publish'])
+        Route::post('collections/{collection}/items/{item}/publish', [ItemWorkflowController::class, 'publish'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.publish');
 
-        Route::post('collections/{collection}/items/{item}/submit-for-review', [ItemController::class, 'submitForReview'])
+        Route::post('collections/{collection}/items/{item}/submit-for-review', [ItemApprovalController::class, 'submitForReview'])
             ->middleware('permission:'.PermissionEnum::CanSubmitCollections->value)
             ->name('collections.items.submit-for-review');
 
-        Route::post('collections/{collection}/items/{item}/approve', [ItemController::class, 'approve'])
+        Route::post('collections/{collection}/items/{item}/approve', [ItemApprovalController::class, 'approve'])
             ->middleware('permission:'.PermissionEnum::CanApproveCollections->value)
             ->name('collections.items.approve');
 
-        Route::post('collections/{collection}/items/{item}/reject', [ItemController::class, 'reject'])
+        Route::post('collections/{collection}/items/{item}/reject', [ItemApprovalController::class, 'reject'])
             ->middleware('permission:'.PermissionEnum::CanApproveCollections->value)
             ->name('collections.items.reject');
 
-        Route::post('collections/{collection}/items/{item}/discard-draft', [ItemController::class, 'discardDraft'])
+        Route::post('collections/{collection}/items/{item}/discard-draft', [ItemWorkflowController::class, 'discardDraft'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.discard-draft');
 
-        Route::post('collections/{collection}/items/{item}/schedule', [ItemController::class, 'schedule'])
+        Route::post('collections/{collection}/items/{item}/schedule', [ItemWorkflowController::class, 'schedule'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.schedule');
 
-        Route::get('collections/{collection}/items/{item}/preview-as-role', [ItemController::class, 'previewAsRole'])
+        Route::get('collections/{collection}/items/{item}/preview-as-role', [ItemPreviewController::class, 'previewAsRole'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.preview-as-role');
 
-        Route::get('collections/{collection}/items/{item}/live-preview-url', [ItemController::class, 'livePreviewUrl'])
+        Route::get('collections/{collection}/items/{item}/live-preview-url', [ItemPreviewController::class, 'livePreviewUrl'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.live-preview-url');
 
-        Route::put('collections/{collection}/list-columns', [ItemController::class, 'updateListColumns'])
+        Route::put('collections/{collection}/list-columns', [ItemListController::class, 'updateListColumns'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.list-columns.update');
 
-        Route::get('collections/{collection}/items/export', [ItemController::class, 'export'])
+        Route::get('collections/{collection}/items/export', [ItemListController::class, 'export'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.export');
 
-        Route::get('collections/{collection}/items', [ItemController::class, 'index'])
+        Route::get('collections/{collection}/items', [ItemListController::class, 'index'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.index');
 
@@ -246,7 +288,7 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
             ->name('collections.items.store');
 
-        Route::post('collections/{collection}/items/bulk', [ItemController::class, 'bulk'])
+        Route::post('collections/{collection}/items/bulk', [ItemTrashController::class, 'bulk'])
             ->name('collections.items.bulk');
 
         Route::get('collections/{collection}/items/{item}', [ItemController::class, 'show'])
@@ -261,15 +303,15 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanDeleteCollections->value)
             ->name('collections.items.destroy');
 
-        Route::post('collections/{collection}/items/{item}/restore', [ItemController::class, 'restore'])
+        Route::post('collections/{collection}/items/{item}/restore', [ItemTrashController::class, 'restore'])
             ->middleware('permission:'.PermissionEnum::CanRestoreCollections->value)
             ->name('collections.items.restore');
 
-        Route::delete('collections/{collection}/items/{item}/force', [ItemController::class, 'forceDelete'])
+        Route::delete('collections/{collection}/items/{item}/force', [ItemTrashController::class, 'forceDelete'])
             ->middleware('permission:'.PermissionEnum::CanForceDeleteCollections->value)
             ->name('collections.items.force-delete');
 
-        Route::post('collections/{collection}/field-packs/{pack}', [FieldController::class, 'applyPack'])
+        Route::post('collections/{collection}/field-packs/{pack}', [FieldPackController::class, 'applyPack'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.field-packs.apply');
 
@@ -281,11 +323,11 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.update');
 
-        Route::get('collections/{collection}/fields/{field}/convert-targets', [FieldController::class, 'convertTargets'])
+        Route::get('collections/{collection}/fields/{field}/convert-targets', [FieldConvertController::class, 'convertTargets'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.convert-targets');
 
-        Route::post('collections/{collection}/fields/{field}/convert', [FieldController::class, 'convert'])
+        Route::post('collections/{collection}/fields/{field}/convert', [FieldConvertController::class, 'convert'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.convert');
 
@@ -293,7 +335,7 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.destroy');
 
-        Route::post('collections/{collection}/fields/reorder', [FieldController::class, 'reorder'])
+        Route::post('collections/{collection}/fields/reorder', [FieldLayoutController::class, 'reorder'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.reorder');
 
@@ -301,15 +343,15 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.duplicate');
 
-        Route::post('collections/{collection}/fields/{field}/toggle-form-visibility', [FieldController::class, 'toggleFormVisibility'])
+        Route::post('collections/{collection}/fields/{field}/toggle-form-visibility', [FieldLayoutController::class, 'toggleFormVisibility'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.toggle-form-visibility');
 
-        Route::post('collections/{collection}/fields/{field}/layout-width', [FieldController::class, 'updateLayoutWidth'])
+        Route::post('collections/{collection}/fields/{field}/layout-width', [FieldLayoutController::class, 'updateLayoutWidth'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.fields.update-layout-width');
 
-        Route::put('collections/{collection}/form-layout', [FieldController::class, 'updateFormLayout'])
+        Route::put('collections/{collection}/form-layout', [FieldLayoutController::class, 'updateFormLayout'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.form-layout.update');
     });

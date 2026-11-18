@@ -72,8 +72,8 @@ export function isTranslatableText(value) {
 /**
  * Collects the string literals a value expression can evaluate to.
  *
- * @param {import('estree').Node | null | undefined} node
- * @returns {import('estree').Node[]}
+ * @param {object | null | undefined} node ESTree node
+ * @returns {object[]} ESTree nodes
  */
 function literalBranches(node) {
     if (!node) {
@@ -107,7 +107,7 @@ function literalBranches(node) {
 }
 
 /**
- * @param {import('estree').Node} node
+ * @param {object} node ESTree node
  * @returns {string}
  */
 function textOf(node) {
@@ -119,7 +119,7 @@ function textOf(node) {
 }
 
 /**
- * @param {import('estree').Property['key']} key
+ * @param {object} key ESTree property key
  * @returns {string | null}
  */
 function keyName(key) {
@@ -134,7 +134,7 @@ function keyName(key) {
     return null;
 }
 
-/** @type {import('eslint').Rule.RuleModule} */
+/** An ESLint-compatible rule, loaded by Oxlint as a JS plugin. */
 export const noLiteralUiProp = {
     meta: {
         type: 'problem',
@@ -150,7 +150,7 @@ export const noLiteralUiProp = {
     },
     create(context) {
         /**
-         * @param {import('estree').Node} valueNode
+         * @param {object} valueNode ESTree node
          * @param {string} name
          */
         function check(valueNode, name) {
@@ -200,7 +200,46 @@ export const noLiteralUiProp = {
     },
 };
 
+/** Admin paths that must come from Wayfinder (`@/routes/...`), never a string (#284). */
+export const HARD_CODED_ADMIN_PATH =
+    /^\/(users|groups|files|activity-logs|settings\/(roles|api-keys|permissions))(\/|$)/;
+
+/**
+ * Disallow hard-coded admin paths in string literals. ESLint ran this as a
+ * `no-restricted-syntax` selector, which Oxlint does not implement.
+ *
+ * An ESLint-compatible rule, loaded by Oxlint as a JS plugin.
+ */
+export const noHardCodedAdminPath = {
+    meta: {
+        type: 'problem',
+        docs: {
+            description:
+                'Disallow hard-coded admin paths; use the Wayfinder route helpers.',
+        },
+        schema: [],
+        messages: {
+            path: 'Use Wayfinder route helpers (@/routes/...) instead of hard-coded admin paths.',
+        },
+    },
+    create(context) {
+        return {
+            Literal(node) {
+                if (
+                    typeof node.value === 'string' &&
+                    HARD_CODED_ADMIN_PATH.test(node.value)
+                ) {
+                    context.report({ node, messageId: 'path' });
+                }
+            },
+        };
+    },
+};
+
 export default {
     meta: { name: 'externa' },
-    rules: { 'no-literal-ui-prop': noLiteralUiProp },
+    rules: {
+        'no-literal-ui-prop': noLiteralUiProp,
+        'no-hard-coded-admin-path': noHardCodedAdminPath,
+    },
 };

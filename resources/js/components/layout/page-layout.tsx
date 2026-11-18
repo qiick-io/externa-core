@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { useScrollRegion } from '@/hooks/use-scroll-region';
 import { LIST_PER_PAGE_OPTIONS, listUrlWithPerPage } from '@/lib/pagination';
+import { paginationPageUrl, paginationWindow } from '@/lib/pagination-window';
 import { cn } from '@/lib/utils';
 
 export type PageLayoutProps = {
@@ -108,7 +109,10 @@ export function TablePanel({
     className?: string;
     footer?: ReactNode;
 }) {
-    const scrollRegionRef = useScrollRegion<HTMLDivElement>();
+    const { t } = useTranslation();
+    const scrollRegionRef = useScrollRegion<HTMLDivElement>(
+        t('a11y.scrollableTable'),
+    );
 
     return (
         <div
@@ -153,108 +157,145 @@ function paginationPlainLabel(label: string): string {
     );
 }
 
-type PaginationLinkKind = 'page' | 'previous' | 'next' | 'ellipsis';
-
 /**
- * Classifies a Laravel paginator link by its plain label: a page number, the
- * previous / next arrows (English or translated "&laquo;" / "&raquo;" labels)
- * or the "..." gap.
+ * Pagination row for server-paginated lists on shadcn `Pagination` + `Button`,
+ * with Inertia visits: Previous, a compact window of page numbers and Next.
+ * Previous / Next keep Laravel's URLs; the page numbers are built from
+ * `currentPage` / `lastPage` with {@link paginationWindow} instead of
+ * Laravel's own window, which overflows the footer once page numbers reach
+ * five digits (app-ui #150). Below `sm` the numbers give way to "Page 3 of
+ * 120". Numbers follow the UI language's format. Controls stay `<button>` for
+ * browser tests; labels and accessible names are translated.
  *
- * @param {string} plain - Label from {@link paginationPlainLabel}
- * @returns {PaginationLinkKind}
- */
-function paginationLinkKind(plain: string): PaginationLinkKind {
-    if (/^\d+$/.test(plain)) {
-        return 'page';
-    }
-
-    if (/previous|«|‹/i.test(plain)) {
-        return 'previous';
-    }
-
-    if (/next|»|›/i.test(plain)) {
-        return 'next';
-    }
-
-    return 'ellipsis';
-}
-
-/**
- * Laravel-style pagination link row on shadcn `Pagination` + `Button`, with
- * Inertia visits. Query params are unchanged; controls stay `<button>` for
- * browser tests. Labels and accessible names are translated (`common.*`).
- *
- * @param {{ links: TablePaginationLink[] }} props - Component props.
- * @param {TablePaginationLink[]} props.links - Pagination links from the server.
+ * @param props.links - Pagination links from the server (`links` of a Laravel paginator).
+ * @param props.currentPage - The page on screen; read from the active link when omitted.
+ * @param props.lastPage - The number of pages; read from the highest page link when omitted.
  * @returns {JSX.Element | null}
  */
 export function TablePagination({
     links,
+    currentPage,
+    lastPage,
     className,
 }: {
     links: TablePaginationLink[];
+    currentPage?: number;
+    lastPage?: number;
     className?: string;
 }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     if (links.length === 0) {
         return null;
     }
 
+    const numberFormat = new Intl.NumberFormat(i18n.language);
+    const formatNumber = (value: number): string => numberFormat.format(value);
+    const pageLinks = links.flatMap((link) => {
+        const plain = paginationPlainLabel(link.label);
+
+        return /^\d+$/.test(plain) ? [{ ...link, page: Number(plain) }] : [];
+    });
+    const current =
+        currentPage ?? pageLinks.find((link) => link.active)?.page ?? 1;
+    const last =
+        lastPage ?? Math.max(current, ...pageLinks.map((link) => link.page));
+    const template = pageLinks.find((link) => link.url !== null);
+    const pageUrl = (page: number): string | null =>
+        template?.url
+            ? paginationPageUrl(template.url, template.page, page)
+            : null;
+    const firstLink = links[0];
+    const lastLink = links[links.length - 1];
+    const previousUrl = /^\d+$/.test(paginationPlainLabel(firstLink.label))
+        ? null
+        : firstLink.url;
+    const nextUrl = /^\d+$/.test(paginationPlainLabel(lastLink.label))
+        ? null
+        : lastLink.url;
+
     return (
         <Pagination className={className}>
             <PaginationContent>
-                {links.map((link, index) => {
-                    const plain = paginationPlainLabel(link.label);
-                    const kind = paginationLinkKind(plain);
-
-                    if (kind === 'ellipsis') {
-                        return (
-                            <PaginationItem key={index}>
-                                <PaginationEllipsis />
-                            </PaginationItem>
-                        );
-                    }
-
-                    const ariaLabel =
-                        kind === 'page'
-                            ? t('pagination.goToPage', { page: plain })
-                            : kind === 'previous'
-                              ? t('pagination.goToPreviousPage')
-                              : t('pagination.goToNextPage');
-
-                    return (
-                        <PaginationItem key={index}>
+                <PaginationItem>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="gap-1 px-2.5"
+                        disabled={!previousUrl}
+                        aria-label={t('pagination.goToPreviousPage')}
+                        onClick={() => previousUrl && router.visit(previousUrl)}
+                    >
+                        <ChevronLeft />
+                        <span className="hidden sm:block">
+                            {t('pagination.previous')}
+                        </span>
+                    </Button>
+                </PaginationItem>
+                {paginationWindow(current, last).map((page, position) =>
+                    page === null ? (
+                        <PaginationItem
+                            key={`gap-${position}`}
+                            className="hidden sm:list-item"
+                        >
+                            <PaginationEllipsis className="size-auto w-6" />
+                        </PaginationItem>
+                    ) : (
+                        <PaginationItem
+                            key={page}
+                            className="hidden sm:list-item"
+                        >
                             <Button
                                 type="button"
-                                variant={link.active ? 'outline' : 'ghost'}
-                                size={kind === 'page' ? 'icon' : 'default'}
-                                className={cn(
-                                    kind === 'previous' && 'gap-1 px-2.5',
-                                    kind === 'next' && 'gap-1 px-2.5',
-                                )}
-                                disabled={!link.url}
-                                aria-label={ariaLabel}
-                                aria-current={link.active ? 'page' : undefined}
-                                onClick={() =>
-                                    link.url && router.visit(link.url)
+                                variant={page === current ? 'outline' : 'ghost'}
+                                // Square at one or two digits, wider with longer numbers (app-ui #150).
+                                className="min-w-control px-2 tabular-nums"
+                                disabled={page !== current && !pageUrl(page)}
+                                aria-label={t('pagination.goToPage', {
+                                    page: formatNumber(page),
+                                })}
+                                aria-current={
+                                    page === current ? 'page' : undefined
                                 }
+                                onClick={() => {
+                                    const url = pageUrl(page);
+
+                                    if (page !== current && url) {
+                                        router.visit(url);
+                                    }
+                                }}
                             >
-                                {kind === 'previous' ? <ChevronLeft /> : null}
-                                {kind === 'page' ? (
-                                    plain
-                                ) : (
-                                    <span className="hidden sm:block">
-                                        {kind === 'previous'
-                                            ? t('pagination.previous')
-                                            : t('pagination.next')}
-                                    </span>
-                                )}
-                                {kind === 'next' ? <ChevronRight /> : null}
+                                {formatNumber(page)}
                             </Button>
                         </PaginationItem>
-                    );
-                })}
+                    ),
+                )}
+                <PaginationItem className="sm:hidden">
+                    <span
+                        className="px-2 text-sm whitespace-nowrap text-muted-foreground tabular-nums"
+                        aria-live="polite"
+                    >
+                        {t('common.pageOf', {
+                            page: formatNumber(current),
+                            total: formatNumber(last),
+                        })}
+                    </span>
+                </PaginationItem>
+                <PaginationItem>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="gap-1 px-2.5"
+                        disabled={!nextUrl}
+                        aria-label={t('pagination.goToNextPage')}
+                        onClick={() => nextUrl && router.visit(nextUrl)}
+                    >
+                        <span className="hidden sm:block">
+                            {t('pagination.next')}
+                        </span>
+                        <ChevronRight />
+                    </Button>
+                </PaginationItem>
             </PaginationContent>
         </Pagination>
     );
@@ -298,7 +339,9 @@ export function TablePaginationFooter({
 }: {
     pagination: TablePaginationState;
 }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const numberFormat = new Intl.NumberFormat(i18n.language);
+    const formatNumber = (value: number): string => numberFormat.format(value);
     const firstRow = Math.min(
         (pagination.current_page - 1) * pagination.per_page + 1,
         pagination.total,
@@ -315,14 +358,16 @@ export function TablePaginationFooter({
                 data-test="pagination-range"
             >
                 {t('common.pageRange', {
-                    from: firstRow,
-                    to: lastRow,
-                    total: pagination.total,
+                    from: formatNumber(firstRow),
+                    to: formatNumber(lastRow),
+                    total: formatNumber(pagination.total),
                 })}
             </p>
             {pagination.last_page > 1 ? (
                 <TablePagination
                     links={pagination.links ?? []}
+                    currentPage={pagination.current_page}
+                    lastPage={pagination.last_page}
                     className="mx-0 w-auto sm:col-start-2"
                 />
             ) : null}

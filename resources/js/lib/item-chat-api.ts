@@ -1,5 +1,6 @@
 import { applyChatUnread } from '@/lib/chat-hub-api';
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { echoSocketIdHeaders } from '@/lib/echo';
 import {
     CHUNK_SIZE_BYTES,
     MAX_CHUNK_RETRIES,
@@ -231,7 +232,8 @@ export async function toggleReaction(
         `${roots(scope).thread}/${messageId}/reactions`,
         {
             method: 'POST',
-            headers: jsonRequestHeaders(),
+            // The toggle is applied optimistically here, so the server skips this tab.
+            headers: { ...jsonRequestHeaders(), ...echoSocketIdHeaders() },
             credentials: 'same-origin',
             body: JSON.stringify({ emoji }),
         },

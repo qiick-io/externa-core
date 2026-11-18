@@ -26,9 +26,9 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        $project = app(ProjectSettingsService::class);
+        $securitySettings = app(ProjectSettingsService::class)->security();
 
-        if (! Features::enabled(Features::registration()) || ! $project->isRegistrationEnabled()) {
+        if (! Features::enabled(Features::registration()) || ! $securitySettings->isRegistrationEnabled()) {
             throw ValidationException::withMessages([
                 'email' => __('Registration is currently disabled.'),
             ]);
@@ -37,8 +37,8 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
-        ])->after(function ($validator) use ($input, $project): void {
-            $domains = $project->allowedDomains();
+        ])->after(function ($validator) use ($input, $securitySettings): void {
+            $domains = $securitySettings->allowedDomains();
             if ($domains === []) {
                 return;
             }
@@ -62,11 +62,11 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $input['password'],
         ]);
 
-        if (! $project->isEmailVerificationRequired()) {
+        if (! $securitySettings->isEmailVerificationRequired()) {
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 
-        $roleName = $project->defaultUserRole();
+        $roleName = $securitySettings->defaultUserRole();
         if ($roleName !== null) {
             $role = Role::query()
                 ->where('name', $roleName)

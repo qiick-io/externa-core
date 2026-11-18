@@ -1,6 +1,13 @@
 import { usePage } from '@inertiajs/react';
 import { FolderOpen } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import {
+    Fragment,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileDropzone } from '@/components/admin/file-dropzone';
 import { FileCard } from '@/components/admin/files/file-card';
@@ -78,7 +85,9 @@ export function FilePickerDrawer({
     const [loadingMore, setLoadingMore] = useState(false);
     const [uploading, setUploading] = useState(false);
     const openRef = useRef(open);
-    openRef.current = open;
+    useLayoutEffect(() => {
+        openRef.current = open;
+    });
     // ponytail: drop stale list responses after close / folder change (no AbortController on list yet).
     const loadSeq = useRef(0);
 
@@ -136,7 +145,12 @@ export function FilePickerDrawer({
         [parentId, search],
     );
 
-    useEffect(() => {
+    const [wasOpen, setWasOpen] = useState(open);
+
+    // Reset during render when the drawer closes (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
         if (!open) {
             setParentId(null);
             setBreadcrumbs([]);
@@ -145,7 +159,11 @@ export function FilePickerDrawer({
             setLastPage(1);
             setFiles([]);
             setSelected([]);
+        }
+    }
 
+    useEffect(() => {
+        if (!open) {
             return;
         }
 

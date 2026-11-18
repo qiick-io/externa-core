@@ -25,6 +25,9 @@ use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Tools\Request;
 
 beforeEach(function () {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     $this->seed(PermissionSeeder::class);
     $this->withoutVite();
     Storage::fake('local');
@@ -285,6 +288,19 @@ test('daily prompt quota rejects the next prompt', function () {
 
     $this->actingAs($user)
         ->postJson(route('ai.chat'), ['message' => 'Second prompt'])
+        ->assertTooManyRequests()
+        ->assertJsonPath('message', 'Daily AI prompt limit reached.');
+});
+
+test('daily prompt quota answers 429 before validating the prompt payload', function () {
+    config()->set('ai.daily_prompt_limit', 1);
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    AiActivityLogger::prompt($user, 'First prompt');
+
+    $this->actingAs($user)
+        ->postJson(route('ai.chat'), ['message' => ''])
         ->assertTooManyRequests()
         ->assertJsonPath('message', 'Daily AI prompt limit reached.');
 });

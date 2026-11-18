@@ -184,7 +184,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.documentation'),
-            href: 'https://docs.externa.qiick.io',
+            href: 'https://docs.qiick.io/externa',
             icon: BookOpen,
         },
     ];

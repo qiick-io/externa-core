@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\CollectionPermissionActionEnum;
+use Database\Factories\CollectionPermissionFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,6 +19,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CollectionPermission extends Model
 {
+    /** @use HasFactory<CollectionPermissionFactory> */
+    use HasFactory;
+
     /**
      * @var list<string>
      */

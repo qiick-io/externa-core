@@ -3,7 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Support\Auth\HomePath;
+use App\Services\Auth\HomePathService;
 use Database\Seeders\PermissionSeeder;
 use Spatie\Permission\Models\Role;
 
@@ -23,7 +23,7 @@ test('home path prefers dashboard when permitted', function () {
     ]);
     $user->syncRoles([$role]);
 
-    expect(HomePath::for($user))->toBe('/dashboard');
+    expect(HomePathService::for($user))->toBe('/dashboard');
 });
 
 test('home path respects permissions inherited via groups', function () {
@@ -39,7 +39,7 @@ test('home path respects permissions inherited via groups', function () {
     $user->groups()->sync([$group->id]);
 
     expect($user->roles()->count())->toBe(0)
-        ->and(HomePath::for($user))->toBe('/files');
+        ->and(HomePathService::for($user))->toBe('/files');
 });
 
 test('login redirects limited file user to files not dashboard', function () {

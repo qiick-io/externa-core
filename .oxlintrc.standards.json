@@ -1,0 +1,82 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "off",
+        "suspicious": "off",
+        "pedantic": "off",
+        "perf": "off",
+        "style": "off",
+        "restriction": "off",
+        "nursery": "off"
+    },
+    "ignorePatterns": [
+        "resources/js/components/ui/**",
+        "resources/js/actions/**",
+        "resources/js/routes/**",
+        "resources/js/wayfinder/**",
+        "**/*.test.{ts,tsx}"
+    ],
+    "rules": {
+        "no-restricted-imports": [
+            "warn",
+            {
+                "paths": [
+                    {
+                        "name": "sonner",
+                        "message": "Toasts go through @/lib/toast (docs/notifications.md)."
+                    }
+                ],
+                "patterns": [
+                    {
+                        "group": [
+                            "@headlessui/*",
+                            "@heroicons/*",
+                            "react-icons",
+                            "react-icons/*",
+                            "@fortawesome/*",
+                            "@tabler/icons-react",
+                            "@phosphor-icons/*",
+                            "@mui/*",
+                            "antd",
+                            "@chakra-ui/*",
+                            "@mantine/*",
+                            "react-toastify",
+                            "react-hot-toast"
+                        ],
+                        "message": "shadcn primitives and lucide-react icons only (qiick UI, hard rule 3)."
+                    }
+                ]
+            }
+        ],
+        "no-restricted-properties": [
+            "warn",
+            {
+                "object": "navigator",
+                "property": "clipboard",
+                "message": "Use copyTextToClipboard() / readTextFromClipboard() from @/lib/clipboard (fallback for non-secure contexts)."
+            }
+        ],
+        "id-length": [
+            "warn",
+            {
+                "min": 2,
+                "exceptions": ["i", "j", "k", "t", "T", "_"],
+                "properties": "never"
+            }
+        ]
+    },
+    "overrides": [
+        {
+            "files": ["**/lib/toast.ts", "**/components/ui/sonner.tsx"],
+            "rules": {
+                "no-restricted-imports": "off"
+            }
+        },
+        {
+            "files": ["**/lib/clipboard.ts"],
+            "rules": {
+                "no-restricted-properties": "off"
+            }
+        }
+    ]
+}

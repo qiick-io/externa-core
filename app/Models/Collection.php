@@ -6,6 +6,7 @@ use App\Enums\CollectionStatusEnum;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use App\Traits\LogsApplicationActivityTrait;
+use Carbon\CarbonImmutable;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
@@ -35,7 +35,7 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property array<string, mixed>|null $form_layout
  * @property string|null $preview_url
  * @property int $sort_order
- * @property Carbon|null $deleted_at
+ * @property CarbonImmutable|null $deleted_at
  */
 class Collection extends Model implements Sortable
 {

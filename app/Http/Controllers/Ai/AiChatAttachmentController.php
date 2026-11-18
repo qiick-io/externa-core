@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\StoreAiChatAttachmentRequest;
 use App\Models\AiChatAttachment;
 use App\Models\User;
-use App\Support\Uploads\ForbiddenUploadExtension;
-use App\Support\Uploads\MimeTypeValidator;
-use App\Support\Uploads\SafeUploadMime;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
+use App\Services\Uploads\MimeTypeValidatorService;
+use App\Services\Uploads\SafeUploadMimeService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -27,14 +27,12 @@ class AiChatAttachmentController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAiChatAttachmentRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'file' => ['required', 'file', 'max:'.(AiChatAttachment::MAX_BYTES / 1024)],
-        ]);
+        $validated = $request->validated();
 
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
@@ -42,11 +40,11 @@ class AiChatAttachmentController extends Controller
         $originalName = $uploaded->getClientOriginalName() !== ''
             ? $uploaded->getClientOriginalName()
             : 'attachment.bin';
-        ForbiddenUploadExtension::assertAllowed($originalName);
+        ForbiddenUploadExtensionService::assertAllowed($originalName);
         $bytes = $uploaded->getContent();
-        $sniffed = MimeTypeValidator::assertAllowed($originalName, $bytes);
+        $sniffed = MimeTypeValidatorService::assertAllowed($originalName, $bytes);
 
-        $extension = SafeUploadMime::extensionOf($originalName);
+        $extension = SafeUploadMimeService::extensionOf($originalName);
         $extensionAllowed = in_array($extension, AiChatAttachment::ALLOWED_EXTENSIONS, true);
         $mimeAllowed = in_array($sniffed, AiChatAttachment::ALLOWED_MIME_TYPES, true)
             || ($sniffed === 'application/octet-stream' && $extensionAllowed);

@@ -7,9 +7,17 @@ import {
     ChevronsRight,
     GripVertical,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import ItemBoardController from '@/actions/App/Http/Controllers/Collections/ItemBoardController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -287,7 +295,9 @@ export function ItemsCalendar({
     const boardRef = useRef<HTMLDivElement | null>(null);
     const [sortableEpoch, setSortableEpoch] = useState(0);
     const itemsRef = useRef(items);
-    itemsRef.current = items;
+    useLayoutEffect(() => {
+        itemsRef.current = items;
+    });
 
     const listQuery = useMemo(() => buildItemListQuery(filters), [filters]);
 
@@ -320,25 +330,116 @@ export function ItemsCalendar({
         };
     }, [view, cursor, focusDay]);
 
-    const loadRange = useCallback(
-        async (from: string, to: string, month: string) => {
-            if (!fieldName) {
-                return;
-            }
+    const isServerSnapshotInRange =
+        view === 'month' &&
+        initial !== null &&
+        initial.field === fieldName &&
+        initial.month === cursor &&
+        initial.from === range.from &&
+        initial.to === range.to;
+    const [previousSnapshotSource, setPreviousSnapshotSource] = useState({
+        initial,
+        fieldName,
+        cursor,
+        view,
+        from: range.from,
+        to: range.to,
+    });
+    // Null on mount, so the first render raises the loading flag when it must fetch.
+    const [previousRangeRequest, setPreviousRangeRequest] = useState<{
+        fieldName: string | null;
+        from: string;
+        to: string;
+        month: string;
+        collectionId: number;
+        listQuery: typeof listQuery;
+        t: typeof t;
+        initial: CalendarMonthPayload | null;
+        view: CalendarView;
+        cursor: string;
+    } | null>(null);
 
-            const id = ++requestIdRef.current;
+    // Adopt the SSR payload during render when field/filters/inertia props match
+    // the month view snapshot (React's "adjust state on prop change" pattern).
+    if (
+        previousSnapshotSource.initial !== initial ||
+        previousSnapshotSource.fieldName !== fieldName ||
+        previousSnapshotSource.cursor !== cursor ||
+        previousSnapshotSource.view !== view ||
+        previousSnapshotSource.from !== range.from ||
+        previousSnapshotSource.to !== range.to
+    ) {
+        setPreviousSnapshotSource({
+            initial,
+            fieldName,
+            cursor,
+            view,
+            from: range.from,
+            to: range.to,
+        });
+
+        if (isServerSnapshotInRange) {
+            setItems(initial.data);
+            setTotal(initial.total);
+            setError(null);
+            setLoading(false);
+        }
+    }
+
+    // Raise the loading flag during render for the range the effect below fetches.
+    if (
+        previousRangeRequest === null ||
+        previousRangeRequest.fieldName !== fieldName ||
+        previousRangeRequest.from !== range.from ||
+        previousRangeRequest.to !== range.to ||
+        previousRangeRequest.month !== range.month ||
+        previousRangeRequest.collectionId !== collection.id ||
+        previousRangeRequest.listQuery !== listQuery ||
+        previousRangeRequest.t !== t ||
+        previousRangeRequest.initial !== initial ||
+        previousRangeRequest.view !== view ||
+        previousRangeRequest.cursor !== cursor
+    ) {
+        setPreviousRangeRequest({
+            fieldName,
+            from: range.from,
+            to: range.to,
+            month: range.month,
+            collectionId: collection.id,
+            listQuery,
+            t,
+            initial,
+            view,
+            cursor,
+        });
+
+        if (fieldName && !isServerSnapshotInRange) {
             setLoading(true);
             setError(null);
+        }
+    }
 
+    useEffect(() => {
+        if (!fieldName || isServerSnapshotInRange) {
+            return;
+        }
+
+        // The loading flag is raised during render (see `previousRangeRequest` above).
+        const id = ++requestIdRef.current;
+
+        void (async () => {
             try {
-                const url = ItemController.calendarMonth.url(collection.id, {
-                    query: {
-                        ...listQuery,
-                        field: fieldName,
-                        from,
-                        to,
+                const url = ItemBoardController.calendarMonth.url(
+                    collection.id,
+                    {
+                        query: {
+                            ...listQuery,
+                            field: fieldName,
+                            from: range.from,
+                            to: range.to,
+                        },
                     },
-                });
+                );
                 const response = await fetch(url, {
                     headers: {
                         Accept: 'application/json',
@@ -362,7 +463,7 @@ export function ItemsCalendar({
 
                 setItems(Array.isArray(payload.data) ? payload.data : []);
                 setTotal(typeof payload.total === 'number' ? payload.total : 0);
-                setCursor(month);
+                setCursor(range.month);
             } catch {
                 if (id !== requestIdRef.current) {
                     return;
@@ -374,53 +475,19 @@ export function ItemsCalendar({
                     setLoading(false);
                 }
             }
-        },
-        [collection.id, fieldName, listQuery, t],
-    );
-
-    // Sync SSR payload when field/filters/inertia props match month view snapshot.
-    useEffect(() => {
-        if (
-            view === 'month' &&
-            initial &&
-            initial.field === fieldName &&
-            initial.month === cursor &&
-            initial.from === range.from &&
-            initial.to === range.to
-        ) {
-            setItems(initial.data);
-            setTotal(initial.total);
-            setError(null);
-            setLoading(false);
-        }
-    }, [initial, fieldName, cursor, view, range.from, range.to]);
-
-    useEffect(() => {
-        if (!fieldName) {
-            return;
-        }
-
-        if (
-            view === 'month' &&
-            initial &&
-            initial.field === fieldName &&
-            initial.month === cursor &&
-            initial.from === range.from &&
-            initial.to === range.to
-        ) {
-            return;
-        }
-
-        void loadRange(range.from, range.to, range.month);
+        })();
     }, [
+        collection.id,
         fieldName,
+        listQuery,
+        t,
         range.from,
         range.to,
         range.month,
-        loadRange,
         initial,
         view,
         cursor,
+        isServerSnapshotInRange,
     ]);
 
     const byDay = useMemo(() => {
@@ -446,7 +513,9 @@ export function ItemsCalendar({
     }, [fieldName, items]);
 
     const byDayRef = useRef(byDay);
-    byDayRef.current = byDay;
+    useLayoutEffect(() => {
+        byDayRef.current = byDay;
+    });
 
     const persistMove = useCallback(
         (itemId: number, dayKey: string) => {
@@ -561,7 +630,8 @@ export function ItemsCalendar({
         persistMove,
     ]);
 
-    const todayKey = formatDayKey(new Date());
+    // Read once per mount: Date is impure, and a page left open past midnight is fine with it.
+    const [todayKey] = useState(() => formatDayKey(new Date()));
     const monthDays = useMemo(() => visibleDaysForMonth(cursor), [cursor]);
     const weekDays = useMemo(() => weekDaysFor(focusDay), [focusDay]);
     const weekCount = Math.max(1, Math.ceil(monthDays.length / 7));

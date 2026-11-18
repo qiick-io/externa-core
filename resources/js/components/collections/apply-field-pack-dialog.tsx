@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { PackagePlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import FieldPackController from '@/actions/App/Http/Controllers/Collections/FieldPackController';
 import { PackChoiceGroup } from '@/components/collections/pack-choice-group';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +61,7 @@ export function ApplyFieldPackDialog({
 
         setApplying(true);
         router.post(
-            FieldController.applyPack.url({
+            FieldPackController.applyPack.url({
                 collection: collectionId,
                 pack: selected.key,
             }),

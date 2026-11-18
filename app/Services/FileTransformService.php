@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\File;
@@ -99,7 +101,7 @@ class FileTransformService
                 return $this->ensureThumbnail($file);
             }
 
-            $preset = app(ProjectSettingsService::class)->transformPreset($key);
+            $preset = app(ProjectSettingsService::class)->files()->transformPreset($key);
             if ($preset === null) {
                 throw new RuntimeException("Unknown transform preset [{$key}].");
             }
@@ -199,7 +201,7 @@ class FileTransformService
     {
         try {
             // Floor at MAX_SIZE so grid can request 512 even when project presets top out lower.
-            return max(self::MAX_SIZE, app(ProjectSettingsService::class)->maxTransformSize());
+            return max(self::MAX_SIZE, app(ProjectSettingsService::class)->files()->maxTransformSize());
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -210,7 +212,7 @@ class FileTransformService
     public function isTransformationsEnabled(): bool
     {
         try {
-            return app(ProjectSettingsService::class)->isTransformationsEnabled();
+            return app(ProjectSettingsService::class)->files()->isTransformationsEnabled();
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -292,7 +294,7 @@ class FileTransformService
         $presets = [];
 
         try {
-            $presets = app(ProjectSettingsService::class)->presetTransformations();
+            $presets = app(ProjectSettingsService::class)->files()->presetTransformations();
         } catch (\Throwable $exception) {
             report($exception);
             $presets = [];

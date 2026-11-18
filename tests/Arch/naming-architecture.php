@@ -12,9 +12,9 @@ return [
     'namespace' => 'App',
 
     'ignoring' => [
-        // Deferred (#260): about 400 files predate strict types. New and touched
-        // files must still declare it; shrink this to the remaining namespaces.
-        'strict types' => ['App'],
+        // Ratchet (#281): the files that predate strict types, one class each. Only shrinks;
+        // RatchetArchitectureTest fails on a stale entry or an unlisted file.
+        'strict types' => require __DIR__.'/strict-types-baseline.php',
         'Http\Middleware' => [
             // Starter-kit middleware, never renamed.
             'App\Http\Middleware\HandleAppearance',
@@ -28,22 +28,7 @@ return [
 
     'suffixes' => [],
 
-    // Thin controllers (app-ui v0.2.0): existing debt, a ratchet. Lower an entry when the
-    // controller shrinks; never raise it.
-    'controllerPublicMethods' => [
-        'App\Http\Controllers\Admin\FileController' => 30,
-        'App\Http\Controllers\Admin\RoleController' => 8,
-        'App\Http\Controllers\Admin\UserController' => 7,
-        'App\Http\Controllers\Admin\UserGroupController' => 7,
-        'App\Http\Controllers\Ai\AiConversationController' => 7,
-        'App\Http\Controllers\Api\V1\CollectionItemController' => 8,
-        'App\Http\Controllers\Api\V1\FileController' => 7,
-        'App\Http\Controllers\Chat\ChatHubController' => 15,
-        'App\Http\Controllers\Chat\ChatMessageController' => 31,
-        'App\Http\Controllers\Collections\ContentCollectionController' => 11,
-        'App\Http\Controllers\Collections\FieldController' => 12,
-        'App\Http\Controllers\Collections\ItemChatController' => 20,
-        'App\Http\Controllers\Collections\ItemController' => 22,
-        'App\Http\Controllers\Settings\ProjectIntegrationsSettingsController' => 6,
-    ],
+    // Thin controllers (app-ui v0.2.0): the debt is paid off (#598), so the five public
+    // methods cap is now enforced for every controller. Never add an entry here.
+    'controllerPublicMethods' => [],
 ];

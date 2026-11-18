@@ -13,16 +13,16 @@ const badgeVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         destructive:
-          "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
+          "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90 dark:[a&]:hover:bg-destructive/50",
         outline:
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
         success:
-          "bg-success/15 text-success dark:bg-success/20 [a&]:hover:bg-success/25",
+          "bg-success/15 text-success [a&]:hover:bg-success/10",
         warning:
-          "bg-warning/15 text-warning dark:bg-warning/20 [a&]:hover:bg-warning/25",
-        info: "bg-info/15 text-info dark:bg-info/20 [a&]:hover:bg-info/25",
+          "bg-warning/15 text-warning [a&]:hover:bg-warning/10",
+        info: "bg-info/15 text-info [a&]:hover:bg-info/10",
         muted: "bg-muted text-muted-foreground [a&]:hover:bg-muted/80",
         ai: "border-ai-border bg-ai-bg text-ai-text [a&]:hover:bg-ai-bg/90",
       },

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
-use App\Support\Files\FilesDisk;
+use App\Services\Files\FilesDiskService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
@@ -24,11 +24,11 @@ function cloudDiskNames(): array
     return ['gcs', 'azure'];
 }
 
-test('FILES_DISK gcs and azure resolve through FilesDisk and stay allowed', function (string $disk): void {
+test('FILES_DISK gcs and azure resolve through FilesDiskService and stay allowed', function (string $disk): void {
     Config::set('files.disk', $disk);
 
-    expect(FilesDisk::default())->toBe($disk)
-        ->and(FilesDisk::allowed())->toContain($disk, 'assets', 's3', FilesDisk::PRIVATE_ASSETS);
+    expect(FilesDiskService::default())->toBe($disk)
+        ->and(FilesDiskService::allowed())->toContain($disk, 'assets', 's3', FilesDiskService::PRIVATE_ASSETS);
 })->with(cloudDiskNames());
 
 test('file manager upload and download work on faked GCS and Azure disks', function (string $disk): void {

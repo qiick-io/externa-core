@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
@@ -37,7 +39,7 @@ class DeliverSlackOutboundNotifierJob implements ShouldQueue
 
     public function handle(ProjectSettingsService $projectSettings): void
     {
-        $url = $projectSettings->notifierSlackWebhookUrl();
+        $url = $projectSettings->integrations()->notifierSlackWebhookUrl();
         if ($url === null) {
             return;
         }

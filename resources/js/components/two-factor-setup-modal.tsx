@@ -217,7 +217,7 @@ function TwoFactorVerificationStep({
                                     onChange={setCode}
                                     disabled={processing}
                                     pattern={REGEXP_ONLY_DIGITS}
-                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                    // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
                                     aria-invalid={codeError ? true : undefined}
                                     aria-describedby={

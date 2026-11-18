@@ -113,16 +113,19 @@ export function ChatUsersDrawer({
         [t],
     );
 
-    useEffect(() => {
-        if (open) {
-            return;
-        }
+    const [wasOpen, setWasOpen] = useState(open);
 
-        setQ('');
-        setRows([]);
-        setMeta(null);
-        setPicked([]);
-    }, [open]);
+    // Reset during render when the drawer closes (React's "adjust state on prop change" pattern).
+    if (wasOpen !== open) {
+        setWasOpen(open);
+
+        if (!open) {
+            setQ('');
+            setRows([]);
+            setMeta(null);
+            setPicked([]);
+        }
+    }
 
     useEffect(() => {
         if (!open) {

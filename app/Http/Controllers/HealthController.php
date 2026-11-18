@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Health\ReadinessChecks;
+use App\Services\Health\ReadinessChecksService;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
  */
 class HealthController extends Controller
 {
-    public function __construct(private readonly ReadinessChecks $readiness) {}
+    public function __construct(private readonly ReadinessChecksService $readiness) {}
 
     /**
      * Liveness: process can answer HTTP. No dependency checks.

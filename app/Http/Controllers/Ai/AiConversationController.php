@@ -1,15 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Ai;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ai\SearchAiConversationsRequest;
+use App\Http\Requests\Ai\StoreAiConversationRequest;
 use App\Models\User;
+use App\Policies\AiConversationPolicy;
 use App\Services\Ai\AiConversationMessagePresenterService;
 use App\Services\Ai\AiConversationMutationService;
-use App\Support\Validation\SearchQueryRules;
-use App\Support\Validation\StringLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
@@ -17,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * JSON API for listing, creating, and mutating AI chat conversations.
+ *
+ * Bulk delete lives in {@see AiConversationBulkController}, rewinding in {@see AiConversationTruncateController}.
  */
 class AiConversationController extends Controller
 {
@@ -28,14 +34,12 @@ class AiConversationController extends Controller
     /**
      * Paginate the authenticated user's conversations with pinned items first.
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchAiConversationsRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
-        ]);
+        $validated = $request->validated();
         $search = trim((string) ($validated['q'] ?? ''));
         $perPage = min(max($request->integer('per_page', 25), 1), 100);
 
@@ -55,7 +59,7 @@ class AiConversationController extends Controller
      */
     public function show(Request $request, string $conversation): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $this->ownedConversation($conversation, 'view');
 
         $messages = ConversationMessage::query()
             ->where('conversation_id', $owned->id)
@@ -76,14 +80,12 @@ class AiConversationController extends Controller
     /**
      * Create a new conversation for the authenticated user.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAiConversationRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'title' => ['nullable', 'string', 'max:100'],
-        ]);
+        $validated = $request->validated();
 
         $conversationId = (string) Str::uuid7();
         $title = filled($validated['title'] ?? null)
@@ -107,7 +109,7 @@ class AiConversationController extends Controller
      */
     public function destroy(Request $request, string $conversation): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $this->ownedConversation($conversation, 'delete');
 
         $this->mutations->deleteConversation($owned);
 
@@ -115,41 +117,11 @@ class AiConversationController extends Controller
     }
 
     /**
-     * Delete multiple owned conversations in one transaction.
-     */
-    public function bulkDestroy(Request $request): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1', 'max:100'],
-            'ids.*' => ['required', 'string', 'uuid'],
-        ]);
-
-        $ids = array_values(array_unique($validated['ids']));
-
-        $ownedIds = $user->conversations()
-            ->whereIn('id', $ids)
-            ->pluck('id')
-            ->all();
-
-        abort_if(count($ownedIds) !== count($ids), Response::HTTP_NOT_FOUND);
-
-        $deleted = $this->mutations->deleteConversations($ownedIds);
-
-        return response()->json([
-            'ok' => true,
-            'deleted' => $deleted,
-        ]);
-    }
-
-    /**
      * Toggle the pinned state of a conversation.
      */
     public function togglePin(Request $request, string $conversation): JsonResponse
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $owned = $this->ownedConversation($conversation, 'update');
 
         $owned->pinned_at = $owned->pinned_at === null ? now() : null;
         $owned->save();
@@ -161,46 +133,17 @@ class AiConversationController extends Controller
     }
 
     /**
-     * Delete a message and every message that follows it in the conversation.
+     * Resolve a conversation the authenticated user may act on ({@see AiConversationPolicy}), or
+     * abort with an empty 404 so a foreign conversation looks like a missing one.
      */
-    public function truncate(Request $request, string $conversation): JsonResponse
+    private function ownedConversation(string $conversationId, string $ability): Conversation
     {
-        $owned = $this->ownedConversation($request, $conversation);
+        $conversation = Conversation::query()->find($conversationId);
 
-        $validated = $request->validate([
-            'from_message_id' => ['required', 'string', 'uuid'],
-        ]);
-
-        $anchor = ConversationMessage::query()
-            ->where('conversation_id', $owned->id)
-            ->where('id', $validated['from_message_id'])
-            ->first();
-
-        abort_if($anchor === null, Response::HTTP_NOT_FOUND);
-
-        $deleted = $this->mutations->truncateFromMessage($owned, $anchor);
-
-        $owned->touch();
-
-        return response()->json([
-            'ok' => true,
-            'deleted' => $deleted,
-        ]);
-    }
-
-    /**
-     * Resolve a conversation owned by the authenticated user or abort with 404.
-     */
-    private function ownedConversation(Request $request, string $conversationId): Conversation
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        $conversation = $user->conversations()
-            ->where('id', $conversationId)
-            ->first();
-
-        abort_if($conversation === null, Response::HTTP_NOT_FOUND);
+        abort_unless(
+            $conversation instanceof Conversation && Gate::allows($ability, $conversation),
+            Response::HTTP_NOT_FOUND,
+        );
 
         return $conversation;
     }

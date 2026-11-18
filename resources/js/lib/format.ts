@@ -2,6 +2,7 @@
  * Shared display formatters (locale, dates, numbers, bytes, initials, datetime-local values).
  */
 import i18n from '@/lib/i18n';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 /**
  * Resolve the active app locale for Intl formatters (falls back to English).
@@ -120,7 +121,7 @@ export function toDatetimeLocalValue(
         return '';
     }
 
-    const stringValue = String(value);
+    const stringValue = scalarToString(value);
 
     if (/^\d{4}-\d{2}-\d{2}T/.test(stringValue)) {
         return includeSeconds

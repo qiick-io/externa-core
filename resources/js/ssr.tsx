@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import type { ResolvedComponent } from '@inertiajs/react';
 import createServer from '@inertiajs/react/server';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
@@ -20,7 +21,10 @@ createServer((page) => {
         resolve: (name) =>
             resolvePageComponent(
                 `./pages/${name}.tsx`,
-                import.meta.glob('./pages/**/*.tsx'),
+                // Each page module's default export, typed as Inertia 3's resolver expects.
+                import.meta.glob<ResolvedComponent>('./pages/**/*.tsx', {
+                    import: 'default',
+                }),
             ),
         setup: ({ App, props }) => {
             return (

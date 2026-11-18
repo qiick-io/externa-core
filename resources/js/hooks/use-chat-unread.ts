@@ -113,7 +113,7 @@ export function useChatUnread(): ChatUnreadShare & { refresh: () => void } {
     useEffect(() => {
         setUnread(shared);
         // Depend on primitive unread fields only — `shared` is a new object each render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from Inertia shared props fields
+        // oxlint-disable-next-line react-hooks/exhaustive-deps -- sync from Inertia shared props fields
     }, [
         shared.unread_count,
         shared.unread_private,

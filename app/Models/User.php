@@ -110,7 +110,7 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
-     * @return BelongsToMany<UserGroup, $this>
+     * @return BelongsToMany<UserGroup, $this, UserGroupUser>
      */
     public function groups(): BelongsToMany
     {

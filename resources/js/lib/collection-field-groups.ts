@@ -128,7 +128,7 @@ export function fieldsWithGroupOverrides<
             return field;
         }
 
-        const settings = { ...(field.settings ?? {}) };
+        const settings = { ...field.settings };
 
         if (group === null) {
             delete settings.group;

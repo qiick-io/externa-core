@@ -3,15 +3,15 @@
 namespace App\Services\Settings;
 
 use App\Enums\ThemePresetEnum;
-use App\Support\Css\BrandColorDerivation;
-use App\Support\Css\OklchHue;
+use App\Services\Css\BrandColorDerivationService;
+use App\Services\Css\OklchHueService;
 
 /**
  * Resolves built-in theme presets into CSS variables with brand / AI precedence.
  *
  * Tokens: the shared `base` surfaces from config/theme-presets.php, with the
  * selected preset's brand colours merged over them.
- * Precedence: custom brand hex → selected preset → default teal.
+ * Precedence: custom brand hex → selected preset → default Ottanio.
  * AI override: preset `ai_override` or custom hex within ~30° of OKLCH hue 306°.
  *
  * @phpstan-type ThemeCssBag array{
@@ -55,6 +55,7 @@ class ThemePresetService
     /**
      * Presets for the appearance picker, each with its full base + brand token
      * maps so the page previews them without a client-side copy of the config.
+     * `name` is the preset's translation key, translated by the picker.
      *
      * @return list<array{
      *     slug: string,
@@ -130,7 +131,7 @@ class ThemePresetService
         $brandPrimaryDarkForeground = null;
 
         if ($hasCustomLight) {
-            $lightDerivation = BrandColorDerivation::fromHex(
+            $lightDerivation = BrandColorDerivationService::fromHex(
                 $projectColor,
                 $light['background'] ?? '#FFFFFF',
             );
@@ -143,7 +144,7 @@ class ThemePresetService
         }
 
         if ($effectiveDark !== null && ($hasCustomLight || $hasCustomDark)) {
-            $darkDerivation = BrandColorDerivation::fromHex(
+            $darkDerivation = BrandColorDerivationService::fromHex(
                 $effectiveDark,
                 $dark['background'] ?? '#0E171E',
             );
@@ -175,7 +176,7 @@ class ThemePresetService
         $targetHue = (float) config('theme-presets.ai_accent_hue', 306.0);
         $tolerance = (float) config('theme-presets.ai_override_hue_tolerance', 30.0);
 
-        return OklchHue::isWithinHue($hex, $targetHue, $tolerance);
+        return OklchHueService::isWithinHue($hex, $targetHue, $tolerance);
     }
 
     /**
@@ -246,7 +247,7 @@ class ThemePresetService
      */
     private function ringTokens(string $brandHex, string $background, string $fallbackRing): array
     {
-        $ring = BrandColorDerivation::meetsUiContrast($brandHex, $background) ? $brandHex : $fallbackRing;
+        $ring = BrandColorDerivationService::meetsUiContrast($brandHex, $background) ? $brandHex : $fallbackRing;
 
         return ['ring' => $ring, 'sidebar-ring' => $ring];
     }

@@ -46,9 +46,14 @@ export function NotificationsBell() {
             });
     }, []);
 
-    useEffect(() => {
+    const [previousSharedUnreadCount, setPreviousSharedUnreadCount] =
+        useState(sharedUnreadCount);
+
+    // Adopt a new server count during render (React's "adjust state on prop change" pattern).
+    if (previousSharedUnreadCount !== sharedUnreadCount) {
+        setPreviousSharedUnreadCount(sharedUnreadCount);
         setUnreadCount(sharedUnreadCount);
-    }, [sharedUnreadCount]);
+    }
 
     useEffect(() => {
         const previousCount = previousUnreadCountRef.current;

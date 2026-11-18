@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Collections;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectContentSettingsService;
 
 /**
  * Hard-delete revision history rows past effective retention limits.
@@ -17,7 +19,7 @@ use App\Services\Settings\ProjectSettingsService;
 class CollectionItemRevisionPrunerService
 {
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectContentSettingsService $contentSettings,
     ) {}
 
     /**
@@ -43,8 +45,8 @@ class CollectionItemRevisionPrunerService
     public function pruneAll(): int
     {
         $deleted = 0;
-        $globalCount = $this->projectSettings->revisionRetentionCount();
-        $globalDays = $this->projectSettings->revisionRetentionDays();
+        $globalCount = $this->contentSettings->revisionRetentionCount();
+        $globalDays = $this->contentSettings->revisionRetentionDays();
         $hasGlobal = $globalCount !== null || $globalDays !== null;
 
         $query = Collection::query()
@@ -91,9 +93,9 @@ class CollectionItemRevisionPrunerService
     {
         return [
             $collection->revision_retention_count
-                ?? $this->projectSettings->revisionRetentionCount(),
+                ?? $this->contentSettings->revisionRetentionCount(),
             $collection->revision_retention_days
-                ?? $this->projectSettings->revisionRetentionDays(),
+                ?? $this->contentSettings->revisionRetentionDays(),
         ];
     }
 

@@ -2,7 +2,7 @@ import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
     DataTable,
     dataTableExpandColumn,

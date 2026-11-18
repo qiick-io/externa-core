@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { isRealtimeEnabled } from '@/lib/echo';
 import { subscribeOnlineUsers } from '@/lib/online-presence';
 
+const noOnlineUsers: Set<number> = new Set();
+
 /**
  * Read currently online user ids from the shared presence channel state.
  */
@@ -14,13 +16,12 @@ export function useOnlineUsers(): Set<number> {
 
     useEffect(() => {
         if (!enabled) {
-            setOnlineIds(new Set());
-
             return;
         }
 
         return subscribeOnlineUsers(setOnlineIds);
     }, [enabled]);
 
-    return onlineIds;
+    // Derived rather than reset in the effect: the subscription replays the current ids on re-enable.
+    return enabled ? onlineIds : noOnlineUsers;
 }

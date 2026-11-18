@@ -10,8 +10,8 @@ use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
-use App\Support\Validation\FilterQueryLimits;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\FilterQueryLimitsService;
+use App\Services\Validation\StringLimitsService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
@@ -163,11 +163,11 @@ it('rejects relational filter depth above the hard cap with 422', function (): v
     )->assertUnprocessable()
         ->assertJsonValidationErrors(['filter']);
 
-    expect(fn () => FilterQueryLimits::assertValid([
+    expect(fn () => FilterQueryLimitsService::assertValid([
         'a.b.c' => ['_eq' => 'x'],
     ]))->toThrow(ValidationException::class);
 
-    expect(StringLimits::FILTER_MAX_RELATION_DEPTH)->toBe(1);
+    expect(StringLimitsService::FILTER_MAX_RELATION_DEPTH)->toBe(1);
 });
 
 it('does not leak related values when the related collection is not readable', function (): void {

@@ -81,7 +81,7 @@ export default function TwoFactorChallenge() {
                                         placeholder={t(
                                             'auth.twoFactorChallenge.recoveryPlaceholder',
                                         )}
-                                        // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                        // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                         autoFocus={showRecoveryInput}
                                         required
                                         aria-invalid={

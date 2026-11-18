@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
-use App\Support\Validation\StringLimits;
+use App\Models\UserGroup;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 /**
@@ -14,7 +16,6 @@ use Illuminate\Validation\Validator;
  */
 class StoreUserGroupRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
     use GuardsSuperAdminGrantsTrait;
 
     /**
@@ -30,7 +31,7 @@ class StoreUserGroupRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanCreateGroups->value);
+        abort_unless(Gate::allows('create', UserGroup::class), 403);
 
         return true;
     }
@@ -41,8 +42,8 @@ class StoreUserGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:'.StringLimits::NAME, 'unique:user_groups,name'],
-            'description' => ['nullable', 'string', 'max:'.StringLimits::DESCRIPTION],
+            'name' => ['required', 'string', 'max:'.StringLimitsService::NAME, 'unique:user_groups,name'],
+            'description' => ['nullable', 'string', 'max:'.StringLimitsService::DESCRIPTION],
             'user_ids' => ['sometimes', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'role_ids' => ['sometimes', 'array'],

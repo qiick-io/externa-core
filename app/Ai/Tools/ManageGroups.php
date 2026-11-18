@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
@@ -8,14 +10,15 @@ use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserGroup;
 use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
-use Spatie\Permission\Models\Role;
 use Stringable;
 
 /**
@@ -28,19 +31,24 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
     use RequiresDestructiveApprovalTrait;
 
     /**
+     * None: every change to users, roles or groups is a security action, so it is destructive.
+     *
      * @return list<string>
      */
     protected function writeActions(): array
     {
-        return ['create', 'update', 'restore'];
+        return [];
     }
 
     /**
+     * Security actions: off unless AI_TOOLS_DESTRUCTIVE_ENABLED, approved one call at a time,
+     * and never reachable over MCP (#766).
+     *
      * @return list<string>
      */
     protected function destructiveActions(): array
     {
-        return ['delete', 'force_delete'];
+        return ['create', 'update', 'restore', 'delete', 'force_delete'];
     }
 
     /**
@@ -196,7 +204,7 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: Group not found.';
         }
 
-        if ($error = $this->superAdminGroupError($group) ?? $this->superAdminGrantError($request)) {
+        if ($error = $this->superAdminGroupError('update', $group) ?? $this->superAdminGrantError($request)) {
             return $error;
         }
 
@@ -255,7 +263,7 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: Group not found.';
         }
 
-        if ($error = $this->superAdminGroupError($group)) {
+        if ($error = $this->superAdminGroupError('delete', $group)) {
             return $error;
         }
 
@@ -278,7 +286,7 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: Trashed group not found.';
         }
 
-        if ($error = $this->superAdminGroupError($group)) {
+        if ($error = $this->superAdminGroupError('restore', $group)) {
             return $error;
         }
 
@@ -301,7 +309,7 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: Trashed group not found.';
         }
 
-        if ($error = $this->superAdminGroupError($group)) {
+        if ($error = $this->superAdminGroupError('forceDelete', $group)) {
             return $error;
         }
 
@@ -313,16 +321,14 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
     }
 
     /**
-     * Groups that grant super-admin are managed by super-admins only.
+     * Groups that grant super-admin are managed by super-admins only (UserGroupPolicy).
+     *
+     * Runs after requirePermission() has checked the ability's permission, so a denial
+     * here is the super-admin protection.
      */
-    private function superAdminGroupError(UserGroup $group): ?string
+    private function superAdminGroupError(string $ability, UserGroup $group): ?string
     {
-        $superAdminGuard = app(SuperAdminGuardService::class);
-
-        if (
-            ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
-            && $superAdminGuard->hasSuperAdminGroup([$group->id])
-        ) {
+        if (Gate::forUser($this->authenticatedUser())->inspect($ability, $group)->denied()) {
             return 'Error: Only a super-admin can change a group that grants super-admin.';
         }
 

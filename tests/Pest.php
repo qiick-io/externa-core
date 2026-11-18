@@ -1,5 +1,7 @@
 <?php
 
+use App\Data\Api\ApiAccessData;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
@@ -53,6 +55,10 @@ pest()->extend(TestCase::class)
 
 pest()->extend(TestCase::class)
     ->in('Arch');
+
+// The release upgrade rehearsal rebuilds its own database (#792): no RefreshDatabase.
+pest()->extend(TestCase::class)
+    ->in('Upgrade');
 
 /*
 |--------------------------------------------------------------------------
@@ -128,20 +134,10 @@ function makePostsCollection(): Collection
  */
 function makeApiKeyForRole(?Role $role = null): array
 {
-    $role ??= Role::query()->create([
-        'name' => 'api-consumer-'.uniqid(),
-        'guard_name' => 'web',
-        'is_system' => false,
-        'is_assignable' => true,
-    ]);
+    $role ??= Role::factory()->create(['name' => 'api-consumer-'.uniqid()]);
 
     $secret = ApiKey::generateSecret();
-    $key = ApiKey::query()->create([
-        'name' => 'Partner',
-        'key_prefix' => $secret['prefix'],
-        'key_hash' => $secret['hash'],
-        'role_id' => $role->id,
-    ]);
+    $key = ApiKey::factory()->withSecret($secret)->for($role)->create(['name' => 'Partner']);
 
     return ['role' => $role, 'plain' => $secret['plain'], 'key' => $key];
 }
@@ -218,6 +214,34 @@ function grantAiPermissions(User $user, array $permissions): User
     $user->syncRoles([$role]);
 
     return $user;
+}
+
+/**
+ * Run the callback as an MCP request from an API key owned by `$owner`, bound where the `/mcp`
+ * middleware binds it, so a write the callback parks keeps the key (as every real MCP call does).
+ *
+ * The key gets a fresh role with no permissions unless `$role` is given: a key acts with its
+ * own role's grants, never its owner's, so a test whose call needs a permission passes the role.
+ *
+ * @template TReturn
+ *
+ * @param  callable(): TReturn  $callback
+ * @return TReturn
+ */
+function asMcpApiKey(User $owner, callable $callback, ?Role $role = null): mixed
+{
+    config(['ai.mcp.write_enabled' => true]);
+    $apiKey = ApiKey::factory()
+        ->withScopes(ApiKeyScopeEnum::McpRead, ApiKeyScopeEnum::McpWrite, ApiKeyScopeEnum::CollectionsWrite, ApiKeyScopeEnum::FilesWrite)
+        ->create(['owner_id' => $owner->id, ...($role !== null ? ['role_id' => $role->id] : [])]);
+
+    app()->instance(ApiAccessData::class, new ApiAccessData(actor: 'api_key', role: $apiKey->role, apiKey: $apiKey));
+
+    try {
+        return $callback();
+    } finally {
+        app()->forgetInstance(ApiAccessData::class);
+    }
 }
 
 /**

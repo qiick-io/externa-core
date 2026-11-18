@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Services\Settings\ProjectSettingsService;
@@ -42,7 +44,7 @@ class SetLocaleMiddleware
             return $cookieLocale;
         }
 
-        $projectLocale = app(ProjectSettingsService::class)->defaultLanguage();
+        $projectLocale = app(ProjectSettingsService::class)->localization()->defaultLanguage();
         if (in_array($projectLocale, $available, true)) {
             return $projectLocale;
         }

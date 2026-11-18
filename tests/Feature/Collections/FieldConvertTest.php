@@ -333,3 +333,37 @@ test('AI convert_field dry-run and apply', function () {
     expect($appliedPayload['ok'] ?? false)->toBeTrue()
         ->and($field->fresh()->type)->toBe(FieldTypeEnum::Textarea);
 });
+
+test('converts every item across several write chunks (#441)', function () {
+    ['collection' => $collection, 'field' => $field] = convertFixture(draft: ['body' => 'Draft 0']);
+
+    foreach (range(1, 4) as $index) {
+        $item = CollectionItem::factory()->create([
+            'collection_id' => $collection->id,
+            'draft_data' => ['body' => "Draft {$index}"],
+        ]);
+        CollectionItemValue::query()->create([
+            'item_id' => $item->id,
+            'field_id' => $field->id,
+            'locale' => null,
+            'position' => 0,
+            'value' => "Hello {$index}",
+        ]);
+    }
+
+    $result = app(CollectionFieldConvertService::class)->run($field, new FieldConvertOptionsData(
+        toType: FieldTypeEnum::Markdown,
+        toTranslatable: false,
+        chunkSize: 2,
+        dryRun: false,
+    ));
+
+    expect($result->applied)->toBeTrue();
+
+    foreach (CollectionItem::query()->where('collection_id', $collection->id)->get() as $item) {
+        expect(CollectionItemRevision::query()
+            ->where('item_id', $item->id)
+            ->where('meta->source', 'convert')
+            ->count())->toBe(2, "item {$item->id}: published and draft revisions");
+    }
+});

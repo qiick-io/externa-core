@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -19,7 +21,7 @@ use Laravel\Fortify\Features;
 class SecurityController extends Controller implements HasMiddleware
 {
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectSecuritySettingsService $securitySettings,
     ) {}
 
     /**
@@ -48,7 +50,7 @@ class SecurityController extends Controller implements HasMiddleware
         $user = $request->user();
         $canManageTwoFactor = Features::canManageTwoFactorAuthentication();
         $canManagePasskeys = Features::canManagePasskeys();
-        $isTwoFactorRequired = $this->projectSettings->isTwoFactorRequired();
+        $isTwoFactorRequired = $this->securitySettings->isTwoFactorRequired();
         $twoFactorEnabled = false;
         $hasPasskeys = false;
 

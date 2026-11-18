@@ -32,14 +32,16 @@ test('permission sync with prune removes stale permissions', function () {
     expect(Permission::query()->where('name', 'can-obsolete-module')->exists())->toBeFalse();
 });
 
-test('fresh install grants deploy.trigger and ai.prompts.manage to the admin role', function () {
+test('fresh install grants deploy.trigger, ai.prompts.manage and ai.draft to the admin role', function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
     $admin = Role::findByName(RoleEnum::Admin->value);
 
     expect($admin->hasPermissionTo(PermissionEnum::DeployTrigger->value))->toBeTrue()
-        ->and($admin->hasPermissionTo(PermissionEnum::CanManageAiPrompts->value))->toBeTrue();
+        ->and($admin->hasPermissionTo(PermissionEnum::CanManageAiPrompts->value))->toBeTrue()
+        ->and($admin->hasPermissionTo(PermissionEnum::CanUseAiItemDrafts->value))->toBeTrue()
+        ->and(Role::findByName(RoleEnum::Reader->value)->hasPermissionTo(PermissionEnum::CanUseAiItemDrafts->value))->toBeFalse();
 });
 
 test('externa:upgrade grants permissions new since 1.3.0 to admin without restoring revoked ones', function () {

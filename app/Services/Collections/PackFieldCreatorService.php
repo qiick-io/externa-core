@@ -4,7 +4,6 @@ namespace App\Services\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
-use App\Support\Collections\CollectionFieldSettingsPipeline;
 use InvalidArgumentException;
 
 /**
@@ -13,7 +12,7 @@ use InvalidArgumentException;
 final class PackFieldCreatorService
 {
     public function __construct(
-        private readonly CollectionFieldSettingsPipeline $pipeline,
+        private readonly CollectionFieldSettingsPipelineService $pipeline,
     ) {}
 
     /**

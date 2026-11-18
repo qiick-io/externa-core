@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Jobs\DeliverOutboundWebhookJob;
@@ -365,7 +367,7 @@ test('clearing webhook url disables outbound webhooks', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    expect(app(ProjectSettingsService::class)->webhookUrl())->toBe('https://example.com/externa-hooks');
+    expect(app(ProjectSettingsService::class)->integrations()->webhookUrl())->toBe('https://example.com/externa-hooks');
 
     $this->actingAs($user)
         ->put(route('project.integrations.update'), baseIntegrationsPayload([
@@ -374,8 +376,8 @@ test('clearing webhook url disables outbound webhooks', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    expect(app(ProjectSettingsService::class)->webhookUrl())->toBeNull()
-        ->and(app(ProjectSettingsService::class)->webhookSecret())->toBe('keep-me');
+    expect(app(ProjectSettingsService::class)->integrations()->webhookUrl())->toBeNull()
+        ->and(app(ProjectSettingsService::class)->integrations()->webhookSecret())->toBe('keep-me');
 
     $this->actingAs($user)
         ->get(route('project.integrations.edit'))
@@ -407,7 +409,7 @@ test('project settings stores encrypted webhook secret and never shares it', fun
 
     expect($stored)->toBeString()
         ->and($stored)->not->toBe('super-secret-value')
-        ->and(app(ProjectSettingsService::class)->webhookSecret())->toBe('super-secret-value')
+        ->and(app(ProjectSettingsService::class)->integrations()->webhookSecret())->toBe('super-secret-value')
         ->and(app(ProjectSettingsService::class)->shared())->not->toHaveKey('webhook_secret')
         ->and(app(ProjectSettingsService::class)->shared())->not->toHaveKey('webhookSecret');
 

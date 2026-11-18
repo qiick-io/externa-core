@@ -127,6 +127,8 @@ it('allows QueryCollectionItems on both surfaces when the user can show collecti
 });
 
 it('keeps mutating actions out of chat and MCP until the write gate allows them', function (): void {
+    config(['ai.tools.write_enabled' => false, 'ai.mcp.write_enabled' => false]);
+
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         ...allCollectionPermissions(),
@@ -156,6 +158,7 @@ it('keeps mutating actions out of chat and MCP until the write gate allows them'
         'ai.tools.write_allow' => ['ManageCollections'],
         // MCP adapter also requires the MCP write flag (#121).
         'ai.mcp.write_enabled' => true,
+        'ai.tools.destructive_enabled' => true,
     ]);
 
     $chatEnabled = collect((new AppAssistant($user))->tools())
@@ -194,25 +197,39 @@ it('re-checks permissions at MCP call time even if the tool was previously liste
         ->and($call['structuredContent']['status'] ?? null)->toBe('denied');
 });
 
-it('returns pending_approval for MCP mutating calls when the write gate allows the tool', function (): void {
-    config([
-        'ai.tools.write_enabled' => true,
-        'ai.tools.write_allow' => ['ManageCollections'],
-        'ai.mcp.write_enabled' => true,
-    ]);
+it('runs MCP writes directly and parks destructive MCP calls for approval (#766)', function (): void {
+    config(['ai.tools.write_enabled' => true, 'ai.tools.destructive_enabled' => true]);
 
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         ...allCollectionPermissions(),
     ]);
+    $this->actingAs($user);
+    $collection = Collection::factory()->create();
+    $adapter = app(RegistryMcpToolAdapter::class);
 
-    $call = app(RegistryMcpToolAdapter::class)->callTool(
-        'ManageCollections',
-        ['action' => 'list'],
-        $user,
-    );
+    $write = $adapter->callTool('ManageCollections', ['action' => 'create', 'name' => 'Direct'], $user);
+    $delete = $adapter->callTool('ManageCollections', ['action' => 'delete', 'collection_id' => $collection->id], $user);
 
-    expect($call['isError'])->toBeFalse()
-        ->and($call['structuredContent']['status'] ?? null)->toBe('pending_approval')
-        ->and($call['structuredContent']['pending_id'] ?? null)->not->toBeNull();
+    expect($write['structuredContent']['status'] ?? null)->toBe('ok')
+        ->and(Collection::query()->where('slug', 'direct')->exists())->toBeTrue()
+        ->and($delete['isError'])->toBeFalse()
+        ->and($delete['structuredContent']['status'] ?? null)->toBe('pending_approval')
+        ->and($delete['structuredContent']['pending_id'] ?? null)->not->toBeNull()
+        ->and($collection->fresh()?->trashed())->toBeFalse();
+});
+
+it('parks every MCP write for approval when AI_MCP_WRITE_REQUIRES_APPROVAL is on', function (): void {
+    config(['ai.tools.write_enabled' => true, 'ai.mcp.write_requires_approval' => true]);
+
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+    $this->actingAs($user);
+
+    $write = app(RegistryMcpToolAdapter::class)->callTool('ManageCollections', ['action' => 'create', 'name' => 'Parked'], $user);
+
+    expect($write['structuredContent']['status'] ?? null)->toBe('pending_approval')
+        ->and(Collection::query()->where('slug', 'parked')->exists())->toBeFalse();
 });

@@ -106,6 +106,27 @@ test('non-image files cannot request thumbnails', function () {
     $this->get(route('files.thumbnail', $file))->assertStatus(422);
 });
 
+test('the non-image guard runs before thumbnail query validation', function () {
+    $user = grantThumbnailPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'notes.txt',
+        'path' => '/notes.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/notes.txt',
+        'mime_type' => 'text/plain',
+    ]);
+
+    $this->getJson(route('files.thumbnail', ['file' => $file, 'size' => 'not-a-number']))
+        ->assertStatus(422)
+        ->assertJsonPath('message', 'Thumbnails are only available for image files.')
+        ->assertJsonMissingPath('errors');
+});
+
 test('file list resource includes thumbnail_url for images and null for other files', function () {
     $user = grantThumbnailPermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,

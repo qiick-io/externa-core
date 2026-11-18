@@ -24,8 +24,12 @@ concurrency:
 # - Required check NAMES stay: ci (8.4), ci (8.5), ci-mysql, ci-mariadb, ci-pgsql, browser
 #   (stubs report success when the heavy work is skipped so branch protection stays green).
 # - pull_request → develop (code): Pest on PHP 8.4 only; other PHP/DB stub; browser runs axe smoke.
+# - pull_request → develop that changes a toolchain / stack file (package.json, lockfiles, composer.json,
+#   vite / vitest / tsconfig, qiick-standards.json, this file), a migration under database/migrations/,
+#   or app/Console/Commands/UpgradeCommand.php: full matrix + full browser suite (#669, #789).
 # - docs/md-only PR → develop: all Pest/browser stub.
 # - push → develop/main, PR → main, schedule: full matrix + full browser suite.
+# - install-upgrade (#792, #794) runs in full mode only, per engine, and is not a required check.
 # - Required jobs run with if: always() and fail first when changes/assets did not succeed,
 #   so a broken build can never surface as a skipped (= passing) required check (#438).
 
@@ -38,7 +42,7 @@ jobs:
       run_assets: ${{ steps.mode.outputs.run_assets }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -82,6 +86,19 @@ jobs:
               else
                 MODE=lite
               fi
+
+              # Toolchain, stack, migration, or upgrade-command changes run the full matrix and the
+              # whole browser suite even on a PR to develop (#631, #669, #789). Migrations and
+              # externa:upgrade must hit MySQL / MariaDB / PostgreSQL before merge; lite stubs them.
+              for f in "${FILES[@]}"; do
+                case "$f" in
+                  package.json|package-lock.json|composer.json|composer.lock|vite.config.ts|vitest.config.ts|tsconfig.json|qiick-standards.json|.github/workflows/tests.yml|database/migrations/*|app/Console/Commands/UpgradeCommand.php)
+                    MODE=full
+                    echo "Full-mode trigger ($f): full mode"
+                    break
+                    ;;
+                esac
+              done
             fi
           fi
 
@@ -113,7 +130,7 @@ jobs:
 
       - name: Checkout code
         if: needs.changes.outputs.run_assets == 'true'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup PHP
         if: needs.changes.outputs.run_assets == 'true'
@@ -125,7 +142,7 @@ jobs:
 
       - name: Setup Node
         if: needs.changes.outputs.run_assets == 'true'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -137,7 +154,7 @@ jobs:
 
       - name: Cache Composer packages
         if: needs.changes.outputs.run_assets == 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
@@ -164,7 +181,7 @@ jobs:
         run: npm run build
 
       - name: Upload built assets
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vite-build
           path: public/build
@@ -209,7 +226,7 @@ jobs:
 
       - name: Checkout code
         if: steps.gate.outputs.run == 'true'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup PHP
         if: steps.gate.outputs.run == 'true'
@@ -221,7 +238,7 @@ jobs:
 
       - name: Setup Node
         if: steps.gate.outputs.run == 'true'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -237,7 +254,7 @@ jobs:
 
       - name: Cache Composer packages
         if: steps.gate.outputs.run == 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
@@ -257,7 +274,7 @@ jobs:
 
       - name: Download built assets
         if: steps.gate.outputs.run == 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vite-build
           path: public/build
@@ -265,6 +282,90 @@ jobs:
       - name: Tests
         if: steps.gate.outputs.run == 'true'
         run: ./vendor/bin/pest --parallel
+
+  # Line coverage report (#288). Not a required check and never blocks: it runs with the full
+  # matrix (push, schedule, PR → main, toolchain PRs), writes the totals to the job summary and
+  # uploads Clover + text reports. A minimum threshold comes later, once the baseline is known.
+  coverage:
+    needs: [changes, assets]
+    if: needs.changes.outputs.mode == 'full' && needs.assets.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: pcov
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy Environment File
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Download built assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vite-build
+          path: public/build
+
+      - name: Tests with coverage
+        run: ./vendor/bin/pest --parallel --coverage-clover=coverage/clover.xml --coverage-text=coverage/coverage.txt
+
+      - name: Coverage summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f coverage/coverage.txt ]]; then
+            {
+              echo '### Line coverage (app/)'
+              echo
+              echo '```'
+              sed -n '1,12p' coverage/coverage.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No coverage report was produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14
 
   # DB + browser jobs always run (required check names). Heavy work only when mode=full;
   # otherwise a step stub reports success. Services may still boot on stubs — cheap vs Pest.
@@ -298,7 +399,7 @@ jobs:
         run: echo "Stub success for required check ci-mysql — mode=${{ needs.changes.outputs.mode }} (#381)."
       - name: Checkout code
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup PHP
         if: needs.changes.outputs.mode == 'full'
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -309,7 +410,7 @@ jobs:
           coverage: none
       - name: Setup Node
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -322,7 +423,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
       - name: Cache Composer packages
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
@@ -338,7 +439,7 @@ jobs:
         run: php artisan key:generate
       - name: Download built assets
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vite-build
           path: public/build
@@ -386,7 +487,7 @@ jobs:
         run: echo "Stub success for required check ci-mariadb — mode=${{ needs.changes.outputs.mode }} (#381)."
       - name: Checkout code
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup PHP
         if: needs.changes.outputs.mode == 'full'
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -397,7 +498,7 @@ jobs:
           coverage: none
       - name: Setup Node
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -410,7 +511,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
       - name: Cache Composer packages
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
@@ -426,7 +527,7 @@ jobs:
         run: php artisan key:generate
       - name: Download built assets
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vite-build
           path: public/build
@@ -473,7 +574,7 @@ jobs:
         run: echo "Stub success for required check ci-pgsql — mode=${{ needs.changes.outputs.mode }} (#381)."
       - name: Checkout code
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup PHP
         if: needs.changes.outputs.mode == 'full'
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -484,7 +585,7 @@ jobs:
           coverage: none
       - name: Setup Node
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -497,7 +598,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
       - name: Cache Composer packages
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
@@ -518,7 +619,7 @@ jobs:
         run: psql -h 127.0.0.1 -U externa -d externa -c "ALTER USER externa CREATEDB;"
       - name: Download built assets
         if: needs.changes.outputs.mode == 'full'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vite-build
           path: public/build
@@ -551,7 +652,7 @@ jobs:
         run: echo "Stub success for required check browser — mode=docs (#381)."
       - name: Checkout code
         if: needs.changes.outputs.mode != 'docs'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup PHP
         if: needs.changes.outputs.mode != 'docs'
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -561,7 +662,7 @@ jobs:
           coverage: none
       - name: Setup Node
         if: needs.changes.outputs.mode != 'docs'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -577,7 +678,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
       - name: Cache Composer packages
         if: needs.changes.outputs.mode != 'docs'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
@@ -593,7 +694,7 @@ jobs:
         run: php artisan key:generate
       - name: Download built assets
         if: needs.changes.outputs.mode != 'docs'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vite-build
           path: public/build
@@ -609,3 +710,109 @@ jobs:
         env:
           QUEUE_CONNECTION: sync
           LOCAL_AI_URL: http://127.0.0.1:9/v1
+
+  # Upgrade rehearsals (#792, #794), full mode only (a migration or externa:upgrade change, a
+  # push, a PR to main, the nightly run). Not a required check. Per engine:
+  # - tests/Upgrade migrates to the last release tag's schema, seeds the shared fixtures
+  #   (tests/Support/ReleaseUpgradeFixtures.php) and runs this branch's migrations;
+  # - scripts/e2e/install-upgrade.sh installs this checkout like an operator, then installs the
+  #   previous release from Packagist, fills it with the same fixtures and upgrades it.
+  # Both check the same invariants: no row lost, nothing rewritten beyond the migrations' docs.
+  install-upgrade:
+    name: install-upgrade (${{ matrix.connection }})
+    needs: changes
+    if: needs.changes.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - connection: sqlite
+            image: ''
+          - connection: mysql
+            image: mysql:8.4
+            port: 3306
+            health: mysqladmin ping -h 127.0.0.1 -uroot -ppassword
+          - connection: mariadb
+            image: mariadb:11.4
+            port: 3306
+            health: healthcheck.sh --connect --innodb_initialized
+          - connection: pgsql
+            image: postgres:16
+            port: 5432
+            health: pg_isready -U root -d externa_core
+    services:
+      # One service per engine from the matrix; an empty image (SQLite) starts none.
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_DATABASE: externa_core
+          MYSQL_ROOT_PASSWORD: password
+          MARIADB_DATABASE: externa_core
+          MARIADB_ROOT_PASSWORD: password
+          POSTGRES_DB: externa_core
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: password
+        ports:
+          - ${{ matrix.port || 3306 }}:${{ matrix.port || 3306 }}
+        options: >-
+          --health-cmd="${{ matrix.health || 'true' }}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DB_CONNECTION: ${{ matrix.connection }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ matrix.port }}
+      DB_DATABASE: ${{ matrix.connection != 'sqlite' && 'externa_core' || ':memory:' }}
+      DB_USERNAME: root
+      DB_PASSWORD: ${{ matrix.connection != 'sqlite' && 'password' || '' }}
+      SMOKE_DB_PORT: ${{ matrix.port }}
+      SMOKE_DB_PASSWORD: password
+    steps:
+      - name: Checkout code (with main and the release tags)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, pdo_mysql, pdo_pgsql
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy Environment File
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Rehearse the migrations from the last release tag
+        run: ./vendor/bin/pest tests/Upgrade
+
+      - name: Install, then upgrade the previous release like an operator
+        # The script writes its own .env per tree; the job's DB_* would override them.
+        run: env -u DB_CONNECTION -u DB_HOST -u DB_PORT -u DB_DATABASE -u DB_USERNAME -u DB_PASSWORD scripts/e2e/install-upgrade.sh "${{ matrix.connection }}"

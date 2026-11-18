@@ -5,7 +5,10 @@
 
 export type FieldDropIntent = 'before' | 'after';
 export type FieldDropLayoutIntent =
-    'below-new-row' | 'beside' | 'into-group' | null;
+    | 'below-new-row'
+    | 'beside'
+    | 'into-group'
+    | null;
 
 /**
  * Half over full/fill (or full over half) is vertical-only: force the half onto

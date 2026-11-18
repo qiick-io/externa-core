@@ -7,6 +7,7 @@ use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Services\Ai\AiToolWriteGateService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Approvals\Approval;
 use Laravel\Ai\Concerns\InteractsWithApprovals;
@@ -18,6 +19,9 @@ use Stringable;
 
 /**
  * AI tool that rolls back side effects from the previous AI assistant turn.
+ *
+ * Destructive (it deletes what the turn created), so it is refused while
+ * AI_TOOLS_DESTRUCTIVE_ENABLED is off (#766).
  */
 class RollbackLastAiTurn implements Approvable, Tool
 {
@@ -39,6 +43,10 @@ class RollbackLastAiTurn implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (! app(AiToolWriteGateService::class)->isDestructiveEnabled()) {
+                return 'Error: Rolling back an AI turn is a destructive action, and destructive AI tools are off (AI_TOOLS_DESTRUCTIVE_ENABLED). Ask the user to undo it in the app.';
+            }
+
             if ($error = $this->requirePermission(PermissionEnum::CanDeleteCollections)) {
                 return $error;
             }
@@ -113,6 +121,11 @@ class RollbackLastAiTurn implements Approvable, Tool
      */
     protected function needsApproval(Request $request): Approval|bool
     {
+        // A refused call needs no approval: handle() refuses it.
+        if (! app(AiToolWriteGateService::class)->isDestructiveEnabled()) {
+            return false;
+        }
+
         return Approval::required('RollbackLastAiTurn soft-deletes records created in the latest AI turn.');
     }
 

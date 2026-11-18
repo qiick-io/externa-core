@@ -2,7 +2,11 @@ import { PermissionEnum } from '@/enums/permission-enum';
 
 /** UI category bucket for grouping AI action presets in the drawer. */
 export type AiActionPresetCategory =
-    'common' | 'data' | 'files' | 'admin' | 'advanced';
+    | 'common'
+    | 'data'
+    | 'files'
+    | 'admin'
+    | 'advanced';
 
 /** Pre-built AI prompt template shown in the action presets drawer. */
 export type AiActionPreset = {

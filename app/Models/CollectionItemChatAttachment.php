@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\Storage\AbsolutePath;
+use App\Services\Storage\AbsolutePathService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -80,7 +80,7 @@ class CollectionItemChatAttachment extends Model
      */
     public function absolutePath(): string
     {
-        return AbsolutePath::resolve($this->disk, $this->path);
+        return AbsolutePathService::resolve($this->disk, $this->path);
     }
 
     /**

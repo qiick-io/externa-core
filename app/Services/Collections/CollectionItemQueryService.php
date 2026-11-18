@@ -8,10 +8,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Services\Api\CollectionPermissionEnforcerService;
-use App\Support\Api\PublicItemSortParser;
-use App\Support\Collections\CollectionLocaleResolver;
-use App\Support\Validation\FilterQueryLimits;
-use App\Support\Validation\StringLimits;
+use App\Services\Api\PublicItemSortParserService;
+use App\Services\Validation\FilterQueryLimitsService;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -30,7 +29,7 @@ use Illuminate\Validation\ValidationException;
  *   ({@see self::SYSTEM_FILTER_COLUMNS}); system keys win over a same-named
  *   collection field; unsupported operators / invalid values → 422
  * - Depth-1 relational: `filter[author.name][_eq]=Ada` (hard cap
- *   {@see StringLimits::FILTER_MAX_RELATION_DEPTH}); deeper paths → 422
+ *   {@see StringLimitsService::FILTER_MAX_RELATION_DEPTH}); deeper paths → 422
  *
  * When a {@see Request} is provided (Public REST/GraphQL), relational filters
  * require the related collection to be readable via
@@ -46,7 +45,7 @@ class CollectionItemQueryService
 
     /**
      * Public/API filterable system columns on `collections_items`
-     * (same allowlist as {@see PublicItemSortParser::SYSTEM_COLUMNS}).
+     * (same allowlist as {@see PublicItemSortParserService::SYSTEM_COLUMNS}).
      *
      * @var list<string>
      */
@@ -77,12 +76,13 @@ class CollectionItemQueryService
     ];
 
     public function __construct(
-        private CollectionLocaleResolver $localeResolver,
+        private CollectionLocaleResolverService $localeResolver,
     ) {}
 
     /**
      * @param  array<string, mixed>  $filters
      * @param  Builder<CollectionItem>  $query
+     * @return Builder<CollectionItem>
      */
     public function applyFilters(
         Builder $query,
@@ -91,7 +91,7 @@ class CollectionItemQueryService
         ?string $locale = null,
         ?Request $request = null,
     ): Builder {
-        $filters = FilterQueryLimits::assertValid($filters);
+        $filters = FilterQueryLimitsService::assertValid($filters);
 
         $collection->loadMissing('fields');
         $fieldsByName = $collection->fields->keyBy('name');
@@ -367,7 +367,7 @@ class CollectionItemQueryService
         ?Request $request,
     ): void {
         $parts = explode('.', $path);
-        if (count($parts) !== StringLimits::FILTER_MAX_RELATION_DEPTH + 1) {
+        if (count($parts) !== StringLimitsService::FILTER_MAX_RELATION_DEPTH + 1) {
             return;
         }
 
@@ -514,6 +514,7 @@ class CollectionItemQueryService
      *
      * @param  Builder<CollectionItem>  $query
      * @param  array<string, mixed>|null  $itemFilter
+     * @return Builder<CollectionItem>
      */
     public function applyPermissionItemFilter(
         Builder $query,
@@ -738,6 +739,7 @@ class CollectionItemQueryService
      * (numeric cast would break "2026-10-11").
      *
      * @param  Builder<CollectionItem>  $query
+     * @return Builder<CollectionItem>
      */
     public function applyDateFieldRange(
         Builder $query,
@@ -892,7 +894,7 @@ class CollectionItemQueryService
             }
 
             $column = $key['name'];
-            // raw-sql: reviewed — column from allowlist only (PublicItemSortParser::SYSTEM_COLUMNS)
+            // raw-sql: reviewed — column from allowlist only (PublicItemSortParserService::SYSTEM_COLUMNS)
             $query->orderByRaw($column.' is null asc')
                 ->orderBy($column, $direction);
         }

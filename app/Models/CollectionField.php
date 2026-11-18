@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Enums\FieldTypeEnum;
 use App\Services\Api\PublicApiResponseCacheService;
-use App\Support\Collections\CollectionLocaleResolver;
+use App\Services\Collections\CollectionLocaleResolverService;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionFieldFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -81,6 +81,8 @@ class CollectionField extends Model implements Sortable
 
     /**
      * Scope sortable reordering to fields within the same collection.
+     *
+     * @return Builder<static>
      */
     public function buildSortQuery(): Builder
     {
@@ -123,7 +125,7 @@ class CollectionField extends Model implements Sortable
             return trim($displayName[$locale]);
         }
 
-        foreach (app(CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
+        foreach (app(CollectionLocaleResolverService::class)->fallbackChain($locale) as $fallbackLocale) {
             if (
                 is_array($displayName)
                 && is_string($displayName[$fallbackLocale] ?? null)
@@ -148,7 +150,7 @@ class CollectionField extends Model implements Sortable
             return trim($note[$locale]);
         }
 
-        foreach (app(CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
+        foreach (app(CollectionLocaleResolverService::class)->fallbackChain($locale) as $fallbackLocale) {
             if (
                 is_array($note)
                 && is_string($note[$fallbackLocale] ?? null)

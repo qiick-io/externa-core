@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import FieldConvertController from '@/actions/App/Http/Controllers/Collections/FieldConvertController';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -65,17 +65,34 @@ export function FieldConvertDialog({
     const [preview, setPreview] = useState<ConvertPreview | null>(null);
     const [loading, setLoading] = useState(false);
     const [converting, setConverting] = useState(false);
+    const [previousOpenState, setPreviousOpenState] = useState({
+        open,
+        collectionId,
+        field,
+    });
+
+    // Reset the choices during render when the dialog opens or targets another
+    // field (React's "adjust state on prop change" pattern).
+    if (
+        previousOpenState.open !== open ||
+        previousOpenState.collectionId !== collectionId ||
+        previousOpenState.field !== field
+    ) {
+        setPreviousOpenState({ open, collectionId, field });
+
+        if (open) {
+            setToType(field.type);
+            setToTranslatable(field.translatable);
+            setPreview(null);
+        }
+    }
 
     useEffect(() => {
         if (!open) {
             return;
         }
 
-        setToType(field.type);
-        setToTranslatable(field.translatable);
-        setPreview(null);
-
-        const url = FieldController.convertTargets.url({
+        const url = FieldConvertController.convertTargets.url({
             collection: collectionId,
             field: field.id,
         });
@@ -114,7 +131,7 @@ export function FieldConvertDialog({
                 .querySelector('meta[name="csrf-token"]')
                 ?.getAttribute('content');
             const response = await fetch(
-                FieldController.convert.url({
+                FieldConvertController.convert.url({
                     collection: collectionId,
                     field: field.id,
                 }),
@@ -156,7 +173,7 @@ export function FieldConvertDialog({
                 .querySelector('meta[name="csrf-token"]')
                 ?.getAttribute('content');
             const response = await fetch(
-                FieldController.convert.url({
+                FieldConvertController.convert.url({
                     collection: collectionId,
                     field: field.id,
                 }),

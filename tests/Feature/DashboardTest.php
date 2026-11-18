@@ -212,7 +212,12 @@ test('super-admin can visit the dashboard', function () {
     $user->assignRole(RoleEnum::SuperAdmin->value);
     $this->actingAs($user);
 
-    $this->get(route('dashboard'))->assertOk();
+    // Gate::before grants super-admin every permission, so the dashboard renders in full.
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('dashboard')
+            ->has('collectionCounts'));
 });
 
 test('dashboard views have their own URLs', function () {

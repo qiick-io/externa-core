@@ -3,7 +3,7 @@
 namespace App\Services\Collections;
 
 use App\Models\Collection;
-use App\Support\Collections\FieldPacks\FieldPackRegistry;
+use App\Services\Collections\FieldPacks\FieldPackRegistryService;
 use InvalidArgumentException;
 
 /**
@@ -24,7 +24,7 @@ final class ApplyFieldPackService
      */
     public function apply(Collection $collection, string $packKey): array
     {
-        $pack = FieldPackRegistry::find($packKey);
+        $pack = FieldPackRegistryService::find($packKey);
 
         if ($pack === null) {
             throw new InvalidArgumentException('Unknown field pack: '.$packKey);

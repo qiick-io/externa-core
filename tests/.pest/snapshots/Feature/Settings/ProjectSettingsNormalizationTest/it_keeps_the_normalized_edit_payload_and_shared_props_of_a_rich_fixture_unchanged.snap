@@ -1,0 +1,152 @@
+{
+    "name": "Acme CMS",
+    "description": "Content for Acme",
+    "url": "https:\/\/acme.test",
+    "default_language": "en",
+    "content_locales": [
+        "it",
+        "en"
+    ],
+    "default_content_locale": "it",
+    "fallback_content_locales": [
+        "it",
+        "en"
+    ],
+    "sidebar_modules": [
+        {
+            "id": "ai",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "users",
+            "enabled": false,
+            "locked": false
+        },
+        {
+            "id": "dashboard",
+            "enabled": true,
+            "locked": true
+        },
+        {
+            "id": "files",
+            "enabled": false,
+            "locked": false
+        },
+        {
+            "id": "collections",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "chat",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "activity",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "groups",
+            "enabled": true,
+            "locked": false
+        },
+        {
+            "id": "settings",
+            "enabled": true,
+            "locked": false
+        }
+    ],
+    "password_policy": "strong",
+    "login_max_attempts": 100,
+    "registration_enabled": true,
+    "default_user_role": "editor",
+    "email_verification_required": true,
+    "two_factor_required": true,
+    "allowed_domains": [
+        "acme.test",
+        "example.org"
+    ],
+    "public_api_allowed_origins": [
+        "https:\/\/app.acme.test"
+    ],
+    "allowed_transformations": [
+        "thumbnail"
+    ],
+    "preset_transformations": [
+        {
+            "key": "size-200",
+            "fit": "contain",
+            "width": 200,
+            "height": 200,
+            "quality": 82,
+            "without_enlargement": true,
+            "format": "auto"
+        },
+        {
+            "key": "hero",
+            "fit": "cover",
+            "width": 1600,
+            "height": null,
+            "quality": 100,
+            "without_enlargement": true,
+            "format": "webp"
+        },
+        {
+            "key": "square",
+            "fit": "contain",
+            "width": 99,
+            "height": null,
+            "quality": 82,
+            "without_enlargement": false,
+            "format": "auto"
+        }
+    ],
+    "report_issue_url": "https:\/\/acme.test\/issues",
+    "report_bug_url": null,
+    "report_error_url": null,
+    "webhook_url": "https:\/\/hooks.acme.test\/in",
+    "notifier_slack_webhook_url": "https:\/\/hooks.slack.test\/x",
+    "notifier_telegram_chat_id": "12345",
+    "notifier_event_types": [
+        "item.updated",
+        "item.created"
+    ],
+    "deploy_hooks": [
+        {
+            "id": "hook-1",
+            "name": "Production",
+            "url_configured": true
+        },
+        {
+            "id": "hook-2",
+            "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+            "url_configured": true
+        }
+    ],
+    "deploy_on_publish": true,
+    "oidc_enabled": true,
+    "oidc_issuer": "https:\/\/id.acme.test",
+    "oidc_client_id": "client-id",
+    "oidc_button_label": null,
+    "oidc_jit_provisioning": true,
+    "preview_url_default": "https:\/\/preview.acme.test\/{{slug}}?token={{token}}",
+    "revision_retention_count": 50,
+    "revision_retention_days": null,
+    "files_max_upload_bytes": 1048576,
+    "chat_max_upload_bytes": null,
+    "upload_allowed_mimes": [
+        "image\/png"
+    ],
+    "upload_allowed_extensions": [
+        "png",
+        "svg",
+        "jpg"
+    ],
+    "upload_allow_svg": true,
+    "webhook_secret_configured": true,
+    "notifier_telegram_bot_token_configured": true,
+    "oidc_client_secret_configured": true
+}

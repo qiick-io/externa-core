@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { TagPicker } from './tag-picker';
 
 // cmdk measures and scrolls its list; jsdom has neither API.
@@ -9,7 +9,10 @@ globalThis.ResizeObserver ??= class {
     unobserve(): void {}
     disconnect(): void {}
 };
-Element.prototype.scrollIntoView ??= function scrollIntoView(): void {};
+
+if (!('scrollIntoView' in Element.prototype)) {
+    Element.prototype.scrollIntoView = function scrollIntoView(): void {};
+}
 
 const catalog = [
     { id: 1, name: 'invoice' },

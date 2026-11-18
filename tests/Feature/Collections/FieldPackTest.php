@@ -6,8 +6,8 @@ use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\User;
-use App\Support\Collections\FieldPacks\FieldPackRegistry;
-use App\Support\Collections\FieldPacks\SeoInlineFieldPack;
+use App\Services\Collections\FieldPacks\FieldPackRegistryService;
+use App\Services\Collections\FieldPacks\SeoInlineFieldPackService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Laravel\Ai\Tools\Request;
@@ -18,7 +18,7 @@ beforeEach(function () {
 });
 
 test('seo_inline field pack registry exposes ten opinionated fields', function () {
-    $pack = FieldPackRegistry::find(SeoInlineFieldPack::KEY);
+    $pack = FieldPackRegistryService::find(SeoInlineFieldPackService::KEY);
 
     expect($pack)->not->toBeNull()
         ->and($pack['key'])->toBe('seo_inline')
@@ -38,7 +38,7 @@ test('seo_inline field pack registry exposes ten opinionated fields', function (
 });
 
 test('field pack registry includes publishing contact and social', function () {
-    expect(FieldPackRegistry::keys())->toBe([
+    expect(FieldPackRegistryService::keys())->toBe([
         'seo_inline',
         'publishing',
         'contact',

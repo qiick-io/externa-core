@@ -32,8 +32,8 @@ Ship only when all of these hold:
 | `SECURITY.md` | Point vulnerability reports at [externa-core SECURITY.md](../SECURITY.md) |
 | Branch protection | Light parity with `externa-next-starter` (`main`: required CI status, PR reviews, conversation resolution) |
 | License | MIT |
-| README | Quick start, env table, links to [docs.externa.qiick.io](https://docs.externa.qiick.io) headless + Public CMS API |
-| Docs page | Ship / update [Headless starter](https://docs.externa.qiick.io/docs/headless-starter) (+ core README link) when the starter ships |
+| README | Quick start, env table, links to [docs.qiick.io/externa](https://docs.qiick.io/externa) headless + Public CMS API |
+| Docs page | Ship / update [Headless starter](https://docs.qiick.io/externa/headless-starter) (+ core README link) when the starter ships |
 | CI | Per-repo: install, self-check (or equivalent), lint, **typecheck**, build — green on PR |
 | Dependency updates | Dependabot **or** Renovate **per repo** (copy Next’s Dependabot weekly npm schedule unless Renovate is chosen) |
 | API shape bumps | When Public CMS API response shapes change, update typed helpers in **each** starter repo in the same release wave (docs OpenAPI / `public-cms-api-types` remain SoT for codegen) |

@@ -47,7 +47,7 @@ return [
     | Upload MIME allowlist + magic-byte checks
     |--------------------------------------------------------------------------
     |
-    | After the extension denylist (ForbiddenUploadExtension), uploads must
+    | After the extension denylist (ForbiddenUploadExtensionService), uploads must
     | sniff to one of these MIME types. Magic-byte prefixes below are enforced
     | when the filename extension claims that format (rejects .exe→.pdf, etc.).
     | Only the first 16 bytes are read for magic checks.

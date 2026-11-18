@@ -6,7 +6,12 @@ includes:
 parameters:
     paths:
         - app/
-    level: 6
+    level: 7
+    # Read the literal array returned by Model::casts(): without it Larastan only sees the
+    # declared `array<string, string>` and types every `datetime` cast column as string.
+    parseModelCastsMethod: true
+    stubFiles:
+        - stubs/phpstan/laravel-ai-models.stub
     treatPhpDocTypesAsCertain: false
     disallowedMethodCalls:
         -
@@ -31,8 +36,8 @@ parameters:
                 - 'app/Services/Collections/FieldValidationRuleEvaluatorService.php'
                 - 'app/Services/Files/FileWhereUsedScannerService.php'
                 - 'app/Services/Chat/ChatUnreadService.php'
-                - 'app/Support/Health/ReadinessChecks.php'
-                - 'app/Http/Controllers/DashboardController.php'
+                - 'app/Services/Health/ReadinessChecksService.php'
+                - 'app/Services/Dashboard/DashboardOverviewMetricsService.php'
                 - 'app/Http/Controllers/Admin/FileController.php'
                 - 'app/Http/Controllers/Api/V1/FileController.php'
                 - 'app/Http/Controllers/Ai/AiPageController.php'
@@ -53,4 +58,4 @@ parameters:
             message: 'Raw SQL must live in a reviewed allowlisted file (#208).'
             errorIdentifier: externa.rawSql
             allowIn:
-                - 'app/Support/Health/ReadinessChecks.php'
+                - 'app/Services/Health/ReadinessChecksService.php'

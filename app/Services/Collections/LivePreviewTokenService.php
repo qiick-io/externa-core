@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Collections;
 
 use Illuminate\Support\Carbon;
@@ -12,10 +14,16 @@ use InvalidArgumentException;
  *
  * Claims: c (collection), i (item), v (version), l (locale), exp,
  * u (issuing user id, required), h (optional content hash),
- * a (optional as_of unix timestamp for point-in-time preview).
+ * a (optional as_of unix timestamp for point-in-time preview),
+ * d (unsaved create-form draft id, instead of i: see {@see LivePreviewUnsavedDraftService}).
  */
 class LivePreviewTokenService
 {
+    /**
+     * Shape of the random id an unsaved draft claim carries ({@see LivePreviewUnsavedDraftService::DRAFT_ID_LENGTH}).
+     */
+    private const UNSAVED_DRAFT_ID_PATTERN = '/^[A-Za-z0-9]{40}$/';
+
     public function mint(
         int $collectionId,
         int $itemId,
@@ -49,9 +57,39 @@ class LivePreviewTokenService
     }
 
     /**
+     * Token for a create form that has no item row yet: the claim names the stashed draft, not an item.
+     *
+     * Always a draft workspace claim; there is no content hash because the stash entry itself is
+     * replaced on every new preview and deleted on save.
+     */
+    public function mintUnsavedDraft(
+        int $collectionId,
+        string $unsavedDraftId,
+        ?string $locale,
+        int $expiresAt,
+        int $userId,
+    ): string {
+        $payload = [
+            'c' => $collectionId,
+            'd' => $unsavedDraftId,
+            'v' => 'draft',
+            'l' => $locale !== null && $locale !== '' ? $locale : null,
+            'exp' => $expiresAt,
+            'u' => $userId,
+        ];
+
+        $body = $this->b64(json_encode($payload, JSON_THROW_ON_ERROR));
+
+        return $body.'.'.$this->b64($this->sign($body));
+    }
+
+    /**
+     * Exactly one of `item_id` (saved item) and `unsaved_draft_id` (create form stash) is set.
+     *
      * @return array{
      *     collection_id: int,
-     *     item_id: int,
+     *     item_id: int|null,
+     *     unsaved_draft_id: string|null,
      *     version: 'draft'|'published',
      *     locale: string|null,
      *     exp: int,
@@ -91,10 +129,28 @@ class LivePreviewTokenService
         }
 
         $collectionId = isset($payload['c']) ? (int) $payload['c'] : 0;
-        $itemId = isset($payload['i']) ? (int) $payload['i'] : 0;
         $userId = isset($payload['u']) ? (int) $payload['u'] : 0;
-        if ($collectionId < 1 || $itemId < 1 || $userId < 1) {
+        if ($collectionId < 1 || $userId < 1) {
             return null;
+        }
+
+        $unsavedDraftId = null;
+        $itemId = null;
+        if (array_key_exists('d', $payload)) {
+            if (
+                array_key_exists('i', $payload)
+                || ! is_string($payload['d'])
+                || preg_match(self::UNSAVED_DRAFT_ID_PATTERN, $payload['d']) !== 1
+            ) {
+                return null;
+            }
+
+            $unsavedDraftId = $payload['d'];
+        } else {
+            $itemId = isset($payload['i']) ? (int) $payload['i'] : 0;
+            if ($itemId < 1) {
+                return null;
+            }
         }
 
         $version = ($payload['v'] ?? '') === 'draft' ? 'draft' : 'published';
@@ -123,7 +179,8 @@ class LivePreviewTokenService
         return [
             'collection_id' => $collectionId,
             'item_id' => $itemId,
-            'version' => $version,
+            'unsaved_draft_id' => $unsavedDraftId,
+            'version' => $unsavedDraftId !== null ? 'draft' : $version,
             'locale' => $locale,
             'exp' => $exp,
             'user_id' => $userId,

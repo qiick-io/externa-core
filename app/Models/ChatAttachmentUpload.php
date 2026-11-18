@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * In-progress chat attachment chunked upload (isolated from Files pool).
@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $total_chunks
  * @property int $uploaded_chunks
  * @property array<string, mixed>|null $chunks_info
- * @property Carbon $expires_at
+ * @property CarbonImmutable $expires_at
  */
 class ChatAttachmentUpload extends Model
 {

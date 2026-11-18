@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Support;
 
+use App\Data\Api\ApiAccessData;
 use App\Models\User;
 use App\Services\Ai\AiToolArgumentRedactorService;
 use Illuminate\Database\Eloquent\Model;
@@ -17,18 +18,20 @@ class AiActivityLogger
     private const MAX_TEXT_LENGTH = 4000;
 
     /**
-     * Log an AI prompt to the activity log.
+     * Log an AI prompt to the activity log. These rows are what the daily prompt cap counts.
+     *
+     * @param  array<string, mixed>  $extra  e.g. `surface` and token `usage` for prompts without a conversation
      */
-    public static function prompt(User $user, string $prompt, ?string $conversationId = null): void
+    public static function prompt(User $user, string $prompt, ?string $conversationId = null, array $extra = []): void
     {
         activity()
             ->causedBy($user)
             ->useLog('ai')
             ->event('ai_prompt')
-            ->withProperties([
+            ->withProperties(array_merge([
                 'conversation_id' => $conversationId,
                 'prompt' => self::truncate($prompt),
-            ])
+            ], $extra))
             ->log('AI prompt');
     }
 
@@ -75,6 +78,7 @@ class AiActivityLogger
             ->useLog('ai')
             ->event('ai_tool')
             ->withProperties(array_merge([
+                'api_key_id' => self::currentApiKeyId(),
                 'tool' => $tool,
                 'input' => $redacted,
                 'result' => self::truncate($result),
@@ -85,7 +89,19 @@ class AiActivityLogger
     }
 
     /**
+     * The API key the current request authenticated with (MCP, public API), so a tool decision
+     * names the key that authorised it; null for session users. Callers that know better (an
+     * approved call names the key that asked for it) pass `api_key_id` in `$extra`.
+     */
+    private static function currentApiKeyId(): ?int
+    {
+        return app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey?->id : null;
+    }
+
+    /**
      * Full audit trail for registry/MCP/chat tool decisions (always logged when an actor exists).
+     * The causer is the requester; a human-approved call also names its `approver_id`, flags
+     * `is_self_approval` when the requester approved it, and is timed by the entry's `created_at`.
      *
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>  $extra
@@ -109,6 +125,7 @@ class AiActivityLogger
             ->useLog('ai')
             ->event('ai_tool')
             ->withProperties(array_merge([
+                'api_key_id' => self::currentApiKeyId(),
                 'tool' => $tool,
                 'input' => $redacted,
                 'arguments' => $redacted,
@@ -116,6 +133,9 @@ class AiActivityLogger
                 'status' => $status,
                 'surface' => $surface,
                 'approver_id' => $approver?->id,
+                // Self-approval is intended (#441): the requester is the human who owns the agent's
+                // key, and an API key cannot approve. The flag keeps it visible in the audit trail.
+                'is_self_approval' => $approver !== null && $actor !== null && $actor->is($approver),
                 'pending_id' => $pendingId,
                 'result' => $result !== null ? self::truncate($result) : null,
                 'conversation_id' => $conversationId,

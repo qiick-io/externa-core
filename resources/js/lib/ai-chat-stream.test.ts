@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { streamAiChat } from '@/lib/ai-chat';
 
 /** A fetch Response whose body streams the given laravel/ai events as SSE. */

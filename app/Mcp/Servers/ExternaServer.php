@@ -9,6 +9,8 @@ use App\Mcp\Resources\CollectionItem;
 use App\Mcp\Resources\CollectionSchema;
 use App\Mcp\Resources\CollectionsIndex;
 use App\Mcp\Resources\FileMetadata;
+use App\Mcp\Tools\CreateCollection;
+use App\Mcp\Tools\CreateField;
 use App\Mcp\Tools\CreateItem;
 use App\Mcp\Tools\DescribeCollection;
 use App\Mcp\Tools\GetFile;
@@ -18,9 +20,12 @@ use App\Mcp\Tools\ListFiles;
 use App\Mcp\Tools\ListItems;
 use App\Mcp\Tools\MoveFile;
 use App\Mcp\Tools\PublishItem;
+use App\Mcp\Tools\ReorderFields;
 use App\Mcp\Tools\Search;
 use App\Mcp\Tools\TagFile;
+use App\Mcp\Tools\UpdateField;
 use App\Mcp\Tools\UpdateItem;
+use App\Services\AppVersionService;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -32,12 +37,13 @@ use Laravel\Mcp\Server\Tool;
  * First-party Externa MCP server (streamable HTTP at /mcp).
  *
  * Tools are thin adapters over {@see RegistryMcpToolAdapter}
- * / the shared AI registry (#202/#203). Write tools register only when
- * AI_MCP_WRITE_ENABLED is true (and the caller has mcp:write when using API keys).
+ * / the shared AI registry (#202/#203). Write tools register when AI_MCP_WRITE_ENABLED is on
+ * (the default since #766) and the API key has mcp:write. There are no delete tools, and tools
+ * that change users, roles or groups never reach MCP.
  */
 #[Name('Externa')]
 #[Instructions(
-    'Externa CMS MCP server. Use read tools/resources to inspect collections, items, and files under the caller\'s permissions. Write tools require AI_MCP_WRITE_ENABLED and mcp:write; mutating registry calls may need human approval. No delete tools in this MVP.'
+    'Externa CMS MCP server. Use read tools/resources to inspect collections, items, and files under the API key\'s permissions. With an mcp:write key, write tools create collections, add, change and reorder fields, and create, update and publish items; the install may require in-app approval for writes. No delete tools.'
 )]
 class ExternaServer extends Server
 {
@@ -46,7 +52,7 @@ class ExternaServer extends Server
     protected string $version = '1.0.0';
 
     protected string $instructions = <<<'MARKDOWN'
-Externa CMS MCP server. Read collections, items, and files under the authenticated identity's permissions. Writes require AI_MCP_WRITE_ENABLED + mcp:write and may need human approval. No delete tools.
+Externa CMS MCP server. Read collections, items, and files under the API key's permissions. With an mcp:write key, write tools build collections (create_collection, create_field, update_field, reorder_fields) and fill them (create_item, update_item, publish_item); the install may require in-app approval for writes. No delete tools.
 MARKDOWN;
 
     /** @var array<int, class-string<Tool>> */
@@ -58,6 +64,10 @@ MARKDOWN;
         Search::class,
         ListFiles::class,
         GetFile::class,
+        CreateCollection::class,
+        CreateField::class,
+        UpdateField::class,
+        ReorderFields::class,
         CreateItem::class,
         UpdateItem::class,
         PublishItem::class,
@@ -81,30 +91,6 @@ MARKDOWN;
     ) {
         parent::__construct($transport);
 
-        $this->version = $this->resolveAppVersion();
-    }
-
-    /**
-     * Composer package version (mirrored as app version source of truth).
-     */
-    private function resolveAppVersion(): string
-    {
-        $configured = config('app.version');
-
-        if (is_string($configured) && $configured !== '') {
-            return $configured;
-        }
-
-        $composerPath = base_path('composer.json');
-
-        if (! is_readable($composerPath)) {
-            return 'dev';
-        }
-
-        $composer = json_decode((string) file_get_contents($composerPath), true);
-
-        return is_array($composer) && is_string($composer['version'] ?? null)
-            ? $composer['version']
-            : 'dev';
+        $this->version = app(AppVersionService::class)->current();
     }
 }

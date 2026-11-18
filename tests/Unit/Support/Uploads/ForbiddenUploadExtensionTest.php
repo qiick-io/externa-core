@@ -1,11 +1,11 @@
 <?php
 
-use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
 use Illuminate\Validation\ValidationException;
 
 it('allows safe extensions', function (string $fileName): void {
-    expect(ForbiddenUploadExtension::isForbidden($fileName))->toBeFalse();
-    ForbiddenUploadExtension::assertAllowed($fileName);
+    expect(ForbiddenUploadExtensionService::isForbidden($fileName))->toBeFalse();
+    ForbiddenUploadExtensionService::assertAllowed($fileName);
 })->with([
     'photo.png',
     'doc.pdf',
@@ -14,8 +14,8 @@ it('allows safe extensions', function (string $fileName): void {
 ]);
 
 it('denies forbidden extensions', function (string $fileName): void {
-    expect(ForbiddenUploadExtension::isForbidden($fileName))->toBeTrue();
-    expect(fn () => ForbiddenUploadExtension::assertAllowed($fileName))
+    expect(ForbiddenUploadExtensionService::isForbidden($fileName))->toBeTrue();
+    expect(fn () => ForbiddenUploadExtensionService::assertAllowed($fileName))
         ->toThrow(ValidationException::class);
 })->with([
     'evil.php',
@@ -39,7 +39,7 @@ it('denies forbidden extensions', function (string $fileName): void {
 
 it('uses the given validation field on reject', function (): void {
     try {
-        ForbiddenUploadExtension::assertAllowed('evil.php', 'file_name');
+        ForbiddenUploadExtensionService::assertAllowed('evil.php', 'file_name');
         $this->fail('Expected ValidationException');
     } catch (ValidationException $exception) {
         expect($exception->errors())->toHaveKey('file_name');

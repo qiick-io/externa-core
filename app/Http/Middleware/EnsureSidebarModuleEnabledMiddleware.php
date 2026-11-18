@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectGeneralSettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureSidebarModuleEnabledMiddleware
 {
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectGeneralSettingsService $generalSettings,
     ) {}
 
     /**
@@ -21,7 +23,7 @@ class EnsureSidebarModuleEnabledMiddleware
      */
     public function handle(Request $request, Closure $next, string $moduleId): Response
     {
-        if (! $this->projectSettings->isSidebarModuleEnabled($moduleId)) {
+        if (! $this->generalSettings->isSidebarModuleEnabled($moduleId)) {
             abort(403);
         }
 

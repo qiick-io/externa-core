@@ -24,7 +24,7 @@ use Throwable;
 class PerformanceSettingsController extends Controller
 {
     /**
-     * Dashboard metric keys cached by DashboardController.
+     * Dashboard metric keys cached by DashboardOverviewMetricsService.
      *
      * @var list<string>
      */

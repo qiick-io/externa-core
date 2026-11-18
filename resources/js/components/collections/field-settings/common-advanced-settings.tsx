@@ -10,6 +10,7 @@ import {
     fieldLayoutWidthLabel,
 } from '@/lib/collection-field-types';
 import type { CommonFieldSettings } from '@/lib/collection-field-types';
+import { scalarToString } from '@/lib/scalar-to-string';
 
 type CommonAdvancedSettingsProps = {
     fieldType: string;
@@ -125,7 +126,7 @@ export function CommonAdvancedSettings({
                             settings.defaultValue === null ||
                             settings.defaultValue === undefined
                                 ? ''
-                                : String(settings.defaultValue)
+                                : scalarToString(settings.defaultValue)
                         }
                         onChange={(event) =>
                             onChange((current) => ({

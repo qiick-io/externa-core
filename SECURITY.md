@@ -2,7 +2,7 @@
 
 Externa is a self-hosted CMS. **Operators own transport encryption, disk encryption, backups, and network exposure.** The application provides RBAC, secret redaction in audit trails, hashed credentials, and optional MFA — not end-to-end encryption of chat or activity payloads.
 
-Longer docs: [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-model) · [Pre-release security checklist](https://docs.externa.qiick.io/docs/security-checklist) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Dependency audits (CI)](https://docs.externa.qiick.io/docs/contributing#dependency-audits-ci).
+Longer docs: [Threat model & hosting](https://docs.qiick.io/externa/threat-model) · [Pre-release security checklist](https://docs.qiick.io/externa/security-checklist) · [Deployment](https://docs.qiick.io/externa/deployment) · [Dependency audits (CI)](https://docs.qiick.io/externa/contributing#dependency-audits-ci).
 
 ## Dependency audits
 
@@ -21,13 +21,21 @@ Policy (#32): fail on **high+** for Composer (`composer audit --locked`, low/med
 
 Reporting app vulnerabilities is below; dependency audits are separate (#32).
 
+## Supported versions
+
+| Version | Security fixes |
+| --- | --- |
+| `1.x`, latest minor | Yes, as a patch release of that minor. |
+| `1.x`, older minors | No. Upgrade to the latest `1.x` minor (`php artisan externa:upgrade`). |
+
 ## Reporting a vulnerability
 
 Please **do not** open a public GitHub issue for security bugs.
 
-1. Email the maintainers (see the GitHub org / repo security contact), or use GitHub **Private vulnerability reporting** if enabled on the repository.
+1. Use GitHub's private vulnerability reporting: **Report a vulnerability** on the [Security tab](https://github.com/qiick-io/externa-core/security) of `qiick-io/externa-core`.
 2. Include: Externa version (`composer.json`), deploy shape (SQLite/Postgres, reverse proxy), steps to reproduce, and impact.
-3. Allow a reasonable window before public disclosure.
+
+We aim to acknowledge reports within **72 hours**. Fixes ship as a patch release of the latest minor, announced with a GitHub security advisory and on the [Qiick blog](https://qiick.io/en/blog/tag/security). Please keep the report private until the advisory is published.
 
 ## Threat model (summary)
 
@@ -41,7 +49,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 **Assumption:** anyone with DB access **or** `APP_KEY` + app code can read application data, including chat bodies and activity properties. Laravel `encrypted` casts use `APP_KEY` on the server — that is **not** end-to-end encryption.
 
-**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtension`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizer`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](https://docs.externa.qiick.io/docs/file-manager).
+**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtensionService`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizerService`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](https://docs.qiick.io/externa/file-manager).
 
 ## Data handling defaults
 
@@ -57,7 +65,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 ## Deploy checklist (host)
 
-Use this when shipping a production instance. App-level gates: [Security checklist](https://docs.externa.qiick.io/docs/security-checklist).
+Use this when shipping a production instance. App-level gates: [Security checklist](https://docs.qiick.io/externa/security-checklist).
 
 - [ ] AI tool AuthZ / prompt-injection regression: `php artisan test --compact tests/Feature/Ai/Security` (threat map in [`tests/Feature/Ai/Security/README.md`](tests/Feature/Ai/Security/README.md), #204)
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, unique `APP_KEY` (never reuse across envs)
@@ -66,9 +74,9 @@ Use this when shipping a production instance. App-level gates: [Security checkli
 - [ ] Production DB (Postgres/MySQL preferred); enable **storage/volume encryption** and encrypted backups
 - [ ] Restrict who can open `/activity-logs` (permission `can-show-activity-logs`)
 - [ ] Keep `.env` and backups off world-readable paths; limit shell access to operators
-- [ ] Queue + scheduler running (`activitylog:clean`, file/AI jobs) — see [Operations](https://docs.externa.qiick.io/docs/operations)
-- [ ] Review Public API CORS / API keys / IP allowlists — [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) / [Deployment](https://docs.externa.qiick.io/docs/deployment)
-- [ ] Optional: require MFA project-wide (`two_factor_required`) — [Passkeys](https://docs.externa.qiick.io/docs/passkeys)
+- [ ] Queue + scheduler running (`activitylog:clean`, file/AI jobs) — see [Operations](https://docs.qiick.io/externa/operations)
+- [ ] Review Public API CORS / API keys / IP allowlists — [Public CMS API](https://docs.qiick.io/externa/public-cms-api) / [Deployment](https://docs.qiick.io/externa/deployment)
+- [ ] Optional: require MFA project-wide (`two_factor_required`) — [Passkeys](https://docs.qiick.io/externa/passkeys)
 - [ ] Keep `AI_MCP_ENABLED` / `AI_MCP_WRITE_ENABLED` off unless needed; MCP keys need an **owner** and `mcp:read` (writes also need `mcp:write`)
 
 ## MCP server (optional, #121)

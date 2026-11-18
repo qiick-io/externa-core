@@ -3,10 +3,11 @@
 namespace App\Http\Requests\Settings;
 
 use App\Http\Requests\Settings\Concerns\AuthorizesProjectSettingsTrait;
-use App\Support\Uploads\UploadSizeLimiter;
+use App\Services\Uploads\UploadSizeLimiterService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Validate files & media project settings (upload limits + image transforms).
@@ -25,8 +26,8 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
         $formats = config('settings.project.transform_formats', ['auto']);
 
         return [
-            'files_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiter::SETTING_MAX_BYTES],
-            'chat_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiter::SETTING_MAX_BYTES],
+            'files_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiterService::SETTING_MAX_BYTES],
+            'chat_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiterService::SETTING_MAX_BYTES],
             'allowed_transformations' => ['nullable', 'array'],
             'allowed_transformations.*' => ['string', Rule::in($transformations)],
             'preset_transformations' => ['required', 'array', 'min:1'],
@@ -45,7 +46,7 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator): void {
             foreach ($this->input('preset_transformations', []) as $index => $preset) {

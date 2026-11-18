@@ -207,54 +207,35 @@ test('import remote json tool is only registered with create permission', functi
         ->not->toContain(ImportRemoteJson::class);
 });
 
-test('import remote json live klover menu endpoint when reachable', function () {
+test('import remote json tool imports a deep directus menu export from a recorded fixture', function () {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         PermissionEnum::CanCreateCollections->value,
     ]);
     $this->actingAs($user);
 
-    $url = 'https://admin.klover.it/items/menu?fields=*,translations.*,link_rel.*,link_rel.links_id.*,link_rel.links_id.translations.*,link_rel.links_id.pages_rel.*,link_rel.links_id.pages_rel.translations.*&limit=-1';
-
-    try {
-        $probe = Http::timeout(10)
-            ->connectTimeout(5)
-            ->withOptions(['allow_redirects' => false])
-            ->withHeaders(['Accept' => 'application/json'])
-            ->get($url);
-    } catch (Throwable) {
-        $this->markTestSkipped('Klover endpoint unreachable (timeout/connection).');
-    }
-
-    if ($probe->status() === 401 || $probe->status() === 403) {
-        $this->markTestSkipped('Klover endpoint returned '.$probe->status().' (auth required).');
-    }
-
-    if (! $probe->successful()) {
-        $this->markTestSkipped('Klover endpoint returned HTTP '.$probe->status());
-    }
+    // Recorded shape of a Directus `items/menu` export with nested relations expanded
+    // (`fields=*,translations.*,link_rel.links_id.*,...&limit=-1`); it replaces a test
+    // that called a live endpoint and skipped itself whenever the network failed (#288).
+    Http::fake([
+        'https://example.com/items/menu*' => Http::response(
+            json_decode((string) file_get_contents(base_path('tests/Fixtures/cms/directus-menu-deep.json')), true),
+        ),
+    ]);
 
     $result = (string) (new ImportRemoteJson)->handle(new Request([
-        'url' => $url,
-        'collection_name' => 'klover-menu-live',
+        'url' => 'https://example.com/items/menu?fields=*,translations.*,link_rel.*,link_rel.links_id.*,link_rel.links_id.translations.*,link_rel.links_id.pages_rel.*,link_rel.links_id.pages_rel.translations.*&limit=-1',
+        'collection_name' => 'directus-menu-deep',
         'limit' => 20,
     ]));
 
-    if (str_starts_with($result, 'Error:')) {
-        $this->markTestSkipped('Import failed against live URL: '.$result);
-    }
-
-    expect($result)->toContain('"ok": true')
-        ->and($result)->toContain('"created"');
-
     $decoded = json_decode($result, true);
-    $created = is_array($decoded) ? (int) ($decoded['created'] ?? 0) : 0;
-    if ($created < 1) {
-        $this->markTestSkipped('Live import created 0 items: '.json_encode(is_array($decoded) ? ($decoded['errors'] ?? []) : []));
-    }
 
-    $collection = Collection::query()->where('name', 'klover-menu-live')->first();
+    expect($decoded)->toBeArray()
+        ->and($decoded['ok'] ?? null)->toBeTrue()
+        ->and($decoded['created'] ?? null)->toBe(3);
 
-    expect($collection)->not->toBeNull()
-        ->and(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBeGreaterThan(0);
-})->group('live');
+    $collection = Collection::query()->where('name', 'directus-menu-deep')->firstOrFail();
+
+    expect(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(3);
+});

@@ -4,7 +4,7 @@ use App\Models\File;
 use App\Models\FileUpload;
 use App\Services\FileChunkUploadService;
 use App\Services\FileService;
-use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Services\Uploads\ForbiddenUploadExtensionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -71,7 +71,7 @@ it('rejects forbidden extensions on chunk init (no-regression #85)', function ()
     ))->toThrow(ValidationException::class);
 
     expect(FileUpload::query()->count())->toBe(0);
-    expect(ForbiddenUploadExtension::isForbidden('evil.html'))->toBeTrue();
+    expect(ForbiddenUploadExtensionService::isForbidden('evil.html'))->toBeTrue();
 });
 
 it('stores chunked uploads under private_assets when parent folder is private (no-regression #84)', function () {

@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
-use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Features;
@@ -43,7 +45,7 @@ class EnsureTwoFactorIsEnabledMiddleware
     ];
 
     public function __construct(
-        private readonly ProjectSettingsService $projectSettings,
+        private readonly ProjectSecuritySettingsService $securitySettings,
     ) {}
 
     /**
@@ -58,7 +60,7 @@ class EnsureTwoFactorIsEnabledMiddleware
             return $next($request);
         }
 
-        if (! $this->projectSettings->isTwoFactorRequired()
+        if (! $this->securitySettings->isTwoFactorRequired()
             || ! Features::canManageTwoFactorAuthentication()
             || $user->hasEnabledTwoFactorAuthentication()
             || (Features::canManagePasskeys() && $user->hasPasskeysEnabled())

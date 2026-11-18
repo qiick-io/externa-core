@@ -27,7 +27,7 @@ it('serves OpenAPI even when the public API origin allowlist is set', function (
         'public_api_allowed_origins',
         ['https://app.example'],
     );
-    app(ProjectSettingsService::class)->forgetPublicApiAllowedOriginsCache();
+    app(ProjectSettingsService::class)->api()->forgetPublicApiAllowedOriginsCache();
 
     $this->getJson('/api/v1/openapi.json')
         ->assertOk()

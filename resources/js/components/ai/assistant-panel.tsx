@@ -7,6 +7,7 @@ import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer'
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
+import { AiDailyUsage } from '@/components/ai/ai-daily-usage';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
 import { ChatMessageScroller } from '@/components/chat/chat-message-scroller';
 import {
@@ -242,6 +243,7 @@ export function AiAssistantPanel() {
                                 onOpenPresets={() => setPresetsOpen(true)}
                                 attachTooltip={t('ai.attachTooltip')}
                             />
+                            <AiDailyUsage />
                         </DrawerFooter>
                     </AiChatDropZone>
                 </DrawerContent>

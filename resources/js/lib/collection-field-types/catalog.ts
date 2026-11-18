@@ -188,10 +188,10 @@ export type BlocksTypeDefinition = {
     fields: BlocksFieldDefinition[];
 };
 
-/** Matches BlocksFieldSchema::MAX_BLOCKS_DEPTH — absolute ceiling. Depth 1 = collection field. */
+/** Matches BlocksFieldSchemaService::MAX_BLOCKS_DEPTH — absolute ceiling. Depth 1 = collection field. */
 export const MAX_BLOCKS_DEPTH = 5;
 
-/** Matches BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH when settings omit max_blocks_depth. */
+/** Matches BlocksFieldSchemaService::DEFAULT_BLOCKS_DEPTH when settings omit max_blocks_depth. */
 export const DEFAULT_BLOCKS_DEPTH = 3;
 
 const BLOCKS_ALLOWED_FIELD_TYPES = [

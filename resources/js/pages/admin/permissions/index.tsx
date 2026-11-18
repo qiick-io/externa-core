@@ -25,7 +25,8 @@ export default function AdminPermissionsIndex({
     permissions: permissionsProp,
 }: {
     permissions:
-        LaravelPaginated<AdminPermissionRow> | Paginated<AdminPermissionRow>;
+        | LaravelPaginated<AdminPermissionRow>
+        | Paginated<AdminPermissionRow>;
 }) {
     const { t } = useTranslation();
     const permissions = normalizePaginated(permissionsProp);

@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 import { FilePreview } from '@/components/admin/files/file-preview';
 import type { AdminFileRow } from '@/types/files';
 

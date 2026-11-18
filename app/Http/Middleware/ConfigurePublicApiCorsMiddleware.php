@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Services\Settings\ProjectSettingsService;
@@ -16,7 +18,7 @@ class ConfigurePublicApiCorsMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->appliesTo($request)) {
-            $origins = app(ProjectSettingsService::class)->publicApiAllowedOrigins();
+            $origins = app(ProjectSettingsService::class)->api()->publicApiAllowedOrigins();
             if ($origins !== []) {
                 config(['cors.allowed_origins' => $origins]);
             }

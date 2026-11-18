@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
-use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
 use App\Models\UserGroup;
-use App\Services\Authorization\SuperAdminGuardService;
-use App\Support\Validation\StringLimits;
+use App\Services\Validation\StringLimitsService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -17,7 +17,6 @@ use Illuminate\Validation\Validator;
  */
 class UpdateUserGroupRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
     use GuardsSuperAdminGrantsTrait;
 
     /**
@@ -25,17 +24,10 @@ class UpdateUserGroupRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $this->authorizePermission(PermissionEnum::CanEditGroups->value);
-
         /** @var UserGroup $group */
         $group = $this->route('group');
-        $superAdminGuard = app(SuperAdminGuardService::class);
 
-        abort_if(
-            ! $superAdminGuard->canManageSuperAdmins($this->user())
-                && $superAdminGuard->hasSuperAdminGroup([$group->id]),
-            403,
-        );
+        abort_unless(Gate::allows('update', $group), 403);
 
         return true;
     }
@@ -57,8 +49,8 @@ class UpdateUserGroupRequest extends FormRequest
         $group = $this->route('group');
 
         return [
-            'name' => ['required', 'string', 'max:'.StringLimits::NAME, Rule::unique('user_groups', 'name')->ignore($group->id)],
-            'description' => ['nullable', 'string', 'max:'.StringLimits::DESCRIPTION],
+            'name' => ['required', 'string', 'max:'.StringLimitsService::NAME, Rule::unique('user_groups', 'name')->ignore($group->id)],
+            'description' => ['nullable', 'string', 'max:'.StringLimitsService::DESCRIPTION],
             'user_ids' => ['sometimes', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'role_ids' => ['sometimes', 'array'],

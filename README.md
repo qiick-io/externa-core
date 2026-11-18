@@ -8,10 +8,10 @@
 
 # Externa
 
-[![Docs](https://img.shields.io/badge/docs-docs.externa.qiick.io-0f766e)](https://docs.externa.qiick.io)
+[![Docs](https://img.shields.io/badge/docs-docs.qiick.io%2Fexterna-0f766e)](https://docs.qiick.io/externa)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-**Version:** `1.4.0` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
+**Version:** `1.5.0-dev` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.qiick.io/externa/releasing).
 
 Externa is a **Laravel-native headless CMS**: operators manage structured content in a full admin UI; websites and apps consume it through the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). Optional in-app AI tools respect the signed-in user’s permissions — you own the code, so automation is Jobs/listeners, not a locked Flow canvas.
 
@@ -19,10 +19,10 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 
 | | |
 | --- | --- |
-| **Docs** | [docs.externa.qiick.io](https://docs.externa.qiick.io) |
-| **Install** | `composer create-project qiick/externa-core` · [Installation](https://docs.externa.qiick.io/docs/installation) · [Upgrade](https://docs.externa.qiick.io/docs/upgrade) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
-| **API** | [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) · [GraphQL](https://docs.externa.qiick.io/docs/graphql) · [Headless starter (Next.js + Nuxt)](https://docs.externa.qiick.io/docs/headless-starter) · [Starter conventions](./docs/starters.md) · [1.x compatibility](https://docs.externa.qiick.io/docs/api-compatibility) |
-| **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.externa.qiick.io/docs/threat-model) |
+| **Docs** | [docs.qiick.io/externa](https://docs.qiick.io/externa) |
+| **Install** | `composer create-project qiick/externa-core` · [Installation](https://docs.qiick.io/externa/installation) · [Upgrade](https://docs.qiick.io/externa/upgrade) · [Minimal vs full stack](https://docs.qiick.io/externa/minimal-vs-full-stack) |
+| **API** | [Public CMS API](https://docs.qiick.io/externa/public-cms-api) · [GraphQL](https://docs.qiick.io/externa/graphql) · [Headless starter (Next.js + Nuxt)](https://docs.qiick.io/externa/headless-starter) · [Starter conventions](./docs/starters.md) · [1.x compatibility](https://docs.qiick.io/externa/api-compatibility) |
+| **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.qiick.io/externa/threat-model) |
 | **Issues** | [GitHub Issues](https://github.com/qiick-io/externa-core/issues) |
 
 ### Highlights
@@ -30,7 +30,7 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 - **Dynamic collections** — fields, locales, lean draft/publish, typed item editor, safe field type conversion with dry-run
 - **Hierarchical files** — folders, uploads, versions, async zip, empty trash; local, S3, GCS or Azure disks; upload allowlist
 - **RBAC + groups** — Spatie roles/permissions with group inheritance; `public` role for the API
-- **Public CMS API + GraphQL** — collection access matrix, owned API keys, `sort`, system and relational filters, batch writes; [TypeScript SDK](./packages/sdk); [1.x compatibility policy](https://docs.externa.qiick.io/docs/api-compatibility)
+- **Public CMS API + GraphQL** — collection access matrix, owned API keys, `sort`, system and relational filters, batch writes; [TypeScript SDK](./packages/sdk); [1.x compatibility policy](https://docs.qiick.io/externa/api-compatibility)
 - **Chat + activity** — item/private threads with live presence; Spatie activity log
 - **Optional AI assistant** — OpenAI-compatible / LM Studio; side panel on any page (⌘J), saved prompts and context attachments; write tools need human approval
 - **Optional MCP server** — the same permission-aware tools for MCP clients, through owned API keys
@@ -44,13 +44,13 @@ Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activit
 
 | Requirement | Notes |
 | --- | --- |
-| **PHP 8.4.27+** | Pinned in `.php-version` / `composer.json` (`^8.4.27`). Herd PHP 8.4 recommended on macOS. Required for CVE-2026-109618 / CVE-2026-109619. |
+| **PHP 8.4.27+** | `composer.json` requires `^8.4.27`; `.php-version` selects the PHP 8.4 line for Flock, Herd and other version managers. Required for CVE-2026-109618 / CVE-2026-109619. |
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
-| **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 15+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
-| **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. Prod without Redis: [docs](https://docs.externa.qiick.io/docs/production-without-redis). |
+| **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 15+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.qiick.io/externa/supported-databases). |
+| **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. Prod without Redis: [docs](https://docs.qiick.io/externa/production-without-redis). |
 
-Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; Pro adds shared Reverb on `:8080`). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
+Optional: a local PHP environment that serves `<app>.test` hosts and runs PostgreSQL / MySQL / Redis (Flock, [Laravel Herd](https://herd.laravel.com) or Valet). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
 
 ## Quick start
 
@@ -67,11 +67,11 @@ Pin a release if needed: `qiick/externa-core:1.4.0`. Pre-tag smoke from git: `co
 
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
 
-> **Install only — not the update channel.** `composer create-project` copies the app tree once. After you push that tree to **your** git remote, Packagist / Composer will **not** pull newer Externa releases into it. To stay current, track Git tags (or add `upstream` and merge `vX.Y.Z`), then run `php artisan externa:upgrade` for migrate / permissions / cache — optional opt-in code sync: `php artisan externa:upgrade --sync-upstream=vX.Y.Z` (dry-run first). See **[Upgrade](https://docs.externa.qiick.io/docs/upgrade)**. Docker operators: pull a newer GHCR image tag — same guide.
+> **Install only — not the update channel.** `composer create-project` copies the app tree once. After you push that tree to **your** git remote, Packagist / Composer will **not** pull newer Externa releases into it. To stay current, track Git tags (or add `upstream` and merge `vX.Y.Z`), then run `php artisan externa:upgrade` for migrate / permissions / cache — optional opt-in code sync: `php artisan externa:upgrade --sync-upstream=vX.Y.Z` (dry-run first; on a create-project tree the first sync links it to upstream's history at the installed version's tag). See **[Upgrade](https://docs.qiick.io/externa/upgrade)**. Docker operators: pull a newer GHCR image tag — same guide.
 
-Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
+Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.qiick.io/externa/installation) · [Packagist & create-project](https://docs.qiick.io/externa/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
 
-**Local paths:** [Laravel Herd](https://herd.laravel.com) (PHP / nginx / `.test`) or Docker Compose / GHCR quick-deploy — see [Deploy with Docker](https://docs.externa.qiick.io/docs/deploy-with-docker) and sections below. Health: `GET /health/live`, `GET /health/ready`.
+**Local paths:** a local PHP environment serving `<app>.test` (Flock, Herd, Valet) or Docker Compose / GHCR quick-deploy — see [Deploy with Docker](https://docs.qiick.io/externa/deploy-with-docker) and sections below. Health: `GET /health/live`, `GET /health/ready`.
 
 **CI / non-interactive:** `composer setup` runs install → copy `.env` if missing → `key:generate` → migrate → `npm install` → `npm run build`. Still run `db:seed`, `storage:link`, and Wayfinder when needed. Do **not** use `composer setup` as the human create-project happy path.
 
@@ -107,31 +107,32 @@ composer run dev
 # serve + queue:listen + pail + vite
 ```
 
-Or with Herd serving the site: keep Vite + a queue worker (`php artisan queue:listen --tries=1 --timeout=0`). For Herd HTTPS (`herd secure`), set `HERD_SITE` to your hostname (e.g. `my-app.test`) so Vite can detect TLS certs.
+Or with a local environment serving the site at `<app>.test`: keep Vite + a queue worker (`php artisan queue:listen --tries=1 --timeout=0`). For HTTPS on a secured site, set `VITE_DEV_SERVER_KEY` and `VITE_DEV_SERVER_CERT` to the site's key and certificate so Vite serves over TLS too.
 
 **Full stack** (Redis + realtime + Pulse — matches `.env.example` defaults):
 
-1. Enable Redis (and Herd Pro Reverb on `:8080` if available).
+1. Start Redis.
 2. Keep `QUEUE_CONNECTION=redis`, `BROADCAST_CONNECTION=reverb`, and Reverb/Pulse keys from `.env.example`.
-3. Start workers (Herd Reverb is already up — do **not** also `reverb:start` on the same port):
+3. Start the workers and Reverb (`:8080`; skip `reverb:start` if a login agent already runs it):
 
 ```bash
 php artisan horizon
+php artisan reverb:start --host=127.0.0.1 --port=8080
 php artisan pulse:work
 npm run dev
 ```
 
-Standalone all-in-one (starts its own Reverb — conflicts if Herd already binds `:8080`):
+Standalone all-in-one (starts its own Reverb — conflicts if another Reverb already binds `:8080`):
 
 ```bash
 composer run dev:full
 ```
 
-Open `APP_URL` (your Herd host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
+Open `APP_URL` (your `<app>.test` host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
 
 ### Dev Container (VS Code / Codespaces)
 
-Open the repo in VS Code **Reopen in Container** or GitHub Codespaces — `.devcontainer/devcontainer.json` reuses `compose.yaml` (`app` service). Post-create runs composer/npm/migrate/seed. Docs: [Installation](https://docs.externa.qiick.io/docs/installation).
+Open the repo in VS Code **Reopen in Container** or GitHub Codespaces — `.devcontainer/devcontainer.json` reuses `compose.yaml` (`app` service). Post-create runs composer/npm/migrate/seed. Docs: [Installation](https://docs.qiick.io/externa/installation).
 
 ### Docker (local full stack)
 
@@ -142,8 +143,8 @@ Image base is pinned to **`php:8.4.27-fpm-bookworm`**. Runtime hardening lives i
 ```bash
 cp .env.docker.example .env
 docker compose up --build
-# App: http://localhost:8000  (COMPOSE_APP_URL overrides Herd APP_URL inside containers)
-# Reverb published on host :8081 (avoids Herd Reverb on :8080)
+# App: http://localhost:8000  (COMPOSE_APP_URL overrides the host APP_URL inside containers)
+# Reverb published on host :8081 (avoids a host Reverb on :8080)
 # MinIO: docker compose --profile minio up --build
 # MySQL: docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
@@ -166,7 +167,7 @@ Build-from-source prod path: `compose.prod.yaml` + `.env.docker.prod.example`. M
 
 First boot is **gated**: `RUN_MIGRATIONS` / `RUN_SEED` (entrypoint defaults both off; Compose samples enable migrate for bring-up; seed stays opt-in). After bootstrap set `RUN_SEED=false`.
 
-Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy with Docker](https://docs.externa.qiick.io/docs/deploy-with-docker) · [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Reverse proxy](https://docs.externa.qiick.io/docs/reverse-proxy).
+Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy with Docker](https://docs.qiick.io/externa/deploy-with-docker) · [Installation](https://docs.qiick.io/externa/installation) · [Deployment](https://docs.qiick.io/externa/deployment) · [Reverse proxy](https://docs.qiick.io/externa/reverse-proxy).
 
 ### First login (local / dev only)
 
@@ -181,7 +182,7 @@ Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. **Local/dev 
 
 ## Product UI
 
-Shots from the admin with demo content, in light and dark (they follow your GitHub theme). More in the [docs](https://docs.externa.qiick.io).
+Shots from the admin with demo content, in light and dark (they follow your GitHub theme). More in the [docs](https://docs.qiick.io/externa).
 
 <p align="center">
   <picture>
@@ -257,12 +258,12 @@ Shots from the admin with demo content, in light and dark (they follow your GitH
 
 ## Important environment variables
 
-Copy from `.env.example` and tune. Full reference: [Environment variables](https://docs.externa.qiick.io/docs/environment-variables).
+Copy from `.env.example` and tune. Full reference: [Environment variables](https://docs.qiick.io/externa/environment-variables).
 
 | Group | Keys (curated) | Notes |
 | --- | --- | --- |
-| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://*.test` hosts are not secure — browsers hide `PublicKeyCredential`. Local HTTPS: `herd secure <site>`, matching `APP_URL=https://…`, and `HERD_SITE=<site>` for Vite TLS detection. After switching back to HTTP (`herd unsecure`), clear **http + https** cookies for the site or browsers may keep Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](https://docs.externa.qiick.io/docs/passkeys). |
-| **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. Also `pgsql`, `mysql`, `mariadb` — see [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
+| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://*.test` hosts are not secure — browsers hide `PublicKeyCredential`. Local HTTPS: secure the site in your local environment, set a matching `APP_URL=https://…`, and `VITE_DEV_SERVER_KEY` / `VITE_DEV_SERVER_CERT` for Vite. After switching back to HTTP, clear **http + https** cookies for the site or browsers may keep Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](https://docs.qiick.io/externa/passkeys). |
+| **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. Also `pgsql`, `mysql`, `mariadb` — see [Supported databases](https://docs.qiick.io/externa/supported-databases). |
 | **Session / cache** | `SESSION_DRIVER`, `CACHE_STORE` | Default `database`. |
 | **Queue** | `QUEUE_CONNECTION` | Full: `redis` + Horizon. Minimal: `database` + `queue:listen`. |
 | **Redis** | `REDIS_CLIENT`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Required for Horizon / Pulse redis ingest. |
@@ -278,11 +279,11 @@ See `.env.example` for every key and inline comments.
 | Service | When you need it |
 | --- | --- |
 | **Horizon** | Redis queues, dashboard Health Horizon cards, `/horizon` (super-admin). |
-| **Reverb + Echo** | Live admin notifications, presence / avatar connection indicator. Prefer Herd Pro Reverb locally. |
+| **Reverb + Echo** | Live admin notifications, presence / avatar connection indicator. Locally: `php artisan reverb:start` (or `composer run dev:full`). |
 | **Pulse** | Metrics for dashboard **Health**; full UI at `/pulse`. Needs ingest worker when using redis ingest. |
 | **Queue worker** | Always needed for zip downloads, large/bulk duplicates, and collection imports — even on the minimal stack. |
 
-Details: [Redis](https://docs.externa.qiick.io/docs/redis-prerequisite) · [Horizon](https://docs.externa.qiick.io/docs/horizon) · [Reverb](https://docs.externa.qiick.io/docs/reverb-and-echo) · [Pulse](https://docs.externa.qiick.io/docs/pulse-and-health) · [Operations](https://docs.externa.qiick.io/docs/operations).
+Details: [Redis](https://docs.qiick.io/externa/redis-prerequisite) · [Horizon](https://docs.qiick.io/externa/horizon) · [Reverb](https://docs.qiick.io/externa/reverb-and-echo) · [Pulse](https://docs.qiick.io/externa/pulse-and-health) · [Operations](https://docs.qiick.io/externa/operations).
 
 ## Tests and quality
 
@@ -300,13 +301,13 @@ npm run format:check
 npm run types:check
 ```
 
-Pest browser tests live under `tests/Browser/`. See [Testing](https://docs.externa.qiick.io/docs/testing).
+Pest browser tests live under `tests/Browser/`. See [Testing](https://docs.qiick.io/externa/testing).
 
 ## Related projects
 
 | Project | Role |
 | --- | --- |
-| [Documentation](https://docs.externa.qiick.io) | Product & ops docs |
+| [Documentation](https://docs.qiick.io/externa) | Product & ops docs |
 | [externa-bruno](https://github.com/qiick-io/externa-bruno) | Runnable Public CMS API + GraphQL requests |
 | [GitHub — externa-core](https://github.com/qiick-io/externa-core) | This repository |
 

@@ -6,15 +6,18 @@ use App\Enums\FileAccessEnum;
 use App\Enums\FileTypeEnum;
 use App\Services\Files\FileEffectiveAccessService;
 use App\Traits\LogsApplicationActivityTrait;
+use Carbon\CarbonImmutable;
+use Database\Factories\FileFactory;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Spatie\Tags\HasTags;
+use Spatie\Tags\Tag;
 
 /**
  * File or folder node in the hierarchical file manager with versioning and tags.
@@ -46,16 +49,20 @@ use Spatie\Tags\HasTags;
  * @property float|null $translate_y
  * @property float|null $scale
  * @property int|null $current_version_id
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- * @property Carbon|null $deleted_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $deleted_at
  * @property-read File|null $parent
  * @property-read Collection<int, File> $children
+ * @property-read Collection<int, Tag> $tags
  * @property-read FileVersion|null $currentVersion
- * @property-read bool|null $is_favorited
+ * @property bool|null $is_favorited
  */
 class File extends Model
 {
+    /** @use HasFactory<FileFactory> */
+    use HasFactory;
+
     use HasTags;
     use LogsApplicationActivityTrait;
     use SoftDeletes;

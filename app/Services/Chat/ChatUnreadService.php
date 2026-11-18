@@ -107,6 +107,8 @@ class ChatUnreadService
      * Mark author + current viewers read, then broadcast totals to anyone whose unread may change.
      *
      * ponytail: totals() per recipient. Ceiling: busy collection notify; upgrade: stored unread counter.
+     *
+     * @param  list<int>  $mentionedIds
      */
     public function afterMessageCreated(
         Chat $chat,
@@ -434,9 +436,11 @@ class ChatUnreadService
     }
 
     /**
+     * Users who turned on notifications for the collection's item chats.
+     *
      * @return list<int>
      */
-    private function subscriberIdsForCollection(int $collectionId): array
+    public function subscriberIdsForCollection(int $collectionId): array
     {
         $ids = [];
         $rows = Setting::query()

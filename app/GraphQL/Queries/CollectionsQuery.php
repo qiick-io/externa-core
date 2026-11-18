@@ -2,34 +2,30 @@
 
 namespace App\GraphQL\Queries;
 
+use App\Data\Api\ApiAccessData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
-use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\CollectionPermissionGuardService;
-use App\Support\Api\ApiAccess;
+use Illuminate\Support\Facades\Gate;
 
 final class CollectionsQuery
 {
     /**
+     * @param  array<string, mixed>  $args
      * @return list<array<string, mixed>>
      */
     public function __invoke(mixed $_, array $args): array
     {
-        $access = app(ApiAccess::class);
+        $access = app(ApiAccessData::class);
         $matrix = app(CollectionPermissionGuardService::class)->matrixForRole($access->roleId());
-        $enforcer = app(CollectionPermissionEnforcerService::class);
-        $request = request();
+        $gate = Gate::forUser(request()->user());
 
         return Collection::query()
             ->active()
             ->ordered()
             ->get(['id', 'name', 'slug', 'is_singleton'])
             ->filter(fn (Collection $c): bool => (bool) ($matrix[(int) $c->id][CollectionPermissionActionEnum::Read->value] ?? false))
-            ->filter(fn (Collection $c): bool => $enforcer->allowsCollectionAction(
-                $request,
-                $c,
-                CollectionPermissionActionEnum::Read,
-            ))
+            ->filter(fn (Collection $c): bool => $gate->allows('viewItems', $c))
             ->map(fn (Collection $c): array => [
                 'id' => $c->id,
                 'name' => $c->name,

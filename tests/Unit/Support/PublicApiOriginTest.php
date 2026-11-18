@@ -1,10 +1,10 @@
 <?php
 
-use App\Support\Api\PublicApiOrigin;
+use App\Services\Api\PublicApiOriginService;
 
 it('normalizes valid origins without path', function (string $input, string $expected): void {
-    expect(PublicApiOrigin::normalize($input))->toBe($expected)
-        ->and(PublicApiOrigin::isValid($input))->toBeTrue();
+    expect(PublicApiOriginService::normalize($input))->toBe($expected)
+        ->and(PublicApiOriginService::isValid($input))->toBeTrue();
 })->with([
     ['https://www.example.com', 'https://www.example.com'],
     ['https://www.example.com/', 'https://www.example.com'],
@@ -14,8 +14,8 @@ it('normalizes valid origins without path', function (string $input, string $exp
 ]);
 
 it('rejects origins with path, query, or credentials', function (string $input): void {
-    expect(PublicApiOrigin::normalize($input))->toBeNull()
-        ->and(PublicApiOrigin::isValid($input))->toBeFalse();
+    expect(PublicApiOriginService::normalize($input))->toBeNull()
+        ->and(PublicApiOriginService::isValid($input))->toBeFalse();
 })->with([
     'https://www.example.com/path',
     'https://www.example.com?q=1',
