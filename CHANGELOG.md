@@ -9,6 +9,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-18
+
 ### Upgrade notes
 
 - **AI write tools are on by default (#766):** after the upgrade, the in-app assistant can create and change collections, fields, items and files (each write still asks the user to approve it in the chat), and an API key with the `mcp:write` scope writes over MCP without in-app approval, once `AI_MCP_ENABLED=true`; for a read-only AI, add `AI_TOOLS_WRITE_ENABLED=false` to `.env`. What else to check before upgrading:
@@ -491,7 +493,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/qiick-io/externa-core/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.4.0
 [1.3.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.3.0
 [1.2.3]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.3
