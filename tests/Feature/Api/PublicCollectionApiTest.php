@@ -88,7 +88,8 @@ it('authenticates with api key and enforces ip allowlist', function (): void {
 
     $this->withToken($auth['plain'])
         ->getJson('/api/v1/collections')
-        ->assertUnauthorized();
+        ->assertForbidden()
+        ->assertJsonPath('error', 'ip_not_allowed');
 
     $this->withToken($auth['plain'])
         ->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])

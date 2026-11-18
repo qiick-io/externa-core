@@ -59,6 +59,7 @@ it('defaults owner_id to the creator when storing an API key', function (): void
     $managerRole->syncPermissions([
         PermissionEnum::CanShowApiKeys->value,
         PermissionEnum::CanManageApiKeys->value,
+        PermissionEnum::CanShowCollections->value,
     ]);
     $creator->syncRoles([$managerRole]);
 
@@ -66,6 +67,7 @@ it('defaults owner_id to the creator when storing an API key', function (): void
         ->post(route('api-keys.store'), [
             'name' => 'Partner key',
             'role_id' => $role->id,
+            'scopes' => ['collections:read'],
         ])
         ->assertRedirect(route('api-keys.index'));
 

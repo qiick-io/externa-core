@@ -22,7 +22,7 @@ use Laravel\Mcp\Support\UriTemplate;
 
 #[Name('file_metadata')]
 #[Title('File metadata')]
-#[Description('File metadata by id (no binary payload). Honors file ACL, read_private, and API key files_scope.')]
+#[Description('File metadata by id (no binary payload). Honors file ACL, read_private, and the API key files:read scope.')]
 #[MimeType('application/json')]
 class FileMetadata extends Resource implements HasUriTemplate
 {

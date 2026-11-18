@@ -1,7 +1,7 @@
 <?php
 
 use App\Data\Api\ApiAccessData;
-use App\Enums\ApiKeyFilesScopeEnum;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
@@ -202,7 +202,7 @@ it('rejects out-of-scope collection with 403 on REST', function (): void {
     $asKey()->getJson("/api/v1/collections/pages/items/{$pageItem->id}")->assertForbidden();
 });
 
-it('rejects writes when key is read_only on REST', function (): void {
+it('rejects writes when key holds only collections:read on REST', function (): void {
     $posts = makePostsCollection();
     $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
     $auth = makeApiKeyForRole();
@@ -212,7 +212,7 @@ it('rejects writes when key is read_only on REST', function (): void {
         CollectionPermissionActionEnum::Update,
         CollectionPermissionActionEnum::Delete,
     ]);
-    $auth['key']->forceFill(['read_only' => true])->save();
+    $auth['key']->forceFill(['scopes' => ['collections:read', 'files:read']])->save();
 
     $asKey = fn () => $this->withToken($auth['plain']);
 
@@ -229,7 +229,7 @@ it('scopes never grant more than the role', function (): void {
     // Role has no grants; key scopes claim posts + writes — still denied.
     $auth['key']->forceFill([
         'collection_slugs' => ['posts'],
-        'read_only' => false,
+        'scopes' => ['collections:write', 'files:write'],
     ])->save();
 
     $this->withToken($auth['plain'])
@@ -340,7 +340,7 @@ it('partitions response cache for keys that share a role but differ in scopes', 
         'key_hash' => $secret['hash'],
         'role_id' => $wide['role']->id,
         'collection_slugs' => ['cache-blog'],
-        'read_only' => false,
+        'scopes' => ['collections:write', 'files:write'],
     ]);
 
     $url = "/api/v1/collections/cache-blog/items/{$post->id}?include=author";
@@ -358,7 +358,7 @@ it('partitions response cache for keys that share a role but differ in scopes', 
     expect($narrowKey->fresh()->collection_slugs)->toBe(['cache-blog']);
 });
 
-it('read_only key can include in-scope relations but cannot write', function (): void {
+it('a collections:read key can include in-scope relations but cannot write', function (): void {
     $authors = Collection::query()->create([
         'name' => 'Authors',
         'slug' => 'ro-authors',
@@ -406,7 +406,7 @@ it('read_only key can include in-scope relations but cannot write', function ():
     grantRoleActions($auth['role'], $authors, [CollectionPermissionActionEnum::Read]);
     $auth['key']->forceFill([
         'collection_slugs' => ['ro-blog', 'ro-authors'],
-        'read_only' => true,
+        'scopes' => ['collections:read', 'files:read'],
     ])->save();
 
     $asKey = fn () => $this->withToken($auth['plain']);
@@ -420,7 +420,7 @@ it('read_only key can include in-scope relations but cannot write', function ():
     $asKey()->deleteJson("/api/v1/collections/ro-blog/items/{$post->id}")->assertForbidden();
 });
 
-it('enforces collection allowlist and read_only on GraphQL', function (): void {
+it('enforces collection allowlist and collections:read on GraphQL', function (): void {
     $posts = makePostsCollection();
     CollectionField::factory()->create([
         'collection_id' => $posts->id,
@@ -450,7 +450,7 @@ it('enforces collection allowlist and read_only on GraphQL', function (): void {
     ]);
     $auth['key']->forceFill([
         'collection_slugs' => ['posts'],
-        'read_only' => true,
+        'scopes' => ['collections:read', 'files:read'],
     ])->save();
 
     $item = $posts->items()->create([]);
@@ -684,7 +684,7 @@ it('does not share index response cache across keys with different scopes', func
         'key_hash' => $secret['hash'],
         'role_id' => $wide['role']->id,
         'collection_slugs' => ['idx-blog'],
-        'read_only' => false,
+        'scopes' => ['collections:write', 'files:write'],
     ]);
 
     $url = '/api/v1/collections/idx-blog/items?per_page=10&include=author';
@@ -718,7 +718,7 @@ it('partitions GraphQL ItemQuery and ItemsQuery cache keys by api key scopes', f
         'key_hash' => $emptySecret['hash'],
         'role_id' => $wide['role']->id,
         'collection_slugs' => [],
-        'read_only' => false,
+        'scopes' => ['collections:write', 'files:write'],
     ]);
 
     $narrowSecret = ApiKey::generateSecret();
@@ -728,7 +728,7 @@ it('partitions GraphQL ItemQuery and ItemsQuery cache keys by api key scopes', f
         'key_hash' => $narrowSecret['hash'],
         'role_id' => $wide['role']->id,
         'collection_slugs' => ['posts'],
-        'read_only' => false,
+        'scopes' => ['collections:write', 'files:write'],
     ]);
 
     $readOnlySecret = ApiKey::generateSecret();
@@ -738,7 +738,7 @@ it('partitions GraphQL ItemQuery and ItemsQuery cache keys by api key scopes', f
         'key_hash' => $readOnlySecret['hash'],
         'role_id' => $wide['role']->id,
         'collection_slugs' => ['posts'],
-        'read_only' => true,
+        'scopes' => ['collections:read', 'files:read'],
     ]);
 
     $wideAccess = new ApiAccessData('api_key', $wide['role'], $wide['key']);
@@ -798,7 +798,7 @@ it('partitions GraphQL ItemQuery and ItemsQuery cache keys by api key scopes', f
         ->and($wide['key']->fresh()->collection_slugs)->toBeNull();
 });
 
-it('rejects file writes when key is read_only but still allows reads', function (): void {
+it('rejects file writes when key holds only files:read but still allows reads', function (): void {
     Storage::fake('assets');
 
     $auth = makeApiKeyForRole();
@@ -808,7 +808,7 @@ it('rejects file writes when key is read_only but still allows reads', function 
         FilePermissionActionEnum::Update,
         FilePermissionActionEnum::Delete,
     ]);
-    $auth['key']->forceFill(['read_only' => true])->save();
+    $auth['key']->forceFill(['scopes' => ['collections:read', 'files:read']])->save();
 
     $file = makeStoredFile('ro-file.jpg');
     $asKey = fn () => $this->withToken($auth['plain']);
@@ -839,9 +839,9 @@ it('allows file writes for an unscoped key when the role grants them', function 
         FilePermissionActionEnum::Update,
         FilePermissionActionEnum::Delete,
     ]);
-    // Unscoped: null collection_slugs, not read_only (legacy key shape).
+    // Unscoped: null collection_slugs, write scopes (a translated 1.4.0 key without read_only).
     expect($auth['key']->collection_slugs)->toBeNull()
-        ->and((bool) $auth['key']->read_only)->toBeFalse();
+        ->and($auth['key']->scopes)->toBe(['collections:write', 'files:write']);
 
     $file = makeStoredFile('writable.jpg');
     $asKey = fn () => $this->withToken($auth['plain']);
@@ -858,7 +858,7 @@ it('allows file writes for an unscoped key when the role grants them', function 
     expect(File::query()->find($file->id))->toBeNull();
 });
 
-it('files_scope none forbids Files API and returns bare ids on includes', function (): void {
+it('a key without a files scope is refused the Files API and gets bare ids on includes', function (): void {
     Storage::fake('assets');
 
     $posts = makePostsCollection();
@@ -876,7 +876,7 @@ it('files_scope none forbids Files API and returns bare ids on includes', functi
     grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
     $auth['key']->forceFill([
         'collection_slugs' => ['posts'],
-        'files_scope' => ApiKeyFilesScopeEnum::None,
+        'scopes' => ['collections:write'],
     ])->save();
 
     $file = makeStoredFile('scoped-none.jpg');
@@ -894,7 +894,7 @@ it('files_scope none forbids Files API and returns bare ids on includes', functi
         ->assertJsonPath('data.data.cover', $file->id);
 });
 
-it('files_scope read allows reads but blocks writes', function (): void {
+it('files:read allows reads but blocks writes', function (): void {
     Storage::fake('assets');
 
     $auth = makeApiKeyForRole();
@@ -904,7 +904,7 @@ it('files_scope read allows reads but blocks writes', function (): void {
         FilePermissionActionEnum::Update,
         FilePermissionActionEnum::Delete,
     ]);
-    $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::Read])->save();
+    $auth['key']->forceFill(['scopes' => ['collections:write', 'files:read']])->save();
 
     $file = makeStoredFile('scoped-read.jpg');
     $asKey = fn () => $this->withToken($auth['plain']);
@@ -919,7 +919,7 @@ it('files_scope read allows reads but blocks writes', function (): void {
     $asKey()->deleteJson("/api/v1/files/{$file->id}")->assertForbidden();
 });
 
-it('migrated keys default files_scope all keeps 1.3.0 file behaviour', function (): void {
+it('files:write keeps the 1.3.0 file behaviour of an unscoped key', function (): void {
     Storage::fake('assets');
     Queue::fake([WarmFileThumbnailJob::class]);
 
@@ -930,7 +930,7 @@ it('migrated keys default files_scope all keeps 1.3.0 file behaviour', function 
         FilePermissionActionEnum::Update,
         FilePermissionActionEnum::Delete,
     ]);
-    expect($auth['key']->fresh()->files_scope)->toBe(ApiKeyFilesScopeEnum::All);
+    expect($auth['key']->fresh()->hasScope(ApiKeyScopeEnum::FilesWrite))->toBeTrue();
 
     $file = makeStoredFile('legacy-all.jpg');
     $asKey = fn () => $this->withToken($auth['plain']);
@@ -942,21 +942,21 @@ it('migrated keys default files_scope all keeps 1.3.0 file behaviour', function 
     $asKey()->patchJson("/api/v1/files/{$file->id}", ['title' => 'Hero'])->assertOk();
 });
 
-it('response cache factors include files_scope', function (): void {
+it('response cache factors include the scopes', function (): void {
     $auth = makeApiKeyForRole();
     $accessAll = new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh());
     $factorsAll = $accessAll->responseCacheScopeFactors();
 
-    $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::None])->save();
+    $auth['key']->forceFill(['scopes' => ['collections:write']])->save();
     $accessNone = new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh());
     $factorsNone = $accessNone->responseCacheScopeFactors();
 
-    expect($factorsAll['api_key_scopes']['files_scope'])->toBe('all')
-        ->and($factorsNone['api_key_scopes']['files_scope'])->toBe('none')
+    expect($factorsAll['api_key_scopes']['scopes'])->toBe(['collections:write', 'files:write'])
+        ->and($factorsNone['api_key_scopes']['scopes'])->toBe(['collections:write'])
         ->and($factorsAll)->not->toBe($factorsNone);
 });
 
-it('files_scope none still allows GraphQL collection reads', function (): void {
+it('a key without a files scope still reads collections over GraphQL', function (): void {
     $posts = makePostsCollection();
     CollectionField::factory()->create([
         'collection_id' => $posts->id,
@@ -969,7 +969,7 @@ it('files_scope none still allows GraphQL collection reads', function (): void {
     grantFileActions($auth['role'], [FilePermissionActionEnum::Read]);
     $auth['key']->forceFill([
         'collection_slugs' => ['posts'],
-        'files_scope' => ApiKeyFilesScopeEnum::None,
+        'scopes' => ['collections:write'],
     ])->save();
 
     $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);

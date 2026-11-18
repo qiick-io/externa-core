@@ -84,7 +84,6 @@
     "Form layout updated.": "Formularlayout aktualisiert.",
     "HTTP error": "HTTP error",
     "Invalid JSON in settings.": "Ungültiges JSON in den Einstellungen.",
-    "Invalid or inactive API key.": "Ungültiger oder inaktiver API-Schlüssel.",
     "Invalid sort token [:token].": "Ungültiges Sortier-Token [:token].",
     "Invalid webhook signature.": "Ungültige Webhook-Signatur.",
     "Item approved": "Element genehmigt",
@@ -228,5 +227,19 @@
     "This collection has no fields an AI draft can fill.": "Diese Sammlung hat keine Felder, die ein KI-Entwurf ausfüllen kann.",
     "The value has the wrong type for this field.": "Der Wert hat für dieses Feld den falschen Typ.",
     "The AI draft could not be generated. Try again later.": "Der KI-Entwurf konnte nicht erstellt werden. Versuche es später erneut.",
-    "Deprecated AI model in use: :models. Switch to a recommended model.": "Veraltetes KI-Modell in Verwendung: :models. Wechsle zu einem empfohlenen Modell."
+    "Deprecated AI model in use: :models. Switch to a recommended model.": "Veraltetes KI-Modell in Verwendung: :models. Wechsle zu einem empfohlenen Modell.",
+    "The API key is not valid.": "Der API-Schlüssel ist ungültig.",
+    "The API key has expired.": "Der API-Schlüssel ist abgelaufen.",
+    "The API key has been revoked.": "Der API-Schlüssel wurde widerrufen.",
+    "The API key lacks the :scope scope.": "Dem API-Schlüssel fehlt der Bereich :scope.",
+    "The API key holds no scopes.": "Der API-Schlüssel hat keine Bereiche.",
+    "MCP requires an API key with an owner.": "MCP erfordert einen API-Schlüssel mit Eigentümer.",
+    "The API key owner is no longer active.": "Der Eigentümer des API-Schlüssels ist nicht mehr aktiv.",
+    "You cannot issue a key with the :scope scope: you do not hold it yourself.": "Sie können keinen Schlüssel mit dem Bereich :scope ausstellen: Sie haben ihn selbst nicht.",
+    "Only a signed-in user can issue an API key.": "Nur angemeldete Benutzer können einen API-Schlüssel ausstellen.",
+    "API key rotated. The previous secret keeps working until :time.": "API-Schlüssel rotiert. Das bisherige Geheimnis funktioniert noch bis :time.",
+    "API key expires soon": "API-Schlüssel läuft bald ab",
+    "Create a new key and switch the integration to it before then.": "Erstellen Sie einen neuen Schlüssel und stellen Sie die Integration vorher darauf um.",
+    "Open API keys": "API-Schlüssel öffnen",
+    "The API key \":name\" (:prefix) expires on :date.": "Der API-Schlüssel „:name“ (:prefix) läuft am :date ab."
 }
