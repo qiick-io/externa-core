@@ -487,4 +487,37 @@ describe('attribution', function (): void {
             ->and($toolDecisions->map(fn (Activity $activity): mixed => $activity->properties->get('api_key_id'))->unique()->all())
             ->toBe([$apiKeyId]);
     });
+
+    it('records who approved a call, when, and whether the requester approved it (#441)', function (): void {
+        $colleague = User::factory()->create();
+        $colleague->syncRoles([$this->role]);
+        $key = mcpParityKey($this->owner, $this->role);
+        $executor = app(AiToolExecutorService::class);
+
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+        $selfApproved = PendingToolCall::query()->sole();
+        $executor->approveAndExecute($selfApproved, $this->owner);
+
+        mcpParityTool($key, 'tag_file', ['file_id' => $this->publicFile->id, 'tags_json' => '["hero"]']);
+        $colleagueApproved = PendingToolCall::query()->where('status', 'pending')->sole();
+        $executor->approveAndExecute($colleagueApproved, $colleague);
+
+        $executedEntryFor = fn (PendingToolCall $pending): Activity => Activity::query()
+            ->where('log_name', 'ai')
+            ->where('event', 'ai_tool')
+            ->get()
+            ->sole(fn (Activity $activity): bool => $activity->properties->get('decision') === 'executed'
+                && $activity->properties->get('pending_id') === $pending->uuid);
+
+        $selfEntry = $executedEntryFor($selfApproved);
+        $colleagueEntry = $executedEntryFor($colleagueApproved);
+
+        expect($selfEntry->causer_id)->toBe($this->owner->id)
+            ->and($selfEntry->properties->get('approver_id'))->toBe($this->owner->id)
+            ->and($selfEntry->properties->get('is_self_approval'))->toBeTrue()
+            ->and($selfEntry->created_at)->not->toBeNull()
+            ->and($colleagueEntry->causer_id)->toBe($this->owner->id)
+            ->and($colleagueEntry->properties->get('approver_id'))->toBe($colleague->id)
+            ->and($colleagueEntry->properties->get('is_self_approval'))->toBeFalse();
+    });
 });

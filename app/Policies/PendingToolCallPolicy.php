@@ -14,8 +14,10 @@ use App\Services\Ai\AiToolRegistryService;
  * Deciding a call needs the abilities of the tool itself, checked against the call's arguments by
  * {@see AiToolRegistryService::actorPassesAbilities()} (super-admins are granted there). The
  * requester may always withdraw (reject) their own call. Approving one's own call is allowed as
- * long as the requester passes the tool abilities: whether to forbid self-approval is an open
- * product decision in #441, so this policy keeps today's behaviour.
+ * long as the requester passes the tool abilities, by decision (#441): the agent requests and a
+ * human approves, the requester is the human who owns the agent's API key, and a key cannot
+ * approve (this is a signed-in admin action). A four-eyes rule would leave a single-admin install
+ * unable to approve anything; the audit entry flags `is_self_approval` instead.
  */
 final class PendingToolCallPolicy
 {
