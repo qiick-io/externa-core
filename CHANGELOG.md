@@ -12,6 +12,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Upgrade notes
 
 - **Breaking (API key IP allowlist):** a request from an address outside a key's `ip_allowlist` is now refused with **`403`** and `{"message": "API key is not allowed from this IP address.", "error": "ip_not_allowed"}`; it used to be `401`. A client that treats `401` as "the key is bad" and `403` as "the key may not do this" now sees the second. Unknown, expired and revoked keys stay `401`, now with `WWW-Authenticate: Bearer error="invalid_token"` and `{"message", "error": "invalid_token"}`, the message saying which of the three it is; a missing scope is `403` with `"error": "insufficient_scope"` and the `scope` it needed (#781).
+- **MCP calls awaiting approval from before the upgrade are refused, not run:** a call an agent parked on 1.4.0 has no API key on record, so approving it after the upgrade returns "This MCP call has no API key on record…" and leaves it pending until it expires (`AI_TOOLS_APPROVAL_TTL`, default 15 minutes) or someone rejects it. Nothing is executed or dropped silently. Approve or reject open calls in Settings → AI tool approvals before upgrading, or ask the agent to send them again afterwards (#441).
 - **API key permissions are migrated, not reset:** `php artisan externa:upgrade` (or `migrate`) rewrites every key's `read_only`, `files_scope` and MCP `scopes` into the new `<resource>:(read|write)` scopes and drops the two old columns (see Changed). Each key keeps exactly what it could do in 1.4.0, never more, so existing integrations keep working; revoked and expired keys stay revoked and expired. The migration is forward-only (#781).
 
 ### Added
@@ -27,7 +28,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Security
 
 - AI tool approvals: two concurrent approve or reject clicks can no longer both decide (and run) the same call; the decision is one conditional update (#441).
-- An approved MCP call runs under the API key that asked for it (new `pending_tool_calls.api_key_id`), so the key's role, `collection_slugs`, read-only and files scope still apply, and a key revoked or narrowed while the call waited cannot run it (#441).
+- An approved MCP call runs under the API key that asked for it (new `pending_tool_calls.api_key_id`), so the key's role, `collection_slugs`, read-only and files scope still apply, and a key revoked or narrowed while the call waited cannot run it. An MCP call with no key on record (parked before the upgrade, or whose key row was deleted) is refused instead of running with the requester's full permissions (#441).
 - Rejecting a pending tool call needs the same tool permission as approving it; the requester can still withdraw their own call (#441).
 - Public API cost budget: a batch create, update or delete is charged once per entry (`API_COST_MUTATION` × the number of `items` / `ids`), so a 100-item batch costs like 100 writes, not one (#441).
 - Deploy hooks: the delivery is pinned to the address the SSRF guard resolved (`CURLOPT_RESOLVE`), so a DNS change between the check and the request cannot reach a private host; publish-triggered builds wait 30 s and queue one delivery per hook, so a scheduled publish of N items no longer queues N builds per hook (#441).

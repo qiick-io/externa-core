@@ -210,7 +210,7 @@ it('requires MCP human approval for allowlisted writes and still audits denied i
     // must still require human approval — and a viewer approver cannot execute deletes.
     $this->actingAs($viewer);
     $viewerCall = CompromisedLlmDriver::toolCallsFor('ignore_prev_delete_collection', $context)[0];
-    $viewerResult = invokeSecuritySurface('mcp', $viewerCall['tool'], $viewerCall['arguments'], $viewer);
+    $viewerResult = asMcpApiKey($viewer, fn (): array => invokeSecuritySurface('mcp', $viewerCall['tool'], $viewerCall['arguments'], $viewer));
     expect($viewerResult['status'])->toBe('pending_approval')
         ->and($viewerResult['pending_id'])->not->toBeNull();
 

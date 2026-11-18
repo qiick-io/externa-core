@@ -383,6 +383,24 @@ describe('write tools', function (): void {
             ->and($this->blogItem->fresh()->draft_data)->not->toBeNull();
     });
 
+    it('refuses to run an approved MCP call that has no API key on record (#441)', function (): void {
+        // A narrowed key, so running the call with the owner's full permissions would publish news.
+        $key = mcpParityKey($this->owner, $this->role, ['collection_slugs' => ['blog', 'news']]);
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->newsItem->id]);
+        $pending = PendingToolCall::query()->sole();
+
+        // What a row parked before `api_key_id` existed (1.4.0), or whose key row was deleted
+        // (`nullOnDelete`), looks like.
+        $pending->forceFill(['api_key_id' => null])->save();
+
+        $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $this->owner);
+
+        expect($outcome->status)->toBe('denied')
+            ->and($outcome->message)->toContain('no API key on record')
+            ->and($pending->fresh()->status->value)->toBe('pending')
+            ->and($this->newsItem->fresh()->draft_data)->not->toBeNull();
+    });
+
     it('still runs an approved in-scope call', function (): void {
         $key = mcpParityKey($this->owner, $this->role);
         mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\PendingToolCallStatusEnum;
+use App\Models\ApiKey;
 use App\Models\PendingToolCall;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -32,6 +34,11 @@ class PendingToolCallFactory extends Factory
             ],
             'status' => PendingToolCallStatusEnum::Pending,
             'requested_by' => User::factory(),
+            // `/mcp` only accepts API keys, so an MCP call is always parked with the requester's key.
+            'api_key_id' => fn (array $attributes): ?int => $attributes['requested_by'] === null ? null : ApiKey::factory()
+                ->withScopes(ApiKeyScopeEnum::McpRead, ApiKeyScopeEnum::McpWrite, ApiKeyScopeEnum::CollectionsWrite, ApiKeyScopeEnum::FilesWrite)
+                ->create(['owner_id' => $attributes['requested_by']])
+                ->id,
             'resolved_by' => null,
             'expires_at' => now()->addMinutes(15),
             'resolved_at' => null,
