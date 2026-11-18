@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\Support\AiActivityLogger;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Models\UserGroup;
@@ -253,6 +254,28 @@ test('project settings update writes settings_updated activity', function () {
         ->and($activity->causer_id)->toBe($actor->id)
         ->and($activity->properties['section'] ?? null)->toBe('general')
         ->and($activity->properties['keys'] ?? null)->toContain('name');
+});
+
+test('activity log index shows an admin who approved an AI tool call and whether it was self-approved (#441)', function () {
+    $admin = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+    ]);
+    $requester = User::factory()->create();
+    $this->actingAs($admin);
+
+    Activity::query()->delete();
+
+    AiActivityLogger::toolDecision($requester, 'ManageCollections', [], 'executed', 'ok', 'mcp', approver: $requester);
+
+    $this->get(route('activity-logs.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/activity-logs/index')
+            ->has('activityLogs.data', 1)
+            ->where('activityLogs.data.0.causer.id', $requester->id)
+            ->where('activityLogs.data.0.properties.meta.approver_id', $requester->id)
+            ->where('activityLogs.data.0.properties.meta.is_self_approval', true)
+            ->has('activityLogs.data.0.created_at'));
 });
 
 test('activity log index exposes manual property meta for expanded details', function () {
