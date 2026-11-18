@@ -220,17 +220,20 @@ function grantAiPermissions(User $user, array $permissions): User
  * Run the callback as an MCP request from an API key owned by `$owner`, bound where the `/mcp`
  * middleware binds it, so a write the callback parks keeps the key (as every real MCP call does).
  *
+ * The key gets a fresh role with no permissions unless `$role` is given: a key acts with its
+ * own role's grants, never its owner's, so a test whose call needs a permission passes the role.
+ *
  * @template TReturn
  *
  * @param  callable(): TReturn  $callback
  * @return TReturn
  */
-function asMcpApiKey(User $owner, callable $callback): mixed
+function asMcpApiKey(User $owner, callable $callback, ?Role $role = null): mixed
 {
     config(['ai.mcp.write_enabled' => true]);
     $apiKey = ApiKey::factory()
         ->withScopes(ApiKeyScopeEnum::McpRead, ApiKeyScopeEnum::McpWrite, ApiKeyScopeEnum::CollectionsWrite, ApiKeyScopeEnum::FilesWrite)
-        ->create(['owner_id' => $owner->id]);
+        ->create(['owner_id' => $owner->id, ...($role !== null ? ['role_id' => $role->id] : [])]);
 
     app()->instance(ApiAccessData::class, new ApiAccessData(actor: 'api_key', role: $apiKey->role, apiKey: $apiKey));
 

@@ -519,6 +519,8 @@ describe('attribution', function (): void {
     });
 
     it('records who approved a call, when, and whether the requester approved it (#441)', function (): void {
+        // Writes park for approval only with this opt-in since #766.
+        config(['ai.mcp.write_requires_approval' => true]);
         $colleague = User::factory()->create();
         $colleague->syncRoles([$this->role]);
         $key = mcpParityKey($this->owner, $this->role);
