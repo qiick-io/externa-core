@@ -25,7 +25,8 @@ concurrency:
 #   (stubs report success when the heavy work is skipped so branch protection stays green).
 # - pull_request → develop (code): Pest on PHP 8.4 only; other PHP/DB stub; browser runs axe smoke.
 # - pull_request → develop that changes a toolchain / stack file (package.json, lockfiles, composer.json,
-#   vite / vitest / tsconfig, qiick-standards.json, this file): full matrix + full browser suite (#669).
+#   vite / vitest / tsconfig, qiick-standards.json, this file), a migration under database/migrations/,
+#   or app/Console/Commands/UpgradeCommand.php: full matrix + full browser suite (#669, #789).
 # - docs/md-only PR → develop: all Pest/browser stub.
 # - push → develop/main, PR → main, schedule: full matrix + full browser suite.
 # - Required jobs run with if: always() and fail first when changes/assets did not succeed,
@@ -85,13 +86,14 @@ jobs:
                 MODE=lite
               fi
 
-              # Toolchain or stack changes run the full matrix and the whole browser suite even
-              # on a PR to develop: a stale browser assertion only failed on the 1.4.0 release PR (#631, #669).
+              # Toolchain, stack, migration, or upgrade-command changes run the full matrix and the
+              # whole browser suite even on a PR to develop (#631, #669, #789). Migrations and
+              # externa:upgrade must hit MySQL / MariaDB / PostgreSQL before merge; lite stubs them.
               for f in "${FILES[@]}"; do
                 case "$f" in
-                  package.json|package-lock.json|composer.json|composer.lock|vite.config.ts|vitest.config.ts|tsconfig.json|qiick-standards.json|.github/workflows/tests.yml)
+                  package.json|package-lock.json|composer.json|composer.lock|vite.config.ts|vitest.config.ts|tsconfig.json|qiick-standards.json|.github/workflows/tests.yml|database/migrations/*|app/Console/Commands/UpgradeCommand.php)
                     MODE=full
-                    echo "Stack file changed ($f): full mode"
+                    echo "Full-mode trigger ($f): full mode"
                     break
                     ;;
                 esac
