@@ -247,6 +247,12 @@ parameters:
 			path: app/GraphQL/Queries/ItemsQuery.php
 
 		-
+			message: '#^Parameter \#2 \$validated of static method App\\Data\\Api\\ApiKeyData\:\:fromValidated\(\) expects array\{name\: string, role_id\: int\|string, owner_id\?\: int\|string\|null, collection_slugs\?\: list\<string\>\|null, scopes\: list\<string\>, ip_allowlist\?\: list\<string\>\|null, rate_limit_per_minute\?\: int\|string\|null, expires_at\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/ApiKeyController.php
+
+		-
 			message: '#^Method App\\Http\\Controllers\\Admin\\FileController\:\:resolveTagFilters\(\) should return array\{list\<int\>, list\<string\>\} but returns array\{array\<int, int\<1, max\>\>, array\<int, non\-empty\-string\>\}\.$#'
 			identifier: return.type
 			count: 1
