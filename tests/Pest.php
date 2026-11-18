@@ -54,6 +54,10 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->in('Arch');
 
+// The release upgrade rehearsal rebuilds its own database (#792): no RefreshDatabase.
+pest()->extend(TestCase::class)
+    ->in('Upgrade');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
