@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\Ai\AiToolExecutionResultData;
 use App\Enums\PendingToolCallStatusEnum;
 use App\Enums\PermissionEnum;
 use App\Models\PendingToolCall;
@@ -9,7 +10,9 @@ use App\Models\User;
 use App\Services\Ai\AiToolApprovalService;
 use App\Services\Ai\AiToolExecutorService;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 uses(RefreshDatabase::class);
@@ -22,6 +25,7 @@ beforeEach(function (): void {
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
         'ai.tools.approval_ttl_minutes' => 15,
+        'ai.mcp.write_enabled' => true,
     ]);
 });
 
@@ -62,12 +66,12 @@ it('approves a pending call through the admin action when the approver has permi
         ...allCollectionPermissions(),
     ]);
 
-    $pendingOutcome = app(AiToolExecutorService::class)->execute(
+    $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
         ['action' => 'list'],
         $actor,
         ['surface' => 'mcp'],
-    );
+    ));
 
     $pending = PendingToolCall::query()->where('uuid', $pendingOutcome->pendingId)->firstOrFail();
 
@@ -189,6 +193,45 @@ it('approves a call only once when two approvals race (#441)', function (): void
 
     expect(fn () => $resolveOnce->invoke($approvals, $second, PendingToolCallStatusEnum::Approved, $approver, 'approved'))
         ->toThrow(InvalidArgumentException::class, 'no longer awaiting approval');
+});
+
+it('runs the tool once when a second approval lands while the first is deciding (#441)', function (): void {
+    [$requester, $approver] = collect(range(1, 2))->map(fn (): User => grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]))->all();
+    $pending = PendingToolCall::factory()->create([
+        'tool' => 'ManageCollections',
+        'arguments' => ['action' => 'list'],
+        'requested_by' => $requester->id,
+    ]);
+    $executor = app(AiToolExecutorService::class);
+    $concurrentOutcome = null;
+
+    // The first click has read the call as pending; the second click runs to completion before
+    // the first one decides, which is the interleaving two concurrent requests produce.
+    DB::listen(function (QueryExecuted $query) use (&$concurrentOutcome, $executor, $pending, $approver): void {
+        if ($concurrentOutcome !== null || ! str_starts_with(strtolower($query->sql), 'select')
+            || ! str_contains($query->sql, 'pending_tool_calls')) {
+            return;
+        }
+
+        $concurrentOutcome = false;
+        $concurrentOutcome = $executor->approveAndExecute(PendingToolCall::query()->findOrFail($pending->id), $approver);
+    });
+
+    $firstOutcome = $executor->approveAndExecute($pending, $approver);
+
+    $executions = Activity::query()->inLog('ai')->get()->filter(
+        fn (Activity $activity): bool => $activity->properties->get('decision') === 'executed'
+            && $activity->properties->get('pending_id') === $pending->uuid,
+    );
+
+    expect($concurrentOutcome->status)->toBe('ok')
+        ->and($firstOutcome->status)->toBe('denied')
+        ->and($firstOutcome->message)->toContain('no longer awaiting approval')
+        ->and($executions)->toHaveCount(1)
+        ->and($pending->refresh()->status)->toBe(PendingToolCallStatusEnum::Executed);
 });
 
 it('refuses a reject from a user who could not approve the call', function (): void {

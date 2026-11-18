@@ -383,6 +383,24 @@ describe('write tools', function (): void {
             ->and($this->blogItem->fresh()->draft_data)->not->toBeNull();
     });
 
+    it('refuses to run an approved MCP call that has no API key on record (#441)', function (): void {
+        // A narrowed key, so running the call with the owner's full permissions would publish news.
+        $key = mcpParityKey($this->owner, $this->role, ['collection_slugs' => ['blog', 'news']]);
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->newsItem->id]);
+        $pending = PendingToolCall::query()->sole();
+
+        // What a row parked before `api_key_id` existed (1.4.0), or whose key row was deleted
+        // (`nullOnDelete`), looks like.
+        $pending->forceFill(['api_key_id' => null])->save();
+
+        $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $this->owner);
+
+        expect($outcome->status)->toBe('denied')
+            ->and($outcome->message)->toContain('no API key on record')
+            ->and($pending->fresh()->status->value)->toBe('pending')
+            ->and($this->newsItem->fresh()->draft_data)->not->toBeNull();
+    });
+
     it('still runs an approved in-scope call', function (): void {
         $key = mcpParityKey($this->owner, $this->role);
         mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
@@ -468,5 +486,38 @@ describe('attribution', function (): void {
             ->and($toolDecisions->count())->toBeGreaterThanOrEqual(3)
             ->and($toolDecisions->map(fn (Activity $activity): mixed => $activity->properties->get('api_key_id'))->unique()->all())
             ->toBe([$apiKeyId]);
+    });
+
+    it('records who approved a call, when, and whether the requester approved it (#441)', function (): void {
+        $colleague = User::factory()->create();
+        $colleague->syncRoles([$this->role]);
+        $key = mcpParityKey($this->owner, $this->role);
+        $executor = app(AiToolExecutorService::class);
+
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+        $selfApproved = PendingToolCall::query()->sole();
+        $executor->approveAndExecute($selfApproved, $this->owner);
+
+        mcpParityTool($key, 'tag_file', ['file_id' => $this->publicFile->id, 'tags_json' => '["hero"]']);
+        $colleagueApproved = PendingToolCall::query()->where('status', 'pending')->sole();
+        $executor->approveAndExecute($colleagueApproved, $colleague);
+
+        $executedEntryFor = fn (PendingToolCall $pending): Activity => Activity::query()
+            ->where('log_name', 'ai')
+            ->where('event', 'ai_tool')
+            ->get()
+            ->sole(fn (Activity $activity): bool => $activity->properties->get('decision') === 'executed'
+                && $activity->properties->get('pending_id') === $pending->uuid);
+
+        $selfEntry = $executedEntryFor($selfApproved);
+        $colleagueEntry = $executedEntryFor($colleagueApproved);
+
+        expect($selfEntry->causer_id)->toBe($this->owner->id)
+            ->and($selfEntry->properties->get('approver_id'))->toBe($this->owner->id)
+            ->and($selfEntry->properties->get('is_self_approval'))->toBeTrue()
+            ->and($selfEntry->created_at)->not->toBeNull()
+            ->and($colleagueEntry->causer_id)->toBe($this->owner->id)
+            ->and($colleagueEntry->properties->get('approver_id'))->toBe($colleague->id)
+            ->and($colleagueEntry->properties->get('is_self_approval'))->toBeFalse();
     });
 });

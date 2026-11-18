@@ -348,15 +348,23 @@ class AiToolExecutorService
 
     /**
      * The API key access an approved MCP call runs under: the key's role and scopes (collection
-     * slugs and scopes), not the owner's full permissions (#441). Null for calls a
-     * session user made. The key is checked again, because it may have been revoked, expired or
-     * narrowed while the call waited.
+     * slugs and scopes), not the owner's full permissions (#441). Null for calls from any other
+     * surface. The key is checked again, because it may have been revoked, expired or narrowed
+     * while the call waited.
      *
-     * @throws InvalidArgumentException when the requesting key can no longer run a write
+     * An MCP call without a key fails closed: `/mcp` only accepts API keys, so a keyless MCP row
+     * was parked before `api_key_id` existed (an upgrade from 1.4.0) or lost its key to
+     * `nullOnDelete`, and running it would give it the requester's full permissions.
+     *
+     * @throws InvalidArgumentException when the requesting key is missing or can no longer run a write
      */
     private function apiAccessForApprovedCall(PendingToolCall $pending): ?ApiAccessData
     {
         if ($pending->api_key_id === null) {
+            if ($pending->surface === 'mcp') {
+                throw new InvalidArgumentException('This MCP call has no API key on record, so it cannot run under the key scopes. Ask the agent to send it again.');
+            }
+
             return null;
         }
 

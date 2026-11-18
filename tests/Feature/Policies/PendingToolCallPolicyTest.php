@@ -53,7 +53,7 @@ it('lets the requester withdraw but not approve without the tool abilities', fun
         ->and(Gate::forUser($requester)->allows('approve', $pending))->toBeFalse();
 });
 
-it('keeps self-approval allowed for a requester with the tool abilities (#441 open)', function (): void {
+it('allows self-approval for a requester with the tool abilities, by decision (#441)', function (): void {
     $requester = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         PermissionEnum::CanShowFiles->value,

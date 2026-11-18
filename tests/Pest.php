@@ -1,5 +1,7 @@
 <?php
 
+use App\Data\Api\ApiAccessData;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
@@ -212,6 +214,31 @@ function grantAiPermissions(User $user, array $permissions): User
     $user->syncRoles([$role]);
 
     return $user;
+}
+
+/**
+ * Run the callback as an MCP request from an API key owned by `$owner`, bound where the `/mcp`
+ * middleware binds it, so a write the callback parks keeps the key (as every real MCP call does).
+ *
+ * @template TReturn
+ *
+ * @param  callable(): TReturn  $callback
+ * @return TReturn
+ */
+function asMcpApiKey(User $owner, callable $callback): mixed
+{
+    config(['ai.mcp.write_enabled' => true]);
+    $apiKey = ApiKey::factory()
+        ->withScopes(ApiKeyScopeEnum::McpRead, ApiKeyScopeEnum::McpWrite, ApiKeyScopeEnum::CollectionsWrite, ApiKeyScopeEnum::FilesWrite)
+        ->create(['owner_id' => $owner->id]);
+
+    app()->instance(ApiAccessData::class, new ApiAccessData(actor: 'api_key', role: $apiKey->role, apiKey: $apiKey));
+
+    try {
+        return $callback();
+    } finally {
+        app()->forgetInstance(ApiAccessData::class);
+    }
 }
 
 /**

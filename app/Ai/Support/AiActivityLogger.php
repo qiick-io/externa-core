@@ -100,6 +100,8 @@ class AiActivityLogger
 
     /**
      * Full audit trail for registry/MCP/chat tool decisions (always logged when an actor exists).
+     * The causer is the requester; a human-approved call also names its `approver_id`, flags
+     * `is_self_approval` when the requester approved it, and is timed by the entry's `created_at`.
      *
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>  $extra
@@ -131,6 +133,9 @@ class AiActivityLogger
                 'status' => $status,
                 'surface' => $surface,
                 'approver_id' => $approver?->id,
+                // Self-approval is intended (#441): the requester is the human who owns the agent's
+                // key, and an API key cannot approve. The flag keeps it visible in the audit trail.
+                'is_self_approval' => $approver !== null && $actor !== null && $actor->is($approver),
                 'pending_id' => $pendingId,
                 'result' => $result !== null ? self::truncate($result) : null,
                 'conversation_id' => $conversationId,

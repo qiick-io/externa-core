@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\Ai\AiToolExecutionResultData;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\PendingToolCall;
@@ -129,12 +130,12 @@ it('executes an approved pending MCP write when the approver has permission', fu
         ...allCollectionPermissions(),
     ]);
 
-    $pendingOutcome = app(AiToolExecutorService::class)->execute(
+    $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
         ['action' => 'list'],
         $actor,
         ['surface' => 'mcp'],
-    );
+    ));
 
     $pending = PendingToolCall::query()->where('uuid', $pendingOutcome->pendingId)->firstOrFail();
 
@@ -158,12 +159,12 @@ it('denies execution when the approver lacks the underlying permission', functio
         PermissionEnum::CanUseAi->value,
     ]);
 
-    $pendingOutcome = app(AiToolExecutorService::class)->execute(
+    $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
         ['action' => 'list'],
         $actor,
         ['surface' => 'mcp'],
-    );
+    ));
 
     $pending = PendingToolCall::query()->where('uuid', $pendingOutcome->pendingId)->firstOrFail();
 
