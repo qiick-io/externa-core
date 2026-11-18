@@ -101,7 +101,23 @@ test('each legacy permission combination becomes the scopes it was actually allo
     'unknown files_scope grants no files' => [false, 'everything', null, ['collections:write']],
 ]);
 
+/**
+ * The 'not json' case runs on SQLite only, where a json column is plain TEXT. PostgreSQL,
+ * MySQL and MariaDB validate the column, so a 1.4.0 install on them can never hold such a row
+ * and the migration's defensive branch is unreachable there: the skip states that fact, it is
+ * not a workaround. Without it the case fails on the fixture insert, before the migration runs.
+ *
+ * Rehearsed with the real 1.4.0 → 1.5.0 upgrade on PostgreSQL 18.6, MySQL 8.4 and MariaDB 10.11
+ * (#790); inserting `mcp:read` into `api_keys.scopes` failed on each:
+ * - pgsql: SQLSTATE[22P02] invalid input syntax for type json, Token "mcp" is invalid
+ * - mysql: SQLSTATE[22032] 3140 Invalid JSON text: "Invalid value." at position 0
+ * - mariadb: SQLSTATE[23000] 4025 CONSTRAINT `api_keys.scopes` failed
+ */
 test('a legacy scopes value that is not a list grants nothing extra', function (string $storedScopes) {
+    if (DB::getDriverName() !== 'sqlite' && ! json_validate($storedScopes)) {
+        $this->markTestSkipped('A non-JSON scopes value is only storable on SQLite.');
+    }
+
     $apiKeyId = insertLegacyApiKey($this->role, [
         'files_scope' => 'none',
         'scopes' => $storedScopes,
