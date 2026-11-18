@@ -39,6 +39,14 @@ use RuntimeException;
  */
 class AiToolRegistryService
 {
+    /**
+     * Tools whose every change is a security action (users, roles, groups). They never reach
+     * MCP, whatever the destructive switch says (#766).
+     *
+     * @var list<string>
+     */
+    public const array SECURITY_TOOL_NAMES = ['ManageUsers', 'ManageRoles', 'ManageGroups'];
+
     /** @var array<string, ToolDefinitionContract> */
     private array $definitions = [];
 
@@ -220,6 +228,28 @@ class AiToolRegistryService
         }
 
         return $allow === [] || in_array($name, $allow, true);
+    }
+
+    /**
+     * Kind of one call: the `action` it asks for on a tool that mixes read, write and
+     * destructive actions, else the tool's own kind.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    public function callKind(ToolDefinitionContract $definition, array $arguments): AiToolKindEnum
+    {
+        $tool = $definition instanceof LaravelAiToolDefinition ? $definition->laravelTool() : null;
+
+        if ($tool instanceof ClassifiesToolActionsContract) {
+            return $tool->kindOfAction(is_string($arguments['action'] ?? null) ? $arguments['action'] : '');
+        }
+
+        return $definition->kind();
+    }
+
+    public function isSecurityTool(string $name): bool
+    {
+        return in_array($name, self::SECURITY_TOOL_NAMES, true);
     }
 
     /**

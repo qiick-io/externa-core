@@ -7,6 +7,7 @@ namespace App\Services\Ai;
 use App\Ai\Support\AiActivityLogger;
 use App\Data\Ai\AiToolExecutionResultData;
 use App\Data\Api\ApiAccessData;
+use App\Enums\AiToolKindEnum;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\PendingToolCallStatusEnum;
 use App\Enums\RoleEnum;
@@ -19,6 +20,9 @@ use Throwable;
 
 /**
  * Resolves the actor, validates arguments, applies write/approval policy, then runs a registry tool.
+ *
+ * Each call is gated by its own kind ({@see AiToolRegistryService::callKind()}): a read runs, a
+ * write runs when the write gate allows it, a destructive call only when destructive tools are on.
  */
 class AiToolExecutorService
 {
@@ -126,7 +130,39 @@ class AiToolExecutorService
             );
         }
 
-        $isMutating = $definition->kind()->isMutating();
+        $callKind = $this->registry->callKind($definition, $arguments);
+
+        if ($surface === 'mcp' && $this->registry->isSecurityTool($name)) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Tool [%s] changes users, roles or groups and is not available over MCP.', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
+            );
+        }
+
+        // Checked before any approval, and again when an approved call runs: switching
+        // destructive tools off also stops the calls still waiting for approval.
+        if ($callKind === AiToolKindEnum::Destructive && ! $this->writeGate->isDestructiveEnabled()) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Tool [%s] call is destructive, and destructive AI tools are off (AI_TOOLS_DESTRUCTIVE_ENABLED).', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
+            );
+        }
+
+        $isMutating = $callKind->isMutating();
         $skipApproval = (bool) ($options['skip_approval'] ?? false);
         $pendingId = is_string($options['pending_id'] ?? null) ? (string) $options['pending_id'] : null;
         $approver = $options['approved_by'] ?? null;
@@ -146,7 +182,13 @@ class AiToolExecutorService
             );
         }
 
-        if ($isMutating && $surface === 'mcp' && $pendingId === null && ! $skipApproval) {
+        // An `mcp:write` key is the user's consent to MCP writes, so writes run directly;
+        // destructive calls always wait for one-at-a-time approval, and an install can park
+        // every MCP write with AI_MCP_WRITE_REQUIRES_APPROVAL (#766).
+        $isApprovalRequired = $callKind === AiToolKindEnum::Destructive
+            || (bool) config('ai.mcp.write_requires_approval', false);
+
+        if ($isMutating && $isApprovalRequired && $surface === 'mcp' && $pendingId === null && ! $skipApproval) {
             $pending = $this->approvals->createPending(
                 $name,
                 $arguments,
@@ -170,7 +212,9 @@ class AiToolExecutorService
             );
         }
 
-        if ($isMutating && $pendingId !== null) {
+        // A pending id is always checked, whatever the call's kind: a call that claims an
+        // approval must hold a live, approved one for this tool.
+        if ($pendingId !== null) {
             $pending = PendingToolCall::query()->where('uuid', $pendingId)->first();
 
             if ($pending === null) {
@@ -377,7 +421,7 @@ class AiToolExecutorService
             && $apiKey->hasOwner()
             && $owner instanceof User && $owner->is_active && ! $owner->trashed()
             && $role !== null && $role->name !== RoleEnum::SuperAdmin->value
-            && (bool) config('ai.mcp.write_enabled', false)
+            && (bool) config('ai.mcp.write_enabled', true)
             && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite);
 
         if (! $isUsable) {

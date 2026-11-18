@@ -20,6 +20,9 @@ use Tests\Feature\Ai\Security\Support\InjectionPayloadCatalog;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     $this->seed(PermissionSeeder::class);
     Http::preventStrayRequests();
     Http::fake();
@@ -52,6 +55,7 @@ function invokeSecuritySurface(
                 ? (string) $call['structuredContent']['pending_id']
                 : null,
             'is_error' => (bool) $call['isError'],
+            'result' => (string) ($call['content'][0]['text'] ?? ''),
         ];
     }
 
@@ -237,10 +241,12 @@ it('requires MCP human approval for allowlisted writes and still audits denied i
         ->and(Collection::query()->count())->toBe($collectionsBefore)
         ->and(CollectionItem::query()->count())->toBe($itemsBefore);
 
-    // SSRF / exfil URL must not cause outbound HTTP even if somehow executed with skip_approval.
+    // SSRF / exfil URL must not cause outbound HTTP. An MCP write runs without in-app approval
+    // since #766 (an mcp:write key is the consent), so the tool's own SSRF guard is what stops it.
     $exfil = CompromisedLlmDriver::toolCallsFor('exfiltrate_metadata_ssrf', $context)[0];
-    $pendingExfil = invokeSecuritySurface('mcp', $exfil['tool'], $exfil['arguments'], $admin);
-    expect($pendingExfil['status'])->toBe('pending_approval');
+    $mcpExfil = invokeSecuritySurface('mcp', $exfil['tool'], $exfil['arguments'], $admin);
+    expect($mcpExfil['result'])->toContain('SSRF')
+        ->and(Http::recorded())->toBeEmpty();
 
     $forced = app(AiToolExecutorService::class)->execute(
         $exfil['tool'],

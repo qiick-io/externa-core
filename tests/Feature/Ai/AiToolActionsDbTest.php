@@ -39,6 +39,9 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
+    // This test also deletes fields, a destructive action off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     $this->seed([PermissionSeeder::class, RoleSeeder::class]);
     $this->withoutVite();
     Storage::fake('local');
@@ -106,7 +109,8 @@ function aiToolDbPdf(string $text): string
 }
 
 test('ai tool actions mutate and read expected database state', function () {
-    $unique = uniqid('ai-db-', true);
+    // Slug-safe: collection slugs follow the collection builder's rule (a-z, 0-9, hyphens).
+    $unique = str_replace('.', '', uniqid('ai-db-', true));
     $invoke = function (object $tool, array $payload): array {
         $result = (string) $tool->handle(new Request($payload));
 

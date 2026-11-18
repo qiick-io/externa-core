@@ -31,19 +31,24 @@ class ManageGroups implements Approvable, ClassifiesToolActionsContract, Tool
     use RequiresDestructiveApprovalTrait;
 
     /**
+     * None: every change to users, roles or groups is a security action, so it is destructive.
+     *
      * @return list<string>
      */
     protected function writeActions(): array
     {
-        return ['create', 'update', 'restore'];
+        return [];
     }
 
     /**
+     * Security actions: off unless AI_TOOLS_DESTRUCTIVE_ENABLED, approved one call at a time,
+     * and never reachable over MCP (#766).
+     *
      * @return list<string>
      */
     protected function destructiveActions(): array
     {
-        return ['delete', 'force_delete'];
+        return ['create', 'update', 'restore', 'delete', 'force_delete'];
     }
 
     /**

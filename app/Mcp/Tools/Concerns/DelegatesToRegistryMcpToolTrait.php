@@ -73,7 +73,7 @@ trait DelegatesToRegistryMcpToolTrait
 
     public function shouldRegister(): bool
     {
-        if ($this->isWriteTool() && ! (bool) config('ai.mcp.write_enabled', false)) {
+        if ($this->isWriteTool() && ! (bool) config('ai.mcp.write_enabled', true)) {
             return false;
         }
 
@@ -87,7 +87,7 @@ trait DelegatesToRegistryMcpToolTrait
     public function handle(Request $request): Response|ResponseFactory
     {
         if ($this->isWriteTool()) {
-            if (! (bool) config('ai.mcp.write_enabled', false)) {
+            if (! (bool) config('ai.mcp.write_enabled', true)) {
                 return Response::error('MCP write tools are disabled.');
             }
 
@@ -112,7 +112,7 @@ trait DelegatesToRegistryMcpToolTrait
     }
 
     /**
-     * Authorize an API-key write against the key's scope before the executor may park it
+     * Authorize an API-key write against the key's scope before the executor runs it or parks it
      * for approval: collection Update/Create + item_filter, or file Update (role ACL,
      * `collection_slugs`, scopes, owner ceiling). Session callers return null; the
      * tool re-checks their permissions when it runs.
@@ -131,6 +131,12 @@ trait DelegatesToRegistryMcpToolTrait
 
         if ($this->registryToolName() === 'ManageFiles') {
             return $this->guardAiFileAction(FilePermissionActionEnum::Update);
+        }
+
+        // Schema tools: ManageCollections checks the key's scope, role and collection list
+        // itself, for every schema change, before it writes anything.
+        if ($this->registryToolName() === 'ManageCollections') {
+            return null;
         }
 
         if (isset($arguments['item_id'])) {
@@ -167,7 +173,9 @@ trait DelegatesToRegistryMcpToolTrait
 
         $text = $payload['content'][0]['text'] ?? ($payload['isError'] ? 'Tool call failed.' : 'OK');
 
-        if ($payload['isError']) {
+        // A tool refuses with an `Error:` string, which the executor reports as a run that
+        // finished; MCP clients must see it as an error, as on the direct path below.
+        if ($payload['isError'] || (is_string($text) && str_starts_with($text, 'Error:'))) {
             return Response::error(is_string($text) ? $text : 'Tool call failed.');
         }
 

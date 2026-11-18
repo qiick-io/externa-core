@@ -48,7 +48,10 @@ class AiToolSettingsController extends Controller
 
         return Inertia::render('settings/ai-tools', [
             'writeEnabled' => $this->writeGate->isWriteEnabled(),
-            'enabledTools' => $this->writeGate->enabledWriteToolNames(),
+            'enabledTools' => array_values(array_filter(
+                array_column($mutating, 'name'),
+                fn (string $name): bool => $this->writeGate->isToolAllowlisted($name),
+            )),
             'tools' => $mutating,
             'approvalTtlMinutes' => (int) config('ai.tools.approval_ttl_minutes', 15),
             'auditRetentionDays' => (int) config('ai.tools.audit_retention_days', 90),
@@ -83,7 +86,9 @@ class AiToolSettingsController extends Controller
             static fn (mixed $name): bool => is_string($name) && in_array($name, $allowedNames, true),
         ));
 
-        $this->writeGate->setEnabledWriteToolNames($requested);
+        // Every tool ticked stores "all", so write tools added by a later release are allowed too.
+        $isEveryToolRequested = array_diff($allowedNames, $requested) === [];
+        $this->writeGate->setEnabledWriteToolNames($isEveryToolRequested ? null : $requested);
 
         $this->logProjectSettingsUpdate($request, 'ai_write_tools', [
             'write_tools' => $requested,

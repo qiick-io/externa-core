@@ -58,23 +58,7 @@ it('returns denied when the actor lacks abilities', function (): void {
 });
 
 it('returns denied for write tools when the kill switch is off', function (): void {
-    $user = grantAiPermissions(User::factory()->create(), [
-        PermissionEnum::CanUseAi->value,
-        ...allCollectionPermissions(),
-    ]);
-
-    $outcome = app(AiToolExecutorService::class)->execute(
-        'ManageCollections',
-        ['action' => 'list'],
-        $user,
-        ['surface' => 'mcp'],
-    );
-
-    expect($outcome->status)->toBe('denied');
-});
-
-it('returns denied for write tools when enabled globally but not allowlisted', function (): void {
-    config(['ai.tools.write_enabled' => true, 'ai.tools.write_allow' => []]);
+    config(['ai.tools.write_enabled' => false]);
 
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
@@ -91,10 +75,29 @@ it('returns denied for write tools when enabled globally but not allowlisted', f
     expect($outcome->status)->toBe('denied');
 });
 
-it('queues a pending approval for MCP write tools when allowlisted', function (): void {
+it('returns denied for write tools when the allowlist names other tools', function (): void {
+    config(['ai.tools.write_enabled' => true, 'ai.tools.write_allow' => ['ManageFiles']]);
+
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+
+    $outcome = app(AiToolExecutorService::class)->execute(
+        'ManageCollections',
+        ['action' => 'list'],
+        $user,
+        ['surface' => 'mcp'],
+    );
+
+    expect($outcome->status)->toBe('denied');
+});
+
+it('queues a pending approval for MCP write tools when writes require approval', function (): void {
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
     ]);
 
     $user = grantAiPermissions(User::factory()->create(), [
@@ -104,7 +107,7 @@ it('queues a pending approval for MCP write tools when allowlisted', function ()
 
     $outcome = app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Pending collection'],
         $user,
         ['surface' => 'mcp'],
     );
@@ -119,6 +122,7 @@ it('executes an approved pending MCP write when the approver has permission', fu
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
     ]);
 
     $actor = grantAiPermissions(User::factory()->create(), [
@@ -132,7 +136,7 @@ it('executes an approved pending MCP write when the approver has permission', fu
 
     $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Pending collection'],
         $actor,
         ['surface' => 'mcp'],
     ));
@@ -142,13 +146,14 @@ it('executes an approved pending MCP write when the approver has permission', fu
     $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $approver);
 
     expect($outcome->status)->toBe('ok')
-        ->and($outcome->result)->not->toBeNull();
+        ->and($outcome->result)->toContain('"created": true');
 });
 
 it('denies execution when the approver lacks the underlying permission', function (): void {
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
     ]);
 
     $actor = grantAiPermissions(User::factory()->create(), [
@@ -161,7 +166,7 @@ it('denies execution when the approver lacks the underlying permission', functio
 
     $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Pending collection'],
         $actor,
         ['surface' => 'mcp'],
     ));

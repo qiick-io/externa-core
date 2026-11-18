@@ -9,6 +9,7 @@ use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Contracts\Ai\ClassifiesToolActionsContract;
+use App\Data\Api\ApiAccessData;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
@@ -184,6 +185,14 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsContract
 
         if ($collection === null) {
             return 'Error: Collection not found.';
+        }
+
+        // Under an API key, also checked here and not only before an MCP call is parked: an
+        // approved call runs this method directly, under a key that may have been narrowed
+        // (collection_slugs, scopes) while it waited.
+        if (request()->attributes->get('apiAccess') instanceof ApiAccessData
+            && ($error = $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Create))) {
+            return $error;
         }
 
         $data = $this->decodeData($request);
