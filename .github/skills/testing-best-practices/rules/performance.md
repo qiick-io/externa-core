@@ -33,6 +33,18 @@ A parallel run gives each process a separate database. Each test must meet the c
 - The test does not depend on the order of the run.
 - The test does not share a file, a cache key, or a queue with another test. Give each process a separate name for such a resource.
 
+## How to run fewer tests
+
+Run `vendor/bin/pest --parallel --tia` to run only the tests that the recent changes affect. Pest replays the cached result of each other test.
+
+Pest replays cached results rather than skipping unaffected tests. The cache includes each produced value and the covered lines and branches. Pest finds affected Laravel, Symfony, Livewire, and Inertia tests without configuration.
+
+## How to split tests across CI
+
+Run `vendor/bin/pest --update-shards` to measure the time of each test. Run `vendor/bin/pest --shard=1/4` in each CI job, and change the first number for each job.
+
+Commit `tests/.pest/shards.json` so each CI job gets the same shard and the shards remain balanced by runtime rather than test count.
+
 ## How to find a slow test
 
 Run `vendor/bin/pest --profile` to list the slowest tests. Start with the ten slowest tests, because the same cause often applies to the complete suite.
