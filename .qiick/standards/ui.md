@@ -29,7 +29,7 @@ Patterns come in two tiers. **Core** patterns bind every qiick app. **Optional**
 
 ## Theme
 
-Tokens come from the `@qiick/theme` registry item: one shared base (surfaces, the two-tone shell, text, borders) plus brand-only presets (Teal = Externa, Blue = Excubia). An app picks its preset and never edits surface tokens. This repo's preset: **Teal**.
+Tokens come from the `@qiick/theme` registry item: one shared base (surfaces, the two-tone shell, text, borders) plus brand-only presets (Teal = Externa, Blue = Excubia). An app picks its preset and never edits surface tokens. This repo's preset: **Ottanio**.
 
 ## Core pattern pages
 
