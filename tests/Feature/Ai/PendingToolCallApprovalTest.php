@@ -26,6 +26,8 @@ beforeEach(function (): void {
         'ai.tools.write_allow' => ['ManageCollections'],
         'ai.tools.approval_ttl_minutes' => 15,
         'ai.mcp.write_enabled' => true,
+        // The approval inbox flow: MCP writes park only with this opt-in since #766.
+        'ai.mcp.write_requires_approval' => true,
     ]);
 });
 
@@ -68,7 +70,7 @@ it('approves a pending call through the admin action when the approver has permi
 
     $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Approved collection'],
         $actor,
         ['surface' => 'mcp'],
     ));

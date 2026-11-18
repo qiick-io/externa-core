@@ -330,6 +330,35 @@ describe('file resources and tools', function (): void {
 });
 
 describe('write tools', function (): void {
+    // The approval path: since #766 MCP writes park only with AI_MCP_WRITE_REQUIRES_APPROVAL.
+    beforeEach(function (): void {
+        config(['ai.mcp.write_requires_approval' => true]);
+    });
+
+    it('runs in-scope publish_item and tag_file directly for an mcp:write key by default', function (): void {
+        config(['ai.mcp.write_requires_approval' => false]);
+        $key = mcpParityKey($this->owner, $this->role);
+
+        $publish = mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+        $tag = mcpParityTool($key, 'tag_file', ['file_id' => $this->publicFile->id, 'tags_json' => '["hero"]']);
+
+        expect(mcpParityFailed($publish))->toBeFalse()
+            ->and(mcpParityFailed($tag))->toBeFalse()
+            ->and(PendingToolCall::query()->count())->toBe(0)
+            ->and($this->blogItem->fresh()->draft_data)->toBeNull()
+            ->and($this->publicFile->fresh()->tags)->toHaveCount(1);
+    });
+
+    it('still refuses out-of-scope writes when they run directly', function (): void {
+        config(['ai.mcp.write_requires_approval' => false]);
+        $key = mcpParityKey($this->owner, $this->role);
+
+        $body = mcpParityTool($key, 'publish_item', ['item_id' => $this->newsItem->id]);
+
+        expect(mcpParityFailed($body))->toBeTrue()
+            ->and($this->newsItem->fresh()->draft_data)->not->toBeNull();
+    });
+
     it('parks in-scope publish_item and tag_file for approval instead of writing', function (): void {
         $key = mcpParityKey($this->owner, $this->role);
 
@@ -471,6 +500,7 @@ describe('write tools', function (): void {
 
 describe('attribution', function (): void {
     it('records the authorising key on every tool decision, including a human-approved one', function (): void {
+        config(['ai.mcp.write_requires_approval' => true]);
         $key = mcpParityKey($this->owner, $this->role);
         $apiKeyId = ApiKey::query()->where('key_hash', ApiKey::hashSecret($key))->value('id');
 
@@ -489,6 +519,8 @@ describe('attribution', function (): void {
     });
 
     it('records who approved a call, when, and whether the requester approved it (#441)', function (): void {
+        // Writes park for approval only with this opt-in since #766.
+        config(['ai.mcp.write_requires_approval' => true]);
         $colleague = User::factory()->create();
         $colleague->syncRoles([$this->role]);
         $key = mcpParityKey($this->owner, $this->role);

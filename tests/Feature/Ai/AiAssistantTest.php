@@ -26,6 +26,9 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => [

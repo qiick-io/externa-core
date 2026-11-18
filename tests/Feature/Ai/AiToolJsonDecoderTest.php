@@ -10,6 +10,9 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
+    // These tests exercise destructive and security actions, off by default since #766.
+    config(['ai.tools.destructive_enabled' => true]);
+
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 });

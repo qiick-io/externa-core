@@ -79,7 +79,7 @@ class AuthenticateMcpRequestMiddleware
         /** @var Role $role checked by the authenticator */
         $role = $apiKey->role;
 
-        $canWrite = (bool) config('ai.mcp.write_enabled', false)
+        $canWrite = (bool) config('ai.mcp.write_enabled', true)
             && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite);
 
         // Declared divergence (#781): the owner is set on the default (session) guard for this

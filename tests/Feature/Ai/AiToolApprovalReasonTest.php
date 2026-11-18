@@ -21,6 +21,8 @@ function approvalFor(string $action): Approval|bool
 }
 
 it('marks a delete as a call that deletes data', function (): void {
+    config(['ai.tools.destructive_enabled' => true]);
+
     $approval = approvalFor('delete');
 
     expect($approval)->toBeInstanceOf(Approval::class)
@@ -36,4 +38,8 @@ it('marks a write as a call that writes data', function (): void {
 
 it('lets a read run without approval', function (): void {
     expect(approvalFor('list'))->toBeFalse();
+});
+
+it('asks no approval for a delete while destructive tools are off, since the tool refuses it', function (): void {
+    expect(approvalFor('delete'))->toBeFalse();
 });

@@ -33,9 +33,13 @@ final class RegistryMcpToolAdapter
      */
     public function listTools(?Authenticatable $actor): array
     {
-        $definitions = $this->registry->visibleFor($actor);
+        // Tools that change users, roles or groups never reach MCP (#766).
+        $definitions = array_values(array_filter(
+            $this->registry->visibleFor($actor),
+            fn (ToolDefinitionContract $definition): bool => ! $this->registry->isSecurityTool($definition->name()),
+        ));
 
-        if (! (bool) config('ai.mcp.write_enabled', false)) {
+        if (! (bool) config('ai.mcp.write_enabled', true)) {
             $definitions = array_values(array_filter(
                 $definitions,
                 static fn (ToolDefinitionContract $definition): bool => ! $definition->kind()->isMutating(),

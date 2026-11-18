@@ -58,23 +58,7 @@ it('returns denied when the actor lacks abilities', function (): void {
 });
 
 it('returns denied for write tools when the kill switch is off', function (): void {
-    $user = grantAiPermissions(User::factory()->create(), [
-        PermissionEnum::CanUseAi->value,
-        ...allCollectionPermissions(),
-    ]);
-
-    $outcome = app(AiToolExecutorService::class)->execute(
-        'ManageCollections',
-        ['action' => 'list'],
-        $user,
-        ['surface' => 'mcp'],
-    );
-
-    expect($outcome->status)->toBe('denied');
-});
-
-it('returns denied for write tools when enabled globally but not allowlisted', function (): void {
-    config(['ai.tools.write_enabled' => true, 'ai.tools.write_allow' => []]);
+    config(['ai.tools.write_enabled' => false]);
 
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
@@ -91,10 +75,29 @@ it('returns denied for write tools when enabled globally but not allowlisted', f
     expect($outcome->status)->toBe('denied');
 });
 
-it('queues a pending approval for MCP write tools when allowlisted', function (): void {
+it('returns denied for write tools when the allowlist names other tools', function (): void {
+    config(['ai.tools.write_enabled' => true, 'ai.tools.write_allow' => ['ManageFiles']]);
+
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+
+    $outcome = app(AiToolExecutorService::class)->execute(
+        'ManageCollections',
+        ['action' => 'list'],
+        $user,
+        ['surface' => 'mcp'],
+    );
+
+    expect($outcome->status)->toBe('denied');
+});
+
+it('queues a pending approval for MCP write tools when writes require approval', function (): void {
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
     ]);
 
     $user = grantAiPermissions(User::factory()->create(), [
@@ -104,7 +107,7 @@ it('queues a pending approval for MCP write tools when allowlisted', function ()
 
     $outcome = app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Pending collection'],
         $user,
         ['surface' => 'mcp'],
     );
@@ -115,10 +118,11 @@ it('queues a pending approval for MCP write tools when allowlisted', function ()
     expect(PendingToolCall::query()->where('uuid', $outcome->pendingId)->exists())->toBeTrue();
 });
 
-it('executes an approved pending MCP write when the approver has permission', function (): void {
+it('executes an approved pending MCP write when the approver and the key role have permission', function (): void {
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
     ]);
 
     $actor = grantAiPermissions(User::factory()->create(), [
@@ -130,25 +134,56 @@ it('executes an approved pending MCP write when the approver has permission', fu
         ...allCollectionPermissions(),
     ]);
 
+    // The key shares its owner's role, so the approved call runs within the key's own grants.
     $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Pending collection'],
         $actor,
         ['surface' => 'mcp'],
-    ));
+    ), $actor->roles()->sole());
 
     $pending = PendingToolCall::query()->where('uuid', $pendingOutcome->pendingId)->firstOrFail();
 
     $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $approver);
 
     expect($outcome->status)->toBe('ok')
-        ->and($outcome->result)->not->toBeNull();
+        ->and($outcome->result)->toContain('"created": true')
+        ->and(Collection::query()->where('slug', 'pending-collection')->exists())->toBeTrue();
+});
+
+it('refuses an approved MCP schema write that the key role may not make, though owner and approver may', function (): void {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
+    ]);
+
+    $actor = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+
+    // The key's own role holds no permissions: approval must not lend it the owner's.
+    $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
+        'ManageCollections',
+        ['action' => 'create', 'name' => 'Pending collection'],
+        $actor,
+        ['surface' => 'mcp'],
+    ));
+
+    $pending = PendingToolCall::query()->where('uuid', $pendingOutcome->pendingId)->firstOrFail();
+
+    $outcome = app(AiToolExecutorService::class)->approveAndExecute($pending, $actor);
+
+    expect($outcome->result)->toContain('The API key role lacks the can-create-collections permission')
+        ->and(Collection::query()->where('slug', 'pending-collection')->exists())->toBeFalse();
 });
 
 it('denies execution when the approver lacks the underlying permission', function (): void {
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_requires_approval' => true,
     ]);
 
     $actor = grantAiPermissions(User::factory()->create(), [
@@ -161,7 +196,7 @@ it('denies execution when the approver lacks the underlying permission', functio
 
     $pendingOutcome = asMcpApiKey($actor, fn (): AiToolExecutionResultData => app(AiToolExecutorService::class)->execute(
         'ManageCollections',
-        ['action' => 'list'],
+        ['action' => 'create', 'name' => 'Pending collection'],
         $actor,
         ['surface' => 'mcp'],
     ));
