@@ -15,7 +15,7 @@ use App\Services\Files\FileTransformUrlBuilderService;
  *
  * Private files without read_private are redacted (null / omitted) — no id leak.
  * Public files without role read return { id, access: "denied" }.
- * API keys with files_scope=none return bare ids (no expand).
+ * API keys without the files:read scope return bare ids (no expand).
  */
 class FileFieldExpanderService
 {
@@ -410,7 +410,7 @@ class FileFieldExpanderService
     }
 
     /**
-     * @return array<string, mixed>|int|null Bare int when API key files_scope blocks read.
+     * @return array<string, mixed>|int|null Bare int when the API key lacks files:read.
      */
     private function expandOne(int $id, mixed $file, ?int $roleId, ?ApiAccessData $access): array|int|null
     {

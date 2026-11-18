@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Support;
 
+use App\Data\Api\ApiAccessData;
 use App\Models\User;
 use App\Services\Ai\AiToolArgumentRedactorService;
 use Illuminate\Database\Eloquent\Model;
@@ -77,6 +78,7 @@ class AiActivityLogger
             ->useLog('ai')
             ->event('ai_tool')
             ->withProperties(array_merge([
+                'api_key_id' => self::currentApiKeyId(),
                 'tool' => $tool,
                 'input' => $redacted,
                 'result' => self::truncate($result),
@@ -84,6 +86,16 @@ class AiActivityLogger
                 'failed' => $failed,
             ], $extra))
             ->log($failed ? 'AI tool failed' : 'AI tool');
+    }
+
+    /**
+     * The API key the current request authenticated with (MCP, public API), so a tool decision
+     * names the key that authorised it; null for session users. Callers that know better (an
+     * approved call names the key that asked for it) pass `api_key_id` in `$extra`.
+     */
+    private static function currentApiKeyId(): ?int
+    {
+        return app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey?->id : null;
     }
 
     /**
@@ -111,6 +123,7 @@ class AiActivityLogger
             ->useLog('ai')
             ->event('ai_tool')
             ->withProperties(array_merge([
+                'api_key_id' => self::currentApiKeyId(),
                 'tool' => $tool,
                 'input' => $redacted,
                 'arguments' => $redacted,

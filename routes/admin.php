@@ -10,6 +10,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApiKeyController;
+use App\Http\Controllers\Admin\ApiKeyRotationController;
 use App\Http\Controllers\Admin\FileAttachmentController;
 use App\Http\Controllers\Admin\FileChunkUploadController;
 use App\Http\Controllers\Admin\FileController;
@@ -129,6 +130,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('api-keys', [ApiKeyController::class, 'store'])
             ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
             ->name('api-keys.store');
+
+        Route::post('api-keys/{apiKey}/rotate', ApiKeyRotationController::class)
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('api-keys.rotate');
 
         Route::delete('api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])
             ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)

@@ -23,7 +23,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get_file')]
 #[Title('Get file')]
-#[Description('Return file metadata by id (no binary). Requires CanShowFiles; honors file ACL, read_private, and API key files_scope.')]
+#[Description('Return file metadata by id (no binary). Requires CanShowFiles; honors file ACL, read_private, and the API key files:read scope.')]
 #[IsReadOnly]
 class GetFile extends Tool
 {

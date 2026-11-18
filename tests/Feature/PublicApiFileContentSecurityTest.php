@@ -66,6 +66,7 @@ function fileSecApiKeyWithCreateRead(): array
         'key_prefix' => $secret['prefix'],
         'key_hash' => $secret['hash'],
         'role_id' => $role->id,
+        'scopes' => ['collections:write', 'files:write'],
     ]);
 
     return $secret;

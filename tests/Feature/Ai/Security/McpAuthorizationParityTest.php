@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FileAccessEnum;
@@ -23,13 +22,14 @@ use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * AuthZ parity for every MCP resource and tool under a scoped API key (#435).
  *
  * The key is limited to `collection_slugs=[blog]`; `news` is granted to the role and owner
  * so only the key scope can hide it. `blog.internal_note` is unreadable by field ACL. File
- * cases flip `files_scope`, `read_private`, and `read_only`; write cases check the executor
+ * cases drop the `files:*` scope, flip `read_private`, and narrow the key to `:read`; write cases check the executor
  * (kill switch, allowlist, approval).
  */
 beforeEach(function (): void {
@@ -146,10 +146,12 @@ function mcpParityKey(User $owner, Role $role, array $attributes = []): string
         'role_id' => $role->id,
         'owner_id' => $owner->id,
         'created_by' => $owner->id,
-        'scopes' => [ApiKeyScopeEnum::McpRead->value, ApiKeyScopeEnum::McpWrite->value],
-        'read_only' => false,
+        'scopes' => [
+            ApiKeyScopeEnum::McpWrite->value,
+            ApiKeyScopeEnum::CollectionsWrite->value,
+            ApiKeyScopeEnum::FilesWrite->value,
+        ],
         'collection_slugs' => ['blog'],
-        'files_scope' => ApiKeyFilesScopeEnum::All->value,
         ...$attributes,
     ]);
 
@@ -304,8 +306,10 @@ describe('file resources and tools', function (): void {
             ->and(mcpParityText(mcpParityTool($key, 'list_files', ['query' => '.jpg'])))->toContain('private.jpg');
     });
 
-    it('denies every file surface when files_scope is none', function (): void {
-        $key = mcpParityKey($this->owner, $this->role, ['files_scope' => ApiKeyFilesScopeEnum::None->value]);
+    it('denies every file surface without a files scope', function (): void {
+        $key = mcpParityKey($this->owner, $this->role, [
+            'scopes' => [ApiKeyScopeEnum::McpWrite->value, ApiKeyScopeEnum::CollectionsWrite->value],
+        ]);
         $fileId = $this->publicFile->id;
 
         $deniedBodies = [
@@ -418,7 +422,13 @@ describe('write tools', function (): void {
     ]);
 
     it('does not expose or run write tools for a read-only key', function (): void {
-        $key = mcpParityKey($this->owner, $this->role, ['read_only' => true]);
+        $key = mcpParityKey($this->owner, $this->role, [
+            'scopes' => [
+                ApiKeyScopeEnum::McpRead->value,
+                ApiKeyScopeEnum::CollectionsRead->value,
+                ApiKeyScopeEnum::FilesRead->value,
+            ],
+        ]);
 
         $toolNames = collect(mcpParityCall($key, 'tools/list', [])['result']['tools'] ?? [])->pluck('name');
         $publish = mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
@@ -438,5 +448,25 @@ describe('write tools', function (): void {
 
         expect($outcome->status)->toBe('ok')
             ->and($this->blogItem->fresh()->draft_data)->toBeNull();
+    });
+});
+
+describe('attribution', function (): void {
+    it('records the authorising key on every tool decision, including a human-approved one', function (): void {
+        $key = mcpParityKey($this->owner, $this->role);
+        $apiKeyId = ApiKey::query()->where('key_hash', ApiKey::hashSecret($key))->value('id');
+
+        mcpParityTool($key, 'get_item', ['item_id' => $this->blogItem->id]);
+        mcpParityTool($key, 'publish_item', ['item_id' => $this->blogItem->id]);
+        app(AiToolExecutorService::class)->approveAndExecute(PendingToolCall::query()->sole(), $this->owner);
+
+        $toolDecisions = Activity::query()->where('log_name', 'ai')->where('event', 'ai_tool')->get();
+
+        // The read, the pending write, and its approved run (the executor logs some steps twice).
+        expect($toolDecisions->map(fn (Activity $activity): mixed => $activity->properties->get('decision'))->unique()->values()->all())
+            ->toContain('pending')
+            ->and($toolDecisions->count())->toBeGreaterThanOrEqual(3)
+            ->and($toolDecisions->map(fn (Activity $activity): mixed => $activity->properties->get('api_key_id'))->unique()->all())
+            ->toBe([$apiKeyId]);
     });
 });

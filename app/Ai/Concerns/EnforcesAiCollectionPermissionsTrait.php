@@ -54,7 +54,7 @@ trait EnforcesAiCollectionPermissionsTrait
     }
 
     /**
-     * Collection-level gate (role grant, owner ceiling, API key `collection_slugs` / `read_only`).
+     * Collection-level gate (role grant, owner ceiling, API key `collection_slugs` / `collections:*` scope).
      *
      * Read denials answer "not found" so out-of-scope collections stay invisible.
      */

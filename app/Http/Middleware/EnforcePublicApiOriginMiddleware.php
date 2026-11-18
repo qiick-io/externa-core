@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Models\ApiKey;
+use App\Services\Api\ApiKeyAuthenticatorService;
 use App\Services\Api\PublicApiOriginService;
 use App\Services\Settings\ProjectSettingsService;
 use Closure;
@@ -43,9 +43,7 @@ class EnforcePublicApiOriginMiddleware
 
     private function isValidApiKey(string $bearer): bool
     {
-        $apiKey = ApiKey::query()
-            ->where('key_hash', ApiKey::hashSecret($bearer))
-            ->first();
+        $apiKey = app(ApiKeyAuthenticatorService::class)->findByToken($bearer);
 
         return $apiKey !== null && $apiKey->isActive();
     }

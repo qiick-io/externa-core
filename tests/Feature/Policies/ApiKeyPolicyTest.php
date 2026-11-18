@@ -39,3 +39,18 @@ test('create and delete need can-manage-api-keys', function () {
         ->and(Gate::forUser($this->superAdmin)->allows('create', ApiKey::class))->toBeTrue()
         ->and(Gate::forUser($this->superAdmin)->allows('delete', $this->apiKey))->toBeTrue();
 });
+
+test('rotate needs can-manage-api-keys and an active key', function () {
+    $revokedKey = makeApiKeyForRole()['key'];
+    $revokedKey->forceFill(['revoked_at' => now()])->save();
+    $expiredKey = makeApiKeyForRole()['key'];
+    $expiredKey->forceFill(['expires_at' => now()->subMinute()])->save();
+
+    expect(Gate::forUser($this->keyManager)->allows('rotate', $this->apiKey))->toBeTrue()
+        ->and(Gate::forUser($this->superAdmin)->allows('rotate', $this->apiKey))->toBeTrue()
+        ->and(Gate::forUser($this->viewer)->allows('rotate', $this->apiKey))->toBeFalse()
+        ->and(Gate::forUser($this->outsider)->allows('rotate', $this->apiKey))->toBeFalse()
+        ->and(Gate::forUser(null)->allows('rotate', $this->apiKey))->toBeFalse()
+        ->and(Gate::forUser($this->keyManager)->allows('rotate', $revokedKey))->toBeFalse()
+        ->and(Gate::forUser($this->superAdmin)->allows('rotate', $expiredKey))->toBeFalse();
+});

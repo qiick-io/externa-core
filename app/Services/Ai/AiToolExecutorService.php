@@ -348,7 +348,7 @@ class AiToolExecutorService
 
     /**
      * The API key access an approved MCP call runs under: the key's role and scopes (collection
-     * slugs, read-only, files scope), not the owner's full permissions (#441). Null for calls a
+     * slugs and scopes), not the owner's full permissions (#441). Null for calls a
      * session user made. The key is checked again, because it may have been revoked, expired or
      * narrowed while the call waited.
      *
@@ -370,8 +370,7 @@ class AiToolExecutorService
             && $owner instanceof User && $owner->is_active && ! $owner->trashed()
             && $role !== null && $role->name !== RoleEnum::SuperAdmin->value
             && (bool) config('ai.mcp.write_enabled', false)
-            && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite)
-            && ! $apiKey->read_only;
+            && $apiKey->hasScope(ApiKeyScopeEnum::McpWrite);
 
         if (! $isUsable) {
             throw new InvalidArgumentException('The API key that requested this call can no longer run writes.');
@@ -445,9 +444,26 @@ class AiToolExecutorService
             approver: $approver,
             result: $result ?? $outcome->result ?? $outcome->message,
             pendingId: $pendingId ?? $outcome->pendingId,
+            extra: ['api_key_id' => $this->authorisingApiKeyId($pendingId ?? $outcome->pendingId)],
         );
 
         return $outcome;
+    }
+
+    /**
+     * The API key that authorised this call, so the audit entry says which key did what: the
+     * key of the current MCP request, or, for an approved call, the key that asked for it
+     * (`pending_tool_calls.api_key_id`). Null for session users.
+     */
+    private function authorisingApiKeyId(?string $pendingId): ?int
+    {
+        $apiKeyId = app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey?->id : null;
+
+        if ($apiKeyId !== null || $pendingId === null) {
+            return $apiKeyId;
+        }
+
+        return PendingToolCall::query()->where('uuid', $pendingId)->value('api_key_id');
     }
 
     private function resolveActor(): ?Authenticatable
