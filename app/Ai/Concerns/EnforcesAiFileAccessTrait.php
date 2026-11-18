@@ -17,7 +17,7 @@ use InvalidArgumentException;
  * Apply the public Files API ACL ({@see FilePolicy}) inside AI / MCP tools.
  *
  * Only API-key actors (MCP bearer requests carrying `apiAccess`) are gated: role file ACL,
- * `read_private`, the key's `files_scope` / `read_only`, and the owner ceiling. Session
+ * `read_private`, the key's `files:read` / `files:write` scope, and the owner ceiling. Session
  * actors keep the Spatie file permissions the admin file manager uses. Returns English
  * `Error:` strings instead of HTTP aborts.
  */

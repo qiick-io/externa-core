@@ -20,8 +20,8 @@ use Illuminate\Auth\Access\Response;
  * File abilities for both kinds of actor.
  *
  * API actors (public API, API keys, MCP bearer requests: the request carries an {@see ApiAccessData})
- * are judged by {@see FileAccessEnforcerService}: role file ACL, API key `files_scope` /
- * `read_only`, owner ceiling and `read_private`. The request's API actor is judged whoever the
+ * are judged by {@see FileAccessEnforcerService}: role file ACL, API key `files:read` /
+ * `files:write` scope, owner ceiling and `read_private`. The request's API actor is judged whoever the
  * gate user is, as the Files API trait did before this policy.
  *
  * Session users keep the Spatie file permissions the admin file manager routes require

@@ -13,8 +13,9 @@ use App\Services\Authorization\EffectivePermissionResolverService;
  * Admin decisions on project API keys (Settings → API keys).
  *
  * Each ability requires the same permission as its `permission:` route middleware;
- * super-admins pass through the resolver. Keys have no record-level rule today:
- * any key manager may revoke any key, whoever owns it.
+ * super-admins pass through the resolver. Any key manager may rotate or revoke any key,
+ * whoever owns it; only an active key can be rotated (a revoked or expired one stays dead).
+ * Every ability needs a session user: an API key never manages keys.
  */
 final class ApiKeyPolicy
 {
@@ -30,6 +31,11 @@ final class ApiKeyPolicy
     public function create(?User $user): bool
     {
         return $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
+    }
+
+    public function rotate(?User $user, ApiKey $apiKey): bool
+    {
+        return $apiKey->isActive() && $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
     }
 
     public function delete(?User $user, ApiKey $apiKey): bool

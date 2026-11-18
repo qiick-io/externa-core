@@ -84,7 +84,6 @@
     "Form layout updated.": "Layout del form aggiornato.",
     "HTTP error": "HTTP error",
     "Invalid JSON in settings.": "JSON non valido nelle impostazioni.",
-    "Invalid or inactive API key.": "Chiave API non valida o inattiva.",
     "Invalid sort token [:token].": "Token di ordinamento non valido [:token].",
     "Invalid webhook signature.": "Firma del webhook non valida.",
     "Item approved": "Elemento approvato",
@@ -228,5 +227,19 @@
     "This collection has no fields an AI draft can fill.": "Questa collezione non ha campi che una bozza AI possa compilare.",
     "The value has the wrong type for this field.": "Il valore ha un tipo non valido per questo campo.",
     "The AI draft could not be generated. Try again later.": "Non è stato possibile generare la bozza AI. Riprova più tardi.",
-    "Deprecated AI model in use: :models. Switch to a recommended model.": "Modello AI deprecato in uso: :models. Passa a un modello consigliato."
+    "Deprecated AI model in use: :models. Switch to a recommended model.": "Modello AI deprecato in uso: :models. Passa a un modello consigliato.",
+    "The API key is not valid.": "La chiave API non è valida.",
+    "The API key has expired.": "La chiave API è scaduta.",
+    "The API key has been revoked.": "La chiave API è stata revocata.",
+    "The API key lacks the :scope scope.": "Alla chiave API manca l'ambito :scope.",
+    "The API key holds no scopes.": "La chiave API non ha alcun ambito.",
+    "MCP requires an API key with an owner.": "MCP richiede una chiave API con un proprietario.",
+    "The API key owner is no longer active.": "Il proprietario della chiave API non è più attivo.",
+    "You cannot issue a key with the :scope scope: you do not hold it yourself.": "Non puoi emettere una chiave con l'ambito :scope: non lo possiedi tu stesso.",
+    "Only a signed-in user can issue an API key.": "Solo un utente autenticato può emettere una chiave API.",
+    "API key rotated. The previous secret keeps working until :time.": "Chiave API ruotata. Il segreto precedente resta valido fino a :time.",
+    "API key expires soon": "La chiave API scade a breve",
+    "Create a new key and switch the integration to it before then.": "Crea una nuova chiave e passa l'integrazione a quella prima di allora.",
+    "Open API keys": "Apri chiavi API",
+    "The API key \":name\" (:prefix) expires on :date.": "La chiave API \":name\" (:prefix) scade il :date."
 }

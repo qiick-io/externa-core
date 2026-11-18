@@ -16,6 +16,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API key rotation and expiry
+    |--------------------------------------------------------------------------
+    |
+    | key_rotation_grace_hours: how long the secret replaced by a rotation keeps
+    | working, so an integration can switch without downtime (0 = not at all).
+    | key_expiry_notice_days: owners (and issuers) are notified this many days
+    | before a key expires, once, by the daily api-keys:notify-expiring command.
+    |
+    */
+
+    'key_rotation_grace_hours' => max(0, (int) env('API_KEY_ROTATION_GRACE_HOURS', 24)),
+
+    'key_expiry_notice_days' => max(1, (int) env('API_KEY_EXPIRY_NOTICE_DAYS', 7)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Request cost budget (60 s window)
     |--------------------------------------------------------------------------
     |

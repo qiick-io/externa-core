@@ -75,7 +75,7 @@ it('applies the API key scopes even when the key owner is a super-admin', functi
         CollectionPermissionActionEnum::Read,
         CollectionPermissionActionEnum::Update,
     ]);
-    $auth['key']->forceFill(['owner_id' => $owner->id, 'read_only' => true])->save();
+    $auth['key']->forceFill(['owner_id' => $owner->id, 'scopes' => ['collections:read']])->save();
     $this->actingAs($owner);
     request()->attributes->set('apiAccess', new ApiAccessData('api_key', $auth['role'], $auth['key']->fresh()));
 

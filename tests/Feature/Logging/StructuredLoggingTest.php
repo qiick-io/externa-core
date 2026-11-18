@@ -6,10 +6,12 @@ use App\Enums\StructuredLogContextKeyEnum;
 use App\Http\Middleware\AssignRequestIdMiddleware;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
 use App\Logging\RedactSensitiveLogDataProcessor;
+use App\Models\ApiKey;
 use App\Models\User;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 /**
  * Point a log channel at a fresh temporary file and return the file's path.
@@ -206,6 +208,25 @@ test('sensitive keys are redacted at any depth', function (): void {
         ])
         ->and((string) file_get_contents($this->structuredLogPath))
         ->not->toContain('hunter2', 'sk-live-123', 'abc.def', 'xyz', 'shh');
+});
+
+test('API key tokens are redacted by their shape, keeping the public prefix', function (): void {
+    $token = ApiKey::generateSecret()['plain'];
+    $legacyToken = 'ek_'.Str::random(40);
+    $publicPrefix = substr($token, 0, strlen('ext_test_') + 8);
+
+    Log::channel('structured')->warning("Client pasted {$token} into a ticket", [
+        'note' => "old key {$legacyToken} still configured",
+        'lines' => ['curl -H "Authorization: Bearer '.$token.'"'],
+    ]);
+
+    $logOutput = (string) file_get_contents($this->structuredLogPath);
+    $logRecord = structuredLogRecords($this->structuredLogPath)[0];
+    $redacted = RedactSensitiveLogDataProcessor::REDACTED;
+
+    expect($logOutput)->not->toContain($token, $legacyToken)
+        ->and($logRecord['message'])->toBe("Client pasted {$publicPrefix}{$redacted} into a ticket")
+        ->and($logRecord['context']['note'])->toBe('old key '.substr($legacyToken, 0, 12)."{$redacted} still configured");
 });
 
 test('the default channel output is unchanged', function (): void {

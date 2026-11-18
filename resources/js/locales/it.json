@@ -416,7 +416,6 @@
             "owner": "Proprietario",
             "ownerHelp": "Limite di permesso: la chiave non può fare più di questo utente. Predefinito: tu.",
             "readOnly": "Sola lettura (blocca create, update e delete)",
-            "readOnlyBadge": "sola lettura",
             "scopes": "Scope",
             "filesScope": "Accesso file",
             "filesScopeHelp": "none = niente Files API; read = solo lista/download; all = lettura+scrittura (soggetto a sola lettura e ruolo).",

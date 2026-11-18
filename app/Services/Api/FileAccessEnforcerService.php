@@ -16,8 +16,8 @@ use App\Services\Authorization\EffectivePermissionResolverService;
  * Files API access for an API actor (public role or API key): role file ACL ∩ API key scopes ∩
  * owner ceiling.
  *
- * {@see ApiKey::$collection_slugs} does not gate files; {@see ApiKey::$files_scope} and
- * `read_only` do ({@see ApiKey::allowsFileAction()}). An owned key never exceeds what its owner's
+ * {@see ApiKey::$collection_slugs} does not gate files; the key's `files:read` / `files:write`
+ * scope does ({@see ApiKey::allowsFileAction()}). An owned key never exceeds what its owner's
  * roles grant, `read_private` included. Session users are not judged here: the admin file manager
  * uses the Spatie file permissions ({@see FilePolicy}).
  */

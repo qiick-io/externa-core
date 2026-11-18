@@ -4,7 +4,7 @@
  * Console commands and scheduled maintenance tasks.
  *
  * Schedules clean up activity logs, stale uploads/zips, AI attachments, sync sources,
- * and collection item revisions past retention limits.
+ * and collection item revisions past retention limits, and warn about expiring API keys.
  */
 
 use Illuminate\Foundation\Inspiring;
@@ -24,3 +24,4 @@ Schedule::command('chat:cleanup-attachments')->daily();
 Schedule::command('ai:run-sync-sources')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('collections:process-schedules')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('collections:prune-revisions')->daily();
+Schedule::command('api-keys:notify-expiring')->daily()->onOneServer();

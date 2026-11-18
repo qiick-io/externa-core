@@ -1,13 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Admin;
 
-use App\Enums\ApiKeyFilesScopeEnum;
+use App\Enums\ApiKeyScopeEnum;
 use App\Models\ApiKey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
+ * One row of the API keys screen. `scopes` lists what the key can actually use: a stored value
+ * that does not parse shows as no scopes, exactly as the server treats it. Hashes never leave
+ * the server.
+ *
  * @mixin ApiKey
  */
 class ApiKeyResource extends JsonResource
@@ -34,15 +40,18 @@ class ApiKeyResource extends JsonResource
                 'email' => $this->owner->email,
             ]),
             'collection_slugs' => $this->collection_slugs,
-            'read_only' => (bool) $this->read_only,
-            'files_scope' => $this->files_scope instanceof ApiKeyFilesScopeEnum
-                ? $this->files_scope->value
-                : (string) ($this->files_scope ?? 'all'),
-            'scopes' => $this->scopes,
+            'scopes' => array_map(
+                static fn (ApiKeyScopeEnum $scope): string => $scope->value,
+                $this->resource->grantedScopes(),
+            ),
             'ip_allowlist' => $this->ip_allowlist,
             'rate_limit_per_minute' => $this->rate_limit_per_minute,
             'expires_at' => $this->expires_at?->toIso8601String(),
             'last_used_at' => $this->last_used_at?->toIso8601String(),
+            'last_used_ip' => $this->last_used_ip,
+            'previous_key_valid_until' => $this->isPreviousSecretValid()
+                ? $this->previous_key_valid_until?->toIso8601String()
+                : null,
             'revoked_at' => $this->revoked_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

@@ -92,7 +92,7 @@ trait DelegatesToRegistryMcpToolTrait
             }
 
             if (request()->attributes->get('mcp_can_write') === false) {
-                return Response::error('API key lacks mcp:write scope (or is read_only).');
+                return Response::error('API key lacks the mcp:write scope.');
             }
         }
 
@@ -114,7 +114,7 @@ trait DelegatesToRegistryMcpToolTrait
     /**
      * Authorize an API-key write against the key's scope before the executor may park it
      * for approval: collection Update/Create + item_filter, or file Update (role ACL,
-     * `collection_slugs`, `files_scope`, owner ceiling). Session callers return null; the
+     * `collection_slugs`, scopes, owner ceiling). Session callers return null; the
      * tool re-checks their permissions when it runs.
      *
      * The approved call runs again under the same key (`pending_tool_calls.api_key_id`,

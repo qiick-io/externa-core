@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ApiKeyFilesScopeEnum;
+use App\Enums\ApiKeyScopeEnum;
 use App\Models\ApiKey;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Active API key bound to a fresh role. The plain secret is never stored: a test that
+ * Active API key bound to a fresh role, with `collections:write` and `files:write`: the role
+ * ACL decides what it may do, as for a 1.4.0 key without read_only. The plain secret is never stored: a test that
  * calls the API with the key uses {@see ApiKeyFactory::withSecret()} to choose it.
  *
  * @extends Factory<ApiKey>
@@ -31,9 +32,7 @@ class ApiKeyFactory extends Factory
             'key_prefix' => $secret['prefix'],
             'key_hash' => $secret['hash'],
             'role_id' => Role::factory(),
-            'read_only' => false,
-            // Same as the column default: role ACL decides what the key may do with files.
-            'files_scope' => ApiKeyFilesScopeEnum::All,
+            'scopes' => [ApiKeyScopeEnum::CollectionsWrite->value, ApiKeyScopeEnum::FilesWrite->value],
         ];
     }
 
@@ -51,11 +50,20 @@ class ApiKeyFactory extends Factory
         ]);
     }
 
-    public function readOnly(): static
+    /**
+     * Replace the scopes, e.g. `withScopes(ApiKeyScopeEnum::McpRead)` for a key that may only
+     * list the MCP tools.
+     */
+    public function withScopes(ApiKeyScopeEnum ...$scopes): static
     {
         return $this->state(fn (): array => [
-            'read_only' => true,
+            'scopes' => array_map(static fn (ApiKeyScopeEnum $scope): string => $scope->value, $scopes),
         ]);
+    }
+
+    public function readOnly(): static
+    {
+        return $this->withScopes(ApiKeyScopeEnum::CollectionsRead, ApiKeyScopeEnum::FilesRead);
     }
 
     public function revoked(): static
