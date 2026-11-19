@@ -36,8 +36,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: docker-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # The event is part of the group: the pull-request run and the push run on one commit are
+  # separate evidence and must not cancel each other. On develop and main nothing is cancelled
+  # in progress — a cancelled run is indistinguishable from a check that never ran (#805).
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
 jobs:
   compose-config:
@@ -113,11 +116,19 @@ jobs:
             test "$uid" != "0"
           '
 
-  # Multi-arch bake is slow (~30 min QEMU). Keep on merge/release path only so
-  # pecl/php-base regressions still fail before develop/main advances; PRs use
-  # native image-build for fast feedback.
+  # Multi-arch bake under QEMU is the single most expensive job in this repo: measured at
+  # 42 billable minutes, where native `image-build` covers amd64 in 4. It therefore runs on the
+  # release path only — the pull request into `main`, a `v*` tag, or a manual dispatch — not on
+  # every push to `develop`. arm64 regressions in pecl / php-base still cannot ship: the release
+  # PR bakes both architectures (including the development target, which `ghcr-publish` does not
+  # build), and on a tag `ghcr-publish` bakes amd64 + arm64 itself, so a broken arm64 fails the
+  # publish instead of being pushed. Ordinary pushes and PRs rely on native `image-build`.
+  # Not a required status check on `main` or `develop` (verified), so gating it blocks nothing.
   multiarch-bake:
-    if: github.event_name != 'pull_request'
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: compose-config
     steps:
