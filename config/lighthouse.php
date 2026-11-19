@@ -1,13 +1,12 @@
 <?php
 
 declare(strict_types=1);
+
 use App\Http\Middleware\ApiRequestCostMiddleware;
 use App\Http\Middleware\EnforcePublicApiOriginMiddleware;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
 use GraphQL\Error\DebugFlag;
 use GraphQL\Validator\Rules\DisableIntrospection;
-use GraphQL\Validator\Rules\QueryComplexity;
-use GraphQL\Validator\Rules\QueryDepth;
 use Nuwave\Lighthouse\Execution\AuthenticationErrorHandler;
 use Nuwave\Lighthouse\Execution\AuthorizationErrorHandler;
 use Nuwave\Lighthouse\Execution\ReportingErrorHandler;
@@ -241,16 +240,32 @@ return [
     */
 
     'security' => [
-        // 0 / unset = DISABLED (open default; set GRAPHQL_MAX_* to enable).
+        /*
+         * Measured against externa's own GraphQL clients (2026-11):
+         * - Docs + Bruno + Pest queries: max webonyx depth 1, max complexity 12
+         *   (largest: docs "Query items (+ collection)" = complexity 12).
+         * - Official starters (next/nuxt/astro/sveltekit) use REST only; no GraphQL docs.
+         * Defaults keep clear headroom: depth 7 (~7×), complexity 50 (~4×).
+         * Set GRAPHQL_MAX_DEPTH=0 or GRAPHQL_MAX_COMPLEXITY=0 to disable a cap.
+         */
         'max_query_complexity' => (($complexity = env('GRAPHQL_MAX_COMPLEXITY')) === null || $complexity === '')
-            ? QueryComplexity::DISABLED
+            ? 50
             : max(0, (int) $complexity),
         'max_query_depth' => (($depth = env('GRAPHQL_MAX_DEPTH')) === null || $depth === '')
-            ? QueryDepth::DISABLED
+            ? 7
             : max(0, (int) $depth),
-        'disable_introspection' => (bool) env('LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION', false)
-            ? DisableIntrospection::ENABLED
-            : DisableIntrospection::DISABLED,
+        /*
+         * Introspection: disabled in production by default, enabled elsewhere.
+         * LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION still wins when set
+         * (true/false/1/0); set false in production to keep the old open default.
+         */
+        'disable_introspection' => (($introspectionOverride = env('LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION')) !== null && $introspectionOverride !== '')
+            ? (filter_var($introspectionOverride, FILTER_VALIDATE_BOOLEAN)
+                ? DisableIntrospection::ENABLED
+                : DisableIntrospection::DISABLED)
+            : (env('APP_ENV', 'production') === 'production'
+                ? DisableIntrospection::ENABLED
+                : DisableIntrospection::DISABLED),
     ],
 
     /*

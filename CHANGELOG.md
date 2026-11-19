@@ -11,6 +11,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Upgrade notes
 
+- **GraphQL depth, complexity and introspection defaults are now secure (#819):** when `GRAPHQL_MAX_DEPTH` / `GRAPHQL_MAX_COMPLEXITY` are unset, Lighthouse uses **depth 7** and **complexity 50** (previously unlimited). Introspection is **disabled when `APP_ENV=production`** and enabled in other environments (previously always on). To keep the old open behaviour: set `GRAPHQL_MAX_DEPTH=0`, `GRAPHQL_MAX_COMPLEXITY=0`, and in production `LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION=false`. Operators with deeper or heavier queries should raise the two caps above their measured maximum (the largest documented / Bruno / Pest query is depth 1 and complexity 12).
 - **Outbound URL SSRF pin (#817):** every authorised outbound request (AI remote import, file import from URL, project webhooks, Slack notifier, deploy hooks, OIDC discovery) is now pinned to one address the guard checked (`CURLOPT_CONNECT_TO`), so a DNS rebinding answer after the check is never used. What now gets refused that used to work (or could slip through):
     - **Non-dotted-decimal IPv4 URLs.** Forms such as `http://127.1/…`, `http://012.0.0.1/…`, hex (`0x7f.1`), a bare integer (`2130706433`), or a trailing-dot address (`93.184.216.34.`) are refused as invalid. Curl and `inet_aton` still read them as addresses; the guard no longer treats them as DNS names. Use ordinary dotted decimal (`127.0.0.1`, `10.0.0.5`).
     - **Hostnames that do not resolve.** A name with no A/AAAA (and no hosts-file answer the process can see) is refused, because there is nothing checked to pin. A hosts-file-only name that the PHP process cannot resolve will fail; point webhook, deploy-hook and OIDC issuer URLs at a name DNS answers, or at a dotted-decimal literal.
@@ -18,6 +19,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Security
 
+- GraphQL: enable default max query depth (7) and max query complexity (50), and disable introspection in production by default; all three remain overridable via `GRAPHQL_MAX_DEPTH`, `GRAPHQL_MAX_COMPLEXITY` and `LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION` (#819).
 - Outbound SSRF: parse IPv4 the way curl does, refuse non-canonical spellings and invalid bracketed IPv6, unwrap/canonicalise IPv6 (including IPv4-mapped and IPv4-compatible forms), and pin every authorised request with `CURLOPT_CONNECT_TO` (`::ADDRESS:PORT`) instead of `CURLOPT_RESOLVE` — covering the AI fetcher, file import from URL, previously unpinned outbound webhooks and Slack notifier, deploy hooks, and OIDC discovery (#817).
 
 ## [1.5.0] - 2026-11-18
