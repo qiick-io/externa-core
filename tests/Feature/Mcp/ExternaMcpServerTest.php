@@ -127,20 +127,37 @@ function mcpHeaders(string $method, ?string $name = null, array $extraHeaders = 
 it('returns 404 when MCP is disabled', function (): void {
     config(['ai.mcp.enabled' => false]);
 
-    $this->postJson('/mcp', mcpJsonRpc('ping'), mcpHeaders('ping'))
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), mcpHeaders('server/discover'))
         ->assertNotFound();
 });
 
 it('returns 401 when no authentication is provided', function (): void {
-    $this->postJson('/mcp', mcpJsonRpc('ping'), mcpHeaders('ping'))
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), mcpHeaders('server/discover'))
         ->assertUnauthorized();
+});
+
+it('refuses a request from a foreign Origin even with a valid key, and accepts the app origin', function (): void {
+    // laravel/mcp 1.2 validates Origin on the MCP route (DNS-rebinding protection): only
+    // APP_URL, localhost and `mcp.allowed_origins` pass. A request without Origin is unaffected.
+    $auth = makeOwnedMcpKey(scopes: [ApiKeyScopeEnum::McpRead->value]);
+    $headers = [
+        ...mcpHeaders('server/discover'),
+        'Authorization' => 'Bearer '.$auth['plain'],
+    ];
+
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), [...$headers, 'Origin' => 'https://attacker.example'])
+        ->assertForbidden()
+        ->assertJsonPath('error.message', 'Forbidden: The request origin is not allowed.');
+
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), [...$headers, 'Origin' => rtrim((string) config('app.url'), '/')])
+        ->assertSuccessful();
 });
 
 it('denies API keys without mcp:read scope', function (): void {
     $auth = makeOwnedMcpKey(scopes: []);
 
-    $this->postJson('/mcp', mcpJsonRpc('ping'), [
-        ...mcpHeaders('ping'),
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), [
+        ...mcpHeaders('server/discover'),
         'Authorization' => 'Bearer '.$auth['plain'],
     ])->assertForbidden();
 });
@@ -149,8 +166,8 @@ it('rejects ownerless API keys on the MCP endpoint', function (): void {
     $auth = makeOwnedMcpKey();
     $auth['key']->forceFill(['owner_id' => null])->save();
 
-    $this->postJson('/mcp', mcpJsonRpc('ping'), [
-        ...mcpHeaders('ping'),
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), [
+        ...mcpHeaders('server/discover'),
         'Authorization' => 'Bearer '.$auth['plain'],
     ])->assertUnauthorized();
 });
@@ -161,8 +178,8 @@ it('accepts an owned API key with mcp:read', function (): void {
         permissions: [PermissionEnum::CanShowCollections->value],
     );
 
-    $this->postJson('/mcp', mcpJsonRpc('ping'), [
-        ...mcpHeaders('ping'),
+    $this->postJson('/mcp', mcpJsonRpc('server/discover'), [
+        ...mcpHeaders('server/discover'),
         'Authorization' => 'Bearer '.$auth['plain'],
     ])->assertSuccessful();
 });
@@ -279,20 +296,20 @@ it('rate limits MCP requests per API key', function (): void {
     RateLimiter::clear('mcp-key:'.$auth['key']->id);
 
     $headers = [
-        ...mcpHeaders('ping'),
+        ...mcpHeaders('server/discover'),
         'Authorization' => 'Bearer '.$auth['plain'],
     ];
 
-    $this->postJson('/mcp', mcpJsonRpc('ping', id: 1), $headers)->assertSuccessful();
-    $this->postJson('/mcp', mcpJsonRpc('ping', id: 2), $headers)->assertSuccessful();
-    $this->postJson('/mcp', mcpJsonRpc('ping', id: 3), $headers)->assertStatus(429);
+    $this->postJson('/mcp', mcpJsonRpc('server/discover', id: 1), $headers)->assertSuccessful();
+    $this->postJson('/mcp', mcpJsonRpc('server/discover', id: 2), $headers)->assertSuccessful();
+    $this->postJson('/mcp', mcpJsonRpc('server/discover', id: 3), $headers)->assertStatus(429);
 });
 
 it('does not accept a session user without an API key (#441)', function (): void {
     $user = User::factory()->create(['is_active' => true]);
 
     $this->actingAs($user)
-        ->postJson('/mcp', mcpJsonRpc('ping'), mcpHeaders('ping'))
+        ->postJson('/mcp', mcpJsonRpc('server/discover'), mcpHeaders('server/discover'))
         ->assertUnauthorized();
 });
 
@@ -300,9 +317,9 @@ it('limits failed MCP authentications per IP before the per-key throttle (#441)'
     config(['ai.mcp.auth_failures_per_minute' => 2]);
     RateLimiter::clear('mcp-auth-failures:127.0.0.1');
 
-    $headers = [...mcpHeaders('ping'), 'Authorization' => 'Bearer not-a-key'];
+    $headers = [...mcpHeaders('server/discover'), 'Authorization' => 'Bearer not-a-key'];
 
-    $this->postJson('/mcp', mcpJsonRpc('ping', id: 1), $headers)->assertUnauthorized();
-    $this->postJson('/mcp', mcpJsonRpc('ping', id: 2), $headers)->assertUnauthorized();
-    $this->postJson('/mcp', mcpJsonRpc('ping', id: 3), $headers)->assertStatus(429);
+    $this->postJson('/mcp', mcpJsonRpc('server/discover', id: 1), $headers)->assertUnauthorized();
+    $this->postJson('/mcp', mcpJsonRpc('server/discover', id: 2), $headers)->assertUnauthorized();
+    $this->postJson('/mcp', mcpJsonRpc('server/discover', id: 3), $headers)->assertStatus(429);
 });

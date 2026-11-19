@@ -45,6 +45,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Changed
 
 - Replace the local Socialite OIDC client with `qiick/laravel-oidc` `^1.0@beta` (1.0.0-beta.4): settings-backed provider, JIT, auto-link, SSO-only + break-glass, domain allowlist, button label; identity key is `(issuer, subject)` in `user_identities` (#827).
+- `laravel/mcp` 1.1.2 → 1.2.1, ahead of OAuth for remote MCP clients (#802). Two effects on the `/mcp` endpoint: a request whose `Origin` header is neither `APP_URL` nor `localhost` is refused with `403` before authentication (DNS-rebinding protection; requests without an `Origin` header, which is what server-side clients send, are unaffected), and `ping` is answered only for clients on the legacy `initialize` handshake, so a 2026-07-28 client probes with `server/discover` instead. API keys, scopes and tools are unchanged.
 
 ## [1.5.0] - 2026-11-18
 
