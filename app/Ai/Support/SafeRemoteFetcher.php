@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Ai\Support;
 
 use Illuminate\Http\Client\ConnectionException;
@@ -9,7 +11,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * SSRF-safe remote GET: DNS pin via CURLOPT_RESOLVE + byte-capped body.
+ * SSRF-safe remote GET: DNS pin via CURLOPT_CONNECT_TO + byte-capped body.
  *
  * Note: do not set Guzzle `stream => true` here — it bypasses Laravel Http::fake
  * and hits the real network (breaks AI import feature tests).
@@ -28,20 +30,14 @@ final class SafeRemoteFetcher
         bool $enforceHostAllowlist = true,
         int $timeoutSeconds = 30,
     ): array {
-        $inspected = SafeRemoteUrlValidator::inspect($url, $allowPrivateHosts, $enforceHostAllowlist);
+        $authorized = SafeRemoteUrlValidator::authorize($url, $allowPrivateHosts, $enforceHostAllowlist);
 
-        if ($inspected['error'] !== null) {
-            throw new RuntimeException(preg_replace('/^Error:\s*/', '', $inspected['error']) ?: $inspected['error']);
+        if ($authorized['error'] !== null) {
+            throw new RuntimeException(preg_replace('/^Error:\s*/', '', $authorized['error']) ?: $authorized['error']);
         }
 
         /** @var string $host */
-        $host = $inspected['host'];
-        /** @var int $port */
-        $port = $inspected['port'];
-        /** @var list<string> $ips */
-        $ips = $inspected['ips'];
-
-        $curlResolve = SafeRemoteUrlValidator::curlResolveEntries($host, $port, $ips);
+        $host = $authorized['host'];
 
         try {
             $pending = Http::timeout($timeoutSeconds)
@@ -49,13 +45,13 @@ final class SafeRemoteFetcher
                 ->withOptions([
                     'allow_redirects' => false,
                     'http_errors' => false,
-                    'curl' => $curlResolve === [] ? [] : [
-                        CURLOPT_RESOLVE => $curlResolve,
+                    'curl' => [
+                        CURLOPT_CONNECT_TO => $authorized['curl_connect_to'],
                     ],
                 ])
                 ->withHeaders($headers);
 
-            $response = $pending->get($inspected['url']);
+            $response = $pending->get($authorized['url']);
         } catch (ConnectionException $exception) {
             Log::warning('SafeRemoteFetcher connection failed', [
                 'host' => $host,
@@ -77,11 +73,13 @@ final class SafeRemoteFetcher
         $contentType = is_string($contentType) ? $contentType : null;
 
         $contentLength = $response->header('Content-Length');
+
         if (is_numeric($contentLength) && (int) $contentLength > $maxBytes) {
             throw new RuntimeException('Remote file is too large (max '.(int) ($maxBytes / 1024 / 1024).' MB).');
         }
 
         $body = $response->body();
+
         if (strlen($body) > $maxBytes) {
             throw new RuntimeException('Remote file is too large (max '.(int) ($maxBytes / 1024 / 1024).' MB).');
         }

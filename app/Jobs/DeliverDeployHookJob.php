@@ -63,15 +63,16 @@ class DeliverDeployHookJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        // Validate and resolve once, then pin the connection to that address (CURLOPT_RESOLVE),
-        // so a DNS change between the check and the request cannot point it at a private host.
-        $inspected = SafeRemoteUrlValidator::inspect(
+        // Validate and resolve once, then pin the connection to that address
+        // (CURLOPT_CONNECT_TO), so a DNS change between the check and the request cannot
+        // point it at a private host.
+        $authorized = SafeRemoteUrlValidator::inspect(
             $hook->url,
             allowPrivateHosts: (bool) config('webhooks.allow_private_hosts', false),
             enforceHostAllowlist: false,
         );
 
-        if ($ssrf = $inspected['error']) {
+        if ($ssrf = $authorized['error']) {
             Log::warning('Deploy hook delivery refused: SSRF guard', [
                 'hook_id' => $this->hookId,
                 'reason' => $ssrf,
@@ -88,17 +89,13 @@ class DeliverDeployHookJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        $curlResolve = SafeRemoteUrlValidator::curlResolveEntries(
-            (string) $inspected['host'],
-            (int) $inspected['port'],
-            $inspected['ips'],
-        );
-
         $response = Http::timeout(5)
             ->connectTimeout(3)
             ->withoutRedirecting()
             ->withOptions([
-                'curl' => $curlResolve === [] ? [] : [CURLOPT_RESOLVE => $curlResolve],
+                'curl' => [
+                    CURLOPT_CONNECT_TO => $authorized['curl_connect_to'],
+                ],
             ])
             ->withHeaders([
                 'User-Agent' => 'Externa-Deploy/1.0',

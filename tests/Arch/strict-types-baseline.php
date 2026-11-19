@@ -29,8 +29,6 @@ return [
     'App\Ai\Support\CmsImport\DirectusRecordShaper',
     'App\Ai\Support\CmsImport\WordPressPostShaper',
     'App\Ai\Support\FieldTypeCookbook',
-    'App\Ai\Support\SafeRemoteFetcher',
-    'App\Ai\Support\SafeRemoteUrlValidator',
     'App\Ai\Tools\DescribeFieldTypes',
     'App\Ai\Tools\ExportCollection',
     'App\Ai\Tools\ExtractPdfText',

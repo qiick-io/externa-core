@@ -44,7 +44,9 @@ class DeliverSlackOutboundNotifierJob implements ShouldQueue
             return;
         }
 
-        if ($ssrf = SafeRemoteUrlValidator::validateOutboundWebhook($url)) {
+        $authorized = SafeRemoteUrlValidator::authorizeOutboundWebhook($url);
+
+        if ($ssrf = $authorized['error']) {
             Log::warning('Slack notifier delivery refused: SSRF guard', [
                 'type' => $this->type,
                 'reason' => $ssrf,
@@ -57,6 +59,11 @@ class DeliverSlackOutboundNotifierJob implements ShouldQueue
             ->connectTimeout(3)
             ->withoutRedirecting()
             ->withHeaders(['User-Agent' => 'Externa-Notifiers/1.0'])
+            ->withOptions([
+                'curl' => [
+                    CURLOPT_CONNECT_TO => $authorized['curl_connect_to'],
+                ],
+            ])
             ->post($url, ['text' => $this->message]);
 
         if (! $response->successful()) {

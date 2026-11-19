@@ -20,15 +20,14 @@ it('allows public https URL shape without resolving when host is IP public', fun
     expect(SafeRemoteUrlValidator::validate('https://8.8.8.8/dns'))->toBeNull();
 });
 
-it('returns curl resolve pin entries for inspected host', function (): void {
+it('returns curl connect-to pin entries for inspected host', function (): void {
     $inspected = SafeRemoteUrlValidator::inspect('https://8.8.8.8/dns');
 
     expect($inspected['error'])->toBeNull()
         ->and($inspected['host'])->toBe('8.8.8.8')
         ->and($inspected['port'])->toBe(443)
         ->and($inspected['ips'])->toBe(['8.8.8.8'])
-        ->and(SafeRemoteUrlValidator::curlResolveEntries('8.8.8.8', 443, $inspected['ips']))
-        ->toBe(['8.8.8.8:443:8.8.8.8']);
+        ->and($inspected['curl_connect_to'])->toBe(['::8.8.8.8:443']);
 });
 
 it('returns a generic user message for blocked CGNAT (no IP oracle)', function (): void {

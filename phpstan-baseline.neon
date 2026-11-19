@@ -31,12 +31,6 @@ parameters:
 			path: app/Ai/Support/FieldTypeCookbook.php
 
 		-
-			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/Ai/Support/SafeRemoteUrlValidator.php
-
-		-
 			message: '#^Parameter \#1 \$types of static method App\\Ai\\Support\\FieldTypeCookbook\:\:resolveTypeKeys\(\) expects list\<string\>\|string\|null, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1

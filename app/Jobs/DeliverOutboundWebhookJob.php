@@ -50,7 +50,12 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             return;
         }
 
-        if ($ssrf = SafeRemoteUrlValidator::validateOutboundWebhook($url)) {
+        // Validate and resolve once, then pin the connection to that address
+        // (CURLOPT_CONNECT_TO), so a DNS change between the check and the request cannot
+        // point it at a private host, and curl spellings CURLOPT_RESOLVE cannot pin are covered.
+        $authorized = SafeRemoteUrlValidator::authorizeOutboundWebhook($url);
+
+        if ($ssrf = $authorized['error']) {
             Log::warning('Outbound webhook delivery refused: SSRF guard', [
                 'event_id' => $this->eventId,
                 'type' => $this->type,
@@ -95,6 +100,11 @@ class DeliverOutboundWebhookJob implements ShouldQueue
                 'User-Agent' => 'Externa-Webhooks/1.0',
             ])
             ->withBody($payload, 'application/json')
+            ->withOptions([
+                'curl' => [
+                    CURLOPT_CONNECT_TO => $authorized['curl_connect_to'],
+                ],
+            ])
             ->post($url);
 
         if (! $response->successful()) {

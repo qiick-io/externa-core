@@ -248,20 +248,20 @@ test('a burst of publishes queues one delayed delivery per hook (#441)', functio
 });
 
 test('the delivery is pinned to the address the ssrf guard resolved (#441)', function () {
-    // A public IP literal: tests skip DNS, and the guard returns the literal as the resolved address.
+    // A public IP literal: the guard returns the literal as the pinned CONNECT_TO address.
     configureDeployHooks([
         ['id' => 'hook_prod', 'name' => 'Production', 'url' => 'https://93.184.215.14/v1/integrations/deploy/abc'],
     ]);
 
-    $resolveOption = null;
-    Http::fake(function ($request, array $options) use (&$resolveOption) {
-        $resolveOption = $options['curl'][CURLOPT_RESOLVE] ?? null;
+    $connectToOption = null;
+    Http::fake(function ($request, array $options) use (&$connectToOption) {
+        $connectToOption = $options['curl'][CURLOPT_CONNECT_TO] ?? null;
 
         return Http::response(['job' => ['id' => '1']], 201);
     });
 
     (new DeliverDeployHookJob('hook_prod', 'Production', 'manual'))->handle(app(ProjectSettingsService::class));
 
-    expect($resolveOption)->toBeArray()
-        ->and($resolveOption)->toBe(['93.184.215.14:443:93.184.215.14']);
+    expect($connectToOption)->toBeArray()
+        ->and($connectToOption)->toBe(['::93.184.215.14:443']);
 });
