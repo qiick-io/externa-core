@@ -17,8 +17,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: audit-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # The event is part of the group: the pull-request run and the push run on one commit are
+  # separate evidence and must not cancel each other. On develop and main nothing is cancelled
+  # in progress — a cancelled run is indistinguishable from a check that never ran (#805).
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
 # Policy (#32 / #289): PR/push gates fail on high+critical for Composer (ignore low/medium)
 # and production npm deps. Weekly schedule also runs a non-blocking full audit

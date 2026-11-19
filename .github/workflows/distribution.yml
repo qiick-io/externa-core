@@ -15,6 +15,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # The event is part of the group: the pull-request run and the push run on one commit are
+  # separate evidence and must not cancel each other. On develop and main nothing is cancelled
+  # in progress — a cancelled run is indistinguishable from a check that never ran (#805).
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
 jobs:
   smoke:
     uses: qiick-io/app-ui/.github/workflows/app-distribution-smoke.yml@v0.9.0
