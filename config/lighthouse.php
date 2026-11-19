@@ -1,13 +1,12 @@
 <?php
 
 declare(strict_types=1);
+
 use App\Http\Middleware\ApiRequestCostMiddleware;
 use App\Http\Middleware\EnforcePublicApiOriginMiddleware;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
 use GraphQL\Error\DebugFlag;
 use GraphQL\Validator\Rules\DisableIntrospection;
-use GraphQL\Validator\Rules\QueryComplexity;
-use GraphQL\Validator\Rules\QueryDepth;
 use Nuwave\Lighthouse\Execution\AuthenticationErrorHandler;
 use Nuwave\Lighthouse\Execution\AuthorizationErrorHandler;
 use Nuwave\Lighthouse\Execution\ReportingErrorHandler;
@@ -241,16 +240,38 @@ return [
     */
 
     'security' => [
-        // 0 / unset = DISABLED (open default; set GRAPHQL_MAX_* to enable).
+        /*
+         * Abuse caps, not a product shape. Measured (2026-11) against the live schema:
+         * - Heaviest legitimate query (collection + items at API_MAX_PER_PAGE=100 with
+         *   every Item scalar and full PageMeta): webonyx depth 1, complexity 20.
+         * - externa's `items` uses @field, not @paginate/@complexity, so perPage does
+         *   NOT multiply complexity (vendor ComplexityDirective / PaginateDirective
+         *   only scale when those directives attach a complexityFn). Relations, files
+         *   and translations live inside `data: JSON`, not nested GraphQL fields.
+         * - If `items` later gained @paginate with first=100 on the same selection,
+         *   Lighthouse's formula `1 + children * first` would score ~1401.
+         * Defaults: depth 15 (room for future relation nesting), complexity 2000
+         * (clear headroom above 20 and above that hypothetical paginate score).
+         * Set GRAPHQL_MAX_DEPTH=0 or GRAPHQL_MAX_COMPLEXITY=0 to disable a cap.
+         */
         'max_query_complexity' => (($complexity = env('GRAPHQL_MAX_COMPLEXITY')) === null || $complexity === '')
-            ? QueryComplexity::DISABLED
+            ? 2000
             : max(0, (int) $complexity),
         'max_query_depth' => (($depth = env('GRAPHQL_MAX_DEPTH')) === null || $depth === '')
-            ? QueryDepth::DISABLED
+            ? 15
             : max(0, (int) $depth),
-        'disable_introspection' => (bool) env('LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION', false)
-            ? DisableIntrospection::ENABLED
-            : DisableIntrospection::DISABLED,
+        /*
+         * Introspection: disabled in production by default, enabled elsewhere.
+         * LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION still wins when set
+         * (true/false/1/0); set false in production to keep the old open default.
+         */
+        'disable_introspection' => (($introspectionOverride = env('LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION')) !== null && $introspectionOverride !== '')
+            ? (filter_var($introspectionOverride, FILTER_VALIDATE_BOOLEAN)
+                ? DisableIntrospection::ENABLED
+                : DisableIntrospection::DISABLED)
+            : (env('APP_ENV', 'production') === 'production'
+                ? DisableIntrospection::ENABLED
+                : DisableIntrospection::DISABLED),
     ],
 
     /*
