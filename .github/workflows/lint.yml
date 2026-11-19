@@ -173,6 +173,12 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:standards
 
+      # Chrome's legacy-scan, ratcheted against legacy-scan-baseline.json. A step in this
+      # job and not a job of its own: GitHub bills per job, rounded up to the whole minute.
+      - name: Legacy web platform patterns (ratchet)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run lint:legacy
+
       - name: .env.example lists every config env() key
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:env
