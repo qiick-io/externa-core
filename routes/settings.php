@@ -11,6 +11,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Settings\AiToolSettingsController;
 use App\Http\Controllers\Settings\AppearanceSettingsController;
 use App\Http\Controllers\Settings\AppearanceSidebarSettingsController;
+use App\Http\Controllers\Settings\ConnectedMcpClientController;
 use App\Http\Controllers\Settings\LocaleController;
 use App\Http\Controllers\Settings\NotificationPreferencesController;
 use App\Http\Controllers\Settings\PerformanceSettingsController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Settings\ProjectLocalizationSettingsController;
 use App\Http\Controllers\Settings\ProjectSecuritySettingsController;
 use App\Http\Controllers\Settings\ProjectSettingsController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Middleware\EnsureMcpOAuthEnabledMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -38,6 +40,14 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // OAuth grants to remote MCP clients (#802): each user's own, 404 while OAuth is off.
+    Route::middleware(EnsureMcpOAuthEnabledMiddleware::class)->group(function (): void {
+        Route::get('settings/connected-apps', [ConnectedMcpClientController::class, 'index'])
+            ->name('connected-apps.index');
+        Route::delete('settings/connected-apps/{apiKey}', [ConnectedMcpClientController::class, 'destroy'])
+            ->name('connected-apps.destroy');
+    });
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 

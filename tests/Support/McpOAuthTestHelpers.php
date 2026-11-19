@@ -7,6 +7,7 @@ namespace Tests\Support;
 use App\Models\ApiKey;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use stdClass;
@@ -99,6 +100,13 @@ final class McpOAuthTestHelpers
      */
     public static function openConsent(object $test, User $user, string $clientId, string $codeChallenge, ?string $scope = null, array $authorizeOverrides = []): TestResponse
     {
+        // The router keeps a route's controller instance, and Passport's authorization
+        // controller holds the session guard it was built with: in a test that signs in as
+        // another user, it would still see the first one. Each real request builds it anew.
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            $route->flushController();
+        }
+
         return $test->actingAs($user)->get(self::authorizationUrl($clientId, $codeChallenge, $scope, $authorizeOverrides));
     }
 

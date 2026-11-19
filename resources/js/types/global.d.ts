@@ -44,6 +44,8 @@ declare module '@inertiajs/core' {
             };
             projectAppearance: ProjectAppearance;
             projectSettings: SharedProjectSettings;
+            /** OAuth for remote MCP clients is on: Settings → Connected apps exists. */
+            isMcpOAuthEnabled: boolean;
             deploy: SharedDeployProps;
             [key: string]: unknown;
         };

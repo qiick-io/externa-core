@@ -107,6 +107,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'projectAppearance' => $projectAppearance,
             'projectSettings' => $projectSettings->shared(),
+            // Settings → Connected apps exists only while OAuth for MCP clients is on (#802).
+            'isMcpOAuthEnabled' => app(McpOAuthServerService::class)->isEnabled(),
             'deploy' => function () use ($user, $permissionResolver, $projectSettings): array {
                 $canTrigger = $user !== null
                     && $permissionResolver->hasPermission($user, PermissionEnum::DeployTrigger->value);

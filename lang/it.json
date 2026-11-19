@@ -6,6 +6,7 @@
     ":actor updated approval status in :collection.": ":actor ha aggiornato lo stato di approvazione in :collection.",
     ":attribute block type is invalid.": "Il tipo di blocco :attribute non è valido.",
     ":created field(s) created, :skipped skipped.": ":created campo/i creati, :skipped saltati.",
+    ":name can no longer use this workspace.": ":name non può più usare questo spazio di lavoro.",
     ":skipped field(s) already existed — nothing created.": ":skipped campo/i esistevano già — niente creato.",
     "A deploy hook URL is required.": "A deploy hook URL is required.",
     "A group cannot nest under itself.": "Un gruppo non può annidarsi sotto se stesso.",
