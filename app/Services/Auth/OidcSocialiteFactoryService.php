@@ -77,13 +77,20 @@ class OidcSocialiteFactoryService
         /** @var array<string, mixed> $cached */
         $cached = Cache::remember($cacheKey, now()->addHours(6), function () use ($fetchBase): array {
             $discoveryUrl = $fetchBase.'/.well-known/openid-configuration';
-            if ($ssrf = SafeRemoteUrlValidator::validateOidcEndpoint($discoveryUrl)) {
+            $authorized = SafeRemoteUrlValidator::authorizeOidcEndpoint($discoveryUrl);
+
+            if ($authorized['error'] !== null) {
                 throw new RuntimeException('OIDC discovery URL is not allowed.');
             }
 
             $response = Http::timeout(10)
                 ->acceptJson()
-                ->withOptions(['allow_redirects' => false])
+                ->withOptions([
+                    'allow_redirects' => false,
+                    'curl' => [
+                        CURLOPT_CONNECT_TO => $authorized['curl_connect_to'],
+                    ],
+                ])
                 ->get($discoveryUrl);
 
             if (! $response->successful()) {
