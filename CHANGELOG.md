@@ -9,6 +9,17 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Upgrade notes
+
+- **Outbound URL SSRF pin (#817):** every authorised outbound request (AI remote import, file import from URL, project webhooks, Slack notifier, deploy hooks, OIDC discovery) is now pinned to one address the guard checked (`CURLOPT_CONNECT_TO`), so a DNS rebinding answer after the check is never used. What now gets refused that used to work (or could slip through):
+    - **Non-dotted-decimal IPv4 URLs.** Forms such as `http://127.1/…`, `http://012.0.0.1/…`, hex (`0x7f.1`), a bare integer (`2130706433`), or a trailing-dot address (`93.184.216.34.`) are refused as invalid. Curl and `inet_aton` still read them as addresses; the guard no longer treats them as DNS names. Use ordinary dotted decimal (`127.0.0.1`, `10.0.0.5`).
+    - **Hostnames that do not resolve.** A name with no A/AAAA (and no hosts-file answer the process can see) is refused, because there is nothing checked to pin. A hosts-file-only name that the PHP process cannot resolve will fail; point webhook, deploy-hook and OIDC issuer URLs at a name DNS answers, or at a dotted-decimal literal.
+    - **`OIDC_ALLOW_PRIVATE_HOSTS` and `WEBHOOKS_ALLOW_PRIVATE_HOSTS` still mean the same for private destinations.** When either is `true`, a private dotted-decimal literal (`http://10.0.0.5/…`) or a hostname that resolves to a private address is still allowed; metadata addresses (including non-canonical and IPv4-mapped spellings) stay blocked. The new refusals above apply regardless of those flags. Check saved webhook, Slack, deploy-hook and OIDC issuer URLs for short/octal/hex/integer IPv4 forms or names that only exist in a hosts file the app cannot see.
+
+### Security
+
+- Outbound SSRF: parse IPv4 the way curl does, refuse non-canonical spellings and invalid bracketed IPv6, unwrap/canonicalise IPv6 (including IPv4-mapped and IPv4-compatible forms), and pin every authorised request with `CURLOPT_CONNECT_TO` (`::ADDRESS:PORT`) instead of `CURLOPT_RESOLVE` — covering the AI fetcher, file import from URL, previously unpinned outbound webhooks and Slack notifier, deploy hooks, and OIDC discovery (#817).
+
 ## [1.5.0] - 2026-11-18
 
 ### Upgrade notes
