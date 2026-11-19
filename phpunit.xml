@@ -22,6 +22,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- Local/testing seeder password (#821); production has no config default. -->
+        <env name="INITIAL_SUPER_ADMIN_PASSWORD" value="password"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

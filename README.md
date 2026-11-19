@@ -158,7 +158,12 @@ Pull the multi-arch image from **GHCR** (`ghcr.io/qiick-io/externa-core`) — no
 
 ```bash
 cp .env.docker.quick.example .env
-# Set APP_KEY, DB_PASSWORD, APP_URL; for first admin set RUN_SEED=true + INITIAL_SUPER_ADMIN_*
+# Set APP_KEY, DB_PASSWORD, APP_URL.
+# For roles + a first admin when APP_ENV is local/testing: RUN_SEED=true and set
+# INITIAL_SUPER_ADMIN_FIRST_NAME, INITIAL_SUPER_ADMIN_LAST_NAME,
+# INITIAL_SUPER_ADMIN_EMAIL, INITIAL_SUPER_ADMIN_PASSWORD (required, no default).
+# With APP_ENV=production, RUN_SEED seeds roles only — create the first admin with
+# `php artisan externa:install --force` (prompts, or uses those env keys when set).
 docker compose -f compose.quick.yaml up -d
 # App: http://localhost:8080  · health: GET /health/ready
 ```
@@ -169,16 +174,16 @@ First boot is **gated**: `RUN_MIGRATIONS` / `RUN_SEED` (entrypoint defaults both
 
 Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy with Docker](https://docs.qiick.io/externa/deploy-with-docker) · [Installation](https://docs.qiick.io/externa/installation) · [Deployment](https://docs.qiick.io/externa/deployment) · [Reverse proxy](https://docs.qiick.io/externa/reverse-proxy).
 
-### First login (local / dev only)
+### First login (local / testing only)
 
-`php artisan db:seed` creates permissions, roles (`super-admin`, `admin`, `reader`, `public`), and a super admin from `config/super_admin.php`:
+`php artisan db:seed` creates permissions and roles (`super-admin`, `admin`, `reader`, `public`). A super admin from `config/super_admin.php` is created **only** when `APP_ENV` is `local` or `testing` and `INITIAL_SUPER_ADMIN_PASSWORD` is set:
 
-| | Default |
+| | Default (local / testing) |
 | --- | --- |
 | Email | `superadmin@example.com` |
-| Password | `password` |
+| Password | `password` (from `.env.example` only — not a config default) |
 
-Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. **Local/dev only** — change or remove before any shared or production deploy.
+Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. Outside local/testing the seeder skips the admin; `externa:install` prompts for email and password (or uses those env keys), and `--no-interaction` fails closed if the password is empty.
 
 ## Product UI
 
