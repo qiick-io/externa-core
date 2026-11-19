@@ -241,18 +241,24 @@ return [
 
     'security' => [
         /*
-         * Measured against externa's own GraphQL clients (2026-11):
-         * - Docs + Bruno + Pest queries: max webonyx depth 1, max complexity 12
-         *   (largest: docs "Query items (+ collection)" = complexity 12).
-         * - Official starters (next/nuxt/astro/sveltekit) use REST only; no GraphQL docs.
-         * Defaults keep clear headroom: depth 7 (~7×), complexity 50 (~4×).
+         * Abuse caps, not a product shape. Measured (2026-11) against the live schema:
+         * - Heaviest legitimate query (collection + items at API_MAX_PER_PAGE=100 with
+         *   every Item scalar and full PageMeta): webonyx depth 1, complexity 20.
+         * - externa's `items` uses @field, not @paginate/@complexity, so perPage does
+         *   NOT multiply complexity (vendor ComplexityDirective / PaginateDirective
+         *   only scale when those directives attach a complexityFn). Relations, files
+         *   and translations live inside `data: JSON`, not nested GraphQL fields.
+         * - If `items` later gained @paginate with first=100 on the same selection,
+         *   Lighthouse's formula `1 + children * first` would score ~1401.
+         * Defaults: depth 15 (room for future relation nesting), complexity 2000
+         * (clear headroom above 20 and above that hypothetical paginate score).
          * Set GRAPHQL_MAX_DEPTH=0 or GRAPHQL_MAX_COMPLEXITY=0 to disable a cap.
          */
         'max_query_complexity' => (($complexity = env('GRAPHQL_MAX_COMPLEXITY')) === null || $complexity === '')
-            ? 50
+            ? 2000
             : max(0, (int) $complexity),
         'max_query_depth' => (($depth = env('GRAPHQL_MAX_DEPTH')) === null || $depth === '')
-            ? 7
+            ? 15
             : max(0, (int) $depth),
         /*
          * Introspection: disabled in production by default, enabled elsewhere.

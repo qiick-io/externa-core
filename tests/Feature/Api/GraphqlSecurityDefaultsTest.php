@@ -10,8 +10,11 @@ use GraphQL\Validator\Rules\QueryComplexity;
 use GraphQL\Validator\Rules\QueryDepth;
 
 /**
- * Secure GraphQL defaults (measured against docs / Bruno / Pest queries):
- * max depth 1, max complexity 12 → defaults 7 / 50 with headroom.
+ * Secure GraphQL defaults: abuse caps with headroom for real CMS clients.
+ *
+ * Heaviest legitimate query (collection + items at API_MAX_PER_PAGE with every
+ * Item scalar and full PageMeta): depth 1, complexity 20. Schema has no nested
+ * relation/file GraphQL fields (those live in data: JSON). Defaults 15 / 2000.
  */
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -20,22 +23,23 @@ beforeEach(function (): void {
     config([
         'lighthouse.validation_cache.enable' => false,
         'api.cost_limit' => 0,
+        'api.max_per_page' => 100,
     ]);
 });
 
 it('publishes secure depth and complexity defaults when env is unset', function (): void {
     expect(config('lighthouse.security.max_query_depth'))
-        ->toBe(7)
+        ->toBe(15)
         ->and(config('lighthouse.security.max_query_depth'))
         ->not->toBe(QueryDepth::DISABLED)
         ->and(config('lighthouse.security.max_query_complexity'))
-        ->toBe(50)
+        ->toBe(2000)
         ->and(config('lighthouse.security.max_query_complexity'))
         ->not->toBe(QueryComplexity::DISABLED);
 });
 
 it('refuses a query deeper than the default max depth', function (): void {
-    // webonyx QueryDepth for this document is 8 (> default 7).
+    // Nested introspection ofType chain → webonyx depth 16 (> default 15).
     $response = $this->postJson('/api/graphql', [
         'query' => <<<'GRAPHQL'
             query DepthOverDefault {
@@ -48,7 +52,23 @@ it('refuses a query deeper than the default max depth', function (): void {
                           ofType {
                             ofType {
                               ofType {
-                                name
+                                ofType {
+                                  ofType {
+                                    ofType {
+                                      ofType {
+                                        ofType {
+                                          ofType {
+                                            ofType {
+                                              ofType {
+                                                name
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
@@ -68,11 +88,11 @@ it('refuses a query deeper than the default max depth', function (): void {
 });
 
 it('refuses a query above the default max complexity', function (): void {
-    // Each alias is collections + 4 fields = complexity 5; 11 aliases = 55 (> default 50).
+    // Full items selection ≈ complexity 15; 134 aliases ≈ 2010 (> default 2000).
     $aliases = [];
 
-    for ($index = 0; $index < 11; $index++) {
-        $aliases[] = "a{$index}: collections { id slug name is_singleton }";
+    for ($index = 0; $index < 134; $index++) {
+        $aliases[] = "a{$index}: items(collection: \"posts\", perPage: 100) { data { id collection_id data created_at updated_at published_at user_created_id user_updated_id } meta { current_page last_page per_page total } }";
     }
 
     $response = $this->postJson('/api/graphql', [
@@ -84,40 +104,50 @@ it('refuses a query above the default max complexity', function (): void {
     expect(strtolower($messages))->toContain('complexity');
 });
 
-it('allows the largest measured legitimate GraphQL query under the defaults', function (): void {
+it('allows the heaviest legitimate GraphQL query under the defaults', function (): void {
     $posts = makePostsCollection();
     grantPublicActions($posts, [CollectionPermissionActionEnum::Read]);
 
-    // Docs "Query items (+ collection)" example — measured depth 1, complexity 12.
+    // Max page size, every Item scalar, full PageMeta, plus collection.
+    // Relations/files/translations are not separate GraphQL fields (data: JSON).
+    // Measured: depth 1, complexity 20 (perPage does not multiply without @paginate).
     $response = $this->postJson('/api/graphql', [
         'query' => <<<'GRAPHQL'
-            query LargestLegitimate($slug: String!, $filter: JSON) {
+            query HeaviestLegitimate($slug: String!) {
               collection(slug: $slug) {
                 id
                 name
+                slug
                 is_singleton
               }
-              items(collection: $slug, filter: $filter, perPage: 15) {
+              items(collection: $slug, perPage: 100, page: 1) {
                 data {
                   id
+                  collection_id
                   data
+                  created_at
+                  updated_at
+                  published_at
                   user_created_id
+                  user_updated_id
                 }
                 meta {
-                  total
                   current_page
+                  last_page
+                  per_page
+                  total
                 }
               }
             }
             GRAPHQL,
         'variables' => [
             'slug' => 'posts',
-            'filter' => null,
         ],
     ])->assertOk();
 
     expect($response->json('errors'))->toBeNull()
         ->and($response->json('data.collection.name'))->toBe('Posts')
+        ->and($response->json('data.items.meta.per_page'))->toBe(100)
         ->and($response->json('data.items.meta.total'))->toBe(0);
 });
 
