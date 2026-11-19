@@ -133,6 +133,10 @@ export function TagPicker({
                             onValueChange={setQuery}
                             placeholder={resolvedPlaceholder}
                             onKeyDown={(event) => {
+                                if (event.nativeEvent.isComposing) {
+                                    return;
+                                }
+
                                 if (event.key === 'Enter' && canCreate) {
                                     event.preventDefault();
                                     createTag();

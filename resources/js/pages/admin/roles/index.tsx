@@ -313,6 +313,10 @@ export default function AdminRolesIndex({
                                 setDuplicateName(event.target.value)
                             }
                             onKeyDown={(event) => {
+                                if (event.nativeEvent.isComposing) {
+                                    return;
+                                }
+
                                 if (event.key === 'Enter') {
                                     event.preventDefault();
                                     submitDuplicate();

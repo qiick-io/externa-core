@@ -48,7 +48,7 @@ import {
  * or Remove clears it.
  * @returns {JSX.Element}
  */
-function WysiwygLinkPopover({ editor }: { editor: Editor }) {
+export function WysiwygLinkPopover({ editor }: { editor: Editor }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [url, setUrl] = useState('');
@@ -116,6 +116,10 @@ function WysiwygLinkPopover({ editor }: { editor: Editor }) {
                         value={url}
                         onChange={(event) => setUrl(event.target.value)}
                         onKeyDown={(event) => {
+                            if (event.nativeEvent.isComposing) {
+                                return;
+                            }
+
                             if (event.key === 'Enter') {
                                 event.preventDefault();
                                 applyLink();

@@ -110,6 +110,10 @@ export function FileUrlImportDialog({
                         setUrlError(null);
                     }}
                     onKeyDown={(event) => {
+                        if (event.nativeEvent.isComposing) {
+                            return;
+                        }
+
                         if (event.key === 'Enter') {
                             event.preventDefault();
                             void submit();

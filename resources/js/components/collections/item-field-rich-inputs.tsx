@@ -267,6 +267,10 @@ export function TagChipInput({
                             }
                             onChange={(event) => setDraft(event.target.value)}
                             onKeyDown={(event) => {
+                                if (event.nativeEvent.isComposing) {
+                                    return;
+                                }
+
                                 if (event.key === 'Enter') {
                                     event.preventDefault();
                                     addTag(draft);
