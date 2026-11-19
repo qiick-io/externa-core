@@ -5,14 +5,7 @@
             "resources/js/hooks/use-autosize-textarea.ts": 1
         },
         "ime-safe-enter-submit": {
-            "resources/js/components/admin/file-name-dialog.tsx": 1,
-            "resources/js/components/admin/file-url-import-dialog.tsx": 1,
-            "resources/js/components/admin/files/tag-picker.tsx": 1,
-            "resources/js/components/collections/item-field-rich-inputs.tsx": 1,
-            "resources/js/components/collections/rich-inputs/wysiwyg-field-input.tsx": 1,
-            "resources/js/components/confirm-destructive-dialog.tsx": 1,
-            "resources/js/pages/admin/roles/index.tsx": 1,
-            "resources/js/pages/collections/items/item-filters-builder.tsx": 1
+            "resources/js/components/confirm-destructive-dialog.tsx": 1
         },
         "js/copying-array-methods": {
             "resources/js/components/ai/ai-chat-messages.tsx": 1,

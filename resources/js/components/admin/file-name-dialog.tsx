@@ -109,6 +109,10 @@ export function FileNameDialog({
                         disabled={submitting}
                         onChange={(event) => setName(event.target.value)}
                         onKeyDown={(event) => {
+                            if (event.nativeEvent.isComposing) {
+                                return;
+                            }
+
                             if (event.key === 'Enter') {
                                 event.preventDefault();
                                 void submit();

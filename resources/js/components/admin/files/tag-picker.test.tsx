@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { TagPicker } from './tag-picker';
@@ -66,5 +66,49 @@ describe('TagPicker', () => {
             await screen.findByRole('option', { name: 'invoice' }),
         );
         expect(onChange).toHaveBeenLastCalledWith(['draft', 'invoice']);
+    });
+
+    it('does not create a tag on Enter while IME composition is open', async () => {
+        const onChange = vi.fn();
+        const user = userEvent.setup();
+        render(
+            <TagPicker
+                value={['draft']}
+                onChange={onChange}
+                catalog={catalog}
+            />,
+        );
+
+        await user.click(screen.getByRole('combobox'));
+        const input = await screen.findByPlaceholderText(
+            'files.tags.placeholder',
+        );
+
+        await user.type(input, 'contract');
+        fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+
+        expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('creates a tag on Enter when IME composition is not open', async () => {
+        const onChange = vi.fn();
+        const user = userEvent.setup();
+        render(
+            <TagPicker
+                value={['draft']}
+                onChange={onChange}
+                catalog={catalog}
+            />,
+        );
+
+        await user.click(screen.getByRole('combobox'));
+        const input = await screen.findByPlaceholderText(
+            'files.tags.placeholder',
+        );
+
+        await user.type(input, 'contract');
+        fireEvent.keyDown(input, { key: 'Enter' });
+
+        expect(onChange).toHaveBeenLastCalledWith(['draft', 'contract']);
     });
 });
