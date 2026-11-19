@@ -8,6 +8,7 @@ use App\Enums\RoleEnum;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Services\Mcp\McpClientCredentialsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\Log;
 class ApiKeyOwnerService
 {
     /**
-     * Revoke every active key owned by the user and log an activity entry per key.
+     * Revoke every active key owned by the user, and every OAuth grant with its tokens, and log
+     * an activity entry per key.
      *
      * @return int Number of keys revoked
      */
@@ -31,6 +33,12 @@ class ApiKeyOwnerService
         $count = 0;
         foreach ($keys as $key) {
             $key->forceFill(['revoked_at' => now()])->save();
+
+            // An OAuth grant (#802) also holds Passport tokens: withdraw them with it.
+            if ($key->isOAuthGrant()) {
+                app(McpClientCredentialsService::class)->revokeIssuedCredentials((string) $key->oauth_client_id, $owner->id);
+            }
+
             activity('api')
                 ->performedOn($key)
                 ->causedBy($owner)

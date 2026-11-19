@@ -7,11 +7,9 @@ namespace App\Actions\Mcp;
 use App\Data\Mcp\McpClientGrantData;
 use App\Enums\ApiKeyScopeEnum;
 use App\Models\ApiKey;
+use App\Services\Mcp\McpClientCredentialsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Laravel\Passport\AuthCode;
-use Laravel\Passport\RefreshToken;
-use Laravel\Passport\Token;
 
 /**
  * Record what a user approved for a remote MCP client (#802): the grant row every access token
@@ -31,6 +29,10 @@ use Laravel\Passport\Token;
  */
 final class GrantMcpClientAccessAction
 {
+    public function __construct(
+        private readonly McpClientCredentialsService $clientCredentials,
+    ) {}
+
     public function execute(McpClientGrantData $grantData): ApiKey
     {
         return DB::transaction(function () use ($grantData): ApiKey {
@@ -57,7 +59,7 @@ final class GrantMcpClientAccessAction
                 'created_by' => $grantData->user->id,
             ]);
 
-            $this->revokeEarlierCredentials($grantData);
+            $this->clientCredentials->revokeIssuedCredentials((string) $grantData->client->getKey(), $grantData->user->id);
 
             activity('api-keys')
                 ->causedBy($grantData->user)
@@ -75,23 +77,5 @@ final class GrantMcpClientAccessAction
 
             return $grant;
         });
-    }
-
-    /**
-     * Revoke what the client held for this user before this consent.
-     */
-    private function revokeEarlierCredentials(McpClientGrantData $grantData): void
-    {
-        $clientId = $grantData->client->getKey();
-        $userId = $grantData->user->id;
-
-        $tokenIds = Token::query()
-            ->where('client_id', $clientId)
-            ->where('user_id', $userId)
-            ->pluck('id');
-
-        Token::query()->whereIn('id', $tokenIds)->update(['revoked' => true]);
-        RefreshToken::query()->whereIn('access_token_id', $tokenIds)->update(['revoked' => true]);
-        AuthCode::query()->where('client_id', $clientId)->where('user_id', $userId)->update(['revoked' => true]);
     }
 }

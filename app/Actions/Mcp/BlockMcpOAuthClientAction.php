@@ -6,32 +6,32 @@ namespace App\Actions\Mcp;
 
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Services\Mcp\McpClientCredentialsService;
 use Illuminate\Support\Facades\DB;
-use Laravel\Passport\AuthCode;
 use Laravel\Passport\Client;
-use Laravel\Passport\RefreshToken;
-use Laravel\Passport\Token;
 
 /**
- * Block a dynamically registered MCP OAuth client (#815): revoke the client row and every
- * credential it holds (grants, tokens, codes), so the next call and the next consent fail.
+ * Block a dynamically registered MCP OAuth client (#815 / #816): revoke the client row and every
+ * grant and Passport credential it holds, so the next call, refresh and consent fail the same way
+ * as a user revocation from Connected apps.
  */
 final class BlockMcpOAuthClientAction
 {
+    public function __construct(
+        private readonly McpClientCredentialsService $clientCredentials,
+    ) {}
+
     public function execute(Client $client, User $actor): void
     {
         DB::transaction(function () use ($client, $actor): void {
             $client->forceFill(['revoked' => true])->save();
 
-            $tokenIds = Token::query()->where('client_id', $client->getKey())->pluck('id');
-            Token::query()->whereIn('id', $tokenIds)->update(['revoked' => true]);
-            RefreshToken::query()->whereIn('access_token_id', $tokenIds)->update(['revoked' => true]);
-            AuthCode::query()->where('client_id', $client->getKey())->update(['revoked' => true]);
-
             ApiKey::query()
                 ->where('oauth_client_id', $client->getKey())
                 ->whereNull('revoked_at')
                 ->update(['revoked_at' => now()]);
+
+            $this->clientCredentials->revokeAllIssuedCredentials((string) $client->getKey());
 
             activity('api-keys')
                 ->causedBy($actor)

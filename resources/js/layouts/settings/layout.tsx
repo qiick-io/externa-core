@@ -19,6 +19,7 @@ import { cn, toUrl } from '@/lib/utils';
 import apiKeys from '@/routes/api-keys';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editSidebar } from '@/routes/appearance/sidebar';
+import connectedApps from '@/routes/connected-apps';
 import jobs from '@/routes/jobs';
 import { edit as editPerformance } from '@/routes/performance';
 import permissions from '@/routes/permissions';
@@ -158,6 +159,16 @@ export default function SettingsLayout({
                   {
                       title: t('settings.layout.mcpOauthClients'),
                       href: '/settings/mcp-oauth-clients',
+                      icon: null,
+                  },
+              ]
+            : []),
+        // Every user's own grants to remote MCP clients, beside the API keys (#802 / #816).
+        ...(isMcpOAuthEnabled
+            ? [
+                  {
+                      title: t('settings.layout.connectedApps'),
+                      href: connectedApps.index.url(),
                       icon: null,
                   },
               ]
