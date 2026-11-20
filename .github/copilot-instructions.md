@@ -75,6 +75,12 @@ The Pest architecture test (`tests/Arch/NamingArchitectureTest.php`) enforces th
 - No `dd`, `dump`, `ray`, `var_dump`, `console.log` left behind. No `env()` outside `config/`.
 - Strict DRY: extract shared validation rules, scopes, DTO shapes and UI primitives instead of copying blocks.
 
+### Size: a tripwire, not a score
+
+- A frontend file holds at most **600** lines of code and a function (component, hook) at most **300**; blank lines and comments do not count, so documentation never pushes a file over. Generated Wayfinder output (`resources/js/actions`, `routes`, `wayfinder`) and `components/ui` are excluded.
+- The limits exist because the fleet grew dozens of god components nobody planned. They catch that shape of problem; they do not measure quality, and a file under them is not fine for that reason.
+- `max-lines` and `max-lines-per-function` are ratcheted warnings, never errors: today's outliers are listed in `qiick-lint-baseline.json` and a new one fails. An honest exception is baselined with `--update` and its reason in the PR. The ratchet counts files and functions over the limit, not lines, so a listed file can still grow: when you touch one, move code out, not in.
+
 ### Documentation (English PHPDoc / JSDoc)
 
 This replaces the "comment only exceptionally complex logic" default of Laravel Boost and similar guidelines.
@@ -88,7 +94,7 @@ This replaces the "comment only exceptionally complex logic" default of Laravel 
 
 ### Contracts: never break them
 
-1. **Migrations are forward-only.** Never edit, rename or delete a migration in `database/migrations/` once it is merged into a released version: existing self-hosted installs would no longer upgrade. A schema or stored-data change is a new migration with a safe backfill. The reusable `migrations-frozen.yml` fails CI when a migration on `main`, on the latest tag or in `database/migrations/.frozen` changes. A repo that has not released yet may state a pre-release exception in its own section.
+1. **Migrations freeze at the first stable release** (decision 2026-11-20). A stable release is a `v<major>.<minor>.<patch>` tag with no pre-release suffix (`v1.0.0` yes; `v1.0.0-beta.3`, `-rc.1` no). Until then, edit the `create_…` migration of the table (anyone with a local database runs `migrate:fresh --seed`); fold any `add_…` / `alter_…` / `drop_…` migrations accumulated during the betas into those `create_…` migrations so 1.0 ships one migration per table; beta release notes warn that an upgrade may need a fresh database. After the first stable tag, migrations are forward-only: never edit, rename or delete one in `database/migrations/` (existing self-hosted installs would no longer upgrade); a schema or stored-data change is a new migration with a safe backfill. The reusable `migrations-frozen.yml` passes with no stable tag (ignoring `origin/main`, pre-release tags and any `.frozen` baseline); once a stable tag exists it fails when a migration on `main`, on the latest _stable_ tag or in `database/migrations/.frozen` changes.
 2. **Framework method contracts keep their names** (no `is` / `has` prefix forced on them): `FormRequest::authorize()`, Policy methods (`viewAny`, `view`, `create`, `update`, `delete`, `restore`, `forceDelete`), `Rule::passes()` / `ValidationRule::validate()`, `broadcastWhen()`, `shouldQueue()`.
 3. **Native and library props keep their names:** `disabled`, `required`, `checked`, `open`, `defaultOpen`, `readOnly`, `asChild`, `modal`, `preserveScroll`, `preserveState`, `replace` (DOM, React, Radix / shadcn, Inertia). The prefix rule applies only to our own props and state.
 4. **Wire formats stay stable** when a PHP class is renamed: REST JSON keys, GraphQL type and field names, webhook payloads, `broadcastAs()` names, Inertia page paths, named routes, morph maps (`Relation::enforceMorphMap`), queued job class names. Enum backing values stay identical.
@@ -96,6 +102,18 @@ This replaces the "comment only exceptionally complex logic" default of Laravel 
 6. **Mechanical renames and behaviour changes never share a PR.** Land the `git mv` + import updates first with green tests, then extract or change logic in a separate PR.
 
 **Details:** `.qiick/standards/code.md`. Read it before creating or renaming a file, class, enum, job, command or other PHP / TypeScript unit.
+
+## graphify
+
+When this workspace has `graphify-out/graph.json`:
+
+- For codebase or architecture questions, first run `graphify query "<question>"` (or `graphify path "<A>" "<B>"` / `graphify explain "<concept>"`). These return a scoped subgraph, usually much smaller than `GRAPH_REPORT.md` or raw grep.
+- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files.
+- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code files, run `graphify update .` (AST-only, no API cost). Do not run it for doc-only or config-only changes with no code edits.
+- If `graphify-out/graph.json` does not exist, skip the above; do not invent a graph.
+
+`graphify-out/` is local and never committed; the graph is rebuilt by local git hooks (`graphify hook install`), and the merge-driver line that command writes to `.gitattributes` must not be committed.
 
 ## Backend conventions
 
@@ -106,7 +124,8 @@ How the five layers look in a qiick app. Each topic has a page with the externa-
 | Auth pages, 2FA, passkeys, SSO through Signaculum      | https://github.com/qiick-io/app-ui/blob/develop/docs/auth.md                  |
 | Roles, permissions, policies, `<app>:sync-permissions` | https://github.com/qiick-io/app-ui/blob/develop/docs/roles-and-permissions.md |
 | Error pages 403 / 404 / 500 / 503                      | https://github.com/qiick-io/app-ui/blob/develop/docs/error-pages.md           |
-| REST API, OpenAPI, API keys and scopes                 | https://github.com/qiick-io/app-ui/blob/develop/docs/api.md                   |
+| REST API, OpenAPI, rate limits                         | https://github.com/qiick-io/app-ui/blob/develop/docs/api.md                   |
+| API keys: storage, scopes, rotation, revocation        | https://github.com/qiick-io/app-ui/blob/develop/docs/api-keys.md              |
 | Realtime: Reverb, channels, presence                   | https://github.com/qiick-io/app-ui/blob/develop/docs/realtime.md              |
 | Security headers                                       | https://github.com/qiick-io/app-ui/blob/develop/docs/security-headers.md      |
 | Logging and activity (audit) log                       | https://github.com/qiick-io/app-ui/blob/develop/docs/logging-and-audit.md     |
@@ -178,7 +197,7 @@ Machines enforce these in CI; keep them green, and never silence one to get gree
 
 - **PHP quality floor:** PHPStan (Larastan) at level **8** at least in apps and **`max`** in packages; the level never drops and `phpstan-baseline.neon` only shrinks. Apps run Pest with line coverage in CI and fail below the committed `coverage-floor.txt`, which only rises; packages keep a fixed minimum per path. Both run in the reusable `php-quality.yml`.
 
-**Details:** `.qiick/standards/checks.md`. Read it before fixing a failing check, or touching a baseline, `knip.json`, a ratchet or the strict-model setup.
+**Details:** `.qiick/standards/checks.md`. Read it before fixing a failing check, adding or changing a GitHub Actions workflow, or touching a baseline, `knip.json`, a ratchet or the strict-model setup.
 
 ## Self-hosted app distribution
 

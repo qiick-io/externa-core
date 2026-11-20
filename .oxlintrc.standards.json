@@ -63,6 +63,14 @@
                 "exceptions": ["i", "j", "k", "t", "T", "_"],
                 "properties": "never"
             }
+        ],
+        "max-lines": [
+            "warn",
+            { "max": 600, "skipBlankLines": true, "skipComments": true }
+        ],
+        "max-lines-per-function": [
+            "warn",
+            { "max": 300, "skipBlankLines": true, "skipComments": true }
         ]
     },
     "overrides": [
