@@ -164,6 +164,66 @@ it('aborts apply when confirm is declined', function () {
     Process::assertRanTimes(fn (PendingProcess $process) => implode(' ', gitArgs($process)) === 'merge --no-edit v1.0.0', 0);
 });
 
+it('restarts queue before and after migrate then brings the app up', function () {
+    expect(Artisan::call(UpgradeCommand::class, [
+        '--force' => true,
+        '--no-permissions' => true,
+    ]))->toBe(0);
+
+    $output = Artisan::output();
+    $beforeRestart = strpos($output, 'Restarting queue workers (before migrate)');
+    $migrate = strpos($output, 'Running migrate --force');
+    $afterRestart = strpos($output, 'Restarting queue workers (after migrate)');
+    $bringUp = strpos($output, 'Bringing the application back up');
+
+    expect($beforeRestart)->not->toBeFalse()
+        ->and($migrate)->not->toBeFalse()
+        ->and($afterRestart)->not->toBeFalse()
+        ->and($bringUp)->not->toBeFalse()
+        ->and($beforeRestart)->toBeLessThan($migrate)
+        ->and($migrate)->toBeLessThan($afterRestart)
+        ->and($afterRestart)->toBeLessThan($bringUp)
+        ->and(app()->isDownForMaintenance())->toBeFalse();
+});
+
+it('leaves the application in maintenance mode when migrate fails', function () {
+    $migrationsPath = database_path('migrations-upgrade-fail-'.uniqid());
+    mkdir($migrationsPath);
+    file_put_contents($migrationsPath.'/2099_01_01_000000_force_fail.php', <<<'PHP'
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        throw new RuntimeException('forced migrate failure');
+    }
+
+    public function down(): void
+    {
+    }
+};
+PHP);
+
+    app('migrator')->path($migrationsPath);
+
+    try {
+        expect(Artisan::call(UpgradeCommand::class, [
+            '--force' => true,
+            '--no-permissions' => true,
+        ]))->not->toBe(0);
+
+        expect(Artisan::output())->toContain('Migrate failed; leaving the application in maintenance mode.')
+            ->and(app()->isDownForMaintenance())->toBeTrue();
+    } finally {
+        Artisan::call('up');
+        @unlink($migrationsPath.'/2099_01_01_000000_force_fail.php');
+        @rmdir($migrationsPath);
+    }
+});
+
 it('fails clearly when merge conflicts', function () {
     fakeGit([
         'rev-parse --is-inside-work-tree' => Process::result("true\n"),

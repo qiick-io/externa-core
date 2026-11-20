@@ -37,9 +37,23 @@ final class UserRelationColumnService
         return implode(',', $this->selectColumns());
     }
 
+    /**
+     * Only the positive result is memoised: before the column exists we re-probe so a long-lived
+     * worker that saw "missing" still notices it after migrate (upgrade also calls forget).
+     */
     public function hasPublicIdColumn(): bool
     {
-        return self::$hasPublicIdColumn ??= Schema::hasColumn('users', 'public_id');
+        if (self::$hasPublicIdColumn === true) {
+            return true;
+        }
+
+        if (Schema::hasColumn('users', 'public_id')) {
+            self::$hasPublicIdColumn = true;
+
+            return true;
+        }
+
+        return false;
     }
 
     public static function forgetPublicIdColumnCache(): void

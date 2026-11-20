@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Api\ApiKeyOwnerService;
+use App\Services\Api\UserRelationColumnService;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -76,10 +77,16 @@ class User extends Authenticatable implements PasskeyUser
     /**
      * Only `public_id` is a generated UUID; the primary key stays an auto-increment id.
      *
+     * Empty during the deploy window before the column exists so HasUuids does not write it.
+     *
      * @return list<string>
      */
     public function uniqueIds(): array
     {
+        if (! app(UserRelationColumnService::class)->hasPublicIdColumn()) {
+            return [];
+        }
+
         return ['public_id'];
     }
 

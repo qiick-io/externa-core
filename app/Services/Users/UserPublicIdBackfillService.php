@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Users;
 
+use App\Services\Api\UserRelationColumnService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -11,15 +12,22 @@ use Illuminate\Support\Str;
  * Idempotent UUID v7 backfill for `users.public_id` (#827 step 2).
  *
  * Existing rows stay on the bigint primary key; only null `public_id` values are filled,
- * in chunks, so a large install can resume after an interrupt.
+ * in chunks, so a large install can resume after an interrupt. Dry-run works before the
+ * column exists (every user still needs a public_id).
  */
 final class UserPublicIdBackfillService
 {
     /**
      * How many users still need a public_id.
+     *
+     * Before the column exists every user needs backfill (do not query a missing column).
      */
     public function missingCount(): int
     {
+        if (! app(UserRelationColumnService::class)->hasPublicIdColumn()) {
+            return (int) DB::table('users')->count();
+        }
+
         return (int) DB::table('users')->whereNull('public_id')->count();
     }
 
@@ -30,6 +38,10 @@ final class UserPublicIdBackfillService
      */
     public function backfill(int $chunkSize = 500): int
     {
+        if (! app(UserRelationColumnService::class)->hasPublicIdColumn()) {
+            return 0;
+        }
+
         $written = 0;
 
         do {
@@ -51,6 +63,8 @@ final class UserPublicIdBackfillService
                 $written++;
             }
         } while ($userIds->count() === $chunkSize);
+
+        UserRelationColumnService::forgetPublicIdColumnCache();
 
         return $written;
     }
