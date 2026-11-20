@@ -387,6 +387,8 @@ function baseSecurityPayload(array $overrides = []): array
         'two_factor_required' => false,
         'oidc_enabled' => false,
         'oidc_jit_provisioning' => false,
+        'oidc_auto_link' => false,
+        'oidc_only' => false,
     ], $overrides);
 }
 

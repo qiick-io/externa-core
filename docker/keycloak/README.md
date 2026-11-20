@@ -17,7 +17,7 @@ docker compose -f compose.yaml -f compose.oidc.yaml --profile oidc up --build
 | Realm issuer | http://localhost:8080/realms/externa |
 | Discovery (browser) | http://localhost:8080/realms/externa/.well-known/openid-configuration |
 
-Compose sets `OIDC_DISCOVERY_BASE=http://keycloak:8080/realms/externa` and `OIDC_SERVER_ORIGIN=http://keycloak:8080` on `app` so PHP can reach Keycloak on the Docker network while the **browser** uses `localhost` (authorize redirect + Settings issuer).
+Compose sets `OIDC_DISCOVERY_BASE` / `OIDC_SERVER_ORIGIN` on `app` (`oidc.http.*` for `qiick/laravel-oidc`) so PHP can reach Keycloak on the Docker network while the **browser** uses `localhost` (authorize redirect + Settings issuer).
 
 Override host port with `FORWARD_KEYCLOAK_PORT` if `:8080` is taken (also updates `KC_HOSTNAME`).
 

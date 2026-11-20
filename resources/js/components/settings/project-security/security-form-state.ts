@@ -15,6 +15,8 @@ export type SecurityProjectSettings = Pick<
     | 'oidc_client_secret_configured'
     | 'oidc_button_label'
     | 'oidc_jit_provisioning'
+    | 'oidc_auto_link'
+    | 'oidc_only'
 >;
 
 /**
@@ -36,6 +38,8 @@ export function buildFormState(project: SecurityProjectSettings) {
         oidc_client_secret: '',
         oidc_button_label: project.oidc_button_label ?? '',
         oidc_jit_provisioning: project.oidc_jit_provisioning ?? false,
+        oidc_auto_link: project.oidc_auto_link ?? false,
+        oidc_only: project.oidc_only ?? false,
     };
 }
 

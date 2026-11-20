@@ -532,7 +532,7 @@
             "oidcButtonLabel": "Login-Button-Beschriftung",
             "oidcButtonLabelPlaceholder": "Mit SSO anmelden",
             "oidcJitProvisioning": "JIT-Benutzerbereitstellung erlauben",
-            "oidcJitProvisioningHint": "Wenn aus (Standard), können nur vorhandene Benutzer sich per SSO anmelden (Verknüpfung über verifizierte E-Mail). Wenn an, erstellen unbekannte verifizierte E-Mails Benutzer gemäß erlaubten Domains und Standardrolle.",
+            "oidcJitProvisioningHint": "Wenn aus (Standard), können nur bestehende Benutzer sich per SSO anmelden. Mit Auto-Link verknüpfen sie sich über verifizierte E-Mail; sonst braucht es eine user_identities-Zeile (oder ein legacy oidc_sub in 1.6). Wenn an, legen unbekannte verifizierte E-Mails Benutzer mit erlaubten Domains und der Standardrolle an.",
             "oidcRedirectHint": "Diese Redirect-URI beim IdP registrieren: {{url}}",
             "registrationTitle": "Benutzerregistrierung",
             "registrationDescription": "Öffentliche Registrierung und Standardwerte für neue Konten steuern",
@@ -704,7 +704,12 @@
                 "breadcrumb": "Integrationen",
                 "head": "Integrationen"
             },
-            "deployHookNamePlaceholder": "Produktion"
+            "deployHookNamePlaceholder": "Produktion",
+            "oidcAutoLink": "Bestehende Benutzer per verifizierter E-Mail verknüpfen",
+            "oidcAutoLinkHint": "Wenn aktiv, wird ein SSO-Login mit verifizierter E-Mail, die lokal bereits existiert, mit diesem Konto verknüpft. Nur für einen vertrauenswürdigen IdP einschalten, bei dem Benutzer keine beliebige E-Mail wählen können.",
+            "oidcOnly": "Nur-SSO-Modus",
+            "oidcOnlyHint": "Blendet das Passwortformular aus. Ein Break-Glass-Super-Admin mit zweitem Faktor kann sich unter /login?local=1 anmelden, wenn der IdP ausfällt.",
+            "oidcBackchannelHint": "Registrieren Sie diese Back-Channel-Logout-URI beim IdP: {{url}}"
         },
         "appearance": {
             "breadcrumb": "Darstellungseinstellungen",

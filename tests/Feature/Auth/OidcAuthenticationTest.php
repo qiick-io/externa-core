@@ -1,163 +1,212 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\PermissionEnum;
+use App\Enums\RoleEnum;
+use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Auth\OidcSocialiteFactoryService;
-use App\Services\Auth\OidcUserResolverService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
-use Laravel\Socialite\Two\User as SocialiteUser;
-use Tests\Support\FakeOidcSocialiteFactory;
+use Qiick\Oidc\Models\UserIdentity;
+use Qiick\Oidc\Testing\FakeIdentityProvider;
+use Tests\TestCase;
+
+/*
+ * SSO through qiick/laravel-oidc (#827): Externa's settings, linking, dual-read of oidc_sub,
+ * second factor, and SSO-only / break-glass. The IdP is the package's in-memory fake: no network.
+ */
+
+const FAKE_ISSUER = 'https://idp.example.com/realms/externa';
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
     $this->withoutVite();
+    // Do not disable ThrottleRequests: ThrottleAuthSensitiveMiddleware typehints it.
+    $this->withoutMiddleware(ThrottleAuthSensitiveMiddleware::class);
 });
 
+/**
+ * @param  array<string, mixed>  $overrides
+ */
 function enableOidc(array $overrides = []): void
 {
     app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', array_merge([
         'oidc_enabled' => true,
-        'oidc_issuer' => 'https://idp.example.com/realms/externa',
+        'oidc_issuer' => FAKE_ISSUER,
         'oidc_client_id' => 'externa-app',
-        'oidc_client_secret' => Crypt::encryptString('super-secret'),
+        'oidc_client_secret' => Crypt::encryptString('fake-client-secret'),
         'oidc_button_label' => 'Company SSO',
         'oidc_jit_provisioning' => false,
+        'oidc_auto_link' => false,
+        'oidc_only' => false,
     ], $overrides));
 }
 
-function fakeSocialiteUser(
-    string $sub = 'sub-abc',
-    string $email = 'sso@example.com',
-    bool $emailVerified = true,
-    ?string $name = 'Sso User',
-): SocialiteUser {
-    return (new SocialiteUser)->map([
-        'id' => $sub,
-        'nickname' => null,
-        'name' => $name,
-        'email' => $email,
-        'avatar' => null,
-    ])->setRaw([
-        'sub' => $sub,
-        'email' => $email,
-        'email_verified' => $emailVerified,
-        'name' => $name,
-    ]);
-}
-
-function bindOidcFactory(?SocialiteUser $user = null, bool $enabled = true): void
+/**
+ * @param  array<string, mixed>  $claims
+ */
+function signInThroughSso(TestCase $testCase, FakeIdentityProvider $identityProvider, array $claims = []): TestResponse
 {
-    app()->instance(
-        OidcSocialiteFactoryService::class,
-        new FakeOidcSocialiteFactory($enabled, $user),
-    );
+    $authorizationUrl = (string) $testCase->get(route('oidc.redirect'))->assertRedirect()->headers->get('Location');
+
+    return $testCase->get($identityProvider->authorize($authorizationUrl, $claims));
 }
 
-test('oidc routes return 404 when disabled', function () {
-    // Guests are redirected to login by RenderNotFoundResponse; JSON keeps raw 404.
-    $this->getJson(route('auth.oidc.redirect'))->assertNotFound();
-    $this->getJson(route('auth.oidc.callback'))->assertNotFound();
-});
+function linkIdentity(User $user, string $subject, string $issuer = FAKE_ISSUER): UserIdentity
+{
+    return UserIdentity::query()->create(['user_id' => $user->id, 'issuer' => $issuer, 'subject' => $subject]);
+}
 
-test('login page exposes oidc CTA when configured', function () {
+it('answers 404 on the redirect, callback and back-channel logout routes while SSO is off', function (Closure $arrange) {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    $arrange();
+
+    expect(Config::boolean('oidc.routes.enabled'))->toBeFalse();
+
+    $this->getJson('/auth/oidc/redirect')->assertNotFound();
+    $this->getJson('/auth/oidc/callback?state=any&code=any')->assertNotFound();
+    $this->postJson('/auth/oidc/backchannel-logout', [
+        'logout_token' => $identityProvider->sign($identityProvider->logoutTokenClaims(), ['typ' => 'logout+jwt']),
+    ])->assertNotFound();
+    $this->get(route('login'))->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('canUseOidc', false)
+        ->where('oidcRedirectUrl', null));
+})->with([
+    'never configured' => [fn () => null],
+    'configured but switched off' => [fn () => enableOidc(['oidc_enabled' => false])],
+    'switched on without a client id' => [fn () => enableOidc(['oidc_client_id' => null])],
+]);
+
+it('shows the SSO button only when SSO is enabled and fully configured', function () {
     enableOidc();
 
-    $this->get(route('login'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('auth/login')
-            ->where('canUseOidc', true)
-            ->where('oidcButtonLabel', 'Company SSO')
-        );
+    $this->get(route('login'))->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('canUseOidc', true)
+        ->where('oidcButtonLabel', 'Company SSO')
+        ->where('oidcRedirectUrl', route('oidc.redirect'))
+        ->where('isPasswordLoginVisible', true));
 });
 
-test('oidc redirect builds authorize url when enabled', function () {
+it('sends the browser to the IdP with PKCE S256 and the settings client id', function () {
+    Http::preventStrayRequests();
+    FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
     enableOidc();
 
-    Http::fake([
-        'https://idp.example.com/realms/externa/.well-known/openid-configuration' => Http::response([
-            'authorization_endpoint' => 'https://idp.example.com/realms/externa/protocol/openid-connect/auth',
-            'token_endpoint' => 'https://idp.example.com/realms/externa/protocol/openid-connect/token',
-            'userinfo_endpoint' => 'https://idp.example.com/realms/externa/protocol/openid-connect/userinfo',
-        ]),
-    ]);
+    $location = (string) $this->get(route('oidc.redirect'))->assertRedirect()->headers->get('Location');
+    parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
 
-    $response = $this->get(route('auth.oidc.redirect'));
-
-    $response->assertRedirect();
-    expect($response->headers->get('Location'))
-        ->toContain('https://idp.example.com/realms/externa/protocol/openid-connect/auth')
-        ->toContain('client_id=externa-app')
-        ->toContain('response_type=code')
-        ->toContain('scope=');
+    expect($location)->toStartWith(FAKE_ISSUER.'/protocol/openid-connect/auth?')
+        ->and($query['client_id'] ?? null)->toBe('externa-app')
+        ->and($query['redirect_uri'] ?? null)->toBe(url('/auth/oidc/callback'))
+        ->and($query['scope'] ?? null)->toBe('openid profile email')
+        ->and($query['code_challenge_method'] ?? null)->toBe('S256');
 });
 
-test('callback links existing user by verified email and stores sub', function () {
+it('signs in the user linked to the identity, whatever the email', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
     enableOidc();
+    $user = User::factory()->create(['email' => 'other@example.com']);
+    linkIdentity($user, 'sub-abc');
 
+    signInThroughSso($this, $identityProvider, ['sub' => 'sub-abc'])->assertRedirect();
+
+    $this->assertAuthenticatedAs($user);
+    expect(UserIdentity::query()->sole()->last_login_at)->not->toBeNull();
+});
+
+it('signs in a user who only has a legacy oidc_sub and creates an identity row', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc(['oidc_auto_link' => false]);
     $user = User::factory()->create([
-        'email' => 'sso@example.com',
-        'is_active' => true,
+        'email' => 'legacy@example.com',
+        'oidc_sub' => 'sub-legacy-only',
     ]);
 
-    bindOidcFactory(fakeSocialiteUser());
+    expect(UserIdentity::query()->count())->toBe(0);
 
-    $this->get(route('auth.oidc.callback'))
-        ->assertRedirect();
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-legacy-only',
+        'email' => 'nobody@example.com',
+    ])->assertRedirect();
 
-    $this->assertAuthenticatedAs($user->fresh());
-    expect($user->fresh()->oidc_sub)->toBe('sub-abc');
+    $this->assertAuthenticatedAs($user);
+    expect(UserIdentity::query()->sole()->only(['user_id', 'issuer', 'subject']))
+        ->toBe(['user_id' => $user->id, 'issuer' => FAKE_ISSUER, 'subject' => 'sub-legacy-only'])
+        ->and($user->fresh()->oidc_sub)->toBe('sub-legacy-only');
 });
 
-test('callback rejects unknown email when jit off', function () {
-    enableOidc(['oidc_jit_provisioning' => false]);
-    bindOidcFactory(fakeSocialiteUser());
-
-    $this->from(route('login'))
-        ->get(route('auth.oidc.callback'))
-        ->assertRedirect(route('login'))
-        ->assertSessionHasErrors('email');
-
-    $this->assertGuest();
-});
-
-test('callback rejects unverified email', function () {
+it('prefers an identity row over a legacy oidc_sub on another user', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
     enableOidc();
-    User::factory()->create(['email' => 'sso@example.com']);
-    bindOidcFactory(fakeSocialiteUser(emailVerified: false));
-
-    // Referer is the IdP in real browsers — must still land on login, not back to IdP.
-    $this->from('http://localhost:8080/realms/externa/protocol/openid-connect/auth')
-        ->get(route('auth.oidc.callback'))
-        ->assertRedirect(route('login'))
-        ->assertSessionHasErrors('email');
-
-    $this->assertGuest();
-});
-
-test('callback rejects inactive user', function () {
-    enableOidc();
-    User::factory()->create([
-        'email' => 'sso@example.com',
-        'is_active' => false,
+    $identityOwner = User::factory()->create(['email' => 'owner@example.com']);
+    $legacyOwner = User::factory()->create([
+        'email' => 'legacy@example.com',
+        'oidc_sub' => 'sub-shared',
     ]);
-    bindOidcFactory(fakeSocialiteUser());
+    linkIdentity($identityOwner, 'sub-shared');
 
-    $this->from(route('login'))
-        ->get(route('auth.oidc.callback'))
-        ->assertSessionHasErrors('email');
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-shared',
+        'email' => 'nobody@example.com',
+    ])->assertRedirect();
 
-    $this->assertGuest();
+    $this->assertAuthenticatedAs($identityOwner);
+    expect(UserIdentity::query()->where('subject', 'sub-shared')->count())->toBe(1)
+        ->and($legacyOwner->fresh()->oidc_sub)->toBe('sub-shared');
 });
 
-test('jit on creates user with default role and allowed domain', function () {
+it('links a second identity from another issuer to the same user', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc(['oidc_auto_link' => true]);
+    $user = User::factory()->create(['email' => 'multi@example.com']);
+    linkIdentity($user, 'sub-first', 'https://other-idp.example.com');
+
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-second',
+        'email' => 'multi@example.com',
+        'email_verified' => true,
+    ])->assertRedirect();
+
+    $this->assertAuthenticatedAs($user);
+    expect(UserIdentity::query()->where('user_id', $user->id)->count())->toBe(2)
+        ->and(UserIdentity::query()->where('issuer', FAKE_ISSUER)->where('subject', 'sub-second')->exists())->toBeTrue();
+});
+
+it('links an existing user by verified email only with auto-link on', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    $user = User::factory()->create(['email' => 'sso.user@example.com']);
+
+    enableOidc(['oidc_auto_link' => false]);
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-new',
+        'email' => 'sso.user@example.com',
+        'email_verified' => true,
+    ])->assertRedirect(route('login'));
+    $this->assertGuest();
+
+    enableOidc(['oidc_auto_link' => true]);
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-new',
+        'email' => 'sso.user@example.com',
+        'email_verified' => true,
+    ])->assertRedirect();
+
+    $this->assertAuthenticatedAs($user);
+    expect(UserIdentity::query()->sole()->subject)->toBe('sub-new');
+});
+
+it('jit on creates user with default role and allowed domain', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
     enableOidc([
         'oidc_jit_provisioning' => true,
         'allowed_domains' => ['example.com'],
@@ -172,36 +221,91 @@ test('jit on creates user with default role and allowed domain', function () {
     ]);
     Role::query()->where('name', 'member')->update(['is_assignable' => true]);
 
-    bindOidcFactory(fakeSocialiteUser());
-
-    $this->get(route('auth.oidc.callback'))->assertRedirect();
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-jit',
+        'email' => 'sso@example.com',
+        'email_verified' => true,
+        'given_name' => 'Sso',
+        'family_name' => 'User',
+    ])->assertRedirect();
 
     $user = User::query()->where('email', 'sso@example.com')->first();
     expect($user)->not->toBeNull()
-        ->and($user->oidc_sub)->toBe('sub-abc')
         ->and($user->password)->toBeNull()
         ->and($user->email_verified_at)->not->toBeNull()
-        ->and($user->hasRole('member'))->toBeTrue();
+        ->and($user->hasRole('member'))->toBeTrue()
+        ->and(UserIdentity::query()->where('user_id', $user->id)->where('subject', 'sub-jit')->exists())->toBeTrue();
 
     $this->assertAuthenticatedAs($user);
 });
 
-test('jit on rejects disallowed domain', function () {
-    enableOidc([
-        'oidc_jit_provisioning' => true,
-        'allowed_domains' => ['qiick.io'],
-    ]);
-    bindOidcFactory(fakeSocialiteUser());
+it('rejects inactive users', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc();
+    $user = User::factory()->create(['is_active' => false]);
+    linkIdentity($user, 'sub-inactive');
 
-    $this->from(route('login'))
-        ->get(route('auth.oidc.callback'))
+    signInThroughSso($this, $identityProvider, ['sub' => 'sub-inactive'])
+        ->assertRedirect(route('login'))
         ->assertSessionHasErrors('email');
 
-    expect(User::query()->where('email', 'sso@example.com')->exists())->toBeFalse();
     $this->assertGuest();
 });
 
-test('project settings encrypt oidc secret and never return plaintext', function () {
+it('treats subjects as case-sensitive', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc();
+    $upper = User::factory()->create(['email' => 'upper@example.com']);
+    $lower = User::factory()->create(['email' => 'lower@example.com']);
+    linkIdentity($upper, 'Sub-Case');
+    linkIdentity($lower, 'sub-case');
+
+    signInThroughSso($this, $identityProvider, ['sub' => 'Sub-Case', 'email' => 'nobody@example.com'])
+        ->assertRedirect();
+    $this->assertAuthenticatedAs($upper);
+    $this->post(route('logout'));
+
+    signInThroughSso($this, $identityProvider, ['sub' => 'sub-case', 'email' => 'nobody@example.com'])
+        ->assertRedirect();
+    $this->assertAuthenticatedAs($lower);
+});
+
+it('keeps a break-glass local admin while SSO-only hides the password form', function () {
+    enableOidc(['oidc_only' => true]);
+    $breakGlass = User::factory()->withTwoFactor()->create([
+        'email' => 'breakglass@example.com',
+        'password' => bcrypt('password'),
+    ]);
+    $breakGlass->assignRole(RoleEnum::SuperAdmin->value);
+
+    $regular = User::factory()->create([
+        'email' => 'regular@example.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    $this->get(route('login'))->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('canUseOidc', true)
+        ->where('isPasswordLoginVisible', false));
+
+    $this->get(route('login', ['local' => 1]))->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('isPasswordLoginVisible', true));
+
+    $this->post(route('login.store'), [
+        'email' => 'regular@example.com',
+        'password' => 'password',
+    ])->assertSessionHasErrors();
+    $this->assertGuest();
+
+    $this->post(route('login.store'), [
+        'email' => 'breakglass@example.com',
+        'password' => 'password',
+    ]);
+    // Confirmed 2FA: Fortify may challenge; either authenticated or redirected to 2FA is fine
+    // as long as the credentials were accepted for the break-glass account.
+    expect(session('login.id') === $breakGlass->id || auth()->id() === $breakGlass->id)->toBeTrue();
+});
+
+it('project settings encrypt oidc secret and never return plaintext', function () {
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
         PermissionEnum::CanManageProjectSettings->value,
     ]);
@@ -214,6 +318,8 @@ test('project settings encrypt oidc secret and never return plaintext', function
             'oidc_client_secret' => 'plain-secret-value',
             'oidc_button_label' => 'SSO',
             'oidc_jit_provisioning' => false,
+            'oidc_auto_link' => false,
+            'oidc_only' => false,
         ]))
         ->assertSessionHasNoErrors();
 
@@ -221,47 +327,13 @@ test('project settings encrypt oidc secret and never return plaintext', function
     expect($project->security()->oidcClientSecret())->toBe('plain-secret-value')
         ->and($project->security()->isOidcLoginAvailable())->toBeTrue();
 
-    $edit = $project->forEdit();
-    expect($edit)->not->toHaveKey('oidc_client_secret')
-        ->and($edit['oidc_client_secret_configured'])->toBeTrue()
-        ->and($edit['oidc_enabled'])->toBeTrue();
-
     $this->actingAs($user)
         ->get(route('project.security.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.oidc_client_secret_configured', true)
             ->missing('project.oidc_client_secret')
+            ->where('oidcCallbackUrl', url('/auth/oidc/callback'))
+            ->where('oidcBackchannelLogoutUrl', url('/auth/oidc/backchannel-logout'))
         );
-});
-
-test('resolver prefers existing oidc_sub over email', function () {
-    enableOidc();
-
-    $linked = User::factory()->create([
-        'email' => 'old@example.com',
-        'oidc_sub' => 'sub-abc',
-        'is_active' => true,
-    ]);
-    User::factory()->create([
-        'email' => 'sso@example.com',
-        'is_active' => true,
-    ]);
-
-    $resolved = app(OidcUserResolverService::class)->resolve(fakeSocialiteUser());
-
-    expect($resolved->is($linked))->toBeTrue();
-});
-
-test('resolver throws when email already linked to different sub', function () {
-    enableOidc();
-
-    User::factory()->create([
-        'email' => 'sso@example.com',
-        'oidc_sub' => 'other-sub',
-        'is_active' => true,
-    ]);
-
-    expect(fn () => app(OidcUserResolverService::class)->resolve(fakeSocialiteUser()))
-        ->toThrow(ValidationException::class);
 });

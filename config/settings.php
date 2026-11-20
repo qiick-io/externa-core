@@ -72,6 +72,8 @@ return [
             'oidc_client_secret',
             'oidc_button_label',
             'oidc_jit_provisioning',
+            'oidc_auto_link',
+            'oidc_only',
             'preview_url_default',
             'revision_retention_count',
             'revision_retention_days',
@@ -172,6 +174,8 @@ return [
             'oidc_client_secret' => null,
             'oidc_button_label' => null,
             'oidc_jit_provisioning' => false,
+            'oidc_auto_link' => false,
+            'oidc_only' => false,
             // Live Preview URL template fallback (tokens: {{id}} {{slug}} {{collection}} {{locale}} {{version}} {{token}})
             'preview_url_default' => null,
             // Null = unlimited; collections can override per axis

@@ -40,11 +40,11 @@ it('returns a generic user message for blocked CGNAT (no IP oracle)', function (
 });
 
 it('oidc validator respects private-host opt-in', function (): void {
-    config(['services.oidc.allow_private_hosts' => false]);
+    config(['oidc.http.allow_private_hosts' => false]);
     expect(SafeRemoteUrlValidator::validateOidcEndpoint('http://10.0.0.5/.well-known/openid-configuration'))
         ->not->toBeNull();
 
-    config(['services.oidc.allow_private_hosts' => true]);
+    config(['oidc.http.allow_private_hosts' => true]);
     expect(SafeRemoteUrlValidator::validateOidcEndpoint('http://10.0.0.5/.well-known/openid-configuration'))
         ->toBeNull();
 });

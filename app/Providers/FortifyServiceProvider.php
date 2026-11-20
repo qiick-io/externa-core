@@ -8,9 +8,11 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
 use App\Http\Responses\PasskeyLoginResponse;
+use App\Models\User;
 use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -19,6 +21,8 @@ use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use Laravel\Passkeys\Contracts\PasskeyLoginResponse as PasskeyLoginResponseContract;
+use Laravel\Passkeys\Passkeys;
+use Qiick\Oidc\Services\SsoOnlyModeService;
 
 /**
  * Configures Laravel Fortify authentication views, actions, and rate limiting.
@@ -54,6 +58,28 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+
+        // Fortify and passkeys bypass Auth::attempt(), so the package's EnforceSsoOnlyListener
+        // never sees them: refuse local login here when SSO-only mode is on (except break-glass).
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $user = User::query()->where(Fortify::username(), $request->input(Fortify::username()))->first();
+
+            if ($user === null || $user->password === null || ! Hash::check((string) $request->input('password'), $user->password)) {
+                return null;
+            }
+
+            if (! $user->is_active || ! app(SsoOnlyModeService::class)->canUseLocalLogin($user)) {
+                return null;
+            }
+
+            return $user;
+        });
+
+        Passkeys::authorizeLoginUsing(
+            fn (Request $request, $user): bool => $user instanceof User
+                && $user->is_active
+                && app(SsoOnlyModeService::class)->canUseLocalLogin($user),
+        );
     }
 
     /**
@@ -63,14 +89,19 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(function (Request $request) {
             $securitySettings = app(ProjectSettingsService::class)->security();
+            $oidcLoginOptions = app(SsoOnlyModeService::class)->loginOptions($request);
 
             return Inertia::render('auth/login', [
                 'canResetPassword' => Features::enabled(Features::resetPasswords()),
                 'canRegister' => Features::enabled(Features::registration())
-                    && $securitySettings->isRegistrationEnabled(),
-                'canManagePasskeys' => Features::canManagePasskeys(),
-                'canUseOidc' => $securitySettings->isOidcLoginAvailable(),
-                'oidcButtonLabel' => $securitySettings->oidcButtonLabel(),
+                    && $securitySettings->isRegistrationEnabled()
+                    && $oidcLoginOptions->isPasswordLoginVisible,
+                'canManagePasskeys' => Features::canManagePasskeys()
+                    && $oidcLoginOptions->isPasswordLoginVisible,
+                'canUseOidc' => $oidcLoginOptions->isSsoAvailable,
+                'oidcButtonLabel' => $oidcLoginOptions->buttonLabel,
+                'oidcRedirectUrl' => $oidcLoginOptions->redirectUrl,
+                'isPasswordLoginVisible' => $oidcLoginOptions->isPasswordLoginVisible,
                 'status' => $request->session()->get('status'),
             ]);
         });

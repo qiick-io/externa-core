@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
 use App\Services\Api\CollectionPermissionRulesService;
-use App\Services\Auth\OidcSocialiteFactoryService;
 use App\Services\Authorization\SuperAdminGuardService;
 use App\Services\Chat\ChatService;
 use App\Services\Collections\FieldConditionEvaluatorService;
@@ -34,7 +33,6 @@ test('boolean helpers renamed in #366 keep their prefixed names', function (stri
     [ChatService::class, 'canUserReadCollection', 'userCanReadCollection'],
     [ChatService::class, 'isMatchingQuery', 'matchesQuery'],
     [FieldConditionEvaluatorService::class, 'isMatchingRules', 'rulesMatch'],
-    [OidcSocialiteFactoryService::class, 'isEnabled', 'enabled'],
     [GitExportRepositoryService::class, 'isEnabled', 'enabled'],
     [MeilisearchClientService::class, 'isEnabled', 'enabled'],
     [UniqueCollectionSlugGeneratorService::class, 'isAvailable', 'available'],

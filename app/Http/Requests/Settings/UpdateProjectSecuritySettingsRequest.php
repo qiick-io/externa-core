@@ -42,6 +42,8 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
             'oidc_client_secret' => ['nullable', 'string', 'max:512'],
             'oidc_button_label' => ['nullable', 'string', 'max:64'],
             'oidc_jit_provisioning' => ['required', 'boolean'],
+            'oidc_auto_link' => ['required', 'boolean'],
+            'oidc_only' => ['required', 'boolean'],
         ];
     }
 
@@ -72,6 +74,8 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
             'oidc_client_id' => $validated['oidc_client_id'] ?? null,
             'oidc_button_label' => $validated['oidc_button_label'] ?? null,
             'oidc_jit_provisioning' => (bool) $validated['oidc_jit_provisioning'],
+            'oidc_auto_link' => (bool) $validated['oidc_auto_link'],
+            'oidc_only' => (bool) $validated['oidc_only'],
             ...$this->oidcClientSecretValue($validated),
         ];
     }
@@ -114,6 +118,8 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
             'two_factor_required',
             'oidc_enabled',
             'oidc_jit_provisioning',
+            'oidc_auto_link',
+            'oidc_only',
         ] as $boolField) {
             if ($this->has($boolField)) {
                 $merge[$boolField] = filter_var($this->input($boolField), FILTER_VALIDATE_BOOLEAN);
