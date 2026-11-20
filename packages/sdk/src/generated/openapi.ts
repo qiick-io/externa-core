@@ -189,8 +189,22 @@ export interface components {
             per_page: number;
             total: number;
         };
+        /**
+         * @description Compact user on item payloads when `include=users`. `public_id` is the stable
+         *     external id; the bigint `id` is kept for one deprecation window for CMS clients
+         *     that already key on it (#827).
+         */
         MiniUser: {
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer public_id. Removed after the deprecation window.
+             */
             id: number;
+            /**
+             * Format: uuid
+             * @description UUID v7 public id (fleet external user id).
+             */
+            public_id: string;
             name: string;
             email: string | null;
         };
@@ -227,8 +241,20 @@ export interface components {
             updated_at: string | null;
             /** Format: date-time */
             published_at?: string | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_created_public_id (#827).
+             */
             user_created_id: number | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_updated_public_id (#827).
+             */
             user_updated_id: number | null;
+            /** Format: uuid */
+            user_created_public_id?: string | null;
+            /** Format: uuid */
+            user_updated_public_id?: string | null;
             user_created: components["schemas"]["MiniUser"] | null;
             user_updated: components["schemas"]["MiniUser"] | null;
         };
@@ -266,8 +292,20 @@ export interface components {
              * @description Nullable publish timestamp; sortable via `sort=published_at` / `-published_at`
              */
             published_at?: string | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_created_public_id (#827).
+             */
             user_created_id: number | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_updated_public_id (#827).
+             */
             user_updated_id: number | null;
+            /** Format: uuid */
+            user_created_public_id?: string | null;
+            /** Format: uuid */
+            user_updated_public_id?: string | null;
             /** @description Null unless `include=users` */
             user_created: components["schemas"]["MiniUser"] | null;
             /** @description Null unless `include=users` */
