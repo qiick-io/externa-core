@@ -118,6 +118,41 @@ it('keeps file fields as ids and users null without include', function (): void 
         ->assertJsonMissingPath('data.data.cover.url');
 });
 
+it('keeps soft-deleted creators off include=users MiniUser while exposing public_id', function (): void {
+    $collection = Collection::query()->create([
+        'name' => 'Articles',
+        'slug' => 'include-trashed-user',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+
+    $creator = User::factory()->create([
+        'first_name' => 'Deleted',
+        'last_name' => 'Author',
+        'email' => 'deleted-author@example.com',
+    ]);
+    $publicId = $creator->public_id;
+    $item = CollectionItem::factory()->create([
+        'collection_id' => $collection->id,
+        'user_created_id' => $creator->id,
+        'user_updated_id' => $creator->id,
+    ]);
+    $creator->delete();
+
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+
+    $response = $this->getJson("/api/v1/collections/include-trashed-user/items/{$item->id}?include=users")
+        ->assertOk()
+        ->assertJsonPath('data.user_created_id', $creator->id)
+        ->assertJsonPath('data.user_created_public_id', $publicId)
+        ->assertJsonPath('data.user_updated_public_id', $publicId)
+        ->assertJsonPath('data.user_created', null)
+        ->assertJsonPath('data.user_updated', null);
+
+    expect($response->json('data.user_created'))->toBeNull()
+        ->and($response->getContent())->not->toContain('deleted-author@example.com');
+});
+
 it('expands files and users when included', function (): void {
     $collection = Collection::query()->create([
         'name' => 'Articles',

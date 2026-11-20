@@ -77,9 +77,10 @@ class CollectionItemResource extends JsonResource
         }
 
         // public_id fields always leave the database; load them even when MiniUser is omitted.
-        // Tolerate a missing public_id column during the deploy window before migrate finishes.
+        // Force load (not loadMissing): controllers may have eager-loaded a narrower select
+        // without deleted_at, which would leave soft-deleted users leaking into MiniUser.
         $userSelect = app(UserRelationColumnService::class)->selectList();
-        $item->loadMissing([
+        $item->load([
             'userCreated:'.$userSelect,
             'userUpdated:'.$userSelect,
         ]);

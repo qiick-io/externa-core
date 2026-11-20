@@ -11,6 +11,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -226,8 +227,8 @@ class CollectionItemListService
             ->where('collection_id', $collection->id)
             ->with([
                 'fieldValues',
-                'userCreated:id,public_id,first_name,last_name,email',
-                'userUpdated:id,public_id,first_name,last_name,email',
+                'userCreated:'.app(UserRelationColumnService::class)->selectList(),
+                'userUpdated:'.app(UserRelationColumnService::class)->selectList(),
                 'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
             ]);
         $this->itemQueryService->applyFilters($query, $collection, $stringFilters, null, $request);

@@ -12,6 +12,7 @@ use App\Models\CollectionItem;
 use App\Models\Role;
 use App\Services\Ai\ItemDraftGeneratorService;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -65,10 +66,11 @@ class CollectionItemFormPropsService
     public function editProps(Request $request, Collection $collection, CollectionItem $item, int $activityPerPage): array
     {
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
+        $userSelect = app(UserRelationColumnService::class)->selectList();
         $item->load([
             'fieldValues',
-            'userCreated:id,public_id,first_name,last_name,email',
-            'userUpdated:id,public_id,first_name,last_name,email',
+            'userCreated:'.$userSelect,
+            'userUpdated:'.$userSelect,
             'collection.fields',
         ]);
 
