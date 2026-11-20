@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Setting;
+use App\Services\Chat\ChatUnreadService;
 use App\Services\Settings\SettingsRepositoryService;
 use App\Services\Settings\SettingsScopeRefService;
 use Illuminate\Database\QueryException;
@@ -185,6 +186,106 @@ test('scope_ref migration is re-runnable after a partial apply', function (): vo
     // Full second run must also be a no-op success.
     $migration->up();
     expect(Schema::hasIndex('settings', 'settings_scope_ref_unique'))->toBeTrue();
+});
+
+test('settings:backfill-scope-ref without dry-run refuses when the archive table is missing', function (): void {
+    Schema::table('settings', function ($table): void {
+        if (Schema::hasIndex('settings', 'settings_scope_ref_unique')) {
+            $table->dropUnique('settings_scope_ref_unique');
+        }
+    });
+
+    if (Schema::hasColumn('settings', 'scope_ref')) {
+        Schema::table('settings', function ($table): void {
+            $table->dropColumn('scope_ref');
+        });
+    }
+
+    Schema::dropIfExists('settings_dedupe_archive');
+    SettingsScopeRefService::forgetScopeRefColumnCache();
+
+    DB::table('settings')->insert([
+        [
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'refuse_archive_probe',
+            'value' => json_encode('a'),
+            'created_at' => '2026-01-01 00:00:00',
+            'updated_at' => '2026-01-01 00:00:00',
+        ],
+        [
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'refuse_archive_probe',
+            'value' => json_encode('b'),
+            'created_at' => '2026-02-01 00:00:00',
+            'updated_at' => '2026-02-01 00:00:00',
+        ],
+    ]);
+
+    expect(Artisan::call('settings:backfill-scope-ref'))->not->toBe(0);
+    expect(Artisan::output())->toContain('settings_dedupe_archive is missing');
+    expect(DB::table('settings')->where('key', 'refuse_archive_probe')->count())->toBe(2);
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->up();
+    SettingsScopeRefService::forgetScopeRefColumnCache();
+});
+
+test('scope_ref migration down keeps the dedupe archive table', function (): void {
+    expect(Schema::hasTable('settings_dedupe_archive'))->toBeTrue();
+
+    /** @var object{up(): void, down(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->down();
+
+    expect(Schema::hasTable('settings_dedupe_archive'))->toBeTrue()
+        ->and(Schema::hasColumn('settings', 'scope_ref'))->toBeFalse();
+
+    $migration->up();
+    SettingsScopeRefService::forgetScopeRefColumnCache();
+    expect(Schema::hasColumn('settings', 'scope_ref'))->toBeTrue();
+});
+
+test('chat unread subscribers fall back to scope_id when scope_ref is missing', function (): void {
+    Schema::table('settings', function ($table): void {
+        if (Schema::hasIndex('settings', 'settings_scope_ref_unique')) {
+            $table->dropUnique('settings_scope_ref_unique');
+        }
+    });
+
+    if (Schema::hasColumn('settings', 'scope_ref')) {
+        Schema::table('settings', function ($table): void {
+            $table->dropColumn('scope_ref');
+        });
+    }
+
+    SettingsScopeRefService::forgetScopeRefColumnCache();
+
+    $userId = 4242;
+    $collectionId = 99;
+
+    DB::table('settings')->insert([
+        'scope' => 'user',
+        'scope_id' => $userId,
+        'group' => ChatUnreadService::NOTIFY_GROUP,
+        'key' => ChatUnreadService::NOTIFY_KEY,
+        'value' => json_encode([$collectionId]),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $subscriberIds = app(ChatUnreadService::class)->subscriberIdsForCollection($collectionId);
+
+    expect($subscriberIds)->toContain($userId);
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->up();
+    SettingsScopeRefService::forgetScopeRefColumnCache();
 });
 
 test('repository falls back to scope_id when scope_ref is missing', function (): void {

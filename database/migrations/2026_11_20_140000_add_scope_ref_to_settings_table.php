@@ -58,7 +58,7 @@ return new class extends Migration
             SettingsScopeRefService::forgetScopeRefColumnCache();
         }
 
-        Schema::dropIfExists('settings_dedupe_archive');
+        // Keep settings_dedupe_archive: it is the only copy of rows dedupe deleted.
     }
 
     private function ensureArchiveTable(): void

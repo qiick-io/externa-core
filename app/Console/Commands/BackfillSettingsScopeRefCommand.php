@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Services\Settings\SettingsScopeRefService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Idempotent `settings.scope_ref` backfill and duplicate-instance dedupe (#827 step 4).
@@ -47,6 +48,12 @@ final class BackfillSettingsScopeRefCommand extends Command
             }
 
             return self::SUCCESS;
+        }
+
+        if ($duplicateCounts['rows_to_drop'] > 0 && ! Schema::hasTable('settings_dedupe_archive')) {
+            $this->error('settings_dedupe_archive is missing; refusing to delete duplicate settings without an archive. Run the scope_ref migration first.');
+
+            return self::FAILURE;
         }
 
         $backfilled = $scopeRef->backfill();
