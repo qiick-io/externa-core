@@ -1,16 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
+use App\Actions\CreateInitialSuperAdminAction;
 use App\Console\Concerns\ManagesDotEnvTrait;
+use App\Data\InitialSuperAdminData;
+use App\Models\User;
+use Database\Seeders\CreateSuperAdminSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\password;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
@@ -29,7 +38,7 @@ class InstallCommand extends Command
 
     protected $description = 'Interactive first-run setup: write .env, migrate, optional seed, npm build';
 
-    public function handle(): int
+    public function handle(CreateInitialSuperAdminAction $createInitialSuperAdmin): int
     {
         $force = (bool) $this->option('force');
 
@@ -74,6 +83,7 @@ class InstallCommand extends Command
         }
 
         $preservedAppKey = $this->resolvePreservedAppKey($envPath);
+        $preservedAppEnv = $this->resolvePreservedAppEnv($envPath);
 
         $env = File::get(base_path('.env.example'));
         $env = $this->setEnv($env, 'APP_NAME', $appName);
@@ -86,6 +96,10 @@ class InstallCommand extends Command
 
         if ($preservedAppKey !== null) {
             $env = $this->setEnv($env, 'APP_KEY', $preservedAppKey);
+        }
+
+        if ($preservedAppEnv !== null) {
+            $env = $this->setEnv($env, 'APP_ENV', $preservedAppEnv);
         }
 
         File::put($envPath, $env);
@@ -101,6 +115,7 @@ class InstallCommand extends Command
 
         $this->ensureApplicationKey($envPath, $preservedAppKey);
         $this->applyRuntimeConfig($db, $stack);
+        $this->syncSuperAdminConfigFromEnvFile($envPath);
 
         $migrate = $this->runMigrate($db, $force);
         if ($migrate !== self::SUCCESS) {
@@ -108,9 +123,19 @@ class InstallCommand extends Command
         }
 
         if ($seed) {
+            $credentialsCode = $this->prepareInitialSuperAdminCredentials($envPath);
+            if ($credentialsCode !== self::SUCCESS) {
+                return $credentialsCode;
+            }
+
             $seedCode = $this->runArtisanProcess($db, ['db:seed', '--force', '--no-interaction', '--database='.$db]);
             if ($seedCode !== self::SUCCESS) {
                 return $seedCode;
+            }
+
+            $adminCode = $this->ensureInitialSuperAdminOutsideDevelopment($createInitialSuperAdmin, $envPath);
+            if ($adminCode !== self::SUCCESS) {
+                return $adminCode;
             }
         }
 
@@ -211,6 +236,147 @@ class InstallCommand extends Command
         }
 
         return null;
+    }
+
+    /**
+     * Keep APP_ENV when rewriting .env so a production --force install still runs
+     * outside local/testing and must supply a real first-admin password (#821).
+     */
+    private function resolvePreservedAppEnv(string $envPath): ?string
+    {
+        $fromFile = $this->readEnvKey($envPath, 'APP_ENV');
+
+        if (is_string($fromFile) && $fromFile !== '') {
+            return $fromFile;
+        }
+
+        return null;
+    }
+
+    /**
+     * Collect INITIAL_SUPER_ADMIN_* when the seeder will not create an admin (#821).
+     *
+     * @return self::SUCCESS|self::FAILURE
+     */
+    private function prepareInitialSuperAdminCredentials(string $envPath): int
+    {
+        $environment = $this->readEnvKey($envPath, 'APP_ENV') ?? (string) app()->environment();
+        $password = $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_PASSWORD');
+
+        if (CreateSuperAdminSeeder::installMustFailClosed($this->input->isInteractive(), $environment, $password)) {
+            $rejection = CreateSuperAdminSeeder::passwordRejectionReason($password, $environment)
+                ?? 'INITIAL_SUPER_ADMIN_PASSWORD is missing or not allowed.';
+            $this->error('Refusing: '.$rejection.' Set a strong INITIAL_SUPER_ADMIN_PASSWORD in .env or run interactively (no default admin is created).');
+
+            return self::FAILURE;
+        }
+
+        if (! CreateSuperAdminSeeder::installNeedsCredentials($environment, $password)) {
+            return self::SUCCESS;
+        }
+
+        $emailDefault = $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_EMAIL')
+            ?: (string) config('super_admin.email');
+        $email = text('Super admin email', default: $emailDefault, required: true);
+        $plainPassword = password(
+            label: 'Super admin password',
+            required: true,
+            validate: function (string $value): ?string {
+                $validator = Validator::make(
+                    ['password' => $value],
+                    ['password' => ['required', 'string', Password::defaults()]],
+                );
+
+                return $validator->fails() ? $validator->errors()->first('password') : null;
+            },
+        );
+
+        $env = File::get($envPath);
+        $env = $this->setEnv($env, 'INITIAL_SUPER_ADMIN_EMAIL', $email);
+        $env = $this->setEnv($env, 'INITIAL_SUPER_ADMIN_PASSWORD', $plainPassword);
+        File::put($envPath, $env);
+        $this->syncSuperAdminConfigFromEnvFile($envPath);
+        $this->info('Wrote initial super-admin credentials to .env');
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * After db:seed outside local/testing, create the first admin from config when missing.
+     *
+     * @return self::SUCCESS|self::FAILURE
+     */
+    private function ensureInitialSuperAdminOutsideDevelopment(
+        CreateInitialSuperAdminAction $createInitialSuperAdmin,
+        string $envPath,
+    ): int {
+        $environment = $this->readEnvKey($envPath, 'APP_ENV') ?? (string) app()->environment();
+
+        if (in_array($environment, CreateSuperAdminSeeder::ENVIRONMENTS, true)) {
+            return self::SUCCESS;
+        }
+
+        $this->syncSuperAdminConfigFromEnvFile($envPath);
+
+        $password = config('super_admin.password');
+        $password = is_string($password) ? $password : null;
+        $rejection = CreateSuperAdminSeeder::passwordRejectionReason($password, $environment);
+
+        if ($rejection !== null) {
+            $this->error('Refusing: '.$rejection);
+
+            return self::FAILURE;
+        }
+
+        if (User::query()->where('email', (string) config('super_admin.email'))->exists()) {
+            return self::SUCCESS;
+        }
+
+        $user = $createInitialSuperAdmin->execute(new InitialSuperAdminData(
+            firstName: (string) config('super_admin.first_name'),
+            lastName: (string) config('super_admin.last_name'),
+            email: (string) config('super_admin.email'),
+            password: $password,
+        ));
+
+        if ($user === null) {
+            return self::SUCCESS;
+        }
+
+        $this->info("Created super admin {$user->email}.");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Push INITIAL_SUPER_ADMIN_* from the written .env into config for this process.
+     */
+    private function syncSuperAdminConfigFromEnvFile(string $envPath): void
+    {
+        config([
+            'super_admin.first_name' => $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_FIRST_NAME')
+                ?? (string) config('super_admin.first_name'),
+            'super_admin.last_name' => $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_LAST_NAME')
+                ?? (string) config('super_admin.last_name'),
+            'super_admin.email' => $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_EMAIL')
+                ?? (string) config('super_admin.email'),
+            'super_admin.password' => $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_PASSWORD'),
+        ]);
+    }
+
+    private function readEnvKey(string $envPath, string $key): ?string
+    {
+        if (! File::exists($envPath)) {
+            return null;
+        }
+
+        $contents = File::get($envPath);
+
+        if (preg_match('/^'.preg_quote($key, '/').'=(.*)$/m', $contents, $matches) !== 1) {
+            return null;
+        }
+
+        return $this->unwrapEnvValue(trim($matches[1]));
     }
 
     private function unwrapEnvValue(string $value): string

@@ -53,7 +53,6 @@ return [
     'App\Console\Commands\CleanupChatAttachmentsCommand',
     'App\Console\Commands\CleanupExpiredFileZipsCommand',
     'App\Console\Commands\GitExportSyncCommand',
-    'App\Console\Commands\InstallCommand',
     'App\Console\Commands\MigrateFormLayoutToGroupsCommand',
     'App\Console\Commands\MigratePrivateFilesDiskCommand',
     'App\Console\Commands\ProcessCollectionItemSchedulesCommand',
