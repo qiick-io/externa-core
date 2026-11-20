@@ -447,13 +447,13 @@ class ChatUnreadService
             ->where('scope', SettingsRepositoryService::SCOPE_USER)
             ->where('group', self::NOTIFY_GROUP)
             ->where('key', self::NOTIFY_KEY)
-            ->whereNotNull('scope_id')
-            ->get(['scope_id', 'value']);
+            ->where('scope_ref', '!=', SettingsRepositoryService::SCOPE_REF_INSTANCE)
+            ->get(['scope_ref', 'value']);
 
         foreach ($rows as $row) {
             $value = is_array($row->value) ? array_map('intval', $row->value) : [];
             if (in_array($collectionId, $value, true)) {
-                $ids[] = (int) $row->scope_id;
+                $ids[] = (int) $row->scope_ref;
             }
         }
 

@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Key-value setting row scoped to project or user.
  *
+ * `scope_ref` is the uniqueness key (`''` for instance). `scope_id` is dual-written for one
+ * release (#827 step 4).
+ *
  * @property int $id
  * @property string $scope
  * @property int|null $scope_id
+ * @property string $scope_ref
  * @property string $group
  * @property string $key
  * @property mixed $value
@@ -27,6 +31,7 @@ class Setting extends Model
     protected $fillable = [
         'scope',
         'scope_id',
+        'scope_ref',
         'group',
         'key',
         'value',

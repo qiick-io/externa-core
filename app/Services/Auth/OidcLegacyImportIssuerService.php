@@ -6,6 +6,7 @@ namespace App\Services\Auth;
 
 use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The issuer string `oidc:import-legacy-subjects` used when copying `users.oidc_sub`.
@@ -26,12 +27,18 @@ final readonly class OidcLegacyImportIssuerService
      */
     public function issuer(): ?string
     {
-        $storedValue = DB::table('settings')
+        $query = DB::table('settings')
             ->where('scope', SettingsRepositoryService::SCOPE_PROJECT)
-            ->whereNull('scope_id')
             ->where('group', 'project')
-            ->where('key', self::SETTING_KEY)
-            ->value('value');
+            ->where('key', self::SETTING_KEY);
+
+        if (Schema::hasColumn('settings', 'scope_ref')) {
+            $query->where('scope_ref', SettingsRepositoryService::SCOPE_REF_INSTANCE);
+        } else {
+            $query->whereNull('scope_id');
+        }
+
+        $storedValue = $query->value('value');
 
         $issuer = is_string($storedValue) ? json_decode($storedValue) : null;
 
