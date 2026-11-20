@@ -7,31 +7,41 @@ namespace App\Services\Settings;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Backfill and dedupe for `settings.scope_ref` (#827 step 4).
  *
  * Instance rows use `scope_ref = ''` (never NULL) so the unique index refuses duplicates on
  * every engine. Non-null `scope_id` values become their decimal string. Duplicate rows on
- * `(scope, scope_ref, group, key)` keep the latest `updated_at` (then highest `id`); the rest
- * are deleted and logged.
+ * `(scope, scope_ref, group, key)` keep the latest non-null `updated_at` (NULL loses to any
+ * timestamp; then highest `id`); losers are archived then deleted.
+ *
+ * Dry-run and duplicate discovery work before the migration adds `scope_ref`: identity is
+ * computed from `scope_id` when the column is missing.
  */
 final class SettingsScopeRefService
 {
+    private static ?bool $hasScopeRefColumn = null;
+
     /**
      * How many rows still need `scope_ref` aligned with `scope_id` (null → '').
+     *
+     * Before the column exists every row needs backfill.
      */
     public function rowsNeedingBackfill(): int
     {
+        if (! $this->hasScopeRefColumn()) {
+            return (int) DB::table('settings')->count();
+        }
+
         $needing = 0;
 
         DB::table('settings')
             ->orderBy('id')
             ->chunkById(500, function (Collection $settingRows) use (&$needing): void {
                 foreach ($settingRows as $settingRow) {
-                    $scopeId = $settingRow->scope_id === null ? null : (int) $settingRow->scope_id;
-
-                    if ((string) $settingRow->scope_ref !== self::scopeRefFromScopeId($scopeId)) {
+                    if ((string) $settingRow->scope_ref !== $this->effectiveScopeRef($settingRow)) {
                         $needing++;
                     }
                 }
@@ -41,33 +51,26 @@ final class SettingsScopeRefService
     }
 
     /**
-     * Copy `scope_id` into `scope_ref` (null → ''). Idempotent.
+     * Copy `scope_id` into `scope_ref` (null → '') with one UPDATE. Idempotent.
      *
      * @return int Rows updated
      */
     public function backfill(): int
     {
-        $updated = 0;
+        if (! $this->hasScopeRefColumn()) {
+            return 0;
+        }
 
-        DB::table('settings')
-            ->orderBy('id')
-            ->chunkById(500, function (Collection $settingRows) use (&$updated): void {
-                foreach ($settingRows as $settingRow) {
-                    $scopeId = $settingRow->scope_id === null ? null : (int) $settingRow->scope_id;
-                    $expected = self::scopeRefFromScopeId($scopeId);
+        $driver = Schema::getConnection()->getDriverName();
 
-                    if ((string) $settingRow->scope_ref === $expected) {
-                        continue;
-                    }
+        // One UPDATE for the whole table (idempotent); engines differ on casting bigint → text.
+        $sql = match ($driver) {
+            'pgsql' => "update settings set scope_ref = coalesce(scope_id::text, '')",
+            'mysql', 'mariadb' => "update settings set scope_ref = ifnull(cast(scope_id as char), '')",
+            default => "update settings set scope_ref = coalesce(cast(scope_id as text), '')",
+        };
 
-                    DB::table('settings')
-                        ->where('id', $settingRow->id)
-                        ->update(['scope_ref' => $expected]);
-                    $updated++;
-                }
-            });
-
-        return $updated;
+        return DB::affectingStatement($sql);
     }
 
     /**
@@ -91,9 +94,28 @@ final class SettingsScopeRefService
     }
 
     /**
-     * Drop duplicate (scope, scope_ref, group, key) rows; keep latest updated_at then highest id.
+     * Every settings row that dedupe would delete (full row attributes), for dry-run listing.
      *
-     * Side effects: deletes settings rows; logs each dropped id.
+     * Works before `scope_ref` exists: identity is derived from `scope_id`.
+     *
+     * @return Collection<int, object>
+     */
+    public function rowsThatWouldBeDropped(): Collection
+    {
+        $dropped = collect();
+
+        foreach ($this->duplicateGroups() as $duplicateGroup) {
+            $ordered = $this->orderedRowsForGroup($duplicateGroup);
+            $dropped = $dropped->merge($ordered->slice(1));
+        }
+
+        return $dropped->values();
+    }
+
+    /**
+     * Drop duplicate (scope, scope_ref, group, key) rows; keep latest non-null updated_at then highest id.
+     *
+     * Side effects: archives each loser into `settings_dedupe_archive`, then deletes it; logs each drop.
      *
      * @return int Number of rows deleted
      */
@@ -102,19 +124,13 @@ final class SettingsScopeRefService
         $deleted = 0;
 
         foreach ($this->duplicateGroups() as $duplicateGroup) {
-            $keepersAndLosers = DB::table('settings')
-                ->where('scope', $duplicateGroup['scope'])
-                ->where('scope_ref', $duplicateGroup['scope_ref'])
-                ->where('group', $duplicateGroup['group'])
-                ->where('key', $duplicateGroup['key'])
-                ->orderByDesc('updated_at')
-                ->orderByDesc('id')
-                ->get(['id', 'updated_at', 'value']);
-
+            $keepersAndLosers = $this->orderedRowsForGroup($duplicateGroup);
             $keeper = $keepersAndLosers->first();
             $losers = $keepersAndLosers->slice(1);
 
             foreach ($losers as $loser) {
+                $this->archiveDroppedRow($loser, $keeper?->id);
+
                 Log::warning('settings.scope_ref dedupe dropped duplicate', [
                     'dropped_id' => $loser->id,
                     'kept_id' => $keeper?->id,
@@ -143,7 +159,23 @@ final class SettingsScopeRefService
     }
 
     /**
-     * Groups with more than one row on (scope, scope_ref, group, key), counted in PHP so no raw SQL.
+     * Whether `settings.scope_ref` exists (cached per process for the deploy window).
+     */
+    public function hasScopeRefColumn(): bool
+    {
+        return self::$hasScopeRefColumn ??= Schema::hasColumn('settings', 'scope_ref');
+    }
+
+    /**
+     * Forget the cached column probe (tests that drop/add the column mid-run).
+     */
+    public static function forgetScopeRefColumnCache(): void
+    {
+        self::$hasScopeRefColumn = null;
+    }
+
+    /**
+     * Groups with more than one row on (scope, effective scope_ref, group, key).
      *
      * @return Collection<int, array{scope: string, scope_ref: string, group: string, key: string, row_count: int}>
      */
@@ -156,12 +188,13 @@ final class SettingsScopeRefService
             ->orderBy('id')
             ->chunkById(500, function (Collection $settingRows) use (&$countsByIdentity): void {
                 foreach ($settingRows as $settingRow) {
-                    $identityKey = $settingRow->scope."\0".$settingRow->scope_ref."\0".$settingRow->group."\0".$settingRow->key;
+                    $scopeRef = $this->effectiveScopeRef($settingRow);
+                    $identityKey = $settingRow->scope."\0".$scopeRef."\0".$settingRow->group."\0".$settingRow->key;
 
                     if (! isset($countsByIdentity[$identityKey])) {
                         $countsByIdentity[$identityKey] = [
                             'scope' => (string) $settingRow->scope,
-                            'scope_ref' => (string) $settingRow->scope_ref,
+                            'scope_ref' => $scopeRef,
                             'group' => (string) $settingRow->group,
                             'key' => (string) $settingRow->key,
                             'row_count' => 0,
@@ -182,5 +215,79 @@ final class SettingsScopeRefService
         }
 
         return collect($duplicates);
+    }
+
+    /**
+     * Rows for one identity, keeper first: non-null updated_at wins over NULL, then latest, then highest id.
+     *
+     * @param  array{scope: string, scope_ref: string, group: string, key: string, row_count: int}  $duplicateGroup
+     * @return Collection<int, object>
+     */
+    private function orderedRowsForGroup(array $duplicateGroup): Collection
+    {
+        $query = DB::table('settings')
+            ->where('scope', $duplicateGroup['scope'])
+            ->where('group', $duplicateGroup['group'])
+            ->where('key', $duplicateGroup['key']);
+
+        if ($this->hasScopeRefColumn()) {
+            $query->where('scope_ref', $duplicateGroup['scope_ref']);
+        } elseif ($duplicateGroup['scope_ref'] === '') {
+            $query->whereNull('scope_id');
+        } else {
+            $query->where('scope_id', (int) $duplicateGroup['scope_ref']);
+        }
+
+        // NULL updated_at sorts after every timestamp on every engine (loses the keeper race).
+        return $query
+            ->orderByRaw('case when updated_at is null then 1 else 0 end')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * @param  object  $settingRow  a settings table row (with or without scope_ref)
+     */
+    private function effectiveScopeRef(object $settingRow): string
+    {
+        if ($this->hasScopeRefColumn() && property_exists($settingRow, 'scope_ref')) {
+            return (string) $settingRow->scope_ref;
+        }
+
+        $scopeId = $settingRow->scope_id === null ? null : (int) $settingRow->scope_id;
+
+        return self::scopeRefFromScopeId($scopeId);
+    }
+
+    /**
+     * Persist the full settings row before delete so encrypted values are recoverable.
+     */
+    private function archiveDroppedRow(object $loser, int|string|null $keptId): void
+    {
+        if (! Schema::hasTable('settings_dedupe_archive')) {
+            return;
+        }
+
+        $payload = [
+            'id' => $loser->id,
+            'scope' => $loser->scope,
+            'scope_id' => $loser->scope_id,
+            'group' => $loser->group,
+            'key' => $loser->key,
+            'value' => $loser->value,
+            'created_at' => $loser->created_at,
+            'updated_at' => $loser->updated_at,
+            'reason' => 'duplicate_instance_scope_ref; kept_id='.($keptId ?? 'none'),
+            'migrated_at' => now(),
+        ];
+
+        if ($this->hasScopeRefColumn() && property_exists($loser, 'scope_ref')) {
+            $payload['scope_ref'] = $loser->scope_ref;
+        } else {
+            $payload['scope_ref'] = $this->effectiveScopeRef($loser);
+        }
+
+        DB::table('settings_dedupe_archive')->insertOrIgnore($payload);
     }
 }
