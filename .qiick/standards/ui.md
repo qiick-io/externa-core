@@ -45,6 +45,7 @@ Tokens come from the `@qiick/theme` registry item: one shared base (surfaces, th
 | Error pages 403 / 404 / 500 / 503                                | https://github.com/qiick-io/app-ui/blob/develop/docs/error-pages.md         |
 | Empty states                                                     | https://github.com/qiick-io/app-ui/blob/develop/docs/empty-states.md        |
 | Destructive actions                                              | https://github.com/qiick-io/app-ui/blob/develop/docs/destructive-actions.md |
+| API keys: storage, scopes, show-once secret, rotation, key list  | https://github.com/qiick-io/app-ui/blob/develop/docs/api-keys.md            |
 | Dashboard cards                                                  | https://github.com/qiick-io/app-ui/blob/develop/docs/dashboard.md           |
 | Notifications: toasts, bell and drawer                           | https://github.com/qiick-io/app-ui/blob/develop/docs/notifications.md       |
 | Chat and Assistant                                               | https://github.com/qiick-io/app-ui/blob/develop/docs/chat-and-assistant.md  |

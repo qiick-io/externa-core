@@ -18,4 +18,4 @@ concurrency:
 
 jobs:
   pr-title:
-    uses: qiick-io/app-ui/.github/workflows/pr-title.yml@v0.9.0
+    uses: qiick-io/app-ui/.github/workflows/pr-title.yml@v0.11.0
