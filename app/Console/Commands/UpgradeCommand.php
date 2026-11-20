@@ -9,6 +9,7 @@ use App\Services\Upgrade\UpgradeGitService;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Redis;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
@@ -96,9 +97,16 @@ class UpgradeCommand extends Command
                 $this->info('Restarting queue workers…');
                 $this->call('queue:restart');
 
-                if (array_key_exists('horizon:terminate', Artisan::all())) {
+                // Horizon is installed for the full stack but Redis may be absent (SQLite smoke /
+                // database queue). Terminate only when it can talk to Redis; never fail the upgrade.
+                if (array_key_exists('horizon:terminate', Artisan::all()) && $this->shouldTerminateHorizon()) {
                     $this->info('Terminating Horizon supervisors…');
-                    $this->call('horizon:terminate');
+
+                    try {
+                        $this->call('horizon:terminate');
+                    } catch (\Throwable $horizonException) {
+                        $this->warn('horizon:terminate skipped: '.$horizonException->getMessage());
+                    }
                 }
             } finally {
                 $this->info('Bringing the application back up…');
@@ -121,7 +129,9 @@ class UpgradeCommand extends Command
         $this->info('Clearing caches…');
         $this->call('optimize:clear');
         // optimize:clear leaves Lighthouse's schema file; a stale one hides new GraphQL arguments and fields.
-        $this->call('lighthouse:clear-cache');
+        if (array_key_exists('lighthouse:clear-cache', Artisan::all())) {
+            $this->call('lighthouse:clear-cache');
+        }
 
         $this->newLine();
         $this->info('Automated subset done. Smoke: login + open one collection.');
@@ -383,5 +393,19 @@ class UpgradeCommand extends Command
     private function git(array $args): ProcessResult
     {
         return app(UpgradeGitService::class)->run($args);
+    }
+
+    /**
+     * Horizon needs a reachable Redis; skip terminate when Redis is down (smoke / database queue).
+     */
+    private function shouldTerminateHorizon(): bool
+    {
+        try {
+            Redis::connection()->client()->ping();
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
