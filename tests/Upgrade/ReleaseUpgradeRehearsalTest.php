@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Qiick\Oidc\Testing\FakeIdentityProvider;
 use Tests\Support\ReleaseUpgradeFixtures;
 
 /**
@@ -78,4 +83,33 @@ test('a populated install of the last release upgrades without losing or rewriti
     ));
 
     expect(ReleaseUpgradeFixtures::violations($snapshot))->toBe([]);
+
+    if (! in_array(ReleaseUpgradeFixtures::LEGACY_OIDC_SUBJECTS_MIGRATION, $snapshot['seededGroups'], true)) {
+        return;
+    }
+
+    // A real migrate left identities; finish configuring SSO and prove a legacy subject still signs in.
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
+        'oidc_enabled' => true,
+        'oidc_issuer' => ReleaseUpgradeFixtures::LEGACY_OIDC_ISSUER,
+        'oidc_client_id' => 'externa-app',
+        'oidc_client_secret' => Crypt::encryptString('fake-client-secret'),
+        'oidc_auto_link' => false,
+        'oidc_only' => false,
+    ]);
+    app(ProjectSettingsService::class)->forgetRawCache();
+
+    $legacyUser = User::query()->where('email', 'oidc-upgrade-0@example.com')->firstOrFail();
+    $identityProvider = FakeIdentityProvider::fake(
+        issuer: ReleaseUpgradeFixtures::LEGACY_OIDC_ISSUER,
+        clientId: 'externa-app',
+    );
+
+    $authorizationUrl = (string) $this->get(route('oidc.redirect'))->assertRedirect()->headers->get('Location');
+    $this->get($identityProvider->authorize($authorizationUrl, [
+        'sub' => 'sub-upgrade-alice',
+        'email' => 'nobody@example.com',
+    ]))->assertRedirect();
+
+    $this->assertAuthenticatedAs($legacyUser);
 });

@@ -34,6 +34,8 @@
     "oidc_client_secret",
     "oidc_button_label",
     "oidc_jit_provisioning",
+    "oidc_auto_link",
+    "oidc_only",
     "preview_url_default",
     "revision_retention_count",
     "revision_retention_days",

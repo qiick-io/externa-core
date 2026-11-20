@@ -11,10 +11,12 @@ use App\Ai\Support\AiToolJsonDecoder;
 use App\Contracts\Ai\ClassifiesToolActionsContract;
 use App\Enums\PermissionEnum;
 use App\Models\User;
+use App\Services\Auth\OidcBreakGlassContinuityService;
 use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -270,6 +272,16 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
             $attributes['is_active'] = $request->boolean('is_active');
         }
 
+        if (array_key_exists('is_active', $attributes) && $attributes['is_active'] === false) {
+            $continuityError = $this->breakGlassContinuityError(
+                fn (OidcBreakGlassContinuityService $continuity) => $continuity->assertCanDeactivateOrDelete($user),
+            );
+
+            if ($continuityError !== null) {
+                return $continuityError;
+            }
+        }
+
         if ($attributes !== []) {
             $user->update($attributes);
         }
@@ -308,6 +320,14 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
 
         if ($this->authenticatedUser()?->is($user)) {
             return 'Error: You cannot delete your own account via AI.';
+        }
+
+        $continuityError = $this->breakGlassContinuityError(
+            fn (OidcBreakGlassContinuityService $continuity) => $continuity->assertCanDeactivateOrDelete($user),
+        );
+
+        if ($continuityError !== null) {
+            return $continuityError;
         }
 
         $summary = $this->serializeUser($user);
@@ -357,6 +377,14 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
 
         if ($this->authenticatedUser()?->is($user)) {
             return 'Error: You cannot force-delete your own account via AI.';
+        }
+
+        $continuityError = $this->breakGlassContinuityError(
+            fn (OidcBreakGlassContinuityService $continuity) => $continuity->assertCanDeactivateOrDelete($user),
+        );
+
+        if ($continuityError !== null) {
+            return $continuityError;
         }
 
         $summary = $this->serializeUser($user);
@@ -439,7 +467,36 @@ class ManageUsers implements Approvable, ClassifiesToolActionsContract, Tool
             return 'Error: One or more role names are invalid.';
         }
 
+        $roleIds = array_values(array_map(
+            static fn (mixed $roleId): int => (int) $roleId,
+            $roles->pluck('id')->all(),
+        ));
+
+        $continuityError = $this->breakGlassContinuityError(
+            fn (OidcBreakGlassContinuityService $continuity) => $continuity->assertCanSyncRoles($user, $roleIds),
+        );
+
+        if ($continuityError !== null) {
+            return $continuityError;
+        }
+
         $user->syncRoles($roles);
+
+        return null;
+    }
+
+    /**
+     * @param  callable(OidcBreakGlassContinuityService): void  $assertion
+     */
+    private function breakGlassContinuityError(callable $assertion): ?string
+    {
+        try {
+            $assertion(app(OidcBreakGlassContinuityService::class));
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first();
+
+            return is_string($message) ? 'Error: '.$message : 'Error: Break-glass continuity check failed.';
+        }
 
         return null;
     }

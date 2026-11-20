@@ -34,6 +34,8 @@ type Props = {
     canManagePasskeys?: boolean;
     canUseOidc?: boolean;
     oidcButtonLabel?: string | null;
+    oidcRedirectUrl?: string | null;
+    isPasswordLoginVisible?: boolean;
 };
 
 /**
@@ -42,7 +44,8 @@ type Props = {
  * Conditional WebAuthn autofill (`autofill: true` + `autocomplete="… webauthn"`) is
  * intentionally off. @laravel/passkeys sets shared `isLoading` for the whole autofill
  * ceremony, which can hang indefinitely on some browsers (e.g. Brave) and leaves the
- * passkey button spinning on mount. Sign-in is click-only; the password form stays usable.
+ * passkey button spinning on mount. Sign-in is click-only; the password form stays usable
+ * unless SSO-only mode hides it (break-glass uses `/login?local=1`).
  */
 export default function Login({
     status,
@@ -51,6 +54,8 @@ export default function Login({
     canManagePasskeys = false,
     canUseOidc = false,
     oidcButtonLabel = null,
+    oidcRedirectUrl = null,
+    isPasswordLoginVisible = true,
 }: Props) {
     const { t } = useTranslation();
     // OIDC callback rejects redirect here with session errors; Form render-prop
@@ -89,6 +94,7 @@ export default function Login({
         : undefined;
 
     const showAltSignIn = canManagePasskeys || canUseOidc;
+    const oidcHref = oidcRedirectUrl ?? '/auth/oidc/redirect';
 
     const passkeyButton = (
         <Button
@@ -127,7 +133,7 @@ export default function Login({
                                 data-test="oidc-login-button"
                                 asChild
                             >
-                                <a href="/auth/oidc/redirect">
+                                <a href={oidcHref}>
                                     {oidcButtonLabel?.trim()
                                         ? oidcButtonLabel
                                         : t('auth.login.oidc')}
@@ -161,121 +167,129 @@ export default function Login({
                             {passkeyErrorMessage}
                         </FieldError>
                     ) : null}
-                    <FieldSeparator className="my-0">
-                        {t('auth.login.orContinueWithEmail')}
-                    </FieldSeparator>
+                    {isPasswordLoginVisible ? (
+                        <FieldSeparator className="my-0">
+                            {t('auth.login.orContinueWithEmail')}
+                        </FieldSeparator>
+                    ) : null}
                 </div>
             )}
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-                noValidate
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <FieldGroup className="gap-6">
-                            <Field
-                                data-invalid={errors.email ? true : undefined}
-                            >
-                                <FieldLabel htmlFor="email">
-                                    {t('common.emailAddress')}
-                                </FieldLabel>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
-                                    autoFocus
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                    aria-invalid={
+            {isPasswordLoginVisible ? (
+                <Form
+                    {...store.form()}
+                    resetOnSuccess={['password']}
+                    className="flex flex-col gap-6"
+                    noValidate
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <FieldGroup className="gap-6">
+                                <Field
+                                    data-invalid={
                                         errors.email ? true : undefined
                                     }
-                                    aria-describedby={
-                                        errors.email ? 'email-error' : undefined
-                                    }
-                                />
-                                <FieldError id="email-error">
-                                    {errors.email}
-                                </FieldError>
-                            </Field>
-
-                            <Field
-                                data-invalid={
-                                    errors.password ? true : undefined
-                                }
-                            >
-                                <div className="flex items-center">
-                                    <FieldLabel htmlFor="password">
-                                        {t('common.password')}
+                                >
+                                    <FieldLabel htmlFor="email">
+                                        {t('common.emailAddress')}
                                     </FieldLabel>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                        >
-                                            {t('auth.login.forgotPassword')}
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    autoComplete="current-password"
-                                    placeholder={t('common.password')}
-                                    aria-invalid={
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        required
+                                        // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
+                                        autoFocus
+                                        autoComplete="email"
+                                        placeholder="email@example.com"
+                                        aria-invalid={
+                                            errors.email ? true : undefined
+                                        }
+                                        aria-describedby={
+                                            errors.email
+                                                ? 'email-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="email-error">
+                                        {errors.email}
+                                    </FieldError>
+                                </Field>
+
+                                <Field
+                                    data-invalid={
                                         errors.password ? true : undefined
                                     }
-                                    aria-describedby={
-                                        errors.password
-                                            ? 'password-error'
-                                            : undefined
-                                    }
-                                />
-                                <FieldError id="password-error">
-                                    {errors.password}
-                                </FieldError>
-                            </Field>
+                                >
+                                    <div className="flex items-center">
+                                        <FieldLabel htmlFor="password">
+                                            {t('common.password')}
+                                        </FieldLabel>
+                                        {canResetPassword && (
+                                            <TextLink
+                                                href={request()}
+                                                className="ml-auto text-sm"
+                                            >
+                                                {t('auth.login.forgotPassword')}
+                                            </TextLink>
+                                        )}
+                                    </div>
+                                    <PasswordInput
+                                        id="password"
+                                        name="password"
+                                        required
+                                        autoComplete="current-password"
+                                        placeholder={t('common.password')}
+                                        aria-invalid={
+                                            errors.password ? true : undefined
+                                        }
+                                        aria-describedby={
+                                            errors.password
+                                                ? 'password-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="password-error">
+                                        {errors.password}
+                                    </FieldError>
+                                </Field>
 
-                            <Field orientation="horizontal">
-                                <Checkbox id="remember" name="remember" />
-                                <FieldLabel htmlFor="remember">
-                                    {t('auth.login.rememberMe')}
-                                </FieldLabel>
-                            </Field>
+                                <Field orientation="horizontal">
+                                    <Checkbox id="remember" name="remember" />
+                                    <FieldLabel htmlFor="remember">
+                                        {t('auth.login.rememberMe')}
+                                    </FieldLabel>
+                                </Field>
 
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                disabled={processing}
-                                aria-busy={processing || undefined}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                {processing ? (
-                                    <span className="sr-only" role="status">
-                                        {t('a11y.loading')}
-                                    </span>
-                                ) : null}
-                                {t('auth.login.submit')}
-                            </Button>
-                        </FieldGroup>
+                                <Button
+                                    type="submit"
+                                    className="mt-4 w-full"
+                                    disabled={processing}
+                                    aria-busy={processing || undefined}
+                                    data-test="login-button"
+                                >
+                                    {processing && <Spinner />}
+                                    {processing ? (
+                                        <span className="sr-only" role="status">
+                                            {t('a11y.loading')}
+                                        </span>
+                                    ) : null}
+                                    {t('auth.login.submit')}
+                                </Button>
+                            </FieldGroup>
 
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                {t('auth.login.noAccount')}{' '}
-                                <TextLink href={register()}>
-                                    {t('auth.login.signUp')}
-                                </TextLink>
-                            </div>
-                        )}
-                    </>
-                )}
-            </Form>
+                            {canRegister && (
+                                <div className="text-center text-sm text-muted-foreground">
+                                    {t('auth.login.noAccount')}{' '}
+                                    <TextLink href={register()}>
+                                        {t('auth.login.signUp')}
+                                    </TextLink>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </Form>
+            ) : null}
 
             {status && (
                 <Alert variant="success" role="status" className="mb-4">

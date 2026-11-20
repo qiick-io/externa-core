@@ -46,6 +46,8 @@ class ProjectSecuritySettingsController extends Controller
                 'oidc_client_secret_configured',
                 'oidc_button_label',
                 'oidc_jit_provisioning',
+                'oidc_auto_link',
+                'oidc_only',
             ]),
             'roles' => Role::query()
                 ->where('guard_name', $guard)
@@ -59,6 +61,8 @@ class ProjectSecuritySettingsController extends Controller
                 ->values()
                 ->all(),
             'passwordPolicies' => config('settings.project.password_policies', ['medium']),
+            'oidcCallbackUrl' => url('/auth/oidc/callback'),
+            'oidcBackchannelLogoutUrl' => url('/auth/oidc/backchannel-logout'),
         ]);
     }
 

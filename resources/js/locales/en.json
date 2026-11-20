@@ -532,7 +532,7 @@
             "oidcButtonLabel": "Login button label",
             "oidcButtonLabelPlaceholder": "Sign in with SSO",
             "oidcJitProvisioning": "Allow JIT user provisioning",
-            "oidcJitProvisioningHint": "When off (default), only existing users can sign in via SSO (link by verified email). When on, unknown verified emails create users using allowed domains and the default role.",
+            "oidcJitProvisioningHint": "When off (default), only existing users can sign in via SSO. With auto-link on, they link by verified email; otherwise they need a user_identities row (or a legacy oidc_sub during 1.6). When on, unknown verified emails create users using allowed domains and the default role.",
             "oidcRedirectHint": "Register this redirect URI on the IdP: {{url}}",
             "registrationTitle": "User registration",
             "registrationDescription": "Control public sign-up and defaults for new accounts",
@@ -704,7 +704,12 @@
                 "breadcrumb": "Integrations",
                 "head": "Integrations"
             },
-            "deployHookNamePlaceholder": "Production"
+            "deployHookNamePlaceholder": "Production",
+            "oidcAutoLink": "Link existing users by verified email",
+            "oidcAutoLinkHint": "When on, an SSO login with a verified email that already exists locally is linked to that account. Turn on only for a trusted IdP where users cannot choose an arbitrary email.",
+            "oidcOnly": "SSO-only mode",
+            "oidcOnlyHint": "Hide the password form. A break-glass super-admin with a second factor can still sign in at /login?local=1 if the IdP is down.",
+            "oidcBackchannelHint": "Register this back-channel logout URI on the IdP: {{url}}"
         },
         "appearance": {
             "breadcrumb": "Appearance settings",

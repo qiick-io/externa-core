@@ -532,7 +532,7 @@
             "oidcButtonLabel": "Etichetta pulsante login",
             "oidcButtonLabelPlaceholder": "Accedi con SSO",
             "oidcJitProvisioning": "Consenti provisioning JIT utenti",
-            "oidcJitProvisioningHint": "Se disattivo (default), solo utenti esistenti possono accedere via SSO (collegamento per email verificata). Se attivo, email verificate sconosciute creano utenti rispettando i domini consentiti e il ruolo predefinito.",
+            "oidcJitProvisioningHint": "Se disattivo (predefinito), solo gli utenti esistenti possono accedere via SSO. Con auto-link attivo si collegano per email verificata; altrimenti serve una riga in user_identities (o un oidc_sub legacy durante la 1.6). Se attivo, le email verificate sconosciute creano utenti con i domini consentiti e il ruolo predefinito.",
             "oidcRedirectHint": "Registra questo redirect URI sull'IdP: {{url}}",
             "registrationTitle": "Registrazione utenti",
             "registrationDescription": "Controlla la registrazione pubblica e i default dei nuovi account",
@@ -704,7 +704,12 @@
                 "breadcrumb": "Integrazioni",
                 "head": "Integrazioni"
             },
-            "deployHookNamePlaceholder": "Produzione"
+            "deployHookNamePlaceholder": "Produzione",
+            "oidcAutoLink": "Collega utenti esistenti tramite email verificata",
+            "oidcAutoLinkHint": "Se attivo, un accesso SSO con email verificata già presente in locale viene collegato a quell'account. Attivalo solo per un IdP attendibile in cui gli utenti non possono scegliere un'email arbitraria.",
+            "oidcOnly": "Modalità solo SSO",
+            "oidcOnlyHint": "Nasconde il form password. Un super-admin break-glass con secondo fattore può ancora accedere da /login?local=1 se l'IdP non è disponibile.",
+            "oidcBackchannelHint": "Registra questa URI di back-channel logout sull'IdP: {{url}}"
         },
         "appearance": {
             "breadcrumb": "Impostazioni aspetto",

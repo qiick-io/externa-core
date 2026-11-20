@@ -19,6 +19,8 @@ type Props = {
     project: SecurityProjectSettings;
     roles: ProjectRoleOption[];
     passwordPolicies: Array<'weak' | 'medium' | 'strong'>;
+    oidcCallbackUrl: string;
+    oidcBackchannelLogoutUrl: string;
 };
 
 /**
@@ -28,6 +30,8 @@ export default function ProjectSecuritySettingsPage({
     project,
     roles,
     passwordPolicies,
+    oidcCallbackUrl,
+    oidcBackchannelLogoutUrl,
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(() => buildFormState(project), [project]);
@@ -96,6 +100,16 @@ export default function ProjectSecuritySettingsPage({
                                 name="oidc_jit_provisioning"
                                 value={form.oidc_jit_provisioning ? '1' : '0'}
                             />
+                            <input
+                                type="hidden"
+                                name="oidc_auto_link"
+                                value={form.oidc_auto_link ? '1' : '0'}
+                            />
+                            <input
+                                type="hidden"
+                                name="oidc_only"
+                                value={form.oidc_only ? '1' : '0'}
+                            />
 
                             <SecurityLoginSection
                                 form={form}
@@ -111,6 +125,10 @@ export default function ProjectSecuritySettingsPage({
                                 setForm={setForm}
                                 errors={errors}
                                 project={project}
+                                oidcCallbackUrl={oidcCallbackUrl}
+                                oidcBackchannelLogoutUrl={
+                                    oidcBackchannelLogoutUrl
+                                }
                             />
 
                             <Separator />

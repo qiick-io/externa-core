@@ -50,6 +50,8 @@ export type ProjectSettingsForm = {
     oidc_client_secret_configured: boolean;
     oidc_button_label: string | null;
     oidc_jit_provisioning: boolean;
+    oidc_auto_link: boolean;
+    oidc_only: boolean;
     preview_url_default: string | null;
     revision_retention_count: number | null;
     revision_retention_days: number | null;

@@ -130,6 +130,7 @@
     "Published.": "Pubblicato.",
     "Ready for review": "Pronto per la revisione",
     "Registration is currently disabled.": "La registrazione è attualmente disabilitata.",
+    "SSO-only mode needs an active super-admin with confirmed two-factor authentication or a passkey.": "La modalità solo SSO richiede un super-admin attivo con autenticazione a due fattori confermata o una passkey.",
     "Registration is restricted to allowed email domains.": "La registrazione è limitata ai domini email consentiti.",
     "Rejected.": "Rifiutato.",
     "Remote download failed.": "Download remoto non riuscito.",

@@ -12,6 +12,7 @@ use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Auth\OidcBreakGlassContinuityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -159,6 +160,8 @@ class UserController extends Controller
     public function destroy(User $user): RedirectResponse
     {
         abort_unless(Gate::allows('delete', $user), 403);
+
+        app(OidcBreakGlassContinuityService::class)->assertCanDeactivateOrDelete($user);
 
         $user->delete();
 

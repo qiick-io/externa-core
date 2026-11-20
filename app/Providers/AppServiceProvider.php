@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Actions\Fortify\DisableTwoFactorAuthenticationAction;
+use App\Console\Commands\ImportLegacyOidcSubjectsCommand;
 use App\Listeners\AddQueueJobLogContextListener;
 use App\Listeners\Ai\LogAiToolApprovalEventsListener;
 use App\Models\ApiKey;
@@ -14,15 +16,23 @@ use App\Services\Ai\AiToolArgumentRedactorService;
 use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
+use App\Services\Auth\GuardedDeletePasskeyService;
+use App\Services\Auth\OidcBreakGlassPolicyService;
+use App\Services\Auth\OidcSecondFactorChallengeService;
+use App\Services\Auth\OidcSettingsRepositoryService;
+use App\Services\Auth\OidcUserProvisioningService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Authorization\RequestActorResolverService;
 use App\Services\Http\CurlSseStreamerService;
+use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use App\Services\Settings\ProjectSettingsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobExceptionOccurred;
@@ -40,12 +50,17 @@ use Illuminate\Validation\Rules\Password;
 use Laravel\Ai\Events\ToolApprovalRequested;
 use Laravel\Ai\Events\ToolApprovalResolved;
 use Laravel\Ai\Models\Conversation;
+use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
+use Laravel\Passkeys\Actions\DeletePasskey;
+use Qiick\Oidc\Contracts\BreakGlassPolicyContract;
+use Qiick\Oidc\Contracts\ProviderConfigurationRepositoryContract;
+use Qiick\Oidc\Contracts\SecondFactorChallengeContract;
+use Qiick\Oidc\Contracts\UserProvisioningContract;
+use Qiick\Oidc\Services\SsoOnlyModeService;
+use Qiick\Oidc\Services\UserLinkingService;
 use Spatie\Activitylog\Facades\Activity;
 use Throwable;
 
-/**
- * Registers application service container bindings and boot-time hooks.
- */
 /**
  * Core application service provider: auth, activity logging, HTTP streaming, defaults.
  */
@@ -63,6 +78,53 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AiToolApprovalService::class);
         $this->app->singleton(AiToolRegistryService::class);
         $this->app->singleton(AiToolExecutorService::class);
+        $this->registerOidcBindings();
+    }
+
+    /**
+     * Plugs Externa into qiick/laravel-oidc (#827). Its provider registers first, so these
+     * bindings replace its defaults: the provider settings, JIT, auto-link, SSO-only mode,
+     * allowed domains and the button label come from Settings → Authentication & Security
+     * instead of `config('oidc.*')`.
+     *
+     * The package builds UserLinkingService and SsoOnlyModeService from config values, so both
+     * are rebuilt here with the settings; their other arguments keep the package's config.
+     */
+    protected function registerOidcBindings(): void
+    {
+        $this->app->bind(ProviderConfigurationRepositoryContract::class, OidcSettingsRepositoryService::class);
+        $this->app->bind(UserProvisioningContract::class, OidcUserProvisioningService::class);
+        $this->app->bind(SecondFactorChallengeContract::class, OidcSecondFactorChallengeService::class);
+        $this->app->bind(BreakGlassPolicyContract::class, OidcBreakGlassPolicyService::class);
+        $this->app->singleton(DisableTwoFactorAuthentication::class, DisableTwoFactorAuthenticationAction::class);
+        $this->app->singleton(DeletePasskey::class, GuardedDeletePasskeyService::class);
+
+        $this->app->bind(UserLinkingService::class, function (Application $app): UserLinkingService {
+            $securitySettings = $app->make(ProjectSecuritySettingsService::class);
+
+            return new UserLinkingService(
+                userProvisioning: $app->make(UserProvisioningContract::class),
+                events: $app->make(Dispatcher::class),
+                isAutoLinkEnabled: $securitySettings->isOidcAutoLinkEnabled(),
+                isJitEnabled: $securitySettings->isOidcJitProvisioningEnabled(),
+                isVerifiedEmailRequired: config()->boolean('oidc.require_verified_email', true),
+                allowedDomains: $securitySettings->allowedDomains(),
+                emailColumn: 'email',
+                activeColumn: 'is_active',
+            );
+        });
+
+        $this->app->bind(SsoOnlyModeService::class, function (Application $app): SsoOnlyModeService {
+            $securitySettings = $app->make(ProjectSecuritySettingsService::class);
+
+            return new SsoOnlyModeService(
+                configurationRepository: $app->make(ProviderConfigurationRepositoryContract::class),
+                breakGlassPolicy: $app->make(BreakGlassPolicyContract::class),
+                isOnlyModeConfigured: $securitySettings->isOidcOnlyEnabled(),
+                buttonLabel: $securitySettings->oidcButtonLabel(),
+                breakGlassQueryParameter: 'local',
+            );
+        });
     }
 
     /**
@@ -77,6 +139,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerAuthActivityListeners();
         $this->registerAiToolApprovalListeners();
         $this->registerQueueJobLogContextListeners();
+        $this->commands([ImportLegacyOidcSubjectsCommand::class]);
         $this->configureHttpClientStreaming();
     }
 

@@ -1,13 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Models\User;
+use App\Services\Auth\OidcBreakGlassContinuityService;
 use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 
 /**
@@ -52,15 +57,47 @@ class BulkUserActionRequest extends FormRequest
      */
     public function after(): array
     {
-        return [function (Validator $validator): void {
-            $superAdminGuard = app(SuperAdminGuardService::class);
+        return [
+            function (Validator $validator): void {
+                $superAdminGuard = app(SuperAdminGuardService::class);
 
-            if (
-                ! $superAdminGuard->canManageSuperAdmins($this->user())
-                && $superAdminGuard->hasSuperAdminUser((array) $this->input('ids', []))
-            ) {
-                $validator->errors()->add('ids', __('Only a super-admin can change super-admin accounts.'));
-            }
-        }];
+                if (
+                    ! $superAdminGuard->canManageSuperAdmins($this->user())
+                    && $superAdminGuard->hasSuperAdminUser((array) $this->input('ids', []))
+                ) {
+                    $validator->errors()->add('ids', __('Only a super-admin can change super-admin accounts.'));
+                }
+            },
+            function (Validator $validator): void {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $action = (string) $this->input('action');
+
+                if (! in_array($action, ['delete', 'force_delete'], true)) {
+                    return;
+                }
+
+                $continuity = app(OidcBreakGlassContinuityService::class);
+                $usersQuery = User::query()->whereIn('id', (array) $this->input('ids', []));
+
+                if ($action === 'force_delete') {
+                    $usersQuery->withTrashed();
+                }
+
+                try {
+                    foreach ($usersQuery->get() as $user) {
+                        $continuity->assertCanDeactivateOrDelete($user);
+                    }
+                } catch (ValidationException $exception) {
+                    foreach ($exception->errors() as $messages) {
+                        foreach ($messages as $message) {
+                            $validator->errors()->add('ids', $message);
+                        }
+                    }
+                }
+            },
+        ];
     }
 }

@@ -39,15 +39,25 @@ final class ReleaseUpgradeFixtures
     public const PENDING_TOOL_CALL_API_KEY_MIGRATION = '2026_11_11_115827_add_api_key_id_to_pending_tool_calls_table';
 
     /**
+     * Copies `users.oidc_sub` into `user_identities` for the saved issuer (#827).
+     */
+    public const LEGACY_OIDC_SUBJECTS_MIGRATION = '2026_11_20_000000_import_legacy_oidc_subjects';
+
+    /**
+     * Issuer a 1.5.x install would have saved under Settings → Authentication & Security.
+     */
+    public const LEGACY_OIDC_ISSUER = 'https://idp.example.com/realms/externa';
+
+    /**
      * Cache tables: the upgrade clears them on purpose (`optimize:clear`).
      */
     private const DISPOSABLE_TABLES = ['cache', 'cache_locks'];
 
     /**
      * Tables the upgrade itself writes to (`migrate` and `permissions:sync`): rows may be added
-     * or touched, never lost.
+     * or touched, never lost. `user_identities` is created and filled by the OIDC package + import.
      */
-    private const TABLES_WRITTEN_BY_THE_UPGRADE = ['migrations', 'permissions', 'roles', 'role_has_permissions'];
+    private const TABLES_WRITTEN_BY_THE_UPGRADE = ['migrations', 'permissions', 'roles', 'role_has_permissions', 'user_identities'];
 
     /**
      * The `files_scope` values 1.4.0 could hold, and the files scope the docblock promises:
@@ -228,6 +238,12 @@ final class ReleaseUpgradeFixtures
             }
         }
 
+        if (in_array(self::LEGACY_OIDC_SUBJECTS_MIGRATION, $seededGroups, true)) {
+            /** @var array{issuer: string, subjectsByUserId: array<string, string>} $oidcExpectations */
+            $oidcExpectations = $expectations[self::LEGACY_OIDC_SUBJECTS_MIGRATION];
+            array_push($violations, ...self::legacyOidcSubjectViolations($oidcExpectations));
+        }
+
         return $violations;
     }
 
@@ -242,7 +258,116 @@ final class ReleaseUpgradeFixtures
             self::PENDING_TOOL_CALL_API_KEY_MIGRATION => self::seedPendingToolCalls(...),
             self::THEME_PRESETS_MIGRATION => self::seedThemePresets(...),
             self::API_KEY_SCOPES_MIGRATION => self::seedApiKeys(...),
+            self::LEGACY_OIDC_SUBJECTS_MIGRATION => self::seedLegacyOidcSubjects(...),
         ];
+    }
+
+    /**
+     * A 1.5.x-shaped SSO install: the saved issuer in project settings and users that only have
+     * `users.oidc_sub`. After migrate, each subject must appear in `user_identities` for that issuer.
+     *
+     * @return array{issuer: string, subjectsByUserId: array<string, string>}
+     */
+    private static function seedLegacyOidcSubjects(): array
+    {
+        if (! Schema::hasColumn('users', 'oidc_sub')) {
+            throw new RuntimeException('users.oidc_sub is missing: the release under test is older than OIDC.');
+        }
+
+        foreach ([
+            'oidc_enabled' => true,
+            'oidc_issuer' => self::LEGACY_OIDC_ISSUER,
+            'oidc_client_id' => 'externa-app',
+        ] as $key => $value) {
+            DB::table('settings')->insert([
+                'scope' => 'project',
+                'scope_id' => null,
+                'group' => 'project',
+                'key' => $key,
+                'value' => json_encode($value),
+                'created_at' => self::FIXTURE_CREATED_AT,
+                'updated_at' => self::FIXTURE_UPDATED_AT,
+            ]);
+        }
+
+        $subjectsByUserId = [];
+
+        foreach (['sub-upgrade-alice', 'sub-upgrade-bob', 'Sub-Case-Upgrade'] as $offset => $subject) {
+            $userId = (string) DB::table('users')->insertGetId([
+                'is_active' => true,
+                'first_name' => 'Oidc',
+                'last_name' => 'Upgrade'.$offset,
+                'email' => "oidc-upgrade-{$offset}@example.com",
+                'email_verified_at' => self::FIXTURE_CREATED_AT,
+                'password' => '$2y$12$AG/kAh9FGl311e5Mzv2qluJgB7Un2wIlKvvmXT4U6HVsGIymh2gnS',
+                'oidc_sub' => $subject,
+                'locale' => 'en',
+                'timezone' => 'UTC',
+                'created_at' => self::FIXTURE_CREATED_AT,
+                'updated_at' => self::FIXTURE_UPDATED_AT,
+            ]);
+            $subjectsByUserId[$userId] = $subject;
+        }
+
+        // A local-only user must not get an identity.
+        DB::table('users')->insert([
+            'is_active' => true,
+            'first_name' => 'Local',
+            'last_name' => 'Only',
+            'email' => 'local-only-upgrade@example.com',
+            'email_verified_at' => self::FIXTURE_CREATED_AT,
+            'password' => '$2y$12$AG/kAh9FGl311e5Mzv2qluJgB7Un2wIlKvvmXT4U6HVsGIymh2gnS',
+            'oidc_sub' => null,
+            'locale' => 'en',
+            'timezone' => 'UTC',
+            'created_at' => self::FIXTURE_CREATED_AT,
+            'updated_at' => self::FIXTURE_UPDATED_AT,
+        ]);
+
+        return [
+            'issuer' => self::LEGACY_OIDC_ISSUER,
+            'subjectsByUserId' => $subjectsByUserId,
+        ];
+    }
+
+    /**
+     * @param  array{issuer: string, subjectsByUserId: array<string, string>}  $oidcExpectations
+     * @return list<string>
+     */
+    private static function legacyOidcSubjectViolations(array $oidcExpectations): array
+    {
+        $violations = [];
+
+        if (! Schema::hasTable('user_identities')) {
+            return ['user_identities table is missing after the upgrade.'];
+        }
+
+        $identityRows = DB::table('user_identities')->get();
+        $subjectsByUserId = [];
+
+        foreach ($identityRows as $identityRow) {
+            $subjectsByUserId[(string) $identityRow->user_id] = (string) $identityRow->subject;
+
+            if ((string) $identityRow->issuer !== $oidcExpectations['issuer']) {
+                $violations[] = "user_identities for user {$identityRow->user_id}: issuer is {$identityRow->issuer}, expected {$oidcExpectations['issuer']}.";
+            }
+        }
+
+        foreach ($oidcExpectations['subjectsByUserId'] as $userId => $expectedSubject) {
+            $storedSubject = $subjectsByUserId[$userId] ?? null;
+
+            if ($storedSubject !== $expectedSubject) {
+                $violations[] = "user_identities for user {$userId}: subject is ".var_export($storedSubject, true).", expected {$expectedSubject}.";
+            }
+        }
+
+        $localOnlyUserId = DB::table('users')->where('email', 'local-only-upgrade@example.com')->value('id');
+
+        if ($localOnlyUserId !== null && isset($subjectsByUserId[(string) $localOnlyUserId])) {
+            $violations[] = "user_identities must not include the local-only user {$localOnlyUserId}.";
+        }
+
+        return $violations;
     }
 
     /**

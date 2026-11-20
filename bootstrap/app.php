@@ -65,6 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'graphql',
             'mcp',
             'mcp/*',
+            'auth/oidc/backchannel-logout',
         ]);
 
         $middleware->web(append: [

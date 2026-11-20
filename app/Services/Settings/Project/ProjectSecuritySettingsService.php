@@ -115,6 +115,23 @@ class ProjectSecuritySettingsService
     }
 
     /**
+     * Link an SSO identity to an existing local user with the same verified email.
+     * Off by default (package decision); existing SSO installs opt in via the upgrade migration.
+     */
+    public function isOidcAutoLinkEnabled(): bool
+    {
+        return (bool) $this->projectSettings->raw()['oidc_auto_link'];
+    }
+
+    /**
+     * Hide the password form and refuse local logins except break-glass accounts.
+     */
+    public function isOidcOnlyEnabled(): bool
+    {
+        return (bool) $this->projectSettings->raw()['oidc_only'];
+    }
+
+    /**
      * True when OIDC is enabled and credentials are present (login CTA).
      */
     public function isOidcLoginAvailable(): bool
@@ -174,6 +191,8 @@ class ProjectSecuritySettingsService
                 ? trim($raw['oidc_button_label'])
                 : null,
             'oidc_jit_provisioning' => (bool) ($raw['oidc_jit_provisioning'] ?? false),
+            'oidc_auto_link' => (bool) ($raw['oidc_auto_link'] ?? false),
+            'oidc_only' => (bool) ($raw['oidc_only'] ?? false),
         ];
     }
 

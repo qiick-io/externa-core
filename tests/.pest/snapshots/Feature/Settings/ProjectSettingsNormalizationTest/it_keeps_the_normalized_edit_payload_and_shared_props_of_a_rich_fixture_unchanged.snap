@@ -132,6 +132,8 @@
     "oidc_client_id": "client-id",
     "oidc_button_label": null,
     "oidc_jit_provisioning": true,
+    "oidc_auto_link": false,
+    "oidc_only": false,
     "preview_url_default": "https:\/\/preview.acme.test\/{{slug}}?token={{token}}",
     "revision_retention_count": 50,
     "revision_retention_days": null,

@@ -343,7 +343,7 @@ final class SafeRemoteUrlValidator
     {
         return self::authorize(
             $url,
-            allowPrivateHosts: (bool) config('services.oidc.allow_private_hosts', false),
+            allowPrivateHosts: (bool) config('oidc.http.allow_private_hosts', false),
             enforceHostAllowlist: false,
         );
     }

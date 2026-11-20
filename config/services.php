@@ -35,21 +35,4 @@ return [
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | OIDC (optional Compose / Docker QA)
-    |--------------------------------------------------------------------------
-    |
-    | When the browser-facing issuer is localhost but PHP runs in a container,
-    | fetch discovery from discovery_base and rewrite server-side endpoints
-    | (token / userinfo) to server_origin. Authorization stays on the issuer host.
-    |
-    */
-    'oidc' => [
-        'discovery_base' => env('OIDC_DISCOVERY_BASE'),
-        'server_origin' => env('OIDC_SERVER_ORIGIN'),
-        // Opt-in when the IdP lives on a private/CGNAT host (lab / Docker).
-        'allow_private_hosts' => (bool) env('OIDC_ALLOW_PRIVATE_HOSTS', false),
-    ],
-
 ];

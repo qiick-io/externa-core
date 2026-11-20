@@ -8,12 +8,14 @@
  */
 
 use App\Enums\PermissionEnum;
-use App\Http\Controllers\Auth\OidcController;
+use App\Http\Controllers\Auth\OidcCallbackController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Services\Auth\HomePathService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Qiick\Oidc\Http\Controllers\BackChannelLogoutController;
+use Qiick\Oidc\Http\Controllers\OidcRedirectController;
 
 Route::get('/', function () {
     return auth()->check()
@@ -21,12 +23,21 @@ Route::get('/', function () {
         : redirect()->route('login');
 })->name('home');
 
-Route::middleware('guest')->group(function () {
-    Route::get('auth/oidc/redirect', [OidcController::class, 'redirect'])
-        ->name('auth.oidc.redirect');
-    Route::get('auth/oidc/callback', [OidcController::class, 'callback'])
-        ->name('auth.oidc.callback');
+/*
+ * qiick/laravel-oidc paths (package route registration is off so the callback can dual-read
+ * users.oidc_sub for one release). Same URLs the IdP already has registered. Redirect is
+ * throttled at 60/min per IP; the callback is not (a shared office NAT must finish logins).
+ */
+Route::middleware(['guest'])->prefix('auth/oidc')->group(function (): void {
+    Route::get('redirect', OidcRedirectController::class)
+        ->middleware('throttle:60,1')
+        ->name('oidc.redirect');
+    Route::get('callback', OidcCallbackController::class)->name('oidc.callback');
 });
+
+// IdP server-to-server POST: no CSRF (see bootstrap/app.php). No guest — the IdP has no session.
+Route::post('auth/oidc/backchannel-logout', BackChannelLogoutController::class)
+    ->name('oidc.backchannel-logout');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])

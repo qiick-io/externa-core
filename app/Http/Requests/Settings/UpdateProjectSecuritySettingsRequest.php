@@ -2,11 +2,15 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\Settings\Concerns\AuthorizesProjectSettingsTrait;
+use App\Models\User;
+use App\Services\Auth\OidcBreakGlassPolicyService;
 use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Validate authentication & security project settings (policy, registration, OIDC).
@@ -42,7 +46,36 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
             'oidc_client_secret' => ['nullable', 'string', 'max:512'],
             'oidc_button_label' => ['nullable', 'string', 'max:64'],
             'oidc_jit_provisioning' => ['required', 'boolean'],
+            'oidc_auto_link' => ['required', 'boolean'],
+            'oidc_only' => ['required', 'boolean'],
         ];
+    }
+
+    /**
+     * SSO-only mode needs at least one active break-glass super-admin (confirmed TOTP or a
+     * passkey) so a down IdP never locks the owner out.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! filter_var($this->input('oidc_only'), FILTER_VALIDATE_BOOLEAN)) {
+                return;
+            }
+
+            $breakGlassPolicy = app(OidcBreakGlassPolicyService::class);
+            $hasBreakGlass = User::query()
+                ->where('is_active', true)
+                ->role(RoleEnum::SuperAdmin->value)
+                ->get()
+                ->contains(fn (User $user): bool => $breakGlassPolicy->isBreakGlassAccount($user));
+
+            if (! $hasBreakGlass) {
+                $validator->errors()->add(
+                    'oidc_only',
+                    __('SSO-only mode needs an active super-admin with confirmed two-factor authentication or a passkey.'),
+                );
+            }
+        });
     }
 
     /**
@@ -72,6 +105,8 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
             'oidc_client_id' => $validated['oidc_client_id'] ?? null,
             'oidc_button_label' => $validated['oidc_button_label'] ?? null,
             'oidc_jit_provisioning' => (bool) $validated['oidc_jit_provisioning'],
+            'oidc_auto_link' => (bool) $validated['oidc_auto_link'],
+            'oidc_only' => (bool) $validated['oidc_only'],
             ...$this->oidcClientSecretValue($validated),
         ];
     }
@@ -114,6 +149,8 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
             'two_factor_required',
             'oidc_enabled',
             'oidc_jit_provisioning',
+            'oidc_auto_link',
+            'oidc_only',
         ] as $boolField) {
             if ($this->has($boolField)) {
                 $merge[$boolField] = filter_var($this->input($boolField), FILTER_VALIDATE_BOOLEAN);

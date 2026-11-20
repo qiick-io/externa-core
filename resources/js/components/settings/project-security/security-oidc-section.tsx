@@ -17,18 +17,22 @@ import type {
 
 /**
  * OpenID Connect single sign-on: issuer, client credentials, button label, just-in-time
- * provisioning and the redirect URL to register at the identity provider.
+ * provisioning, auto-link, SSO-only mode, and the URIs to register at the identity provider.
  */
 export function SecurityOidcSection({
     form,
     setForm,
     errors,
     project,
+    oidcCallbackUrl,
+    oidcBackchannelLogoutUrl,
 }: {
     form: SecurityFormState;
     setForm: Dispatch<SetStateAction<SecurityFormState>>;
     errors: Record<string, string | undefined>;
     project: SecurityProjectSettings;
+    oidcCallbackUrl: string;
+    oidcBackchannelLogoutUrl: string;
 }) {
     const { t } = useTranslation();
 
@@ -240,14 +244,78 @@ export function SecurityOidcSection({
                         {errors.oidc_jit_provisioning}
                     </FieldError>
                 </Field>
+
+                <Field data-invalid={errors.oidc_auto_link ? true : undefined}>
+                    <div className="flex items-center gap-3">
+                        <Checkbox
+                            id="oidc_auto_link"
+                            checked={form.oidc_auto_link}
+                            onCheckedChange={(checked) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    oidc_auto_link: checked === true,
+                                }))
+                            }
+                            aria-invalid={
+                                errors.oidc_auto_link ? true : undefined
+                            }
+                            aria-describedby={
+                                errors.oidc_auto_link
+                                    ? 'oidc-auto-link-error'
+                                    : 'oidc-auto-link-hint'
+                            }
+                        />
+                        <FieldLabel htmlFor="oidc_auto_link">
+                            {t('settings.project.oidcAutoLink')}
+                        </FieldLabel>
+                    </div>
+                    <FieldDescription id="oidc-auto-link-hint" className="pl-8">
+                        {t('settings.project.oidcAutoLinkHint')}
+                    </FieldDescription>
+                    <FieldError id="oidc-auto-link-error">
+                        {errors.oidc_auto_link}
+                    </FieldError>
+                </Field>
+
+                <Field data-invalid={errors.oidc_only ? true : undefined}>
+                    <div className="flex items-center gap-3">
+                        <Checkbox
+                            id="oidc_only"
+                            checked={form.oidc_only}
+                            onCheckedChange={(checked) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    oidc_only: checked === true,
+                                }))
+                            }
+                            aria-invalid={errors.oidc_only ? true : undefined}
+                            aria-describedby={
+                                errors.oidc_only
+                                    ? 'oidc-only-error'
+                                    : 'oidc-only-hint'
+                            }
+                        />
+                        <FieldLabel htmlFor="oidc_only">
+                            {t('settings.project.oidcOnly')}
+                        </FieldLabel>
+                    </div>
+                    <FieldDescription id="oidc-only-hint" className="pl-8">
+                        {t('settings.project.oidcOnlyHint')}
+                    </FieldDescription>
+                    <FieldError id="oidc-only-error">
+                        {errors.oidc_only}
+                    </FieldError>
+                </Field>
             </FieldGroup>
 
             <p className="text-sm text-muted-foreground">
                 {t('settings.project.oidcRedirectHint', {
-                    url:
-                        typeof window !== 'undefined'
-                            ? `${window.location.origin}/auth/oidc/callback`
-                            : '/auth/oidc/callback',
+                    url: oidcCallbackUrl,
+                })}
+            </p>
+            <p className="text-sm text-muted-foreground">
+                {t('settings.project.oidcBackchannelHint', {
+                    url: oidcBackchannelLogoutUrl,
                 })}
             </p>
         </div>

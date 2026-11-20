@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Fortify\Features;
+use Qiick\Oidc\Services\SsoOnlyModeService;
 
 /**
  * Fortify action that registers a new user from validated input.
@@ -28,7 +29,9 @@ class CreateNewUser implements CreatesNewUsers
     {
         $securitySettings = app(ProjectSettingsService::class)->security();
 
-        if (! Features::enabled(Features::registration()) || ! $securitySettings->isRegistrationEnabled()) {
+        if (! Features::enabled(Features::registration())
+            || ! $securitySettings->isRegistrationEnabled()
+            || app(SsoOnlyModeService::class)->isActive()) {
             throw ValidationException::withMessages([
                 'email' => __('Registration is currently disabled.'),
             ]);
