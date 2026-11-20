@@ -61,6 +61,39 @@ test('super admin resolver exposes all enum permissions and role name', function
         ->and($resolver->roleNamesFor($user))->toContain(RoleEnum::SuperAdmin->value);
 });
 
+test('soft-deleted group no longer grants its roles permissions and restore brings them back', function () {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $groupRole = Role::query()->firstOrCreate([
+        'name' => 'group-permission-holder',
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $groupRole->syncPermissions([PermissionEnum::CanShowUsers->value]);
+
+    $user = User::factory()->create();
+    $group = UserGroup::query()->create([
+        'name' => 'Soft-delete permission group',
+    ]);
+    $group->roles()->attach($groupRole);
+    $user->groups()->attach($group);
+
+    $resolver = app(EffectivePermissionResolverService::class);
+
+    expect($resolver->hasPermission($user, PermissionEnum::CanShowUsers->value))->toBeTrue();
+
+    $group->delete();
+    $resolver->forget($user);
+
+    expect($resolver->hasPermission($user, PermissionEnum::CanShowUsers->value))->toBeFalse()
+        ->and($resolver->roleNamesFor($user))->not->toContain('group-permission-holder');
+
+    $group->restore();
+    $resolver->forget($user);
+
+    expect($resolver->hasPermission($user, PermissionEnum::CanShowUsers->value))->toBeTrue()
+        ->and($resolver->roleNamesFor($user))->toContain('group-permission-holder');
+});
+
 test('reader without extra roles only receives show permissions from role', function () {
     $this->seed([PermissionSeeder::class, RoleSeeder::class]);
 

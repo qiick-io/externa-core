@@ -127,6 +127,8 @@ class EffectivePermissionResolverService
                         $subQuery->select('user_group_role.role_id')
                             ->from('user_group_role')
                             ->join('user_group_user', 'user_group_user.user_group_id', '=', 'user_group_role.user_group_id')
+                            ->join('user_groups', 'user_groups.id', '=', 'user_group_user.user_group_id')
+                            ->whereNull('user_groups.deleted_at')
                             ->where('user_group_user.user_id', $user->id);
                     });
                 })
