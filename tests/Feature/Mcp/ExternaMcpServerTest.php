@@ -55,15 +55,26 @@ function makeOwnedMcpKey(array $scopes = ['mcp:read'], array $permissions = []):
         'is_assignable' => true,
     ]);
 
-    if ($permissions !== []) {
-        $role->syncPermissions($permissions);
+    $resourceAccess = in_array(ApiKeyScopeEnum::McpWrite->value, $scopes, true) ? 'write' : 'read';
+    $resourceScopes = ['collections:'.$resourceAccess, 'files:'.$resourceAccess];
+    $storedScopes = [...$scopes, ...$resourceScopes];
+
+    // Owner must still be able to grant every scope on the key at use time (#815).
+    $grantPermissions = [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanShowCollections->value,
+        PermissionEnum::CanShowFiles->value,
+    ];
+
+    if ($resourceAccess === 'write') {
+        $grantPermissions[] = PermissionEnum::CanEditCollections->value;
+        $grantPermissions[] = PermissionEnum::CanEditFiles->value;
     }
+
+    $role->syncPermissions(array_values(array_unique([...$grantPermissions, ...$permissions])));
 
     $user = User::factory()->create(['is_active' => true]);
     $user->syncRoles([$role]);
-
-    $resourceAccess = in_array(ApiKeyScopeEnum::McpWrite->value, $scopes, true) ? 'write' : 'read';
-    $resourceScopes = ['collections:'.$resourceAccess, 'files:'.$resourceAccess];
 
     $secret = ApiKey::generateSecret();
     $key = ApiKey::query()->create([
@@ -73,7 +84,7 @@ function makeOwnedMcpKey(array $scopes = ['mcp:read'], array $permissions = []):
         'role_id' => $role->id,
         'owner_id' => $user->id,
         'created_by' => $user->id,
-        'scopes' => [...$scopes, ...$resourceScopes],
+        'scopes' => $storedScopes,
     ]);
 
     return ['user' => $user, 'key' => $key, 'plain' => $secret['plain'], 'role' => $role];

@@ -181,8 +181,10 @@ final class ApiKeyAuthenticatorService
     }
 
     /**
-     * Re-check at use time: the owner still holds the grant's role and may still give every
-     * scope on the row. Demotion after consent or key creation must stop the credential.
+     * Re-check at use time: the owner may still give every scope on the row, and for an OAuth
+     * grant they still hold the role they approved. Demotion after consent or key creation must
+     * stop the credential. API keys keep a separate owner ceiling (ACL intersection); their
+     * `role_id` is the acting role, not necessarily one of the owner's assigned roles.
      *
      * The permission resolver is forgotten for this owner first so a demotion in another
      * request (or earlier in the same long-lived worker) is never masked by an in-memory cache.
@@ -200,12 +202,14 @@ final class ApiKeyAuthenticatorService
         $owner->unsetRelation('permissions');
         $owner->unsetRelation('groups');
 
-        $role = $apiKey->role;
+        if ($apiKey->isOAuthGrant()) {
+            $role = $apiKey->role;
 
-        if ($role !== null && ! in_array((int) $role->id, $this->permissionResolver->effectiveRoleIds($owner), true)) {
-            throw ApiKeyRejectedException::unusableKey($apiKey->isOAuthGrant()
-                ? __('The account that authorized this access token no longer holds the granted role.')
-                : __('The API key owner no longer holds the key\'s role.'));
+            if ($role !== null && ! in_array((int) $role->id, $this->permissionResolver->effectiveRoleIds($owner), true)) {
+                throw ApiKeyRejectedException::unusableKey(
+                    __('The account that authorized this access token no longer holds the granted role.'),
+                );
+            }
         }
 
         foreach ($apiKey->grantedScopes() as $scope) {
