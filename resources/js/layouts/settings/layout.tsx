@@ -164,15 +164,12 @@ export default function SettingsLayout({
               ]
             : []),
         // Every user's own grants to remote MCP clients, beside the API keys (#802 / #816).
-        ...(isMcpOAuthEnabled
-            ? [
-                  {
-                      title: t('settings.layout.connectedApps'),
-                      href: connectedApps.index.url(),
-                      icon: null,
-                  },
-              ]
-            : []),
+        // Always listed so leftover grants stay revocable while OAuth is off.
+        {
+            title: t('settings.layout.connectedApps'),
+            href: connectedApps.index.url(),
+            icon: null,
+        },
         ...(can(PermissionEnum.CanShowJobs)
             ? [
                   {

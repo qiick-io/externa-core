@@ -25,34 +25,38 @@ class ApiKeyOwnerService
      */
     public function revokeForOwner(User $owner, string $reason): int
     {
-        $keys = ApiKey::query()
-            ->where('owner_id', $owner->id)
-            ->whereNull('revoked_at')
-            ->get();
+        return (int) DB::transaction(function () use ($owner, $reason): int {
+            $keys = ApiKey::query()
+                ->where('owner_id', $owner->id)
+                ->whereNull('revoked_at')
+                ->lockForUpdate()
+                ->get();
 
-        $count = 0;
-        foreach ($keys as $key) {
-            $key->forceFill(['revoked_at' => now()])->save();
+            $count = 0;
 
-            // An OAuth grant (#802) also holds Passport tokens: withdraw them with it.
-            if ($key->isOAuthGrant()) {
-                app(McpClientCredentialsService::class)->revokeIssuedCredentials((string) $key->oauth_client_id, $owner->id);
+            foreach ($keys as $key) {
+                $key->forceFill(['revoked_at' => now()])->save();
+
+                // An OAuth grant (#802) also holds Passport tokens: withdraw them with it.
+                if ($key->isOAuthGrant()) {
+                    app(McpClientCredentialsService::class)->revokeIssuedCredentials((string) $key->oauth_client_id, $owner->id);
+                }
+
+                activity('api')
+                    ->performedOn($key)
+                    ->causedBy($owner)
+                    ->withProperties([
+                        'reason' => $reason,
+                        'owner_id' => $owner->id,
+                    ])
+                    ->event('api_key_revoked')
+                    ->log('API key revoked because owner '.$reason);
+
+                $count++;
             }
 
-            activity('api')
-                ->performedOn($key)
-                ->causedBy($owner)
-                ->withProperties([
-                    'reason' => $reason,
-                    'owner_id' => $owner->id,
-                ])
-                ->event('api_key_revoked')
-                ->log('API key revoked because owner '.$reason);
-
-            $count++;
-        }
-
-        return $count;
+            return $count;
+        });
     }
 
     /**
