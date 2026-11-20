@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Services\Auth\OidcLegacyImportIssuerService;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -14,13 +13,13 @@ use Symfony\Component\Console\Output\ConsoleOutput;
  * the Docker entrypoint alike (both only run `migrate`), so no SSO user is locked out between
  * the upgrade and a manual step:
  *
- * 1. `users.oidc_sub` is copied into `user_identities` by the package's own
- *    `oidc:import-legacy-subjects`, with the issuer exactly as saved in Settings → Authentication
- *    & Security (the string the package compares with discovery and stores on new links). It is
- *    idempotent and never moves an identity that is already linked to another user: such a
- *    conflict is printed and skipped, and the upgrade goes on (re-run the command after fixing).
- * 2. That issuer is persisted as `oidc_legacy_import_issuer` so the dual-read bridge keeps using
- *    the import's issuer after an IdP switch (re-run the command with `--issuer=` to refresh it).
+ * 1. `users.oidc_sub` is copied into `user_identities` by Externa's `oidc:import-legacy-subjects`
+ *    (requires `--issuer`), with the issuer exactly as saved in Settings → Authentication &
+ *    Security. It is idempotent and never moves an identity that is already linked to another
+ *    user: such a conflict is printed and skipped, and the upgrade goes on (re-run the command
+ *    after fixing).
+ * 2. That issuer is persisted as `oidc_legacy_import_issuer` (inline settings upsert; no App
+ *    service import so a future bridge removal cannot break fresh installs of this migration).
  * 3. Installs that had configured SSO keep linking existing users by verified email, as the
  *    local client always did: `oidc_auto_link` is stored as true unless it is already set. New
  *    installs get the package default (off).
@@ -31,6 +30,8 @@ use Symfony\Component\Console\Output\ConsoleOutput;
  */
 return new class extends Migration
 {
+    private const string LEGACY_IMPORT_ISSUER_KEY = 'oidc_legacy_import_issuer';
+
     public function up(): void
     {
         $issuer = $this->savedIssuer();
@@ -54,7 +55,8 @@ return new class extends Migration
         $output = app()->runningUnitTests() ? new BufferedOutput : new ConsoleOutput;
         $exitCode = Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $issuer], $output);
 
-        app(OidcLegacyImportIssuerService::class)->remember($issuer);
+        // Persist the issuer this upgrade imported under (DB only — no App service class).
+        $this->rememberImportIssuer($issuer);
 
         if ($exitCode !== 0) {
             $output->writeln('<comment>Some SSO identities were not imported (see above). Fix them, then run: php artisan oidc:import-legacy-subjects --issuer='.escapeshellarg($issuer).'</comment>');
@@ -76,6 +78,35 @@ return new class extends Migration
         $issuer = is_string($storedValue) ? json_decode($storedValue) : null;
 
         return is_string($issuer) && trim($issuer) !== '' ? trim($issuer) : null;
+    }
+
+    /**
+     * Upsert `oidc_legacy_import_issuer` so the dual-read bridge keeps this upgrade's issuer.
+     */
+    private function rememberImportIssuer(string $issuer): void
+    {
+        $now = now();
+        $payload = [
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => self::LEGACY_IMPORT_ISSUER_KEY,
+            'value' => json_encode($issuer),
+            'updated_at' => $now,
+        ];
+
+        if ($this->projectSettingExists(self::LEGACY_IMPORT_ISSUER_KEY)) {
+            DB::table('settings')
+                ->where('scope', 'project')
+                ->whereNull('scope_id')
+                ->where('group', 'project')
+                ->where('key', self::LEGACY_IMPORT_ISSUER_KEY)
+                ->update($payload);
+
+            return;
+        }
+
+        DB::table('settings')->insert($payload + ['created_at' => $now]);
     }
 
     private function projectSettingExists(string $key): bool

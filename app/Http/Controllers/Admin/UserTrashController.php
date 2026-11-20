@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Models\User;
+use App\Services\Auth\OidcBreakGlassContinuityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -35,6 +36,8 @@ class UserTrashController extends Controller
     public function forceDelete(User $user): RedirectResponse
     {
         abort_unless(Gate::allows('forceDelete', $user), 403);
+
+        app(OidcBreakGlassContinuityService::class)->assertCanDeactivateOrDelete($user);
 
         $user->forceDelete();
 

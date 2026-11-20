@@ -178,14 +178,31 @@ it('imports nothing and keeps the auto-link default on an install that never con
         ->and(app(OidcLegacyImportIssuerService::class)->issuer())->toBeNull();
 });
 
-it('persists the import issuer from a manual artisan run and skips dry-run', function () {
-    seedLegacySsoInstall($this->issuer, $this->otherIssuer);
+it('persists the import issuer only after a successful non-dry artisan run with --issuer', function () {
+    User::factory()->create(['oidc_sub' => 'sub-manual']);
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
+        'oidc_issuer' => 'https://settings-should-not-be-used.example.com',
+    ]);
+
+    expect(Artisan::call('oidc:import-legacy-subjects'))->toBe(1)
+        ->and(app(OidcLegacyImportIssuerService::class)->issuer())->toBeNull();
 
     Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $this->issuer, '--dry-run' => true]);
     expect(app(OidcLegacyImportIssuerService::class)->issuer())->toBeNull();
 
-    Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $this->issuer]);
-    expect(app(OidcLegacyImportIssuerService::class)->issuer())->toBe($this->issuer);
+    expect(Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $this->issuer]))->toBe(0)
+        ->and(app(OidcLegacyImportIssuerService::class)->issuer())->toBe($this->issuer);
+
+    // A failed re-import under a different issuer must not retarget the bridge.
+    User::factory()->create(['oidc_sub' => 'sub-taken']);
+    UserIdentity::query()->create([
+        'user_id' => User::factory()->create()->id,
+        'issuer' => 'https://new-idp.example.com',
+        'subject' => 'sub-taken',
+    ]);
+
+    expect(Artisan::call('oidc:import-legacy-subjects', ['--issuer' => 'https://new-idp.example.com']))->toBe(1)
+        ->and(app(OidcLegacyImportIssuerService::class)->issuer())->toBe($this->issuer);
 });
 
 it('keeps an auto-link choice that is already saved', function () {

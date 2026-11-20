@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Ai\Tools\ManageUsers;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
+use Laravel\Ai\Tools\Request;
 use Laravel\Fortify\Features;
 use Qiick\Oidc\Data\AuthenticatedIdentityData;
 use Qiick\Oidc\Models\UserIdentity;
@@ -688,4 +690,42 @@ it('refuses to delete the last break-glass admin while SSO-only is active', func
         ->assertSessionHasErrors('is_active');
 
     expect($last->fresh()->trashed())->toBeFalse();
+});
+
+it('refuses bulk delete of the last break-glass admin while SSO-only is active', function () {
+    enableOidc(['oidc_only' => true]);
+    $breakGlass = User::factory()->withTwoFactor()->create();
+    $breakGlass->assignRole(RoleEnum::SuperAdmin->value);
+    $bystander = User::factory()->create();
+
+    $this->actingAs($breakGlass)
+        ->from(route('users.index'))
+        ->post(route('users.bulk-actions'), [
+            'action' => 'delete',
+            'ids' => [$breakGlass->id, $bystander->id],
+        ])
+        ->assertSessionHasErrors('ids');
+
+    expect($breakGlass->fresh()->trashed())->toBeFalse()
+        ->and($bystander->fresh()->trashed())->toBeFalse();
+});
+
+it('refuses AI ManageUsers delete of the last break-glass admin while SSO-only is active', function () {
+    config(['ai.tools.destructive_enabled' => true]);
+    enableOidc(['oidc_only' => true]);
+    $actor = User::factory()->create();
+    $actor->assignRole(RoleEnum::SuperAdmin->value);
+    $breakGlass = User::factory()->withTwoFactor()->create();
+    $breakGlass->assignRole(RoleEnum::SuperAdmin->value);
+
+    $this->actingAs($actor);
+
+    $result = (string) (new ManageUsers)->handle(new Request([
+        'action' => 'delete',
+        'user_id' => $breakGlass->id,
+    ]));
+
+    expect($result)->toContain('Error:')
+        ->and($result)->toContain('SSO-only mode needs an active super-admin')
+        ->and($breakGlass->fresh()->trashed())->toBeFalse();
 });

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Actions\Auth\DeletePasskeyAction;
 use App\Actions\Fortify\DisableTwoFactorAuthenticationAction;
+use App\Console\Commands\ImportLegacyOidcSubjectsCommand;
 use App\Listeners\AddQueueJobLogContextListener;
 use App\Listeners\Ai\LogAiToolApprovalEventsListener;
 use App\Models\ApiKey;
@@ -16,8 +16,8 @@ use App\Services\Ai\AiToolArgumentRedactorService;
 use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
+use App\Services\Auth\GuardedDeletePasskeyService;
 use App\Services\Auth\OidcBreakGlassPolicyService;
-use App\Services\Auth\OidcLegacyImportIssuerService;
 use App\Services\Auth\OidcSecondFactorChallengeService;
 use App\Services\Auth\OidcSettingsRepositoryService;
 use App\Services\Auth\OidcUserProvisioningService;
@@ -31,18 +31,14 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Console\Events\CommandFinished;
-use Illuminate\Contracts\Console\Kernel as ConsoleKernelContract;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -101,7 +97,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SecondFactorChallengeContract::class, OidcSecondFactorChallengeService::class);
         $this->app->bind(BreakGlassPolicyContract::class, OidcBreakGlassPolicyService::class);
         $this->app->singleton(DisableTwoFactorAuthentication::class, DisableTwoFactorAuthenticationAction::class);
-        $this->app->singleton(DeletePasskey::class, DeletePasskeyAction::class);
+        $this->app->singleton(DeletePasskey::class, GuardedDeletePasskeyService::class);
 
         $this->app->bind(UserLinkingService::class, function (Application $app): UserLinkingService {
             $securitySettings = $app->make(ProjectSecuritySettingsService::class);
@@ -143,48 +139,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerAuthActivityListeners();
         $this->registerAiToolApprovalListeners();
         $this->registerQueueJobLogContextListeners();
-        $this->registerLegacyOidcImportIssuerListener();
+        $this->commands([ImportLegacyOidcSubjectsCommand::class]);
         $this->configureHttpClientStreaming();
-    }
-
-    /**
-     * Persist the issuer used by a manual `oidc:import-legacy-subjects` run so the dual-read
-     * bridge keeps matching after Settings change the live IdP.
-     *
-     * Laravel skips Symfony→Laravel command event rerouting during unit tests, so Artisan::call
-     * would never fire CommandFinished here; re-enable it so the migration rehearsal and a
-     * manual re-import both persist the issuer the same way production CLI does.
-     */
-    protected function registerLegacyOidcImportIssuerListener(): void
-    {
-        $consoleKernel = $this->app->make(ConsoleKernelContract::class);
-
-        if ($consoleKernel instanceof ConsoleKernel) {
-            $consoleKernel->rerouteSymfonyCommandEvents();
-        }
-
-        Event::listen(CommandFinished::class, function (CommandFinished $event): void {
-            if ($event->command !== 'oidc:import-legacy-subjects') {
-                return;
-            }
-
-            if ($event->input->hasOption('dry-run') && (bool) $event->input->getOption('dry-run')) {
-                return;
-            }
-
-            $issuerOption = $event->input->hasOption('issuer') ? $event->input->getOption('issuer') : null;
-            $issuer = is_string($issuerOption) && trim($issuerOption) !== ''
-                ? trim($issuerOption)
-                : (is_string($configured = Config::get('oidc.issuer')) ? trim($configured) : '');
-
-            if ($issuer === '') {
-                $issuer = (string) (app(ProjectSecuritySettingsService::class)->oidcIssuer() ?? '');
-            }
-
-            if ($issuer !== '') {
-                app(OidcLegacyImportIssuerService::class)->remember($issuer);
-            }
-        });
     }
 
     /**
