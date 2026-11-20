@@ -9,6 +9,7 @@ use App\Services\Mcp\McpOAuthServerService;
 use App\Services\Upgrade\UpgradeGitService;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Process\ProcessResult;
+use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
@@ -80,10 +81,29 @@ class UpgradeCommand extends Command
         $this->newLine();
 
         if (! $this->option('no-migrate')) {
-            $this->info('Running migrate --force…');
-            $code = $this->call('migrate', ['--force' => true]);
-            if ($code !== self::SUCCESS) {
-                return $code;
+            // Maintenance around migrate so mid-upgrade traffic never hits a half-migrated schema;
+            // queue workers pick up new code after restart / Horizon terminate (#827).
+            $this->info('Putting the application into maintenance mode…');
+            $this->call('down', ['--retry' => 60]);
+
+            try {
+                $this->info('Running migrate --force…');
+                $code = $this->call('migrate', ['--force' => true]);
+
+                if ($code !== self::SUCCESS) {
+                    return $code;
+                }
+
+                $this->info('Restarting queue workers…');
+                $this->call('queue:restart');
+
+                if (array_key_exists('horizon:terminate', Artisan::all())) {
+                    $this->info('Terminating Horizon supervisors…');
+                    $this->call('horizon:terminate');
+                }
+            } finally {
+                $this->info('Bringing the application back up…');
+                $this->call('up');
             }
         }
 

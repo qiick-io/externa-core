@@ -9,6 +9,7 @@ use App\Services\Api\FileFieldExpanderService;
 use App\Services\Api\MiniUserMapperService;
 use App\Services\Api\PublicApiIncludeParserService;
 use App\Services\Api\RelationIncludeHydratorService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Collections\CollectionLocaleResolverService;
 use Illuminate\Http\Request;
@@ -76,9 +77,11 @@ class CollectionItemResource extends JsonResource
         }
 
         // public_id fields always leave the database; load them even when MiniUser is omitted.
+        // Tolerate a missing public_id column during the deploy window before migrate finishes.
+        $userSelect = app(UserRelationColumnService::class)->selectList();
         $item->loadMissing([
-            'userCreated:id,public_id,first_name,last_name,email',
-            'userUpdated:id,public_id,first_name,last_name,email',
+            'userCreated:'.$userSelect,
+            'userUpdated:'.$userSelect,
         ]);
 
         return [

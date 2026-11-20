@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Additive `users.public_id` UUID v7 for the public API (#827 step 2).
  *
- * Sequence (every engine, including SQLite's table rebuild on `change()`):
+ * Sequence (each DDL step is re-runnable after a crash — MySQL/MariaDB/SQLite have no
+ * transactional DDL; SQLite rebuilds the table on `change()`):
  * 1. nullable uuid column;
  * 2. idempotent chunked backfill (`users:backfill-public-id`);
  * 3. unique index;
@@ -22,26 +23,43 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->uuid('public_id')->nullable()->after('id');
-        });
+        if (! Schema::hasColumn('users', 'public_id')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->uuid('public_id')->nullable()->after('id');
+            });
+        }
 
         app(UserPublicIdBackfillService::class)->backfill();
 
-        Schema::table('users', function (Blueprint $table): void {
-            $table->unique('public_id');
-        });
+        if (! Schema::hasIndex('users', 'users_public_id_unique')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->unique('public_id');
+            });
+        }
 
-        Schema::table('users', function (Blueprint $table): void {
-            $table->uuid('public_id')->nullable(false)->change();
-        });
+        // Re-runnable: only force NOT NULL when the column is still nullable.
+        $publicIdColumn = collect(Schema::getColumns('users'))
+            ->first(fn (array $column): bool => $column['name'] === 'public_id');
+
+        if ($publicIdColumn !== null && ($publicIdColumn['nullable'] ?? false) === true) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->uuid('public_id')->nullable(false)->change();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropUnique(['public_id']);
-            $table->dropColumn('public_id');
-        });
+        if (Schema::hasIndex('users', 'users_public_id_unique')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->dropUnique(['public_id']);
+            });
+        }
+
+        if (Schema::hasColumn('users', 'public_id')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->dropColumn('public_id');
+            });
+        }
     }
 };
