@@ -8,6 +8,23 @@ use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Process;
 
+/**
+ * Parallel Pest workers share `storage/framework/down`. Keep maintenance in the
+ * per-process array cache so `externa:upgrade` tests cannot 503 siblings.
+ */
+beforeEach(function (): void {
+    config([
+        'app.maintenance.driver' => 'cache',
+        'app.maintenance.store' => 'array',
+    ]);
+});
+
+afterEach(function (): void {
+    if (app()->isDownForMaintenance()) {
+        Artisan::call('up');
+    }
+});
+
 it('registers externa:upgrade', function () {
     expect(Artisan::all())->toHaveKey('externa:upgrade');
 });
