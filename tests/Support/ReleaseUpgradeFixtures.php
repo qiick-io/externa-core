@@ -49,6 +49,11 @@ final class ReleaseUpgradeFixtures
     public const USERS_PUBLIC_ID_MIGRATION = '2026_11_20_120000_add_public_id_to_users_table';
 
     /**
+     * Adds `settings.scope_ref`, backfills from `scope_id`, and drops duplicate instance rows (#827 step 4).
+     */
+    public const SETTINGS_SCOPE_REF_MIGRATION = '2026_11_20_140000_add_scope_ref_to_settings_table';
+
+    /**
      * Issuer a 1.5.x install would have saved under Settings → Authentication & Security.
      */
     public const LEGACY_OIDC_ISSUER = 'https://idp.example.com/realms/externa';
@@ -201,6 +206,20 @@ final class ReleaseUpgradeFixtures
                 $rowAfter = $tablesAfter[$table]['rows'][$rowKey] ?? null;
 
                 if ($rowAfter === null) {
+                    // JSON round-trip may cast numeric id keys to int; droppedIds stay strings.
+                    $droppedSettingIds = array_map(
+                        strval(...),
+                        $expectations[self::SETTINGS_SCOPE_REF_MIGRATION]['droppedIds'] ?? [],
+                    );
+
+                    if (
+                        $table === 'settings'
+                        && in_array(self::SETTINGS_SCOPE_REF_MIGRATION, $seededGroups, true)
+                        && in_array((string) $rowKey, $droppedSettingIds, true)
+                    ) {
+                        continue;
+                    }
+
                     $violations[] = "{$table} row {$rowKey} is lost.";
 
                     continue;
@@ -255,6 +274,12 @@ final class ReleaseUpgradeFixtures
             array_push($violations, ...self::usersPublicIdViolations($publicIdUserIds));
         }
 
+        if (in_array(self::SETTINGS_SCOPE_REF_MIGRATION, $seededGroups, true)) {
+            /** @var array{keeperId: string, droppedIds: list<string>, expectedValue: string, userSettingId: string, userScopeId: string} $scopeRefExpectations */
+            $scopeRefExpectations = $expectations[self::SETTINGS_SCOPE_REF_MIGRATION];
+            array_push($violations, ...self::settingsScopeRefViolations($scopeRefExpectations));
+        }
+
         return $violations;
     }
 
@@ -271,6 +296,7 @@ final class ReleaseUpgradeFixtures
             self::API_KEY_SCOPES_MIGRATION => self::seedApiKeys(...),
             self::LEGACY_OIDC_SUBJECTS_MIGRATION => self::seedLegacyOidcSubjects(...),
             self::USERS_PUBLIC_ID_MIGRATION => self::seedUsersWithoutPublicId(...),
+            self::SETTINGS_SCOPE_REF_MIGRATION => self::seedDuplicateInstanceSettings(...),
         ];
     }
 
@@ -347,6 +373,131 @@ final class ReleaseUpgradeFixtures
 
         if ($publicIdColumn === null || ($publicIdColumn['nullable'] ?? true) === true) {
             $violations[] = 'users.public_id must be NOT NULL after the upgrade.';
+        }
+
+        return $violations;
+    }
+
+    /**
+     * Duplicate instance rows (NULL scope_id unique hole on 1.5.x). Keeper rule: latest non-null
+     * `updated_at` wins (NULL loses); then highest `id`. Includes a newer row with a *lower* id
+     * and a NULL `updated_at` loser so every engine agrees.
+     *
+     * @return array{keeperId: string, droppedIds: list<string>, expectedValue: string}
+     */
+    private static function seedDuplicateInstanceSettings(): array
+    {
+        if (Schema::hasColumn('settings', 'scope_ref')) {
+            throw new RuntimeException('settings.scope_ref already exists: seed against the release schema, not this branch.');
+        }
+
+        // Keeper first → lower id + newest updated_at; then older higher id; then NULL updated_at.
+        $keeperId = (string) DB::table('settings')->insertGetId([
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'scope_ref_upgrade_probe',
+            'value' => json_encode('newer-duplicate'),
+            'created_at' => '2026-02-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        $olderHigherId = (string) DB::table('settings')->insertGetId([
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'scope_ref_upgrade_probe',
+            'value' => json_encode('older-duplicate'),
+            'created_at' => '2026-01-01 00:00:00',
+            'updated_at' => '2026-01-01 00:00:00',
+        ]);
+        $nullUpdatedId = (string) DB::table('settings')->insertGetId([
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'scope_ref_upgrade_probe',
+            'value' => json_encode('null-updated-duplicate'),
+            'created_at' => '2026-04-01 00:00:00',
+            'updated_at' => null,
+        ]);
+
+        // A scoped row must keep its scope_id as the scope_ref string.
+        $userId = (string) DB::table('users')->insertGetId([
+            'is_active' => true,
+            'first_name' => 'Scope',
+            'last_name' => 'Ref',
+            'email' => 'scope-ref-upgrade@example.com',
+            'email_verified_at' => self::FIXTURE_CREATED_AT,
+            'password' => '$2y$12$AG/kAh9FGl311e5Mzv2qluJgB7Un2wIlKvvmXT4U6HVsGIymh2gnS',
+            'locale' => 'en',
+            'timezone' => 'UTC',
+            'created_at' => self::FIXTURE_CREATED_AT,
+            'updated_at' => self::FIXTURE_UPDATED_AT,
+        ]);
+        $userSettingId = (string) DB::table('settings')->insertGetId([
+            'scope' => 'user',
+            'scope_id' => (int) $userId,
+            'group' => 'notifications',
+            'key' => 'scope_ref_user_probe',
+            'value' => json_encode(true),
+            'created_at' => self::FIXTURE_CREATED_AT,
+            'updated_at' => self::FIXTURE_UPDATED_AT,
+        ]);
+
+        return [
+            'keeperId' => $keeperId,
+            'droppedIds' => [$olderHigherId, $nullUpdatedId],
+            'expectedValue' => json_encode('newer-duplicate'),
+            'userSettingId' => $userSettingId,
+            'userScopeId' => $userId,
+        ];
+    }
+
+    /**
+     * @param  array{keeperId: string, droppedIds: list<string>, expectedValue: string, userSettingId: string, userScopeId: string}  $expectations
+     * @return list<string>
+     */
+    private static function settingsScopeRefViolations(array $expectations): array
+    {
+        $violations = [];
+
+        if (! Schema::hasColumn('settings', 'scope_ref')) {
+            return ['settings.scope_ref column is missing after the upgrade.'];
+        }
+
+        if (! Schema::hasTable('settings_dedupe_archive')) {
+            $violations[] = 'settings_dedupe_archive table is missing after the upgrade.';
+        }
+
+        foreach ($expectations['droppedIds'] as $droppedId) {
+            if (DB::table('settings')->where('id', $droppedId)->exists()) {
+                $violations[] = "settings row {$droppedId}: duplicate instance row should have been dropped.";
+            }
+
+            if (Schema::hasTable('settings_dedupe_archive') && ! DB::table('settings_dedupe_archive')->where('id', $droppedId)->exists()) {
+                $violations[] = "settings_dedupe_archive is missing dropped settings id {$droppedId}.";
+            }
+        }
+
+        $keeper = DB::table('settings')->where('id', $expectations['keeperId'])->first();
+
+        if ($keeper === null) {
+            $violations[] = "settings row {$expectations['keeperId']}: keeper instance row is missing.";
+        } else {
+            if ((string) $keeper->scope_ref !== '') {
+                $violations[] = "settings row {$expectations['keeperId']}: scope_ref is ".var_export($keeper->scope_ref, true).", expected ''.";
+            }
+
+            if ((string) $keeper->value !== $expectations['expectedValue']) {
+                $violations[] = "settings row {$expectations['keeperId']}: value is ".var_export($keeper->value, true).", expected {$expectations['expectedValue']}.";
+            }
+        }
+
+        $userSetting = DB::table('settings')->where('id', $expectations['userSettingId'])->first();
+
+        if ($userSetting === null) {
+            $violations[] = "settings row {$expectations['userSettingId']}: user-scoped row is missing.";
+        } elseif ((string) $userSetting->scope_ref !== $expectations['userScopeId']) {
+            $violations[] = "settings row {$expectations['userSettingId']}: scope_ref is ".var_export($userSetting->scope_ref, true).", expected {$expectations['userScopeId']}.";
         }
 
         return $violations;
