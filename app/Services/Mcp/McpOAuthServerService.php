@@ -59,9 +59,8 @@ final class McpOAuthServerService
             return true;
         }
 
-        $keyPath = Passport::keyPath('oauth-private.key');
-
-        return is_string($keyPath) && is_file($keyPath) && is_file(Passport::keyPath('oauth-public.key'));
+        return is_file(Passport::keyPath('oauth-private.key'))
+            && is_file(Passport::keyPath('oauth-public.key'));
     }
 
     /**

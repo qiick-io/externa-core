@@ -6,9 +6,9 @@ namespace App\Console\Commands\Mcp;
 
 use App\Models\ApiKey;
 use App\Services\Mcp\McpOAuthServerService;
-use Illuminate\Console\Attributes\AsCommand;
 use Illuminate\Console\Command;
 use Laravel\Passport\Client;
+use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
  * Delete MCP OAuth clients that never completed an authorisation and are older than the

@@ -26,11 +26,12 @@ final class McpOAuthClientAdminService
             ->pluck('oauth_client_id')
             ->all();
 
-        return Client::query()
+        return array_values(Client::query()
             ->orderByDesc('created_at')
             ->get()
             ->map(static function (Client $client) use ($authorizedClientIds): array {
-                $redirectUris = is_array($client->redirect_uris) ? $client->redirect_uris : [];
+                $redirectUris = $client->getAttribute('redirect_uris');
+                $redirectUris = is_array($redirectUris) ? $redirectUris : [];
 
                 return [
                     'id' => (string) $client->getKey(),
@@ -52,8 +53,7 @@ final class McpOAuthClientAdminService
                     'created_at' => $client->created_at?->toIso8601String(),
                 ];
             })
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -61,7 +61,7 @@ final class McpOAuthClientAdminService
      */
     public function blockedHosts(): array
     {
-        return OAuthBlockedRedirectHost::query()
+        return array_values(OAuthBlockedRedirectHost::query()
             ->orderBy('host')
             ->get()
             ->map(static fn (OAuthBlockedRedirectHost $blockedHost): array => [
@@ -69,6 +69,6 @@ final class McpOAuthClientAdminService
                 'host' => $blockedHost->host,
                 'created_at' => $blockedHost->created_at?->toIso8601String(),
             ])
-            ->all();
+            ->all());
     }
 }
