@@ -125,12 +125,35 @@ test('public api v1 responses emit Deprecation Sunset and Link headers', functio
     $response = $this->getJson('/api/v1/collections');
 
     $response->assertOk()
-        ->assertHeader('Deprecation', 'true')
+        ->assertHeader('Deprecation', '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
         ->assertHeader('Sunset', EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_HTTP_DATE);
 
     expect($response->headers->get('Link'))
         ->toContain('rel="deprecation"')
         ->toContain('users-public-id');
+});
+
+test('creating a user succeeds when the public_id column is missing', function (): void {
+    Schema::table('users', function ($table): void {
+        if (Schema::hasIndex('users', 'users_public_id_unique')) {
+            $table->dropUnique(['public_id']);
+        }
+    });
+    Schema::table('users', function ($table): void {
+        $table->dropColumn('public_id');
+    });
+    UserRelationColumnService::forgetPublicIdColumnCache();
+
+    $user = User::factory()->create(['first_name' => 'DeployWindow']);
+
+    expect($user->exists)->toBeTrue()
+        ->and(Schema::hasColumn('users', 'public_id'))->toBeFalse()
+        ->and((new User)->uniqueIds())->toBe([]);
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_120000_add_public_id_to_users_table.php');
+    $migration->up();
+    UserRelationColumnService::forgetPublicIdColumnCache();
 });
 
 test('cors exposes deprecation and rate-limit headers', function (): void {
