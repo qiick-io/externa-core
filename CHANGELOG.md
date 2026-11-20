@@ -20,6 +20,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Security
 
+- Soft-deleted user groups no longer grant their roles' permissions: `EffectivePermissionResolverService` joins `user_groups` and filters `deleted_at` when resolving group permissions, matching the SoftDeletes scope already applied to role names (#823).
 - Install / seed: no default super-admin password outside `local` and `testing`; outside those envs the seeder creates an admin only with a strong non-default `INITIAL_SUPER_ADMIN_PASSWORD`; `externa:install` prompts or fails closed under `--no-interaction` instead of creating `superadmin@example.com` / `password` (#821).
 - GraphQL: enable default max query depth (15) and max query complexity (2000), and disable introspection in production by default; all three remain overridable via `GRAPHQL_MAX_DEPTH`, `GRAPHQL_MAX_COMPLEXITY` and `LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION` (#819).
 - Outbound SSRF: parse IPv4 the way curl does, refuse non-canonical spellings and invalid bracketed IPv6, unwrap/canonicalise IPv6 (including IPv4-mapped and IPv4-compatible forms), and pin every authorised request with `CURLOPT_CONNECT_TO` (`::ADDRESS:PORT`) instead of `CURLOPT_RESOLVE` — covering the AI fetcher, file import from URL, previously unpinned outbound webhooks and Slack notifier, deploy hooks, and OIDC discovery (#817).
