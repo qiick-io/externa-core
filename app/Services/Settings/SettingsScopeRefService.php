@@ -98,7 +98,7 @@ final class SettingsScopeRefService
      *
      * Works before `scope_ref` exists: identity is derived from `scope_id`.
      *
-     * @return Collection<int, object>
+     * @return Collection<int, \stdClass>
      */
     public function rowsThatWouldBeDropped(): Collection
     {
@@ -221,7 +221,7 @@ final class SettingsScopeRefService
      * Rows for one identity, keeper first: non-null updated_at wins over NULL, then latest, then highest id.
      *
      * @param  array{scope: string, scope_ref: string, group: string, key: string, row_count: int}  $duplicateGroup
-     * @return Collection<int, object>
+     * @return Collection<int, \stdClass>
      */
     private function orderedRowsForGroup(array $duplicateGroup): Collection
     {
@@ -238,18 +238,27 @@ final class SettingsScopeRefService
             $query->where('scope_id', (int) $duplicateGroup['scope_ref']);
         }
 
-        // NULL updated_at sorts after every timestamp on every engine (loses the keeper race).
-        return $query
-            ->orderByRaw('case when updated_at is null then 1 else 0 end')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
-            ->get();
+        // Sort in PHP so NULL updated_at loses on every engine (no orderByRaw / driver NULL quirks).
+        return $query->get()->sort(function (\stdClass $left, \stdClass $right): int {
+            $leftIsNull = $left->updated_at === null;
+            $rightIsNull = $right->updated_at === null;
+
+            if ($leftIsNull !== $rightIsNull) {
+                return $leftIsNull ? 1 : -1;
+            }
+
+            if (! $leftIsNull && $left->updated_at !== $right->updated_at) {
+                return $right->updated_at <=> $left->updated_at;
+            }
+
+            return ((int) $right->id) <=> ((int) $left->id);
+        })->values();
     }
 
     /**
-     * @param  object  $settingRow  a settings table row (with or without scope_ref)
+     * @param  \stdClass  $settingRow  a settings table row (with or without scope_ref)
      */
-    private function effectiveScopeRef(object $settingRow): string
+    private function effectiveScopeRef(\stdClass $settingRow): string
     {
         if ($this->hasScopeRefColumn() && property_exists($settingRow, 'scope_ref')) {
             return (string) $settingRow->scope_ref;
@@ -263,7 +272,7 @@ final class SettingsScopeRefService
     /**
      * Persist the full settings row before delete so encrypted values are recoverable.
      */
-    private function archiveDroppedRow(object $loser, int|string|null $keptId): void
+    private function archiveDroppedRow(\stdClass $loser, int|string|null $keptId): void
     {
         if (! Schema::hasTable('settings_dedupe_archive')) {
             return;
