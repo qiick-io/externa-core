@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Settings;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\Schema;
  */
 final class SettingsScopeRefService
 {
+    private const string CACHE_KEY = 'schema.columns.settings.scope_ref';
+
     private static ?bool $hasScopeRefColumn = null;
 
     /**
@@ -169,28 +172,27 @@ final class SettingsScopeRefService
     /**
      * Whether `settings.scope_ref` exists.
      *
-     * Only the positive result is memoised: before the column exists we re-probe so a
-     * long-lived worker that saw "missing" still notices it after migrate.
+     * Memoised per process and in Cache across requests; {@see forgetScopeRefColumnCache()}
+     * clears both (called by `externa:upgrade` after migrate and by the scope_ref migration).
      *
-     * Schema probes are swallowed when the database is unreachable (PHPStan / lint without sqlite).
+     * @throws \Throwable when the schema probe fails (DB unreachable); never treat that as "missing".
      */
     public function hasScopeRefColumn(): bool
     {
-        if (self::$hasScopeRefColumn === true) {
-            return true;
+        if (self::$hasScopeRefColumn !== null) {
+            return self::$hasScopeRefColumn;
         }
 
-        try {
-            if (Schema::hasColumn('settings', 'scope_ref')) {
-                self::$hasScopeRefColumn = true;
+        $cached = Cache::get(self::CACHE_KEY);
 
-                return true;
-            }
-        } catch (\Throwable) {
-            return false;
+        if (is_bool($cached)) {
+            return self::$hasScopeRefColumn = $cached;
         }
 
-        return false;
+        $exists = Schema::hasColumn('settings', 'scope_ref');
+        Cache::forever(self::CACHE_KEY, $exists);
+
+        return self::$hasScopeRefColumn = $exists;
     }
 
     /**
@@ -199,6 +201,7 @@ final class SettingsScopeRefService
     public static function forgetScopeRefColumnCache(): void
     {
         self::$hasScopeRefColumn = null;
+        Cache::forget(self::CACHE_KEY);
     }
 
     /**
