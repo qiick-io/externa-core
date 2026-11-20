@@ -33,11 +33,54 @@ test('settings table has scope_ref and repository dual-writes scope_id', functio
         ->and($settings->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'scope_ref_probe'))->toBe('hello');
 });
 
-test('settings:backfill-scope-ref dry-run prints counts without writing', function (): void {
+test('settings:backfill-scope-ref dry-run works before scope_ref exists and lists drop rows', function (): void {
+    Schema::table('settings', function ($table): void {
+        if (Schema::hasIndex('settings', 'settings_scope_ref_unique')) {
+            $table->dropUnique('settings_scope_ref_unique');
+        }
+    });
+
+    if (Schema::hasColumn('settings', 'scope_ref')) {
+        Schema::table('settings', function ($table): void {
+            $table->dropColumn('scope_ref');
+        });
+    }
+
+    SettingsScopeRefService::forgetScopeRefColumnCache();
+
+    DB::table('settings')->insert([
+        [
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'dry_run_probe',
+            'value' => json_encode('a'),
+            'created_at' => '2026-01-01 00:00:00',
+            'updated_at' => '2026-01-01 00:00:00',
+        ],
+        [
+            'scope' => 'project',
+            'scope_id' => null,
+            'group' => 'project',
+            'key' => 'dry_run_probe',
+            'value' => json_encode('b'),
+            'created_at' => '2026-02-01 00:00:00',
+            'updated_at' => '2026-02-01 00:00:00',
+        ],
+    ]);
+
     expect(Artisan::call('settings:backfill-scope-ref', ['--dry-run' => true]))->toBe(0);
     $output = Artisan::output();
     expect($output)->toContain('[dry-run] settings needing scope_ref backfill:')
-        ->and($output)->toContain('[dry-run] duplicate groups:');
+        ->and($output)->toContain('[dry-run] duplicate groups:')
+        ->and($output)->toContain('[dry-run] would drop settings id=')
+        ->and(Schema::hasColumn('settings', 'scope_ref'))->toBeFalse();
+
+    // Restore column + unique for later tests in this process (migration already recorded as ran).
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->up();
+    SettingsScopeRefService::forgetScopeRefColumnCache();
 });
 
 test('a duplicate instance key is refused on postgresql and mysql', function (): void {
@@ -64,13 +107,22 @@ test('a duplicate instance key is refused on postgresql and mysql', function ():
     ]))->toThrow(QueryException::class);
 });
 
-test('dedupe keeps the latest updated_at instance row', function (): void {
-    // Insert duplicates before the unique index would block them: temporarily drop it.
+test('dedupe archives losers and keeps latest non-null updated_at with lower id winning over higher older id', function (): void {
     Schema::table('settings', function ($table): void {
         $table->dropUnique('settings_scope_ref_unique');
     });
 
-    $olderId = DB::table('settings')->insertGetId([
+    $keeperId = DB::table('settings')->insertGetId([
+        'scope' => 'project',
+        'scope_id' => null,
+        'scope_ref' => '',
+        'group' => 'project',
+        'key' => 'dedupe_probe',
+        'value' => json_encode('newer'),
+        'created_at' => '2026-02-01 00:00:00',
+        'updated_at' => '2026-03-01 00:00:00',
+    ]);
+    $olderHigherId = DB::table('settings')->insertGetId([
         'scope' => 'project',
         'scope_id' => null,
         'scope_ref' => '',
@@ -80,25 +132,24 @@ test('dedupe keeps the latest updated_at instance row', function (): void {
         'created_at' => '2026-01-01 00:00:00',
         'updated_at' => '2026-01-01 00:00:00',
     ]);
-    $newerId = DB::table('settings')->insertGetId([
+    $nullUpdatedId = DB::table('settings')->insertGetId([
         'scope' => 'project',
         'scope_id' => null,
         'scope_ref' => '',
         'group' => 'project',
         'key' => 'dedupe_probe',
-        'value' => json_encode('newer'),
-        'created_at' => '2026-02-01 00:00:00',
-        'updated_at' => '2026-02-01 00:00:00',
+        'value' => json_encode('null-updated'),
+        'created_at' => '2026-04-01 00:00:00',
+        'updated_at' => null,
     ]);
 
-    $counts = app(SettingsScopeRefService::class)->duplicateCounts();
-    expect($counts['groups'])->toBeGreaterThanOrEqual(1)
-        ->and($counts['rows_to_drop'])->toBeGreaterThanOrEqual(1);
-
     $deleted = app(SettingsScopeRefService::class)->dedupe();
-    expect($deleted)->toBeGreaterThanOrEqual(1);
-    expect(DB::table('settings')->where('id', $olderId)->exists())->toBeFalse();
-    expect(DB::table('settings')->where('id', $newerId)->value('value'))->toBe(json_encode('newer'));
+    expect($deleted)->toBe(2);
+    expect(DB::table('settings')->where('id', $keeperId)->value('value'))->toBe(json_encode('newer'));
+    expect(DB::table('settings')->where('id', $olderHigherId)->exists())->toBeFalse();
+    expect(DB::table('settings')->where('id', $nullUpdatedId)->exists())->toBeFalse();
+    expect(DB::table('settings_dedupe_archive')->where('id', $olderHigherId)->exists())->toBeTrue();
+    expect(DB::table('settings_dedupe_archive')->where('id', $nullUpdatedId)->exists())->toBeTrue();
 
     $driver = DB::getDriverName();
 
@@ -111,4 +162,65 @@ test('dedupe keeps the latest updated_at instance row', function (): void {
             $table->unique(['scope', 'scope_ref', 'group', 'key'], 'settings_scope_ref_unique');
         });
     }
+});
+
+test('scope_ref migration is re-runnable after a partial apply', function (): void {
+    if (Schema::hasIndex('settings', 'settings_scope_ref_unique')) {
+        Schema::table('settings', function ($table): void {
+            $table->dropUnique('settings_scope_ref_unique');
+        });
+    }
+
+    // Simulate crash after column add but before unique: column present, index missing.
+    expect(Schema::hasColumn('settings', 'scope_ref'))->toBeTrue()
+        ->and(Schema::hasIndex('settings', 'settings_scope_ref_unique'))->toBeFalse();
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->up();
+
+    expect(Schema::hasColumn('settings', 'scope_ref'))->toBeTrue()
+        ->and(Schema::hasIndex('settings', 'settings_scope_ref_unique'))->toBeTrue();
+
+    // Full second run must also be a no-op success.
+    $migration->up();
+    expect(Schema::hasIndex('settings', 'settings_scope_ref_unique'))->toBeTrue();
+});
+
+test('repository falls back to scope_id when scope_ref is missing', function (): void {
+    Schema::table('settings', function ($table): void {
+        if (Schema::hasIndex('settings', 'settings_scope_ref_unique')) {
+            $table->dropUnique('settings_scope_ref_unique');
+        }
+    });
+
+    if (Schema::hasColumn('settings', 'scope_ref')) {
+        Schema::table('settings', function ($table): void {
+            $table->dropColumn('scope_ref');
+        });
+    }
+
+    SettingsScopeRefService::forgetScopeRefColumnCache();
+
+    DB::table('settings')->insert([
+        'scope' => 'project',
+        'scope_id' => null,
+        'group' => 'project',
+        'key' => 'fallback_probe',
+        'value' => json_encode('from-scope-id'),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $settings = app(SettingsRepositoryService::class);
+    expect($settings->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'fallback_probe'))
+        ->toBe('from-scope-id');
+
+    $settings->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'fallback_probe_write', 'written');
+    expect(DB::table('settings')->where('key', 'fallback_probe_write')->whereNull('scope_id')->exists())->toBeTrue();
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->up();
+    SettingsScopeRefService::forgetScopeRefColumnCache();
 });
