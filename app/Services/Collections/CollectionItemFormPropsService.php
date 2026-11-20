@@ -67,8 +67,8 @@ class CollectionItemFormPropsService
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
         $item->load([
             'fieldValues',
-            'userCreated:id,first_name,last_name,email',
-            'userUpdated:id,first_name,last_name,email',
+            'userCreated:id,public_id,first_name,last_name,email',
+            'userUpdated:id,public_id,first_name,last_name,email',
             'collection.fields',
         ]);
 

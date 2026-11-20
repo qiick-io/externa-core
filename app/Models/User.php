@@ -7,12 +7,14 @@ use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Ai\Concerns\HasConversations;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
@@ -37,11 +39,16 @@ use Spatie\Permission\Traits\HasRoles;
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 /**
  * Authenticated application user with roles, groups, soft deletes, and AI conversations.
+ *
+ * `public_id` is the UUID v7 exposed outside the database (REST MiniUser, GraphQL); the
+ * primary key stays bigint and admin/Inertia routes may keep using it (#827).
+ *
+ * @property string $public_id
  */
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasConversations, HasFactory, HasRoles, LogsApplicationActivityTrait, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasConversations, HasFactory, HasRoles, HasUuids, LogsApplicationActivityTrait, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * The column defaults a freshly created user does not read back from the
@@ -65,6 +72,16 @@ class User extends Authenticatable implements PasskeyUser
         'two_factor_recovery_codes' => null,
         'two_factor_confirmed_at' => null,
     ];
+
+    /**
+     * Only `public_id` is a generated UUID; the primary key stays an auto-increment id.
+     *
+     * @return list<string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['public_id'];
+    }
 
     /**
      * Activity log options excluding sensitive credential fields.
@@ -138,13 +155,28 @@ class User extends Authenticatable implements PasskeyUser
     /**
      * Resolve route binding including soft-deleted users.
      *
+     * Accepts the bigint primary key (admin / Inertia) or `public_id` when the value is a UUID
+     * (public API clients migrating off the integer id).
+     *
      * @param  mixed  $value
      * @param  string|null  $field
      */
     public function resolveRouteBinding($value, $field = null): ?self
     {
+        if ($field !== null) {
+            return $this->withTrashed()
+                ->where($field, $value)
+                ->firstOrFail();
+        }
+
+        if (is_string($value) && Str::isUuid($value)) {
+            return $this->withTrashed()
+                ->where('public_id', $value)
+                ->firstOrFail();
+        }
+
         return $this->withTrashed()
-            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->where($this->getRouteKeyName(), $value)
             ->firstOrFail();
     }
 }
