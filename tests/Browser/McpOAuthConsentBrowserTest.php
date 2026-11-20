@@ -48,11 +48,12 @@ it('has no critical or serious axe issues in light and dark, and names the retur
 it('records only what the user left ticked', function (): void {
     $this->actingAs($this->user);
     // Least privilege: only mcp:read is pre-ticked; the user opts into collections:read.
+    // No collections exist in this fixture, so the all-collections control is absent and
+    // an empty collection choice is allowed.
     $url = OAuth::authorizationUrl($this->clientId, OAuth::pkcePair()['challenge']);
 
     visit($url)
         ->click('#scope-collections\:read')
-        ->click('[data-test="oauth-all-collections"]')
         ->click('[data-test="oauth-approve"]')
         ->wait(1);
 
