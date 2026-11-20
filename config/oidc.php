@@ -24,6 +24,22 @@ return [
      */
     'home' => '/',
 
+    /*
+     * 1.5 parity: SSO logins keep Laravel's remember-me cookie. The package default is off
+     * (a remember cookie can outlive a back-channel logout); Externa keeps the previous behaviour.
+     */
+    'remember' => true,
+
+    /*
+     * Algorithms accepted for the signed id_token (asymmetric only). Wider than the package
+     * default (RS256 alone) so IdPs that sign with PS256 / ES256 / ES384 keep working.
+     */
+    'id_token' => [
+
+        'algorithms' => ['RS256', 'PS256', 'ES256', 'ES384'],
+
+    ],
+
     'users' => [
 
         'active_column' => 'is_active',
@@ -32,7 +48,8 @@ return [
 
     /*
      * Routes are registered in `routes/web.php` (same paths and names) so the callback can run
-     * the legacy-subject bridge. Throttle stays on redirect and callback.
+     * the legacy-subject bridge. Throttle lives on redirect only (60/min per IP); the callback
+     * is exempt so a shared office IP is not locked out mid-login.
      */
     'routes' => [
 
@@ -40,7 +57,7 @@ return [
 
         'prefix' => 'auth/oidc',
 
-        'middleware' => ['web', 'guest', 'throttle:10,1'],
+        'middleware' => ['web', 'guest'],
 
     ],
 

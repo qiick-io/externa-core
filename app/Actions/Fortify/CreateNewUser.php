@@ -28,7 +28,9 @@ class CreateNewUser implements CreatesNewUsers
     {
         $securitySettings = app(ProjectSettingsService::class)->security();
 
-        if (! Features::enabled(Features::registration()) || ! $securitySettings->isRegistrationEnabled()) {
+        if (! Features::enabled(Features::registration())
+            || ! $securitySettings->isRegistrationEnabled()
+            || $securitySettings->isOidcOnlyEnabled()) {
             throw ValidationException::withMessages([
                 'email' => __('Registration is currently disabled.'),
             ]);

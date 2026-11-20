@@ -7,15 +7,19 @@ use App\Enums\RoleEnum;
 use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Auth\LegacyOidcSubjectBridgeService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
+use Laravel\Fortify\Features;
+use Qiick\Oidc\Data\AuthenticatedIdentityData;
 use Qiick\Oidc\Models\UserIdentity;
 use Qiick\Oidc\Testing\FakeIdentityProvider;
 use Tests\TestCase;
@@ -336,4 +340,169 @@ it('project settings encrypt oidc secret and never return plaintext', function (
             ->where('oidcCallbackUrl', url('/auth/oidc/callback'))
             ->where('oidcBackchannelLogoutUrl', url('/auth/oidc/backchannel-logout'))
         );
+});
+
+it('does not bridge a case-variant oidc_sub onto the victim (MySQL/MariaDB collation)', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc(['oidc_auto_link' => false]);
+    $victim = User::factory()->create([
+        'email' => 'victim@example.com',
+        'oidc_sub' => 'Sub-Case',
+    ]);
+
+    signInThroughSso($this, $identityProvider, [
+        'sub' => 'sub-case',
+        'email' => 'attacker@example.com',
+        'email_verified' => true,
+    ])->assertRedirect(route('login'));
+
+    $this->assertGuest();
+    expect(UserIdentity::query()->count())->toBe(0)
+        ->and($victim->fresh()->oidc_sub)->toBe('Sub-Case');
+});
+
+it('bridges only when the token issuer equals the saved settings issuer', function () {
+    enableOidc(['oidc_auto_link' => false]);
+    $user = User::factory()->create(['oidc_sub' => 'sub-legacy']);
+
+    $foreignIdentity = new AuthenticatedIdentityData(
+        issuer: 'https://other-idp.example.com',
+        subject: 'sub-legacy',
+        claims: ['sub' => 'sub-legacy', 'email' => 'legacy@example.com'],
+        idToken: 'unused',
+        accessToken: 'unused',
+        sessionId: null,
+    );
+
+    app(LegacyOidcSubjectBridgeService::class)->promoteIfNeeded($foreignIdentity);
+
+    expect(UserIdentity::query()->count())->toBe(0)
+        ->and($user->fresh()->oidc_sub)->toBe('sub-legacy');
+});
+
+it('swallows a unique-index race when promoting a legacy subject', function () {
+    enableOidc();
+    User::factory()->create(['oidc_sub' => 'sub-race']);
+
+    // Throw the unique-index exception without a real DB conflict: PostgreSQL would abort the
+    // RefreshDatabase transaction on a real duplicate, and later assertions would fail.
+    UserIdentity::creating(function (): void {
+        throw new UniqueConstraintViolationException(
+            'testing',
+            'insert into user_identities',
+            [],
+            new RuntimeException('duplicate key'),
+        );
+    });
+
+    $identity = new AuthenticatedIdentityData(
+        issuer: FAKE_ISSUER,
+        subject: 'sub-race',
+        claims: ['sub' => 'sub-race', 'email' => 'race@example.com'],
+        idToken: 'unused',
+        accessToken: 'unused',
+        sessionId: null,
+    );
+
+    app(LegacyOidcSubjectBridgeService::class)->promoteIfNeeded($identity);
+
+    expect(UserIdentity::query()->where('subject', 'sub-race')->count())->toBe(0);
+});
+it('throttles the OIDC redirect at 60/min per IP and leaves the callback alone', function () {
+    Http::preventStrayRequests();
+    FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc();
+
+    for ($attempt = 0; $attempt < 60; $attempt++) {
+        $this->get(route('oidc.redirect'))->assertRedirect();
+    }
+
+    $this->get(route('oidc.redirect'))->assertStatus(429);
+
+    $this->get(route('oidc.callback', ['state' => 'missing', 'code' => 'missing']))
+        ->assertRedirect(route('login'))
+        ->assertStatus(302);
+});
+
+it('blocks registration while SSO-only is on', function () {
+    $this->skipUnlessFortifyFeature(Features::registration());
+
+    enableOidc(['oidc_only' => true]);
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
+        'registration_enabled' => true,
+    ]);
+    app(ProjectSettingsService::class)->forgetRawCache();
+
+    $this->get(route('register'))->assertForbidden();
+
+    $this->post(route('register.store'), [
+        'first_name' => 'New',
+        'last_name' => 'User',
+        'email' => 'new@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertSessionHasErrors('email');
+
+    expect(User::query()->where('email', 'new@example.com')->exists())->toBeFalse();
+});
+
+it('refuses password break-glass for a passkey-only super-admin under SSO-only', function () {
+    $this->skipUnlessFortifyFeature(Features::passkeys());
+
+    enableOidc(['oidc_only' => true]);
+    $passkeyOnly = User::factory()->create([
+        'email' => 'passkey-admin@example.com',
+        'password' => bcrypt('password'),
+        'two_factor_secret' => null,
+        'two_factor_confirmed_at' => null,
+    ]);
+    $passkeyOnly->assignRole(RoleEnum::SuperAdmin->value);
+    $passkeyOnly->passkeys()->create([
+        'name' => 'Laptop',
+        'credential_id' => 'cred-'.uniqid(),
+        'credential' => ['publicKeyCredentialId' => 'cred', 'aaguid' => '00000000-0000-0000-0000-000000000000'],
+    ]);
+
+    expect($passkeyOnly->hasPasskeysEnabled())->toBeTrue()
+        ->and($passkeyOnly->hasEnabledTwoFactorAuthentication())->toBeFalse();
+
+    $this->post(route('login.store'), [
+        'email' => 'passkey-admin@example.com',
+        'password' => 'password',
+    ])->assertSessionHasErrors();
+
+    $this->assertGuest();
+});
+
+it('refuses to enable SSO-only without an active break-glass super-admin', function () {
+    $user = grantProjectSettingsPermissions(User::factory()->create(), [
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('project.security.update'), baseSecurityPayload([
+            'oidc_enabled' => true,
+            'oidc_issuer' => FAKE_ISSUER,
+            'oidc_client_id' => 'externa-app',
+            'oidc_client_secret' => 'plain-secret-value',
+            'oidc_only' => true,
+        ]))
+        ->assertSessionHasErrors('oidc_only');
+
+    expect(app(ProjectSettingsService::class)->security()->isOidcOnlyEnabled())->toBeFalse();
+
+    $breakGlass = User::factory()->withTwoFactor()->create();
+    $breakGlass->assignRole(RoleEnum::SuperAdmin->value);
+
+    $this->actingAs($user)
+        ->put(route('project.security.update'), baseSecurityPayload([
+            'oidc_enabled' => true,
+            'oidc_issuer' => FAKE_ISSUER,
+            'oidc_client_id' => 'externa-app',
+            'oidc_client_secret' => 'plain-secret-value',
+            'oidc_only' => true,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect(app(ProjectSettingsService::class)->security()->isOidcOnlyEnabled())->toBeTrue();
 });

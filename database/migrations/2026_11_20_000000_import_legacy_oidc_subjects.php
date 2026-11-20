@@ -22,9 +22,9 @@ use Symfony\Component\Console\Output\ConsoleOutput;
  *    local client always did: `oidc_auto_link` is stored as true unless it is already set. New
  *    installs get the package default (off).
  *
- * Without a saved issuer there is nothing to import. `users.oidc_sub` stays for one release;
- * dual-read still signs those users in if an identity row was missed. A later forward-only
- * migration drops the column.
+ * Without a saved issuer there is nothing to import. `users.oidc_sub` stays for this release;
+ * dual-read still signs those users in if an identity row was missed. The next release drops
+ * the column in a forward-only migration.
  */
 return new class extends Migration
 {

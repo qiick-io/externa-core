@@ -25,10 +25,13 @@ Route::get('/', function () {
 
 /*
  * qiick/laravel-oidc paths (package route registration is off so the callback can dual-read
- * users.oidc_sub for one release). Same URLs the IdP already has registered.
+ * users.oidc_sub for one release). Same URLs the IdP already has registered. Redirect is
+ * throttled at 60/min per IP; the callback is not (a shared office NAT must finish logins).
  */
-Route::middleware(['guest', 'throttle:10,1'])->prefix('auth/oidc')->group(function (): void {
-    Route::get('redirect', OidcRedirectController::class)->name('oidc.redirect');
+Route::middleware(['guest'])->prefix('auth/oidc')->group(function (): void {
+    Route::get('redirect', OidcRedirectController::class)
+        ->middleware('throttle:60,1')
+        ->name('oidc.redirect');
     Route::get('callback', OidcCallbackController::class)->name('oidc.callback');
 });
 

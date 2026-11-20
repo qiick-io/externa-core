@@ -13,7 +13,8 @@ use Qiick\Oidc\Contracts\BreakGlassPolicyContract;
  * Who still signs in locally (password or passkey) in SSO-only mode, so an unreachable or
  * misconfigured IdP never locks the owner out: an active `super-admin` with a second factor
  * (a confirmed TOTP or a passkey, the same factors EnsureTwoFactorIsEnabledMiddleware accepts).
- * A password alone never gets past SSO-only mode.
+ * A password alone never gets past SSO-only mode. Password break-glass additionally requires
+ * confirmed TOTP ({@see FortifyServiceProvider}); a passkey-only super-admin must use the passkey.
  *
  * The password form of a break-glass sign-in is at `/login?local=1`. Outside SSO-only mode the
  * policy is not consulted: every active user keeps local login next to SSO.

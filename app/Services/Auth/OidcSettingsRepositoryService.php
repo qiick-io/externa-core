@@ -7,6 +7,7 @@ namespace App\Services\Auth;
 use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Qiick\Oidc\Contracts\ProviderConfigurationRepositoryContract;
 use Qiick\Oidc\Data\ProviderConfigurationData;
+use Qiick\Oidc\Enums\TokenEndpointAuthMethodEnum;
 use Qiick\Oidc\Exceptions\OidcNotConfiguredException;
 
 /**
@@ -47,6 +48,8 @@ final readonly class OidcSettingsRepositoryService implements ProviderConfigurat
             clientSecret: $this->securitySettings->oidcClientSecret(),
             redirectUri: route('oidc.callback'),
             scopes: ['openid', 'profile', 'email'],
+            // 1.5 Socialite client posted the secret in the body; keep that for IdP parity.
+            tokenEndpointAuthMethod: TokenEndpointAuthMethodEnum::ClientSecretPost,
             postLogoutRedirectUri: route('login'),
         );
     }
