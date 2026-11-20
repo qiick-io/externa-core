@@ -158,12 +158,8 @@ Pull the multi-arch image from **GHCR** (`ghcr.io/qiick-io/externa-core`) — no
 
 ```bash
 cp .env.docker.quick.example .env
-# Set APP_KEY, DB_PASSWORD, APP_URL.
-# For roles + a first admin when APP_ENV is local/testing: RUN_SEED=true and set
-# INITIAL_SUPER_ADMIN_FIRST_NAME, INITIAL_SUPER_ADMIN_LAST_NAME,
-# INITIAL_SUPER_ADMIN_EMAIL, INITIAL_SUPER_ADMIN_PASSWORD (required, no default).
-# With APP_ENV=production, RUN_SEED seeds roles only — create the first admin with
-# `php artisan externa:install --force` (prompts, or uses those env keys when set).
+# Set APP_KEY, DB_PASSWORD, APP_URL; for first admin set RUN_SEED=true + INITIAL_SUPER_ADMIN_*
+# (a strong INITIAL_SUPER_ADMIN_PASSWORD — the default "password" is refused outside local/testing)
 docker compose -f compose.quick.yaml up -d
 # App: http://localhost:8080  · health: GET /health/ready
 ```
@@ -174,16 +170,16 @@ First boot is **gated**: `RUN_MIGRATIONS` / `RUN_SEED` (entrypoint defaults both
 
 Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy with Docker](https://docs.qiick.io/externa/deploy-with-docker) · [Installation](https://docs.qiick.io/externa/installation) · [Deployment](https://docs.qiick.io/externa/deployment) · [Reverse proxy](https://docs.qiick.io/externa/reverse-proxy).
 
-### First login (local / testing only)
+### First login (local / testing; Docker with a strong password)
 
-`php artisan db:seed` creates permissions and roles (`super-admin`, `admin`, `reader`, `public`). A super admin from `config/super_admin.php` is created **only** when `APP_ENV` is `local` or `testing` and `INITIAL_SUPER_ADMIN_PASSWORD` is set:
+`php artisan db:seed` creates permissions, roles (`super-admin`, `admin`, `reader`, `public`), and a super admin from `config/super_admin.php` when `INITIAL_SUPER_ADMIN_PASSWORD` is set:
 
-| | Default (local / testing) |
+| | Default (local / testing only) |
 | --- | --- |
 | Email | `superadmin@example.com` |
 | Password | `password` (from `.env.example` only — not a config default) |
 
-Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. Outside local/testing the seeder skips the admin; `externa:install` prompts for email and password (or uses those env keys), and `--no-interaction` fails closed if the password is empty.
+Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. Outside local/testing the seeder creates the admin only when the password is set, is not the literal `password`, and meets the app password rules — so Docker `RUN_SEED=true` still works with a strong env password. `externa:install` prompts when credentials are missing or not allowed, and `--no-interaction` fails closed.
 
 ## Product UI
 

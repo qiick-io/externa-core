@@ -64,7 +64,7 @@ class InstallCommand extends Command
             'minimal' => 'Minimal (database queue, log broadcast — no Redis)',
             'full' => 'Full (redis queue, reverb broadcast — needs Redis)',
         ], default: 'minimal');
-        $seed = ! $this->option('no-seed') && confirm('Run db:seed (roles + super admin in local/testing)?', default: true);
+        $seed = ! $this->option('no-seed') && confirm('Run db:seed (roles + super admin)?', default: true);
         $aiUrl = text('LOCAL_AI_URL (optional, blank to skip)', default: '');
 
         $envPath = base_path('.env');
@@ -264,7 +264,9 @@ class InstallCommand extends Command
         $password = $this->readEnvKey($envPath, 'INITIAL_SUPER_ADMIN_PASSWORD');
 
         if (CreateSuperAdminSeeder::installMustFailClosed($this->input->isInteractive(), $environment, $password)) {
-            $this->error('Refusing: INITIAL_SUPER_ADMIN_PASSWORD is empty outside local/testing. Set it in .env or run interactively (no default admin is created).');
+            $rejection = CreateSuperAdminSeeder::passwordRejectionReason($password, $environment)
+                ?? 'INITIAL_SUPER_ADMIN_PASSWORD is missing or not allowed.';
+            $this->error('Refusing: '.$rejection.' Set a strong INITIAL_SUPER_ADMIN_PASSWORD in .env or run interactively (no default admin is created).');
 
             return self::FAILURE;
         }
@@ -317,9 +319,11 @@ class InstallCommand extends Command
         $this->syncSuperAdminConfigFromEnvFile($envPath);
 
         $password = config('super_admin.password');
+        $password = is_string($password) ? $password : null;
+        $rejection = CreateSuperAdminSeeder::passwordRejectionReason($password, $environment);
 
-        if (! is_string($password) || $password === '') {
-            $this->error('Refusing: no INITIAL_SUPER_ADMIN_PASSWORD after seed outside local/testing.');
+        if ($rejection !== null) {
+            $this->error('Refusing: '.$rejection);
 
             return self::FAILURE;
         }
