@@ -256,5 +256,6 @@
     "The account that authorized this access token is no longer active.": "L'account che ha autorizzato questo token di accesso non è più attivo.",
     "The client this access token was issued to has been revoked.": "Il client a cui è stato emesso questo token di accesso è stato revocato.",
     "The role granted to this access token is missing.": "Il ruolo concesso a questo token di accesso non esiste più.",
-    "You cannot grant the :scope scope: you do not hold it yourself.": "Non puoi concedere l'ambito :scope: non lo possiedi."
+    "You cannot grant the :scope scope: you do not hold it yourself.": "Non puoi concedere l'ambito :scope: non lo possiedi.",
+    "OAuth for MCP is enabled but Passport signing keys are missing. Run `php artisan passport:keys`, or set PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY.": "OAuth per MCP è attivo ma mancano le chiavi di firma Passport. Esegui `php artisan passport:keys`, oppure imposta PASSPORT_PRIVATE_KEY e PASSPORT_PUBLIC_KEY."
 }
