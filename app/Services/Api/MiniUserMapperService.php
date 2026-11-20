@@ -25,6 +25,12 @@ final class MiniUserMapperService
 
         $attributes = $user->getAttributes();
 
+        // Soft-deleted users stay off MiniUser (1.5 behaviour) so include=users never
+        // leaks their email; flat user_*_public_id still resolves via withTrashed relations.
+        if (array_key_exists('deleted_at', $attributes) && $attributes['deleted_at'] !== null) {
+            return null;
+        }
+
         return [
             'id' => (int) $user->id,
             // Empty when the column is not selected yet during the deploy window.

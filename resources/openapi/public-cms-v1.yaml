@@ -683,7 +683,7 @@ components:
                 (`id` on MiniUser, `user_created_id` / `user_updated_id`) remain in payloads (#827).
             schema:
                 type: string
-                example: '@1826668800'
+                example: '@1795132800'
         Sunset:
             description: |
                 HTTP-date after which the deprecated bigint user id fields may be removed

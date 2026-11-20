@@ -128,9 +128,15 @@ test('public api v1 responses emit Deprecation Sunset and Link headers', functio
         ->assertHeader('Deprecation', '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
         ->assertHeader('Sunset', EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_HTTP_DATE);
 
+    $sunsetUnix = strtotime(EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_HTTP_DATE);
+
     expect($response->headers->get('Link'))
         ->toContain('rel="deprecation"')
-        ->toContain('users-public-id');
+        ->toContain('users-public-id')
+        ->and(EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
+        ->toBeLessThan($sunsetUnix)
+        ->and($sunsetUnix - EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
+        ->toBeGreaterThanOrEqual(365 * 24 * 60 * 60);
 });
 
 test('creating a user succeeds when the public_id column is missing', function (): void {
