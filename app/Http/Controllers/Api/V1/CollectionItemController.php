@@ -98,8 +98,8 @@ class CollectionItemController extends Controller
                 ->where('collection_id', $collection->id)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:id,public_id,first_name,last_name,email',
+                    'userUpdated:id,public_id,first_name,last_name,email',
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ]);
             $this->itemQueryService->applyFilters($query, $collection, $stringFilters, null, $request);
@@ -155,8 +155,8 @@ class CollectionItemController extends Controller
                 ->whereKey($item)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:id,public_id,first_name,last_name,email',
+                    'userUpdated:id,public_id,first_name,last_name,email',
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ])
                 ->first();

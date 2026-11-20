@@ -111,6 +111,8 @@ it('keeps file fields as ids and users null without include', function (): void 
         ->assertJsonPath('data.data.cover', $file->id)
         ->assertJsonPath('data.user_created_id', $creator->id)
         ->assertJsonPath('data.user_updated_id', $creator->id)
+        ->assertJsonPath('data.user_created_public_id', $creator->public_id)
+        ->assertJsonPath('data.user_updated_public_id', $creator->public_id)
         ->assertJsonPath('data.user_created', null)
         ->assertJsonPath('data.user_updated', null)
         ->assertJsonMissingPath('data.data.cover.url');
@@ -150,7 +152,9 @@ it('expands files and users when included', function (): void {
         ->assertJsonPath('data.data.cover.filename', 'expanded-cover.jpg')
         ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"))
         ->assertJsonPath('data.user_created.id', $creator->id)
-        ->assertJsonPath('data.user_created.email', 'grace@example.com');
+        ->assertJsonPath('data.user_created.public_id', $creator->public_id)
+        ->assertJsonPath('data.user_created.email', 'grace@example.com')
+        ->assertJsonPath('data.user_created_public_id', $creator->public_id);
 });
 
 it('hydrates m2o and m2m relations only when field names are included', function (): void {

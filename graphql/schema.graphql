@@ -56,8 +56,16 @@ type Item {
     created_at: DateTime
     updated_at: DateTime
     published_at: DateTime
-    user_created_id: ID
-    user_updated_id: ID
+    """
+    Internal bigint user id. Prefer user_created_public_id; removed after the deprecation window (#827).
+    """
+    user_created_id: ID @deprecated(reason: "Use user_created_public_id. Removed after the deprecation window.")
+    """
+    Internal bigint user id. Prefer user_updated_public_id; removed after the deprecation window (#827).
+    """
+    user_updated_id: ID @deprecated(reason: "Use user_updated_public_id. Removed after the deprecation window.")
+    user_created_public_id: ID
+    user_updated_public_id: ID
 }
 
 type ItemPage {

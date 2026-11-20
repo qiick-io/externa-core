@@ -11,6 +11,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Upgrade notes
 
+- **`users.public_id` UUID v7 (#827):** run `php artisan migrate` (or `externa:upgrade`). That adds nullable `users.public_id`, backfills every row with a UUID v7 (`users:backfill-public-id`, idempotent; `--dry-run` prints the missing count), then makes the column unique and NOT NULL. New users get `public_id` on create. The bigint primary key stays. **API:** REST `MiniUser` (`?include=users`) and item payloads expose `public_id` / `user_created_public_id` / `user_updated_public_id`; the bigint `id` / `user_created_id` / `user_updated_id` stay for one deprecation window (OpenAPI `deprecated: true`, GraphQL `@deprecated`). Prefer the public UUID in new clients. Route parameters that bind a `User` accept either the bigint id (admin / Inertia) or the UUID. Drop the deprecated bigint fields from the public API in a **later release**.
+
 - **SSO moves onto `qiick/laravel-oidc` with `user_identities` (#827):** run `php artisan migrate` (or `externa:upgrade`). That creates `user_identities`, then copies every non-empty `users.oidc_sub` into it for the issuer saved in Settings → Authentication & Security (`oidc:import-legacy-subjects`, idempotent; `--dry-run` prints counts without writing). Installs that already had an issuer keep auto-link on so verified-email linking still works as before. `users.oidc_sub` stays for this release and is still read on login if an identity row is missing (an identity row wins; exact byte match only, and only for the saved issuer). Drop `oidc_sub` in the **next release**. Operator checklist:
     - **IdP-side:** `/auth/oidc/redirect` and `/auth/oidc/callback` keep the same paths. Optionally register the new back-channel logout URI `/auth/oidc/backchannel-logout`. **Register the post-logout redirect URI** (`{APP_URL}/login`) at the IdP — Keycloak (and most IdPs) reject unregistered ones, so RP-initiated logout after SSO will fail until it is listed. Token endpoint auth stays `client_secret_post` (1.5 behaviour). Accepted `id_token` algorithms are `RS256`, `PS256`, `ES256`, `ES384`. Before upgrading, check that the saved issuer matches the IdP discovery document character by character (no trailing-slash drift).
     - **Remember-me:** every SSO login sets Laravel's remember-me cookie (same as 1.5). A remember cookie can outlive a back-channel logout; turn that off later only with an explicit product decision.
@@ -41,6 +43,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Install / seed: no default super-admin password outside `local` and `testing`; outside those envs the seeder creates an admin only with a strong non-default `INITIAL_SUPER_ADMIN_PASSWORD`; `externa:install` prompts or fails closed under `--no-interaction` instead of creating `superadmin@example.com` / `password` (#821).
 - GraphQL: enable default max query depth (15) and max query complexity (2000), and disable introspection in production by default; all three remain overridable via `GRAPHQL_MAX_DEPTH`, `GRAPHQL_MAX_COMPLEXITY` and `LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION` (#819).
 - Outbound SSRF: parse IPv4 the way curl does, refuse non-canonical spellings and invalid bracketed IPv6, unwrap/canonicalise IPv6 (including IPv4-mapped and IPv4-compatible forms), and pin every authorised request with `CURLOPT_CONNECT_TO` (`::ADDRESS:PORT`) instead of `CURLOPT_RESOLVE` — covering the AI fetcher, file import from URL, previously unpinned outbound webhooks and Slack notifier, deploy hooks, and OIDC discovery (#817).
+
+### Added
+
+- `users.public_id` UUID v7 (additive migration + `users:backfill-public-id`): exposed on REST MiniUser and GraphQL item user fields; bigint `id` kept deprecated for one window (#827).
 
 ### Changed
 

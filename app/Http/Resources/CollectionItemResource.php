@@ -75,9 +75,11 @@ class CollectionItemResource extends JsonResource
                 ->stripData($request, $item->collection, $data);
         }
 
-        if ($wantsUsers) {
-            $item->loadMissing(['userCreated:id,first_name,last_name,email', 'userUpdated:id,first_name,last_name,email']);
-        }
+        // public_id fields always leave the database; load them even when MiniUser is omitted.
+        $item->loadMissing([
+            'userCreated:id,public_id,first_name,last_name,email',
+            'userUpdated:id,public_id,first_name,last_name,email',
+        ]);
 
         return [
             'id' => $item->id,
@@ -88,6 +90,8 @@ class CollectionItemResource extends JsonResource
             'published_at' => $item->published_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
+            'user_created_public_id' => $item->userCreated?->public_id,
+            'user_updated_public_id' => $item->userUpdated?->public_id,
             'user_created' => $wantsUsers ? app(MiniUserMapperService::class)->toArray($item->userCreated) : null,
             'user_updated' => $wantsUsers ? app(MiniUserMapperService::class)->toArray($item->userUpdated) : null,
         ];

@@ -75,8 +75,8 @@ final class ItemsQuery
                 ->where('collection_id', $collection->id)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:id,public_id,first_name,last_name,email',
+                    'userUpdated:id,public_id,first_name,last_name,email',
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ]);
 
