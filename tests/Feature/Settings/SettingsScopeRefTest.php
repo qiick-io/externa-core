@@ -100,7 +100,15 @@ test('dedupe keeps the latest updated_at instance row', function (): void {
     expect(DB::table('settings')->where('id', $olderId)->exists())->toBeFalse();
     expect(DB::table('settings')->where('id', $newerId)->value('value'))->toBe(json_encode('newer'));
 
-    Schema::table('settings', function ($table): void {
-        $table->unique(['scope', 'scope_ref', 'group', 'key'], 'settings_scope_ref_unique');
-    });
+    $driver = DB::getDriverName();
+
+    if (in_array($driver, ['mysql', 'mariadb'], true)) {
+        DB::statement(
+            'alter table `settings` add unique `settings_scope_ref_unique` (`scope`(191), `scope_ref`(36), `group`(191), `key`(191))'
+        );
+    } else {
+        Schema::table('settings', function ($table): void {
+            $table->unique(['scope', 'scope_ref', 'group', 'key'], 'settings_scope_ref_unique');
+        });
+    }
 });
