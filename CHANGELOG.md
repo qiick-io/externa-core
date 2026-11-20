@@ -20,7 +20,13 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Security
 
+- API key `ip_allowlist` matching uses Symfony `IpUtils::checkIp` so IPv6 single addresses and CIDRs (for example `2001:db8::/32`) match; the previous `ip2long` path never matched an IPv6 client or entry. Empty allowlist still allows every address; a malformed entry still never matches (fail closed). An IPv4-mapped IPv6 client (`::ffff:203.0.113.5`) matches an IPv4 allowlist entry — the same host as presented by dual-stack reverse proxies. Creating a key refuses a malformed CIDR at input (`StoreApiKeyRequest`).
+- Outbound SSRF: the Alibaba Cloud (`100.100.100.200`) and Oracle Cloud (`192.0.0.192`) instance metadata addresses stay blocked with `allowPrivateHosts=true` (webhooks / OIDC opt-in). Both fall in ranges the guard already blocks by default; opting into private hosts made them reachable. Every spelling the guard canonicalises is covered (decimal, octal, hex, short, trailing-dot, IPv4-mapped and IPv4-compatible). Mirrors qiick-io/signaculum-core#196 and qiick-io/laravel-oidc#45.
 - Soft-deleted user groups no longer grant their roles' permissions: `EffectivePermissionResolverService` joins `user_groups` and filters `deleted_at` when resolving group permissions, matching the SoftDeletes scope already applied to role names (#823).
+
+### Fixed
+
+- API key IP allowlists accept and match IPv6 addresses and CIDRs; malformed entries are refused when creating a key.
 - Install / seed: no default super-admin password outside `local` and `testing`; outside those envs the seeder creates an admin only with a strong non-default `INITIAL_SUPER_ADMIN_PASSWORD`; `externa:install` prompts or fails closed under `--no-interaction` instead of creating `superadmin@example.com` / `password` (#821).
 - GraphQL: enable default max query depth (15) and max query complexity (2000), and disable introspection in production by default; all three remain overridable via `GRAPHQL_MAX_DEPTH`, `GRAPHQL_MAX_COMPLEXITY` and `LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION` (#819).
 - Outbound SSRF: parse IPv4 the way curl does, refuse non-canonical spellings and invalid bracketed IPv6, unwrap/canonicalise IPv6 (including IPv4-mapped and IPv4-compatible forms), and pin every authorised request with `CURLOPT_CONNECT_TO` (`::ADDRESS:PORT`) instead of `CURLOPT_RESOLVE` — covering the AI fetcher, file import from URL, previously unpinned outbound webhooks and Slack notifier, deploy hooks, and OIDC discovery (#817).

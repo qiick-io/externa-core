@@ -66,6 +66,11 @@ final class SafeRemoteUrlValidator
     ];
 
     /**
+     * Always blocked, also with `allowPrivateHosts`: the EC2/GCP, Alibaba Cloud and
+     * Oracle Cloud instance metadata addresses and names. IPv4-mapped / compatible
+     * forms and every alternate IPv4 spelling the validator canonicalises resolve to
+     * these dotted-decimal values through {@see addressForms()} / {@see readIpv4Address()}.
+     *
      * @var list<string>
      */
     private const array METADATA_HOSTS = [
@@ -73,6 +78,8 @@ final class SafeRemoteUrlValidator
         'metadata.google.internal',
         '169.254.169.254',
         'fd00:ec2::254',
+        '100.100.100.200',
+        '192.0.0.192',
     ];
 
     private const string GENERIC_HOST_BLOCKED = 'Error: Host not allowed (SSRF).';
