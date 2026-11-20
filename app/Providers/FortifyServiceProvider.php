@@ -80,9 +80,11 @@ class FortifyServiceProvider extends ServiceProvider
                     return null;
                 }
 
-                // Password break-glass under SSO-only needs confirmed TOTP. A passkey-only
-                // super-admin may use the passkey, not the password form.
-                if (app(ProjectSettingsService::class)->security()->isOidcOnlyEnabled()
+                // Password break-glass under active SSO-only needs confirmed TOTP. A
+                // passkey-only super-admin may use the passkey, not the password form.
+                // Use isActive() (SSO configured AND only-mode), never the bare setting:
+                // a saved oidc_only with SSO off must not lock every password user out.
+                if (app(SsoOnlyModeService::class)->isActive()
                     && ! $user->hasEnabledTwoFactorAuthentication()) {
                     return null;
                 }
@@ -116,7 +118,7 @@ class FortifyServiceProvider extends ServiceProvider
                 'canRegister' => Features::enabled(Features::registration())
                     && $securitySettings->isRegistrationEnabled()
                     && $oidcLoginOptions->isPasswordLoginVisible
-                    && ! $securitySettings->isOidcOnlyEnabled(),
+                    && ! $oidcLoginOptions->isSsoOnly,
                 'canManagePasskeys' => Features::canManagePasskeys()
                     && $oidcLoginOptions->isPasswordLoginVisible,
                 'canUseOidc' => $oidcLoginOptions->isSsoAvailable,
@@ -145,7 +147,7 @@ class FortifyServiceProvider extends ServiceProvider
 
             if (! Features::enabled(Features::registration())
                 || ! $securitySettings->isRegistrationEnabled()
-                || $securitySettings->isOidcOnlyEnabled()) {
+                || app(SsoOnlyModeService::class)->isActive()) {
                 abort(403);
             }
 

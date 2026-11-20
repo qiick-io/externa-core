@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Auth;
 
 use App\Models\User;
-use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Qiick\Oidc\Data\AuthenticatedIdentityData;
 use Qiick\Oidc\Events\OidcIdentityLinkedEvent;
@@ -21,9 +20,12 @@ use Qiick\Oidc\Models\UserIdentity;
  *
  * Matching is exact in PHP (`===`): MySQL/MariaDB's default collation would otherwise treat
  * `sub-case` and `Sub-Case` as the same `oidc_sub` and let an attacker take over the victim.
- * Bridging only runs when the token issuer equals the issuer saved in Settings (the string the
- * import used). Users who already have an identity for that issuer are left alone. A unique-index
- * race with a concurrent login is swallowed so the package login can find the row the winner wrote.
+ * Bridging only runs when the token issuer equals `oidc_legacy_import_issuer` (the issuer the
+ * import migration/command persisted), not the currently configured issuer: after an IdP switch
+ * the package already enforces the new issuer on the token, and comparing with settings alone
+ * would still promote leftover subjects from the old IdP. Users who already have an identity for
+ * this issuer are left alone. A unique-index race with a concurrent login is swallowed so the
+ * package login can find the row the winner wrote.
  *
  * ponytail: dual-read lives in the app for one release because UserLinkingService is final and
  * has no legacy hook; drop this bridge (and the column) in the next release.
@@ -31,7 +33,7 @@ use Qiick\Oidc\Models\UserIdentity;
 final readonly class LegacyOidcSubjectBridgeService
 {
     public function __construct(
-        private ProjectSecuritySettingsService $securitySettings,
+        private OidcLegacyImportIssuerService $legacyImportIssuer,
     ) {}
 
     /**
@@ -50,9 +52,9 @@ final readonly class LegacyOidcSubjectBridgeService
             return;
         }
 
-        $configuredIssuer = $this->securitySettings->oidcIssuer();
+        $importIssuer = $this->legacyImportIssuer->issuer();
 
-        if ($configuredIssuer === null || $configuredIssuer !== $identity->issuer) {
+        if ($importIssuer === null || $importIssuer !== $identity->issuer) {
             return;
         }
 

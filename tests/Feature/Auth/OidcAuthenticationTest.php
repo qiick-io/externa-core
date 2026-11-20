@@ -8,6 +8,7 @@ use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Auth\LegacyOidcSubjectBridgeService;
+use App\Services\Auth\OidcLegacyImportIssuerService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
@@ -54,6 +55,14 @@ function enableOidc(array $overrides = []): void
         'oidc_auto_link' => false,
         'oidc_only' => false,
     ], $overrides));
+}
+
+/**
+ * Persist the issuer the legacy import used (required for the dual-read bridge).
+ */
+function rememberLegacyImportIssuer(string $issuer = FAKE_ISSUER): void
+{
+    app(OidcLegacyImportIssuerService::class)->remember($issuer);
 }
 
 /**
@@ -131,6 +140,7 @@ it('signs in the user linked to the identity, whatever the email', function () {
 it('signs in a user who only has a legacy oidc_sub and creates an identity row', function () {
     $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
     enableOidc(['oidc_auto_link' => false]);
+    rememberLegacyImportIssuer();
     $user = User::factory()->create([
         'email' => 'legacy@example.com',
         'oidc_sub' => 'sub-legacy-only',
@@ -345,6 +355,7 @@ it('project settings encrypt oidc secret and never return plaintext', function (
 it('does not bridge a case-variant oidc_sub onto the victim (MySQL/MariaDB collation)', function () {
     $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
     enableOidc(['oidc_auto_link' => false]);
+    rememberLegacyImportIssuer();
     $victim = User::factory()->create([
         'email' => 'victim@example.com',
         'oidc_sub' => 'Sub-Case',
@@ -361,8 +372,9 @@ it('does not bridge a case-variant oidc_sub onto the victim (MySQL/MariaDB colla
         ->and($victim->fresh()->oidc_sub)->toBe('Sub-Case');
 });
 
-it('bridges only when the token issuer equals the saved settings issuer', function () {
+it('bridges only when the token issuer equals the persisted import issuer', function () {
     enableOidc(['oidc_auto_link' => false]);
+    rememberLegacyImportIssuer(FAKE_ISSUER);
     $user = User::factory()->create(['oidc_sub' => 'sub-legacy']);
 
     $foreignIdentity = new AuthenticatedIdentityData(
@@ -380,8 +392,29 @@ it('bridges only when the token issuer equals the saved settings issuer', functi
         ->and($user->fresh()->oidc_sub)->toBe('sub-legacy');
 });
 
+it('does not bridge under a new IdP after Settings switch even when the login issuer matches Settings', function () {
+    enableOidc(['oidc_auto_link' => false, 'oidc_issuer' => 'https://new-idp.example.com']);
+    rememberLegacyImportIssuer('https://old-idp.example.com');
+    $user = User::factory()->create(['oidc_sub' => 'sub-from-old-idp']);
+
+    $newIdpIdentity = new AuthenticatedIdentityData(
+        issuer: 'https://new-idp.example.com',
+        subject: 'sub-from-old-idp',
+        claims: ['sub' => 'sub-from-old-idp', 'email' => 'legacy@example.com'],
+        idToken: 'unused',
+        accessToken: 'unused',
+        sessionId: null,
+    );
+
+    app(LegacyOidcSubjectBridgeService::class)->promoteIfNeeded($newIdpIdentity);
+
+    expect(UserIdentity::query()->count())->toBe(0)
+        ->and($user->fresh()->oidc_sub)->toBe('sub-from-old-idp');
+});
+
 it('swallows a unique-index race when promoting a legacy subject', function () {
     enableOidc();
+    rememberLegacyImportIssuer();
     User::factory()->create(['oidc_sub' => 'sub-race']);
 
     // Throw the unique-index exception without a real DB conflict: PostgreSQL would abort the
@@ -408,6 +441,7 @@ it('swallows a unique-index race when promoting a legacy subject', function () {
 
     expect(UserIdentity::query()->where('subject', 'sub-race')->count())->toBe(0);
 });
+
 it('throttles the OIDC redirect at 60/min per IP and leaves the callback alone', function () {
     Http::preventStrayRequests();
     FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
@@ -505,4 +539,153 @@ it('refuses to enable SSO-only without an active break-glass super-admin', funct
         ->assertSessionHasNoErrors();
 
     expect(app(ProjectSettingsService::class)->security()->isOidcOnlyEnabled())->toBeTrue();
+});
+
+it('keeps password login when SSO-only is saved but SSO is disabled', function () {
+    enableOidc([
+        'oidc_enabled' => false,
+        'oidc_only' => true,
+    ]);
+
+    $regular = User::factory()->create([
+        'email' => 'password-user@example.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    $this->get(route('login'))->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('canUseOidc', false)
+        ->where('isPasswordLoginVisible', true));
+
+    $this->post(route('login.store'), [
+        'email' => 'password-user@example.com',
+        'password' => 'password',
+    ])->assertRedirect();
+
+    $this->assertAuthenticatedAs($regular);
+});
+
+it('logs out a local user with a normal redirect', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('logout'))
+        ->assertRedirect('/');
+
+    $this->assertGuest();
+});
+
+it('logs out an SSO user to the IdP end-session URL via Inertia location', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc();
+    $user = User::factory()->create(['email' => 'sso-logout@example.com']);
+    linkIdentity($user, 'sub-logout');
+
+    signInThroughSso($this, $identityProvider, ['sub' => 'sub-logout'])->assertRedirect();
+    $this->assertAuthenticatedAs($user);
+
+    $response = $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Requested-With' => 'XMLHttpRequest',
+    ])->post(route('logout'));
+
+    $this->assertGuest();
+    $response->assertStatus(409);
+    $location = (string) $response->headers->get('X-Inertia-Location');
+    expect($location)->toStartWith(FAKE_ISSUER.'/protocol/openid-connect/logout?')
+        ->and($location)->toContain('id_token_hint=')
+        ->and($location)->toContain('post_logout_redirect_uri=');
+});
+
+it('logs out an SSO user with a plain redirect when the request is not Inertia', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc();
+    $user = User::factory()->create(['email' => 'sso-logout-plain@example.com']);
+    linkIdentity($user, 'sub-logout-plain');
+
+    signInThroughSso($this, $identityProvider, ['sub' => 'sub-logout-plain'])->assertRedirect();
+    $this->assertAuthenticatedAs($user);
+
+    $response = $this->post(route('logout'));
+
+    $this->assertGuest();
+    $response->assertRedirect();
+    expect((string) $response->headers->get('Location'))
+        ->toStartWith(FAKE_ISSUER.'/protocol/openid-connect/logout?');
+});
+
+it('falls back to the local logout redirect when the IdP has no end-session endpoint', function () {
+    $identityProvider = FakeIdentityProvider::fake(issuer: FAKE_ISSUER, clientId: 'externa-app');
+    enableOidc();
+    $user = User::factory()->create(['email' => 'sso-no-end-session@example.com']);
+    linkIdentity($user, 'sub-no-end-session');
+
+    signInThroughSso($this, $identityProvider, ['sub' => 'sub-no-end-session'])->assertRedirect();
+    $this->assertAuthenticatedAs($user);
+
+    $identityProvider->withDiscovery(['end_session_endpoint' => null]);
+    cache()->flush();
+
+    $response = $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Requested-With' => 'XMLHttpRequest',
+    ])->post(route('logout'));
+
+    $this->assertGuest();
+    $response->assertStatus(409);
+    expect($response->headers->get('X-Inertia-Location'))->toEndWith('/');
+});
+
+it('refuses to disable the last break-glass admin 2FA while SSO-only is active', function () {
+    $this->skipUnlessFortifyFeature(Features::twoFactorAuthentication());
+
+    enableOidc(['oidc_only' => true]);
+    $breakGlass = User::factory()->withTwoFactor()->create([
+        'email' => 'last-breakglass@example.com',
+        'password' => bcrypt('password'),
+    ]);
+    $breakGlass->assignRole(RoleEnum::SuperAdmin->value);
+
+    $this->actingAs($breakGlass)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->delete(route('two-factor.disable'))
+        ->assertSessionHasErrors('email');
+
+    expect($breakGlass->fresh()->hasEnabledTwoFactorAuthentication())->toBeTrue();
+});
+
+it('refuses to strip the last break-glass admin role while SSO-only is active', function () {
+    enableOidc(['oidc_only' => true]);
+    $breakGlass = User::factory()->withTwoFactor()->create();
+    $breakGlass->assignRole(RoleEnum::SuperAdmin->value);
+
+    $readerRole = Role::query()->where('name', RoleEnum::Reader->value)->firstOrFail();
+
+    $this->actingAs($breakGlass)
+        ->put(route('users.update', $breakGlass), [
+            'role_ids' => [$readerRole->id],
+        ])
+        ->assertSessionHasErrors('role_ids');
+
+    expect($breakGlass->fresh()->hasRole(RoleEnum::SuperAdmin->value))->toBeTrue();
+});
+
+it('refuses to delete the last break-glass admin while SSO-only is active', function () {
+    enableOidc(['oidc_only' => true]);
+    $first = User::factory()->withTwoFactor()->create();
+    $first->assignRole(RoleEnum::SuperAdmin->value);
+    $last = User::factory()->withTwoFactor()->create();
+    $last->assignRole(RoleEnum::SuperAdmin->value);
+
+    $this->actingAs($last)
+        ->delete(route('users.destroy', $first))
+        ->assertRedirect(route('users.index'));
+
+    expect($first->fresh()->trashed())->toBeTrue();
+
+    $this->actingAs($last)
+        ->from(route('users.index'))
+        ->delete(route('users.destroy', $last))
+        ->assertSessionHasErrors('is_active');
+
+    expect($last->fresh()->trashed())->toBeFalse();
 });

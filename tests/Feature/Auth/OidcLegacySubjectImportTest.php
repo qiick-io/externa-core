@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Auth\OidcLegacyImportIssuerService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
@@ -123,7 +124,8 @@ it('imports every legacy SSO user once, relinks nothing and changes nothing on a
 
     expect($imported)->toEqualCanonicalizing($expected)
         ->and(UserIdentity::query()->whereIn('user_id', [$users['nullSub']->id, $users['emptySub']->id, $users['neverSso']->id, $users['conflicting']->id])->exists())->toBeFalse()
-        ->and(app(ProjectSettingsService::class)->security()->isOidcAutoLinkEnabled())->toBeTrue();
+        ->and(app(ProjectSettingsService::class)->security()->isOidcAutoLinkEnabled())->toBeTrue()
+        ->and(app(OidcLegacyImportIssuerService::class)->issuer())->toBe($this->issuer);
 
     runLegacySubjectMigration();
     expect(identityRows())->toBe($afterFirstRun);
@@ -172,7 +174,18 @@ it('imports nothing and keeps the auto-link default on an install that never con
     runLegacySubjectMigration();
 
     expect(UserIdentity::query()->exists())->toBeFalse()
-        ->and(Setting::query()->where('key', 'oidc_auto_link')->exists())->toBeFalse();
+        ->and(Setting::query()->where('key', 'oidc_auto_link')->exists())->toBeFalse()
+        ->and(app(OidcLegacyImportIssuerService::class)->issuer())->toBeNull();
+});
+
+it('persists the import issuer from a manual artisan run and skips dry-run', function () {
+    seedLegacySsoInstall($this->issuer, $this->otherIssuer);
+
+    Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $this->issuer, '--dry-run' => true]);
+    expect(app(OidcLegacyImportIssuerService::class)->issuer())->toBeNull();
+
+    Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $this->issuer]);
+    expect(app(OidcLegacyImportIssuerService::class)->issuer())->toBe($this->issuer);
 });
 
 it('keeps an auto-link choice that is already saved', function () {

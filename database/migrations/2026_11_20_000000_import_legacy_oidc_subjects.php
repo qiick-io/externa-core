@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\Auth\OidcLegacyImportIssuerService;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,9 @@ use Symfony\Component\Console\Output\ConsoleOutput;
  *    & Security (the string the package compares with discovery and stores on new links). It is
  *    idempotent and never moves an identity that is already linked to another user: such a
  *    conflict is printed and skipped, and the upgrade goes on (re-run the command after fixing).
- * 2. Installs that had configured SSO keep linking existing users by verified email, as the
+ * 2. That issuer is persisted as `oidc_legacy_import_issuer` so the dual-read bridge keeps using
+ *    the import's issuer after an IdP switch (re-run the command with `--issuer=` to refresh it).
+ * 3. Installs that had configured SSO keep linking existing users by verified email, as the
  *    local client always did: `oidc_auto_link` is stored as true unless it is already set. New
  *    installs get the package default (off).
  *
@@ -50,6 +53,8 @@ return new class extends Migration
 
         $output = app()->runningUnitTests() ? new BufferedOutput : new ConsoleOutput;
         $exitCode = Artisan::call('oidc:import-legacy-subjects', ['--issuer' => $issuer], $output);
+
+        app(OidcLegacyImportIssuerService::class)->remember($issuer);
 
         if ($exitCode !== 0) {
             $output->writeln('<comment>Some SSO identities were not imported (see above). Fix them, then run: php artisan oidc:import-legacy-subjects --issuer='.escapeshellarg($issuer).'</comment>');

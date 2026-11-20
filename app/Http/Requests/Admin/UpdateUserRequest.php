@@ -6,11 +6,13 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
 use App\Models\User;
+use App\Services\Auth\OidcBreakGlassContinuityService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 
 /**
@@ -38,7 +40,40 @@ class UpdateUserRequest extends FormRequest
      */
     public function after(): array
     {
-        return [fn (Validator $validator) => $this->rejectSuperAdminGrants($validator)];
+        return [
+            fn (Validator $validator) => $this->rejectSuperAdminGrants($validator),
+            fn (Validator $validator) => $this->rejectLastBreakGlassRemoval($validator),
+        ];
+    }
+
+    /**
+     * Refuse role / active changes that would remove the last SSO-only break-glass admin.
+     */
+    private function rejectLastBreakGlassRemoval(Validator $validator): void
+    {
+        if ($validator->errors()->isNotEmpty()) {
+            return;
+        }
+
+        /** @var User $targetUser */
+        $targetUser = $this->route('user');
+        $continuity = app(OidcBreakGlassContinuityService::class);
+
+        try {
+            if ($this->has('is_active') && filter_var($this->input('is_active'), FILTER_VALIDATE_BOOLEAN) === false) {
+                $continuity->assertCanDeactivateOrDelete($targetUser);
+            }
+
+            if ($this->has('role_ids')) {
+                $continuity->assertCanSyncRoles($targetUser, array_values(array_map('intval', $this->input('role_ids', []))));
+            }
+        } catch (ValidationException $exception) {
+            foreach ($exception->errors() as $field => $messages) {
+                foreach ($messages as $message) {
+                    $validator->errors()->add($field, $message);
+                }
+            }
+        }
     }
 
     /**
