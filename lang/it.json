@@ -237,6 +237,7 @@
     "The API key owner is no longer active.": "Il proprietario della chiave API non è più attivo.",
     "You cannot issue a key with the :scope scope: you do not hold it yourself.": "Non puoi emettere una chiave con l'ambito :scope: non lo possiedi tu stesso.",
     "Only a signed-in user can issue an API key.": "Solo un utente autenticato può emettere una chiave API.",
+    "Each allowlist entry must be a valid IPv4 or IPv6 address or CIDR.": "Ogni voce dell'allowlist deve essere un indirizzo o CIDR IPv4 o IPv6 valido.",
     "API key rotated. The previous secret keeps working until :time.": "Chiave API ruotata. Il segreto precedente resta valido fino a :time.",
     "API key expires soon": "La chiave API scade a breve",
     "Create a new key and switch the integration to it before then.": "Crea una nuova chiave e passa l'integrazione a quella prima di allora.",

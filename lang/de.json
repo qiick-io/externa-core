@@ -237,6 +237,7 @@
     "The API key owner is no longer active.": "Der Eigentümer des API-Schlüssels ist nicht mehr aktiv.",
     "You cannot issue a key with the :scope scope: you do not hold it yourself.": "Sie können keinen Schlüssel mit dem Bereich :scope ausstellen: Sie haben ihn selbst nicht.",
     "Only a signed-in user can issue an API key.": "Nur angemeldete Benutzer können einen API-Schlüssel ausstellen.",
+    "Each allowlist entry must be a valid IPv4 or IPv6 address or CIDR.": "Jeder Allowlist-Eintrag muss eine gültige IPv4- oder IPv6-Adresse bzw. CIDR sein.",
     "API key rotated. The previous secret keeps working until :time.": "API-Schlüssel rotiert. Das bisherige Geheimnis funktioniert noch bis :time.",
     "API key expires soon": "API-Schlüssel läuft bald ab",
     "Create a new key and switch the integration to it before then.": "Erstellen Sie einen neuen Schlüssel und stellen Sie die Integration vorher darauf um.",

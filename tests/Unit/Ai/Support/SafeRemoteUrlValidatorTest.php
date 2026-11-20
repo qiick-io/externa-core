@@ -2,9 +2,11 @@
 
 use App\Ai\Support\SafeRemoteUrlValidator;
 
-it('blocks CGNAT and Alibaba metadata range', function (): void {
+it('blocks CGNAT and Alibaba metadata', function (): void {
+    // Alibaba's metadata address is on the explicit metadata denylist (stays blocked
+    // with allowPrivateHosts); other CGNAT addresses are blocked as reserved IPs.
     expect(SafeRemoteUrlValidator::validate('http://100.100.100.200/latest/meta-data'))
-        ->toBe('Error: IP address not allowed (SSRF).')
+        ->toBe('Error: Host not allowed (SSRF).')
         ->and(SafeRemoteUrlValidator::validate('http://100.64.0.1/'))
         ->toBe('Error: IP address not allowed (SSRF).');
 });

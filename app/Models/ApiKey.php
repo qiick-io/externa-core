@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Support\LogOptions;
+use Symfony\Component\HttpFoundation\IpUtils;
 
 /**
  * Project API key authenticated via Bearer token; permissions come from role_id.
@@ -263,6 +264,15 @@ class ApiKey extends Model
             && $this->previous_key_valid_until->isFuture();
     }
 
+    /**
+     * Whether `$ip` is allowed by this key's `ip_allowlist`.
+     *
+     * An empty or null allowlist allows every address. Matching uses
+     * {@see IpUtils::checkIp()} so IPv4 and IPv6 single addresses and CIDRs work;
+     * a malformed entry never matches (fail closed). An IPv4-mapped IPv6 client
+     * (`::ffff:203.0.113.5`) matches an IPv4 allowlist entry — IpUtils treats them
+     * as the same host, which is what dual-stack reverse proxies present.
+     */
     public function allowsIp(string $ip): bool
     {
         $allowlist = $this->ip_allowlist;
@@ -275,15 +285,7 @@ class ApiKey extends Model
                 continue;
             }
 
-            if (str_contains($entry, '/')) {
-                if ($this->ipInCidr($ip, $entry)) {
-                    return true;
-                }
-
-                continue;
-            }
-
-            if ($ip === $entry) {
+            if (IpUtils::checkIp($ip, $entry)) {
                 return true;
             }
         }
@@ -291,27 +293,29 @@ class ApiKey extends Model
         return false;
     }
 
-    private function ipInCidr(string $ip, string $cidr): bool
+    /**
+     * Whether `$entry` is a well-formed IPv4/IPv6 address or CIDR for storage.
+     *
+     * Same parser as {@see allowsIp()}: a value IpUtils cannot match against is refused
+     * at input so it never sits inert in the allowlist.
+     */
+    public static function isValidAllowlistEntry(string $entry): bool
     {
-        [$subnet, $mask] = array_pad(explode('/', $cidr, 2), 2, null);
-        if ($subnet === null || $mask === null || ! is_numeric($mask)) {
+        if ($entry === '') {
             return false;
         }
 
-        $ipLong = ip2long($ip);
-        $subnetLong = ip2long($subnet);
-        if ($ipLong === false || $subnetLong === false) {
+        if (! str_contains($entry, '/')) {
+            return filter_var($entry, FILTER_VALIDATE_IP) !== false;
+        }
+
+        [$subnet] = explode('/', $entry, 2);
+
+        if ($subnet === '' || filter_var($subnet, FILTER_VALIDATE_IP) === false) {
             return false;
         }
 
-        $mask = (int) $mask;
-        if ($mask < 0 || $mask > 32) {
-            return false;
-        }
-
-        $maskLong = $mask === 0 ? 0 : (-1 << (32 - $mask));
-
-        return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
+        return IpUtils::checkIp($subnet, $entry);
     }
 
     /**

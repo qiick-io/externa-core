@@ -8,6 +8,7 @@ use App\Enums\ApiKeyScopeEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Rules\IpAllowlistEntryRule;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -49,7 +50,7 @@ class StoreApiKeyRequest extends FormRequest
             'scopes' => ['required', 'array', 'min:1'],
             'scopes.*' => ['string', 'distinct', Rule::enum(ApiKeyScopeEnum::class), $this->creatorHoldsScope(...)],
             'ip_allowlist' => ['nullable', 'array'],
-            'ip_allowlist.*' => ['string', 'max:64'],
+            'ip_allowlist.*' => ['string', 'max:64', new IpAllowlistEntryRule],
             'rate_limit_per_minute' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'expires_at' => ['nullable', 'date', 'after:now'],
             'owner_id' => [

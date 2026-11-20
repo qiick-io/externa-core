@@ -132,6 +132,26 @@ describe('create', function (): void {
 
         expect(ApiKey::query()->sole()->scopes)->toBe(['collections:write', 'files:write', 'mcp:write']);
     });
+
+    it('accepts ipv4 and ipv6 allowlist entries and refuses a malformed cidr', function (): void {
+        $this->actingAs($this->manager)
+            ->post(route('api-keys.store'), apiKeyCreationPayload($this->keyRole, [
+                'ip_allowlist' => ['203.0.113.0/24', '2001:db8::/32', '2001:db8::1'],
+            ]))
+            ->assertSessionHasNoErrors();
+
+        expect(ApiKey::query()->sole()->ip_allowlist)->toBe(['203.0.113.0/24', '2001:db8::/32', '2001:db8::1']);
+
+        ApiKey::query()->delete();
+
+        $this->actingAs($this->manager)
+            ->post(route('api-keys.store'), apiKeyCreationPayload($this->keyRole, [
+                'ip_allowlist' => ['203.0.113.0/33'],
+            ]))
+            ->assertSessionHasErrors('ip_allowlist.0');
+
+        expect(ApiKey::query()->count())->toBe(0);
+    });
 });
 
 describe('rotate and revoke', function (): void {
