@@ -32,7 +32,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - SSO now validates the signed `id_token` (issuer, audience, nonce, PKCE S256); with `two_factor_required`, an SSO login counts only when the IdP proves MFA (`amr`/`acr`), otherwise Fortify's TOTP challenge runs (#827). Every SSO login sets the remember-me cookie (`oidc.remember=true`, 1.5 parity).
 
 - API key `ip_allowlist` matching uses Symfony `IpUtils::checkIp` so IPv6 single addresses and CIDRs (for example `2001:db8::/32`) match; the previous `ip2long` path never matched an IPv6 client or entry. Empty allowlist still allows every address; a malformed entry still never matches (fail closed). An IPv4-mapped IPv6 client (`::ffff:203.0.113.5`) matches an IPv4 allowlist entry — the same host as presented by dual-stack reverse proxies. Creating a key refuses a malformed CIDR at input (`StoreApiKeyRequest`).
-- Outbound SSRF: the Alibaba Cloud (`100.100.100.200`) and Oracle Cloud (`192.0.0.192`) instance metadata addresses stay blocked with `allowPrivateHosts=true` (webhooks / OIDC opt-in). Both fall in ranges the guard already blocks by default; opting into private hosts made them reachable. Every spelling the guard canonicalises is covered (decimal, octal, hex, short, trailing-dot, IPv4-mapped and IPv4-compatible). Mirrors qiick-io/signaculum-core#196. The same Alibaba/Oracle block for OIDC discovery lands in `qiick/laravel-oidc` after beta.3 (package #45); Externa stays on beta.3 for this release and bumps in a follow-up.
+- Outbound SSRF: the Alibaba Cloud (`100.100.100.200`) and Oracle Cloud (`192.0.0.192`) instance metadata addresses stay blocked with `allowPrivateHosts=true` (webhooks / OIDC opt-in). Both fall in ranges the guard already blocks by default; opting into private hosts made them reachable. Every spelling the guard canonicalises is covered (decimal, octal, hex, short, trailing-dot, IPv4-mapped and IPv4-compatible). Mirrors qiick-io/signaculum-core#196. The same Alibaba/Oracle block for OIDC discovery is in `qiick/laravel-oidc` 1.0.0-beta.4 (package #45).
 - Soft-deleted user groups no longer grant their roles' permissions: `EffectivePermissionResolverService` joins `user_groups` and filters `deleted_at` when resolving group permissions, matching the SoftDeletes scope already applied to role names (#823).
 
 ### Fixed
@@ -44,7 +44,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Changed
 
-- Replace the local Socialite OIDC client with `qiick/laravel-oidc` `^1.0@beta` (1.0.0-beta.3): settings-backed provider, JIT, auto-link, SSO-only + break-glass, domain allowlist, button label; identity key is `(issuer, subject)` in `user_identities` (#827).
+- Replace the local Socialite OIDC client with `qiick/laravel-oidc` `^1.0@beta` (1.0.0-beta.4): settings-backed provider, JIT, auto-link, SSO-only + break-glass, domain allowlist, button label; identity key is `(issuer, subject)` in `user_identities` (#827).
 
 ## [1.5.0] - 2026-11-18
 
