@@ -10,6 +10,7 @@ use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetricsService;
 use App\Services\Deploy\DeployHookStatusService;
+use App\Services\Mcp\McpOAuthServerService;
 use App\Services\Settings\ProjectAppearanceService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\UserNotificationPreferencesService;
@@ -59,6 +60,8 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => $projectSettings->general()->displayName(),
             'appVersion' => app(AppVersionService::class)->current(),
+            // Settings → Connected apps / MCP OAuth clients exist only while OAuth is on (#815 / #816).
+            'isMcpOAuthEnabled' => app(McpOAuthServerService::class)->isEnabled(),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user ? $permissionResolver->permissionsFor($user) : [],

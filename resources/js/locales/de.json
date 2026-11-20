@@ -394,7 +394,8 @@
             "sectionAi": "KI",
             "aiToolsNav": "Schreibwerkzeuge",
             "pendingToolCallsNav": "Tool-Freigaben",
-            "jobs": "Jobs"
+            "jobs": "Jobs",
+            "mcpOauthClients": "MCP-OAuth-Clients"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -2542,7 +2543,8 @@
             "groups_synced": "Gruppen synchronisiert",
             "members_synced": "Mitglieder synchronisiert",
             "collection_permissions_synced": "Collection-Berechtigungen synchronisiert",
-            "file_permissions_synced": "Datei-Berechtigungen synchronisiert"
+            "file_permissions_synced": "Datei-Berechtigungen synchronisiert",
+            "oauth_authorized": "MCP-Client autorisiert"
         },
         "logs": {
             "default": "Anwendung",
@@ -2988,5 +2990,60 @@
         "startTime": "Startzeit",
         "endTime": "Endzeit",
         "apply": "Anwenden"
+    },
+    "oauth": {
+        "authorize": {
+            "head": "Client autorisieren",
+            "title": "{{client}} erlauben, diesen Arbeitsbereich zu nutzen?",
+            "description": "Der Client handelt über MCP in deinem Namen, mit nur dem, was du unten erlaubst. Du kannst den Zugriff jederzeit widerrufen.",
+            "redirectWarning": "Nach der Freigabe kehrt dieser Client zu {{host}} zurück. Der Name oben ist die Selbstangabe des Clients; nur der Rückgabe-Host wird vom Server geprüft.",
+            "cannotGrant": "Dein Konto kann keinen MCP-Zugriff gewähren: Es braucht KI-Zugriff, eine gewährbare Rolle und einen MCP-Bereich, den du besitzt. Lehne ab, um zum Client zurückzukehren.",
+            "scopesLegend": "Was der Client tun darf",
+            "scopeNotHeld": "Du besitzt diese Berechtigung selbst nicht und kannst sie daher nicht gewähren.",
+            "roleLabel": "Rolle",
+            "rolePlaceholder": "Rolle wählen",
+            "roleDescription": "Der Client handelt mit dieser Rolle und nie mit mehr, als du selbst darfst.",
+            "collectionsLegend": "Sammlungen",
+            "collectionsDescription": "Wählen Sie alle Collections oder einzelne. Keine Auswahl ist nicht erlaubt.",
+            "approve": "Erlauben",
+            "deny": "Ablehnen",
+            "scopeDescriptions": {
+                "collectionsRead": "Sammlungen und ihre Einträge lesen",
+                "collectionsWrite": "Einträge, Sammlungen und Felder anlegen und ändern (inklusive Lesen)",
+                "filesRead": "Dateien und ihre Metadaten lesen",
+                "filesWrite": "Dateien hochladen, verschieben und taggen (inklusive Lesen)",
+                "mcpRead": "Die MCP-Lesewerkzeuge nutzen",
+                "mcpWrite": "Die MCP-Schreibwerkzeuge nutzen (inklusive Lesen)"
+            },
+            "allCollections": "Alle Collections, die diese Rolle erreichen kann"
+        }
+    },
+    "mcpOauthClients": {
+        "title": "MCP-OAuth-Clients",
+        "description": "Clients, die sich selbst für Remote-MCP registriert haben. Namen sind selbst angegeben; Redirect-Hosts identifizieren sie.",
+        "clientsTitle": "Registrierte Clients",
+        "blockedHostsTitle": "Gesperrte Redirect-Hosts",
+        "emptyClients": "Es haben sich noch keine OAuth-Clients registriert.",
+        "emptyBlockedHosts": "Es sind keine Redirect-Hosts gesperrt.",
+        "blockClient": "Client sperren",
+        "blockHost": "Host sperren",
+        "unblockHost": "Entsperren",
+        "hostLabel": "Host",
+        "missingKeysTitle": "Passport-Schlüssel fehlen",
+        "missingKeysDescription": "OAuth ist aktiv, aber Signaturschlüssel fehlen. Führen Sie php artisan passport:keys aus oder setzen Sie PASSPORT_PRIVATE_KEY und PASSPORT_PUBLIC_KEY.",
+        "columns": {
+            "name": "Name",
+            "hosts": "Redirect-Hosts",
+            "status": "Status",
+            "actions": "Aktionen",
+            "host": "Host"
+        },
+        "status": {
+            "blocked": "Gesperrt",
+            "authorized": "Autorisiert",
+            "unused": "Ungenutzt"
+        },
+        "bulkBlock": "Ausgewählte sperren",
+        "pruneUnused": "Unbenutzte Clients bereinigen"
     }
 }

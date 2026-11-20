@@ -104,6 +104,21 @@ return [
         'rate_limit_per_minute' => (int) env('AI_MCP_RATE_LIMIT_PER_MINUTE', 60),
         // Failed authentications per IP per minute before /mcp answers 429 (#441).
         'auth_failures_per_minute' => (int) env('AI_MCP_AUTH_FAILURES_PER_MINUTE', 20),
+        // OAuth for remote MCP clients (#802): externa as its own authorization server, so a
+        // connector registers itself (RFC 7591) and a user grants it narrow, revocable access on
+        // a consent screen instead of pasting an API key. Off by default: until it is on, every
+        // OAuth and discovery route answers 404 and `/mcp` accepts API keys only, as before.
+        'oauth' => [
+            'enabled' => (bool) env('AI_MCP_OAUTH_ENABLED', false),
+            'access_token_ttl_minutes' => (int) env('AI_MCP_OAUTH_ACCESS_TOKEN_TTL_MINUTES', 60),
+            'refresh_token_ttl_days' => (int) env('AI_MCP_OAUTH_REFRESH_TOKEN_TTL_DAYS', 30),
+            // Unauthenticated client registrations per IP (IPv6: /64) per minute.
+            'registrations_per_minute' => (int) env('AI_MCP_OAUTH_REGISTRATIONS_PER_MINUTE', 10),
+            // Soft global cap on non-revoked clients (open DCR).
+            'registrations_global_cap' => (int) env('AI_MCP_OAUTH_REGISTRATIONS_GLOBAL_CAP', 10000),
+            // Clients with no successful authorisation are pruned after this many hours.
+            'unused_client_retention_hours' => (int) env('AI_MCP_OAUTH_UNUSED_CLIENT_RETENTION_HOURS', 24),
+        ],
     ],
 
     /*

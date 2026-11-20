@@ -53,7 +53,7 @@ export default function SettingsLayout({
     const { isCurrentUrl } = useCurrentUrl();
     const scrollRegionRef = useScrollRegion<HTMLDivElement>();
     const { can } = useCan();
-    const { projectSettings } = usePage().props;
+    const { projectSettings, isMcpOAuthEnabled } = usePage().props;
 
     const accountNavItems: NavItem[] = [
         {
@@ -149,6 +149,15 @@ export default function SettingsLayout({
                   {
                       title: t('settings.layout.apiKeys'),
                       href: apiKeys.index.url(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can(PermissionEnum.CanManageApiKeys) && isMcpOAuthEnabled
+            ? [
+                  {
+                      title: t('settings.layout.mcpOauthClients'),
+                      href: '/settings/mcp-oauth-clients',
                       icon: null,
                   },
               ]

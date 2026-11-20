@@ -210,6 +210,27 @@ test('sensitive keys are redacted at any depth', function (): void {
         ->not->toContain('hunter2', 'sk-live-123', 'abc.def', 'xyz', 'shh');
 });
 
+test('JWTs and OAuth code fields are redacted', function (): void {
+    $jwt = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxIn0.signature-part';
+
+    Log::channel('structured')->warning('OAuth exchange leaked', [
+        'access_token' => $jwt,
+        'code' => 'auth-code-secret',
+        'code_verifier' => 'pkce-verifier-secret',
+        'note' => "bearer {$jwt}",
+    ]);
+
+    $logRecord = structuredLogRecords($this->structuredLogPath)[0];
+    $redacted = RedactSensitiveLogDataProcessor::REDACTED;
+    $logOutput = (string) file_get_contents($this->structuredLogPath);
+
+    expect($logRecord['context']['access_token'])->toBe($redacted)
+        ->and($logRecord['context']['code'])->toBe($redacted)
+        ->and($logRecord['context']['code_verifier'])->toBe($redacted)
+        ->and($logRecord['context']['note'])->toBe("bearer {$redacted}")
+        ->and($logOutput)->not->toContain($jwt, 'auth-code-secret', 'pkce-verifier-secret');
+});
+
 test('API key tokens are redacted by their shape, keeping the public prefix', function (): void {
     $token = ApiKey::generateSecret()['plain'];
     $legacyToken = 'ek_'.Str::random(40);

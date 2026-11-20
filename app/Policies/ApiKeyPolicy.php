@@ -16,6 +16,9 @@ use App\Services\Authorization\EffectivePermissionResolverService;
  * super-admins pass through the resolver. Any key manager may rotate or revoke any key,
  * whoever owns it; only an active key can be rotated (a revoked or expired one stays dead).
  * Every ability needs a session user: an API key never manages keys.
+ *
+ * An OAuth grant row (#802) is not an API key: it is neither listed, rotated nor revoked here.
+ * Rotating one would mint a bearer secret for a grant that has none.
  */
 final class ApiKeyPolicy
 {
@@ -35,12 +38,14 @@ final class ApiKeyPolicy
 
     public function rotate(?User $user, ApiKey $apiKey): bool
     {
-        return $apiKey->isActive() && $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
+        return ! $apiKey->isOAuthGrant()
+            && $apiKey->isActive()
+            && $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
     }
 
     public function delete(?User $user, ApiKey $apiKey): bool
     {
-        return $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
+        return ! $apiKey->isOAuthGrant() && $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
     }
 
     private function hasPermission(?User $user, PermissionEnum $permission): bool

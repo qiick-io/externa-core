@@ -84,24 +84,39 @@ final class HomePathService
             return $fallback;
         }
 
-        $path = self::pathFromUrl($intended);
+        $pathWithQuery = self::pathWithQueryFromUrl($intended);
 
-        if ($path === null || self::isGuestAuthPath($path) || ! self::isResolvableGetPath($path)) {
+        if ($pathWithQuery === null) {
             return $fallback;
         }
 
-        return $path;
+        $path = parse_url($pathWithQuery, PHP_URL_PATH);
+        $path = is_string($path) && $path !== '' ? $path : '/';
+
+        if (self::isGuestAuthPath($path) || ! self::isResolvableGetPath($path)) {
+            return $fallback;
+        }
+
+        return $pathWithQuery;
     }
 
     /**
+     * Same-host absolute path including the query string (needed for `/oauth/authorize?…`).
+     *
      * @return non-empty-string|null
      */
-    private static function pathFromUrl(string $url): ?string
+    private static function pathWithQueryFromUrl(string $url): ?string
     {
         if (str_starts_with($url, '/')) {
             $path = parse_url($url, PHP_URL_PATH);
 
-            return is_string($path) && $path !== '' ? $path : null;
+            if (! is_string($path) || $path === '') {
+                return null;
+            }
+
+            $query = parse_url($url, PHP_URL_QUERY);
+
+            return is_string($query) && $query !== '' ? $path.'?'.$query : $path;
         }
 
         $appUrl = (string) config('app.url');
@@ -114,10 +129,12 @@ final class HomePathService
         }
 
         if (! is_string($path) || $path === '') {
-            return '/';
+            $path = '/';
         }
 
-        return $path;
+        $query = parse_url($url, PHP_URL_QUERY);
+
+        return is_string($query) && $query !== '' ? $path.'?'.$query : $path;
     }
 
     private static function isGuestAuthPath(string $path): bool
