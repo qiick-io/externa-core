@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   smoke:
-    uses: qiick-io/app-ui/.github/workflows/app-distribution-smoke.yml@v0.9.0
+    uses: qiick-io/app-ui/.github/workflows/app-distribution-smoke.yml@v0.11.0
     with:
       package: qiick/externa-core
       command: externa

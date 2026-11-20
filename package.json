@@ -20,7 +20,7 @@
         "lint:i18n": "oxlint -c .oxlintrc.i18n.json -A all -f json resources/js | node scripts/qiick-ratchet.mjs lint --rule i18next/no-literal-string --baseline i18n-literal-baseline.json",
         "lint:legacy": "node scripts/check-legacy-web.mjs resources/js",
         "lint:env": "node scripts/check-env-example.mjs",
-        "lint:standards": "oxlint -c .oxlintrc.standards.json -f json resources/js | node scripts/qiick-ratchet.mjs lint --rule eslint/no-restricted-imports,eslint/no-restricted-properties,eslint/id-length --baseline qiick-lint-baseline.json",
+        "lint:standards": "oxlint -c .oxlintrc.standards.json -f json resources/js | node scripts/qiick-ratchet.mjs lint --rule eslint/no-restricted-imports,eslint/no-restricted-properties,eslint/id-length,eslint/max-lines,eslint/max-lines-per-function --baseline qiick-lint-baseline.json",
         "lint:ui-tokens": "node scripts/check-ui-tokens.mjs",
         "prepare": "node --input-type=commonjs -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', {stdio:'inherit'}) }\"",
         "test:unit": "vp test run",

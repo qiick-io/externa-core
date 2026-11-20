@@ -9,7 +9,8 @@ How the five layers look in a qiick app. Each topic has a page with the externa-
 | Auth pages, 2FA, passkeys, SSO through Signaculum      | https://github.com/qiick-io/app-ui/blob/develop/docs/auth.md                  |
 | Roles, permissions, policies, `<app>:sync-permissions` | https://github.com/qiick-io/app-ui/blob/develop/docs/roles-and-permissions.md |
 | Error pages 403 / 404 / 500 / 503                      | https://github.com/qiick-io/app-ui/blob/develop/docs/error-pages.md           |
-| REST API, OpenAPI, API keys and scopes                 | https://github.com/qiick-io/app-ui/blob/develop/docs/api.md                   |
+| REST API, OpenAPI, rate limits                         | https://github.com/qiick-io/app-ui/blob/develop/docs/api.md                   |
+| API keys: storage, scopes, rotation, revocation        | https://github.com/qiick-io/app-ui/blob/develop/docs/api-keys.md              |
 | Realtime: Reverb, channels, presence                   | https://github.com/qiick-io/app-ui/blob/develop/docs/realtime.md              |
 | Security headers                                       | https://github.com/qiick-io/app-ui/blob/develop/docs/security-headers.md      |
 | Logging and activity (audit) log                       | https://github.com/qiick-io/app-ui/blob/develop/docs/logging-and-audit.md     |
@@ -30,7 +31,7 @@ How the five layers look in a qiick app. Each topic has a page with the externa-
 
 ## API
 
-Only when the spec asks for one: REST under `/api/v1`, `*Resource` responses, a hand-written OpenAPI file served at `/api/v1/openapi.json`, hashed API keys with scopes, named rate limiters. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/api.md
+Only when the spec asks for one: REST under `/api/v1`, `*Resource` responses, a hand-written OpenAPI file served at `/api/v1/openapi.json`, named rate limiters. Details: https://github.com/qiick-io/app-ui/blob/develop/docs/api.md. API keys (hashed, `<resource>:(read|write)` scopes, show-once secret, rotation): https://github.com/qiick-io/app-ui/blob/develop/docs/api-keys.md
 
 ## Security
 
