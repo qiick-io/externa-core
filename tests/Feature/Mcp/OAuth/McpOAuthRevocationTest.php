@@ -78,6 +78,7 @@ it('revokes a client so its next call and its next refresh are refused', functio
         'grant_type' => 'refresh_token',
         'refresh_token' => $issued['refresh_token'],
         'client_id' => $issued['client_id'],
+        'resource' => OAuth::resource(),
     ])->assertStatus(400)->assertJsonPath('error', 'invalid_grant');
 
     expect($issued['grant']->fresh()->isRevoked())->toBeTrue()
@@ -145,12 +146,27 @@ it('withdraws the client\'s tokens too when the owner is deactivated', function 
         ->and(RefreshToken::query()->where('revoked', false)->count())->toBe(0);
 });
 
-it('hides Connected apps while OAuth is off', function (): void {
+it('keeps Connected apps reachable while OAuth is off so leftover grants can be revoked', function (): void {
+    $issued = OAuth::issueAccessToken($this, $this->user, ['scopes' => ['mcp:read'], 'role_id' => $this->role->id]);
+
     $this->actingAs($this->user)->get('/settings/profile')->assertInertia(fn ($page) => $page->where('isMcpOAuthEnabled', true));
 
     config(['ai.mcp.oauth.enabled' => false]);
 
-    $this->actingAs($this->user)->get('/settings/connected-apps')->assertNotFound();
+    $this->actingAs($this->user)
+        ->get('/settings/connected-apps')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('settings/connected-apps')
+            ->has('connectedApps', 1)
+            ->where('connectedApps.0.id', $issued['grant']->id));
+
+    $this->actingAs($this->user)
+        ->delete('/settings/connected-apps/'.$issued['grant']->id)
+        ->assertRedirect('/settings/connected-apps');
+
+    expect($issued['grant']->fresh()->isRevoked())->toBeTrue();
+
     $this->actingAs($this->user)->get('/settings/profile')->assertInertia(fn ($page) => $page->where('isMcpOAuthEnabled', false));
 });
 
