@@ -33,6 +33,7 @@ class ApiKeyController extends Controller
         abort_unless(Gate::allows('viewAny', ApiKey::class), 403);
 
         $keys = ApiKey::query()
+            ->issuedKeys()
             ->with(['role:id,name', 'owner:id,first_name,last_name,email'])
             ->latest('id')
             ->paginate($this->validatedListPerPage($request))

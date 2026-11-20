@@ -228,7 +228,6 @@ return [
     'App\Services\Api\FilePermissionSyncService',
     'App\Services\Api\PublicApiResponseCacheService',
     'App\Services\Api\RelationIncludeHydratorService',
-    'App\Services\Authorization\EffectivePermissionResolverService',
     'App\Services\Chat\ChatParticipantSyncService',
     'App\Services\Chat\ChatUnreadService',
     'App\Services\Collections\ApplyCollectionPackService',

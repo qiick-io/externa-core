@@ -243,5 +243,18 @@
     "API key expires soon": "La chiave API scade a breve",
     "Create a new key and switch the integration to it before then.": "Crea una nuova chiave e passa l'integrazione a quella prima di allora.",
     "Open API keys": "Apri chiavi API",
-    "The API key \":name\" (:prefix) expires on :date.": "La chiave API \":name\" (:prefix) scade il :date."
+    "The API key \":name\" (:prefix) expires on :date.": "La chiave API \":name\" (:prefix) scade il :date.",
+    "Select mcp:read or mcp:write: without one the client cannot use MCP.": "Seleziona mcp:read o mcp:write: senza uno dei due il client non può usare MCP.",
+    "The access token has been revoked.": "Il token di accesso è stato revocato.",
+    "The access token has expired.": "Il token di accesso è scaduto.",
+    "The access token holds no scopes.": "Il token di accesso non ha alcun ambito.",
+    "The access token is not bound to an authorization.": "Il token di accesso non è legato a un'autorizzazione.",
+    "The access token is not valid.": "Il token di accesso non è valido.",
+    "The access token lacks the :scope scope.": "Al token di accesso manca l'ambito :scope.",
+    "The access token no longer matches what was authorized. Authorize the client again.": "Il token di accesso non corrisponde più a quanto autorizzato. Autorizza di nuovo il client.",
+    "The access token was issued for another resource.": "Il token di accesso è stato emesso per un'altra risorsa.",
+    "The account that authorized this access token is no longer active.": "L'account che ha autorizzato questo token di accesso non è più attivo.",
+    "The client this access token was issued to has been revoked.": "Il client a cui è stato emesso questo token di accesso è stato revocato.",
+    "The role granted to this access token is missing.": "Il ruolo concesso a questo token di accesso non esiste più.",
+    "You cannot grant the :scope scope: you do not hold it yourself.": "Non puoi concedere l'ambito :scope: non lo possiedi."
 }

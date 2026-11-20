@@ -83,16 +83,10 @@ class StoreApiKeyRequest extends FormRequest
             return;
         }
 
-        $permissionResolver = app(EffectivePermissionResolverService::class);
-
-        foreach ($scope->requiredCreatorPermissions() as $requiredPermission) {
-            if (! $permissionResolver->hasPermission($creator, $requiredPermission->value)) {
-                $fail(__('You cannot issue a key with the :scope scope: you do not hold it yourself.', [
-                    'scope' => $scope->value,
-                ]));
-
-                return;
-            }
+        if (! app(EffectivePermissionResolverService::class)->canGrantScope($creator, $scope)) {
+            $fail(__('You cannot issue a key with the :scope scope: you do not hold it yourself.', [
+                'scope' => $scope->value,
+            ]));
         }
     }
 

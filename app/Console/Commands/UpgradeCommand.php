@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Services\AppVersionService;
+use App\Services\Mcp\McpOAuthServerService;
 use App\Services\Upgrade\UpgradeGitService;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Process\ProcessResult;
@@ -85,6 +86,8 @@ class UpgradeCommand extends Command
                 return $code;
             }
         }
+
+        $this->ensurePassportKeys();
 
         if (! $this->option('no-permissions')) {
             $this->info('Running permissions:sync…');
@@ -363,5 +366,18 @@ class UpgradeCommand extends Command
     private function git(array $args): ProcessResult
     {
         return app(UpgradeGitService::class)->run($args);
+    }
+
+    /**
+     * Passport signing keys for MCP OAuth (#815). Idempotent: skips when env PEMs or files exist.
+     */
+    private function ensurePassportKeys(): void
+    {
+        if (app(McpOAuthServerService::class)->hasPassportKeys()) {
+            return;
+        }
+
+        $this->info('Generating Passport OAuth signing keys…');
+        $this->call('passport:keys', ['--no-interaction' => true]);
     }
 }

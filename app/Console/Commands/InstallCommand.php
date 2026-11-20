@@ -8,6 +8,7 @@ use App\Actions\CreateInitialSuperAdminAction;
 use App\Console\Concerns\ManagesDotEnvTrait;
 use App\Data\InitialSuperAdminData;
 use App\Models\User;
+use App\Services\Mcp\McpOAuthServerService;
 use Database\Seeders\CreateSuperAdminSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
@@ -121,6 +122,8 @@ class InstallCommand extends Command
         if ($migrate !== self::SUCCESS) {
             return $migrate;
         }
+
+        $this->ensurePassportKeys();
 
         if ($seed) {
             $credentialsCode = $this->prepareInitialSuperAdminCredentials($envPath);
@@ -404,6 +407,19 @@ class InstallCommand extends Command
      * Write a fresh APP_KEY when missing. Avoids key:generate failing when the
      * in-memory key no longer matches the rewritten .env file.
      */
+    /**
+     * Passport signing keys for MCP OAuth (#815). Idempotent: skips when env PEMs or files exist.
+     */
+    private function ensurePassportKeys(): void
+    {
+        if (app(McpOAuthServerService::class)->hasPassportKeys()) {
+            return;
+        }
+
+        $this->info('Generating Passport OAuth signing keys…');
+        $this->call('passport:keys', ['--no-interaction' => true]);
+    }
+
     private function ensureApplicationKey(string $envPath, ?string $preservedAppKey): void
     {
         if ($preservedAppKey !== null) {

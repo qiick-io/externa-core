@@ -7,14 +7,17 @@ namespace App\Models;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
+use App\Services\Api\ApiKeyAuthenticatorService;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\ApiKeyFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Laravel\Passport\Client;
 use Spatie\Activitylog\Support\LogOptions;
 use Symfony\Component\HttpFoundation\IpUtils;
 
@@ -27,6 +30,11 @@ use Symfony\Component\HttpFoundation\IpUtils;
  * public `ext_<env>_<id>` part, `key_hash` the SHA-256 of the full token. Keys issued before
  * 1.5.0 keep their `ek_<40 characters>` token, with its first 12 characters as `key_prefix`.
  *
+ * A row with `oauth_client_id` is not an API key but an OAuth grant to a remote MCP client (#802):
+ * what its owner approved on the consent screen, held in the same columns so an access token and
+ * an API key reach every decision through the same code. A grant has no usable bearer secret: its
+ * `key_prefix` is not token-shaped and {@see ApiKeyAuthenticatorService::findByToken()} skips it.
+ *
  * @property int $id
  * @property string $uuid
  * @property string $name
@@ -37,6 +45,7 @@ use Symfony\Component\HttpFoundation\IpUtils;
  * @property int $role_id
  * @property int|null $owner_id
  * @property int|null $created_by
+ * @property string|null $oauth_client_id
  * @property list<string>|null $collection_slugs
  * @property list<string>|null $scopes
  * @property list<string>|null $ip_allowlist
@@ -94,6 +103,7 @@ class ApiKey extends Model
         'revoked_at',
         'created_by',
         'owner_id',
+        'oauth_client_id',
     ];
 
     /**
@@ -229,6 +239,35 @@ class ApiKey extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * The remote MCP client this grant was approved for; only set on OAuth grant rows.
+     *
+     * @return BelongsTo<Client, $this>
+     */
+    public function oauthClient(): BelongsTo
+    {
+        return $this->belongsTo(Client::class, 'oauth_client_id');
+    }
+
+    /**
+     * Whether this row is an OAuth grant to a remote MCP client rather than an API key.
+     */
+    public function isOAuthGrant(): bool
+    {
+        return $this->oauth_client_id !== null;
+    }
+
+    /**
+     * Only API keys, without the OAuth grant rows: the key list, rotation and bearer lookup.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeIssuedKeys(Builder $query): Builder
+    {
+        return $query->whereNull('oauth_client_id');
     }
 
     /**

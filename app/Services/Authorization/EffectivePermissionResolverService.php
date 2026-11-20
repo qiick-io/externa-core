@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Authorization;
 
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\User;
@@ -55,6 +58,23 @@ class EffectivePermissionResolverService
     public function effectiveRoleIds(User $user): array
     {
         return $this->resolve($user)['role_ids'];
+    }
+
+    /**
+     * Whether the user may give a credential this scope: an API key they issue or an OAuth grant
+     * they approve never holds more than they do ({@see ApiKeyScopeEnum::requiredCreatorPermissions()}).
+     * The one rule both doors use, so a scope refused on the key form is refused on the consent
+     * screen too.
+     */
+    public function canGrantScope(User $user, ApiKeyScopeEnum $scope): bool
+    {
+        foreach ($scope->requiredCreatorPermissions() as $requiredPermission) {
+            if (! $this->hasPermission($user, $requiredPermission->value)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

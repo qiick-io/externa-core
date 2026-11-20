@@ -243,5 +243,18 @@
     "API key expires soon": "API-Schlüssel läuft bald ab",
     "Create a new key and switch the integration to it before then.": "Erstellen Sie einen neuen Schlüssel und stellen Sie die Integration vorher darauf um.",
     "Open API keys": "API-Schlüssel öffnen",
-    "The API key \":name\" (:prefix) expires on :date.": "Der API-Schlüssel „:name“ (:prefix) läuft am :date ab."
+    "The API key \":name\" (:prefix) expires on :date.": "Der API-Schlüssel „:name“ (:prefix) läuft am :date ab.",
+    "Select mcp:read or mcp:write: without one the client cannot use MCP.": "Wähle mcp:read oder mcp:write: ohne einen davon kann der Client MCP nicht nutzen.",
+    "The access token has been revoked.": "Das Zugriffstoken wurde widerrufen.",
+    "The access token has expired.": "Das Zugriffstoken ist abgelaufen.",
+    "The access token holds no scopes.": "Das Zugriffstoken hat keine Bereiche.",
+    "The access token is not bound to an authorization.": "Das Zugriffstoken ist an keine Autorisierung gebunden.",
+    "The access token is not valid.": "Das Zugriffstoken ist ungültig.",
+    "The access token lacks the :scope scope.": "Dem Zugriffstoken fehlt der Bereich :scope.",
+    "The access token no longer matches what was authorized. Authorize the client again.": "Das Zugriffstoken entspricht nicht mehr der Autorisierung. Autorisiere den Client erneut.",
+    "The access token was issued for another resource.": "Das Zugriffstoken wurde für eine andere Ressource ausgestellt.",
+    "The account that authorized this access token is no longer active.": "Das Konto, das dieses Zugriffstoken autorisiert hat, ist nicht mehr aktiv.",
+    "The client this access token was issued to has been revoked.": "Der Client, für den dieses Zugriffstoken ausgestellt wurde, wurde widerrufen.",
+    "The role granted to this access token is missing.": "Die diesem Zugriffstoken gewährte Rolle fehlt.",
+    "You cannot grant the :scope scope: you do not hold it yourself.": "Du kannst den Bereich :scope nicht gewähren: Du besitzt ihn selbst nicht."
 }

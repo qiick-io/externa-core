@@ -10,6 +10,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             appVersion: string;
+            isMcpOAuthEnabled: boolean;
             auth: Auth;
             locale: string;
             availableLocales: Record<string, string>;

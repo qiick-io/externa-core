@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\FileTagController;
 use App\Http\Controllers\Admin\FileTrashController;
 use App\Http\Controllers\Admin\FileUploadController;
 use App\Http\Controllers\Admin\JobMonitorController;
+use App\Http\Controllers\Admin\McpOAuthClientController;
 use App\Http\Controllers\Admin\PendingToolCallController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -183,6 +184,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('jobs/{uuid}', [JobMonitorController::class, 'destroy'])
             ->middleware('permission:'.PermissionEnum::CanManageJobs->value)
             ->name('jobs.destroy');
+
+        Route::get('mcp-oauth-clients', [McpOAuthClientController::class, 'index'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('mcp-oauth-clients.index');
+        Route::post('mcp-oauth-clients/{client}/block', [McpOAuthClientController::class, 'blockClient'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('mcp-oauth-clients.block');
+        Route::post('mcp-oauth-clients/blocked-hosts', [McpOAuthClientController::class, 'blockHost'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('mcp-oauth-clients.block-host');
+        Route::delete('mcp-oauth-clients/blocked-hosts/{blockedHost}', [McpOAuthClientController::class, 'unblockHost'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('mcp-oauth-clients.unblock-host');
 
         Route::get('pending-tool-calls', [PendingToolCallController::class, 'index'])
             ->middleware('permission:'.PermissionEnum::CanUseAi->value)

@@ -394,7 +394,8 @@
             "sectionAi": "AI",
             "aiToolsNav": "Strumenti in scrittura",
             "pendingToolCallsNav": "Approvazioni strumenti",
-            "jobs": "Job"
+            "jobs": "Job",
+            "mcpOauthClients": "Client OAuth MCP"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -2542,7 +2543,8 @@
             "groups_synced": "Gruppi sincronizzati",
             "members_synced": "Membri sincronizzati",
             "collection_permissions_synced": "Permessi collection sincronizzati",
-            "file_permissions_synced": "Permessi file sincronizzati"
+            "file_permissions_synced": "Permessi file sincronizzati",
+            "oauth_authorized": "Client MCP autorizzato"
         },
         "logs": {
             "default": "Applicazione",
@@ -2988,5 +2990,57 @@
         "startTime": "Ora di inizio",
         "endTime": "Ora di fine",
         "apply": "Applica"
+    },
+    "oauth": {
+        "authorize": {
+            "head": "Autorizza client",
+            "title": "Consentire a {{client}} di usare questo spazio di lavoro?",
+            "description": "Il client agirà a tuo nome, tramite MCP, con solo ciò che consenti qui sotto. Puoi revocarlo in qualsiasi momento.",
+            "redirectWarning": "Dopo l'approvazione, questo client torna a {{host}}. Il nome sopra è quello che il client ha dichiarato; solo l'host di ritorno è verificato dal server.",
+            "cannotGrant": "Il tuo account non può concedere l'accesso MCP: servono l'accesso all'AI, un ruolo concedibile e un ambito MCP che possiedi. Nega per tornare al client.",
+            "scopesLegend": "Cosa può fare il client",
+            "scopeNotHeld": "Non possiedi questo permesso, quindi non puoi concederlo.",
+            "roleLabel": "Ruolo",
+            "rolePlaceholder": "Scegli un ruolo",
+            "roleDescription": "Il client agisce con questo ruolo, e mai con più di quanto puoi fare tu.",
+            "collectionsLegend": "Collezioni",
+            "collectionsDescription": "Lascia tutto deselezionato per consentire ogni collezione raggiungibile dal ruolo, oppure seleziona quelle che il client può usare.",
+            "approve": "Consenti",
+            "deny": "Nega",
+            "scopeDescriptions": {
+                "collectionsRead": "Leggere le collezioni e i loro elementi",
+                "collectionsWrite": "Creare e modificare elementi, collezioni e campi (include la lettura)",
+                "filesRead": "Leggere i file e i loro metadati",
+                "filesWrite": "Caricare, spostare ed etichettare file (include la lettura)",
+                "mcpRead": "Usare gli strumenti MCP di lettura",
+                "mcpWrite": "Usare gli strumenti MCP di scrittura (include la lettura)"
+            }
+        }
+    },
+    "mcpOauthClients": {
+        "title": "Client OAuth MCP",
+        "description": "Client che si sono registrati da soli per l'accesso MCP remoto. I nomi sono auto-dichiarati; gli host di redirect li identificano.",
+        "clientsTitle": "Client registrati",
+        "blockedHostsTitle": "Host di redirect bloccati",
+        "emptyClients": "Nessun client OAuth si è ancora registrato.",
+        "emptyBlockedHosts": "Nessun host di redirect è bloccato.",
+        "blockClient": "Blocca client",
+        "blockHost": "Blocca host",
+        "unblockHost": "Sblocca",
+        "hostLabel": "Host",
+        "missingKeysTitle": "Chiavi Passport mancanti",
+        "missingKeysDescription": "OAuth è attivo ma mancano le chiavi di firma. Esegui php artisan passport:keys, oppure imposta PASSPORT_PRIVATE_KEY e PASSPORT_PUBLIC_KEY.",
+        "columns": {
+            "name": "Nome",
+            "hosts": "Host di redirect",
+            "status": "Stato",
+            "actions": "Azioni",
+            "host": "Host"
+        },
+        "status": {
+            "blocked": "Bloccato",
+            "authorized": "Autorizzato",
+            "unused": "Non usato"
+        }
     }
 }

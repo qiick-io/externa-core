@@ -6,9 +6,12 @@ namespace App\Http\Middleware;
 
 use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyScopeEnum;
+use App\Models\ApiKey;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\ApiKeyAuthenticatorService;
+use App\Services\Mcp\McpAccessTokenAuthenticatorService;
+use App\Services\Mcp\McpOAuthServerService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,11 +20,20 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Authenticate MCP requests with an owned API key holding `mcp:read` (or `mcp:write`, which
- * implies it), sent as a Bearer token. The key checks are {@see ApiKeyAuthenticatorService}'s,
- * shared with the public API; write tools additionally need `mcp:write`.
+ * Authenticate MCP requests with a Bearer credential holding `mcp:read` (or `mcp:write`, which
+ * implies it): an owned API key, or, when OAuth for remote MCP clients is on (#802), an OAuth
+ * access token. Write tools additionally need `mcp:write`.
  *
- * Ownerless keys are rejected (#215). The key owner's permissions are the ceiling.
+ * Two doors, one decision. A token shaped like an API key (`ext_…`, `ek_…`) is checked by
+ * {@see ApiKeyAuthenticatorService}; anything else, with OAuth on, by
+ * {@see McpAccessTokenAuthenticatorService}, which resolves the token to its grant row and runs
+ * that row through the same checks. Both end here with the same `ApiAccessData`, the same
+ * request attributes and the same guard user, so every tool, scope, `collection_slugs`, owner
+ * ceiling and write gate downstream decides identically for both. With OAuth off, a non-key
+ * token is simply an unknown API key, as before.
+ *
+ * Ownerless keys are rejected (#215). The key owner's (or grant owner's) permissions are the
+ * ceiling.
  *
  * `/mcp` is outside the `web` group and exempt from CSRF, so there is no session login: a
  * session path would let any site drive the tools with a signed-in user's cookies (#441).
@@ -32,6 +44,8 @@ class AuthenticateMcpRequestMiddleware
 {
     public function __construct(
         private readonly ApiKeyAuthenticatorService $apiKeyAuthenticator,
+        private readonly McpAccessTokenAuthenticatorService $accessTokenAuthenticator,
+        private readonly McpOAuthServerService $oauthServer,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -52,7 +66,7 @@ class AuthenticateMcpRequestMiddleware
         }
 
         try {
-            return $this->authenticateApiKey($request, $bearer, $next);
+            return $this->actAs($request, $this->authenticateCredential($request, $bearer), $next);
         } catch (HttpExceptionInterface $exception) {
             if (in_array($exception->getStatusCode(), [401, 403], true)) {
                 RateLimiter::hit($failureKey, 60);
@@ -63,17 +77,29 @@ class AuthenticateMcpRequestMiddleware
     }
 
     /**
-     * @param  Closure(Request): Response  $next
+     * The API key, or the OAuth grant row, the bearer token acts as.
      */
-    private function authenticateApiKey(Request $request, string $bearer, Closure $next): Response
+    private function authenticateCredential(Request $request, string $bearer): ApiKey
     {
-        $apiKey = $this->apiKeyAuthenticator->authenticate(
+        if (ApiKey::publicPrefixOf($bearer) === null && $this->oauthServer->isEnabled()) {
+            return $this->accessTokenAuthenticator->authenticate($request);
+        }
+
+        return $this->apiKeyAuthenticator->authenticate(
             $request,
             $bearer,
             isOwnerRequired: true,
             requiredScope: ApiKeyScopeEnum::McpRead,
         );
+    }
 
+    /**
+     * Bind the credential for this request, identically for both doors.
+     *
+     * @param  Closure(Request): Response  $next
+     */
+    private function actAs(Request $request, ApiKey $apiKey, Closure $next): Response
+    {
         /** @var User $owner checked by the authenticator */
         $owner = $apiKey->owner;
         /** @var Role $role checked by the authenticator */
@@ -91,7 +117,7 @@ class AuthenticateMcpRequestMiddleware
         Auth::guard(config('auth.defaults.guard', 'web'))->setUser($owner);
         Auth::shouldUse(config('auth.defaults.guard', 'web'));
 
-        $access = new ApiAccessData(actor: 'api_key', role: $role, apiKey: $apiKey);
+        $access = new ApiAccessData(actor: $apiKey->isOAuthGrant() ? 'oauth' : 'api_key', role: $role, apiKey: $apiKey);
         app()->instance(ApiAccessData::class, $access);
 
         $request->attributes->set('apiAccess', $access);

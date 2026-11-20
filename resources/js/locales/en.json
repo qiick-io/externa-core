@@ -394,7 +394,8 @@
             "sectionAi": "AI",
             "aiToolsNav": "Write tools",
             "pendingToolCallsNav": "Tool approvals",
-            "jobs": "Jobs"
+            "jobs": "Jobs",
+            "mcpOauthClients": "MCP OAuth clients"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -2542,7 +2543,8 @@
             "groups_synced": "Groups synced",
             "members_synced": "Members synced",
             "collection_permissions_synced": "Collection permissions synced",
-            "file_permissions_synced": "File permissions synced"
+            "file_permissions_synced": "File permissions synced",
+            "oauth_authorized": "MCP client authorized"
         },
         "logs": {
             "default": "Application",
@@ -2988,5 +2990,57 @@
         "startTime": "Start time",
         "endTime": "End time",
         "apply": "Apply"
+    },
+    "oauth": {
+        "authorize": {
+            "head": "Authorize client",
+            "title": "Allow {{client}} to use this workspace?",
+            "description": "The client will act as you, through MCP, with only what you allow below. You can revoke it at any time.",
+            "redirectWarning": "After you approve, this client returns to {{host}}. The name above is what the client claimed about itself; only the return host is checked by the server.",
+            "cannotGrant": "Your account cannot grant MCP access: it needs AI access, a role that can be granted, and an MCP scope you hold. Deny to return to the client.",
+            "scopesLegend": "What the client may do",
+            "scopeNotHeld": "You do not hold this permission yourself, so you cannot grant it.",
+            "roleLabel": "Role",
+            "rolePlaceholder": "Choose a role",
+            "roleDescription": "The client acts with this role, and never with more than you can do yourself.",
+            "collectionsLegend": "Collections",
+            "collectionsDescription": "Leave all unticked to allow every collection the role can reach, or tick the ones the client may use.",
+            "approve": "Allow",
+            "deny": "Deny",
+            "scopeDescriptions": {
+                "collectionsRead": "Read collections and their items",
+                "collectionsWrite": "Create and change items, collections and fields (includes read)",
+                "filesRead": "Read files and their metadata",
+                "filesWrite": "Upload, move and tag files (includes read)",
+                "mcpRead": "Use the MCP read tools",
+                "mcpWrite": "Use the MCP write tools (includes read)"
+            }
+        }
+    },
+    "mcpOauthClients": {
+        "title": "MCP OAuth clients",
+        "description": "Clients that registered themselves for remote MCP access. Names are self-asserted; redirect hosts identify them.",
+        "clientsTitle": "Registered clients",
+        "blockedHostsTitle": "Blocked redirect hosts",
+        "emptyClients": "No OAuth clients have registered yet.",
+        "emptyBlockedHosts": "No redirect hosts are blocked.",
+        "blockClient": "Block client",
+        "blockHost": "Block host",
+        "unblockHost": "Unblock",
+        "hostLabel": "Host",
+        "missingKeysTitle": "Passport keys missing",
+        "missingKeysDescription": "OAuth is on but signing keys are missing. Run php artisan passport:keys, or set PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY.",
+        "columns": {
+            "name": "Name",
+            "hosts": "Redirect hosts",
+            "status": "Status",
+            "actions": "Actions",
+            "host": "Host"
+        },
+        "status": {
+            "blocked": "Blocked",
+            "authorized": "Authorized",
+            "unused": "Unused"
+        }
     }
 }

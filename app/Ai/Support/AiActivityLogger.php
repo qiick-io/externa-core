@@ -79,6 +79,7 @@ class AiActivityLogger
             ->event('ai_tool')
             ->withProperties(array_merge([
                 'api_key_id' => self::currentApiKeyId(),
+                ...self::currentOAuthClient(),
                 'tool' => $tool,
                 'input' => $redacted,
                 'result' => self::truncate($result),
@@ -96,6 +97,27 @@ class AiActivityLogger
     private static function currentApiKeyId(): ?int
     {
         return app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey?->id : null;
+    }
+
+    /**
+     * When the request authenticated with an OAuth access token (#802), the client it was issued
+     * to, so the entry names the connector and not only the grant row behind `api_key_id`. Empty
+     * for API keys and session users, whose entries keep their 1.5.0 shape.
+     *
+     * @return array{oauth_client_id?: string, oauth_client_name?: string}
+     */
+    private static function currentOAuthClient(): array
+    {
+        $apiKey = app()->bound(ApiAccessData::class) ? app(ApiAccessData::class)->apiKey : null;
+
+        if ($apiKey === null || ! $apiKey->isOAuthGrant()) {
+            return [];
+        }
+
+        return [
+            'oauth_client_id' => (string) $apiKey->oauth_client_id,
+            'oauth_client_name' => $apiKey->name,
+        ];
     }
 
     /**
@@ -126,6 +148,7 @@ class AiActivityLogger
             ->event('ai_tool')
             ->withProperties(array_merge([
                 'api_key_id' => self::currentApiKeyId(),
+                ...self::currentOAuthClient(),
                 'tool' => $tool,
                 'input' => $redacted,
                 'arguments' => $redacted,
