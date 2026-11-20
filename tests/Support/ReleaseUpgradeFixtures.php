@@ -338,6 +338,17 @@ final class ReleaseUpgradeFixtures
             $violations[] = "users.public_id still null on {$stillNull} row(s) after the upgrade.";
         }
 
+        if (! Schema::hasIndex('users', 'users_public_id_unique')) {
+            $violations[] = 'users.public_id unique index is missing after the upgrade.';
+        }
+
+        $publicIdColumn = collect(Schema::getColumns('users'))
+            ->first(fn (array $column): bool => $column['name'] === 'public_id');
+
+        if ($publicIdColumn === null || ($publicIdColumn['nullable'] ?? true) === true) {
+            $violations[] = 'users.public_id must be NOT NULL after the upgrade.';
+        }
+
         return $violations;
     }
 

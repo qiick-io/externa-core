@@ -23,9 +23,12 @@ final class MiniUserMapperService
             return null;
         }
 
+        $attributes = $user->getAttributes();
+
         return [
             'id' => (int) $user->id,
-            'public_id' => (string) $user->public_id,
+            // Empty when the column is not selected yet during the deploy window.
+            'public_id' => array_key_exists('public_id', $attributes) ? (string) $attributes['public_id'] : '',
             'name' => $user->name !== '' ? $user->name : ($user->email ?? ('#'.$user->id)),
             'email' => $user->email,
         ];

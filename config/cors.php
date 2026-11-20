@@ -15,7 +15,17 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => [
+        'X-Request-Id',
+        'X-RateLimit-Limit',
+        'X-RateLimit-Remaining',
+        'X-RateLimit-Reset',
+        'Retry-After',
+        'Deprecation',
+        'Sunset',
+        'Content-Language',
+        'Link',
+    ],
 
     'max_age' => 0,
 

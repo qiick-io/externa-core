@@ -155,7 +155,7 @@ class CollectionItem extends Model
      */
     public function userCreated(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_created_id');
+        return $this->belongsTo(User::class, 'user_created_id')->withTrashed();
     }
 
     /**
@@ -163,7 +163,7 @@ class CollectionItem extends Model
      */
     public function userUpdated(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_updated_id');
+        return $this->belongsTo(User::class, 'user_updated_id')->withTrashed();
     }
 
     /**

@@ -252,9 +252,9 @@ export interface components {
              */
             user_updated_id: number | null;
             /** Format: uuid */
-            user_created_public_id?: string | null;
+            user_created_public_id: string | null;
             /** Format: uuid */
-            user_updated_public_id?: string | null;
+            user_updated_public_id: string | null;
             user_created: components["schemas"]["MiniUser"] | null;
             user_updated: components["schemas"]["MiniUser"] | null;
         };
@@ -505,7 +505,20 @@ export interface components {
         Sort: string;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /**
+         * @description Present on every authenticated Public CMS v1 response while bigint user ids
+         *     (`id` on MiniUser, `user_created_id` / `user_updated_id`) remain in payloads (#827).
+         */
+        Deprecation: string;
+        /**
+         * @description HTTP-date after which the deprecated bigint user id fields may be removed
+         *     (≥ 12 months from the 1.6.0 release). Prefer `public_id` / `user_*_public_id`.
+         */
+        Sunset: string;
+        /** @description `rel=deprecation` points at the upgrade notes for migrating off bigint user ids. */
+        Link: string;
+    };
     pathItems: never;
 }
 export type $defs = Record<string, never>;
@@ -610,6 +623,9 @@ export interface operations {
             /** @description Paginated items */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -764,6 +780,9 @@ export interface operations {
             /** @description Item */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
