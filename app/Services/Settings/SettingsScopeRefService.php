@@ -171,6 +171,8 @@ final class SettingsScopeRefService
      *
      * Only the positive result is memoised: before the column exists we re-probe so a
      * long-lived worker that saw "missing" still notices it after migrate.
+     *
+     * Schema probes are swallowed when the database is unreachable (PHPStan / lint without sqlite).
      */
     public function hasScopeRefColumn(): bool
     {
@@ -178,10 +180,14 @@ final class SettingsScopeRefService
             return true;
         }
 
-        if (Schema::hasColumn('settings', 'scope_ref')) {
-            self::$hasScopeRefColumn = true;
+        try {
+            if (Schema::hasColumn('settings', 'scope_ref')) {
+                self::$hasScopeRefColumn = true;
 
-            return true;
+                return true;
+            }
+        } catch (\Throwable) {
+            return false;
         }
 
         return false;
