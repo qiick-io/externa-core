@@ -12,7 +12,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
  * Delete MCP OAuth clients that never completed an authorisation and are older than the
- * configured retention (default 30 days) (#815).
+ * configured retention (default 24 hours) (#815).
  *
  * A successful authorisation is any `api_keys` row with that `oauth_client_id` (including a
  * later-revoked grant). Clients that only registered themselves and never received consent
@@ -28,7 +28,8 @@ class PruneUnusedOAuthClientsCommand extends Command
 
     public function handle(McpOAuthServerService $oauthServer): int
     {
-        $cutoff = now()->subDays($oauthServer->unusedClientRetentionDays());
+        $retentionHours = $oauthServer->unusedClientRetentionHours();
+        $cutoff = now()->subHours($retentionHours);
         $authorizedClientIds = ApiKey::query()
             ->whereNotNull('oauth_client_id')
             ->distinct()
@@ -41,7 +42,11 @@ class PruneUnusedOAuthClientsCommand extends Command
         $count = (clone $query)->count();
 
         if ($this->option('dry-run')) {
-            $this->info(sprintf('%d unused OAuth client(s) older than %s would be deleted.', $count, $cutoff->toDateString()));
+            $this->info(sprintf(
+                '%d unused OAuth client(s) older than %d hour(s) would be deleted.',
+                $count,
+                $retentionHours,
+            ));
 
             return self::SUCCESS;
         }

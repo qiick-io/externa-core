@@ -60,9 +60,11 @@ Route::middleware(EnsureMcpOAuthEnabledMiddleware::class)->group(function (): vo
     // Root protected-resource metadata: laravel/mcp would advertise `url('/')` for the empty
     // path; this server's only resource is `/mcp`, so register first and let oauthRoutes() skip.
     Route::get('.well-known/oauth-protected-resource', static function (): JsonResponse {
+        $issuer = rtrim((string) config('app.url'), '/');
+
         return response()->json([
-            'resource' => url('/mcp'),
-            'authorization_servers' => [config('mcp.authorization_server') ?? url('/')],
+            'resource' => $issuer.'/mcp',
+            'authorization_servers' => [config('mcp.authorization_server') ?? $issuer],
             'scopes_supported' => [Registrar::OAUTH_SCOPE],
         ]);
     })->name('mcp.oauth.protected-resource');

@@ -107,10 +107,17 @@ final class McpOAuthTestHelpers
      */
     public static function approve(object $test, TestResponse $consentPage, array $choices): TestResponse
     {
-        return $test->post('/oauth/authorize', [
+        $payload = [
             'auth_token' => $consentPage->inertiaProps('authToken'),
             ...$choices,
-        ]);
+        ];
+
+        // Explicit collections win; otherwise tests that omit the field mean "every collection".
+        if (! array_key_exists('all_collections', $payload)) {
+            $payload['all_collections'] = ! array_key_exists('collection_slugs', $payload);
+        }
+
+        return $test->post('/oauth/authorize', $payload);
     }
 
     /**

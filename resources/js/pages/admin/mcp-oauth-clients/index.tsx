@@ -152,9 +152,52 @@ export default function McpOAuthClientsIndex({
                     )}
 
                     <div className="mb-8 space-y-3">
-                        <h2 className="text-lg font-medium">
-                            {t('mcpOauthClients.clientsTitle')}
-                        </h2>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <h2 className="text-lg font-medium">
+                                {t('mcpOauthClients.clientsTitle')}
+                            </h2>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="oauth-bulk-block-unused"
+                                    onClick={() => {
+                                        const unusedIds = clients
+                                            .filter(
+                                                (client) =>
+                                                    !client.is_revoked &&
+                                                    !client.has_authorization,
+                                            )
+                                            .map((client) => client.id);
+
+                                        if (unusedIds.length === 0) {
+                                            return;
+                                        }
+
+                                        router.post(
+                                            '/settings/mcp-oauth-clients/bulk-block',
+                                            { client_ids: unusedIds },
+                                        );
+                                    }}
+                                >
+                                    {t('mcpOauthClients.bulkBlock')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="oauth-prune-unused"
+                                    onClick={() =>
+                                        router.post(
+                                            '/settings/mcp-oauth-clients/prune-unused',
+                                        )
+                                    }
+                                >
+                                    {t('mcpOauthClients.pruneUnused')}
+                                </Button>
+                            </div>
+                        </div>
                         <DataTable
                             columns={clientColumns}
                             data={clients}

@@ -16,6 +16,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use LogicException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -67,6 +68,13 @@ class AuthenticateMcpRequestMiddleware
 
         try {
             return $this->actAs($request, $this->authenticateCredential($request, $bearer), $next);
+        } catch (LogicException) {
+            RateLimiter::hit($failureKey, 60);
+
+            return response()->json([
+                'message' => __('OAuth for MCP is enabled but Passport signing keys are missing. Run `php artisan passport:keys`, or set PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY.'),
+                'error' => 'invalid_token',
+            ], 503, ['WWW-Authenticate' => 'Bearer error="invalid_token"']);
         } catch (HttpExceptionInterface $exception) {
             if (in_array($exception->getStatusCode(), [401, 403], true)) {
                 RateLimiter::hit($failureKey, 60);
@@ -78,10 +86,20 @@ class AuthenticateMcpRequestMiddleware
 
     /**
      * The API key, or the OAuth grant row, the bearer token acts as.
+     *
+     * OAuth door only when ready (keys present): `isEnabled()` alone would let league throw a
+     * LogicException and surface as a 500 when keys are missing. A non-key bearer while OAuth
+     * is on but keys are absent answers 503 here so connectors get a clear signal.
      */
     private function authenticateCredential(Request $request, string $bearer): ApiKey
     {
-        if (ApiKey::publicPrefixOf($bearer) === null && $this->oauthServer->isEnabled()) {
+        $isApiKeyShaped = ApiKey::publicPrefixOf($bearer) !== null;
+
+        if (! $isApiKeyShaped && $this->oauthServer->isEnabled() && ! $this->oauthServer->hasPassportKeys()) {
+            throw new LogicException('Passport signing keys are missing while MCP OAuth is enabled.');
+        }
+
+        if (! $isApiKeyShaped && $this->oauthServer->isReady()) {
             return $this->accessTokenAuthenticator->authenticate($request);
         }
 

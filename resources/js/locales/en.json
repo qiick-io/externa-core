@@ -3004,7 +3004,7 @@
             "rolePlaceholder": "Choose a role",
             "roleDescription": "The client acts with this role, and never with more than you can do yourself.",
             "collectionsLegend": "Collections",
-            "collectionsDescription": "Leave all unticked to allow every collection the role can reach, or tick the ones the client may use.",
+            "collectionsDescription": "Choose every collection, or tick specific ones. Leaving none selected is not allowed.",
             "approve": "Allow",
             "deny": "Deny",
             "scopeDescriptions": {
@@ -3014,7 +3014,8 @@
                 "filesWrite": "Upload, move and tag files (includes read)",
                 "mcpRead": "Use the MCP read tools",
                 "mcpWrite": "Use the MCP write tools (includes read)"
-            }
+            },
+            "allCollections": "Every collection this role can reach"
         }
     },
     "mcpOauthClients": {
@@ -3041,6 +3042,8 @@
             "blocked": "Blocked",
             "authorized": "Authorized",
             "unused": "Unused"
-        }
+        },
+        "bulkBlock": "Block selected",
+        "pruneUnused": "Prune unused clients"
     }
 }

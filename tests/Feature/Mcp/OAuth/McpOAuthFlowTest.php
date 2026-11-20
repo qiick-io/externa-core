@@ -212,8 +212,26 @@ describe('the consent screen', function (): void {
 
     it('refuses an approval without a pending authorization request', function (): void {
         $this->actingAs($this->user)
-            ->post('/oauth/authorize', ['auth_token' => 'forged', 'scopes' => ['mcp:read'], 'role_id' => $this->role->id])
+            ->post('/oauth/authorize', [
+                'auth_token' => 'forged',
+                'scopes' => ['mcp:read'],
+                'role_id' => $this->role->id,
+                'all_collections' => true,
+            ])
             ->assertForbidden();
+    });
+
+    it('refuses an approval that ticks no collection and does not allow every collection', function (): void {
+        Collection::factory()->create(['slug' => 'blog']);
+        $clientId = OAuth::registerClient($this);
+        $consentPage = OAuth::openConsent($this, $this->user, $clientId, OAuth::pkcePair()['challenge'], 'mcp:use');
+
+        OAuth::approve($this, $consentPage, [
+            'scopes' => ['mcp:read'],
+            'role_id' => $this->role->id,
+            'all_collections' => false,
+            'collection_slugs' => [],
+        ])->assertSessionHasErrors('collection_slugs');
     });
 
     it('sends access_denied back to the client when the user denies, and records nothing', function (): void {
@@ -237,6 +255,7 @@ describe('the consent screen', function (): void {
             'auth_token' => $consentPage->inertiaProps('authToken'),
             'scopes' => ['mcp:read'],
             'role_id' => $this->role->id,
+            'all_collections' => true,
         ], ['X-Inertia' => 'true']);
 
         $response->assertStatus(409);
@@ -282,14 +301,15 @@ describe('the authorization and token endpoints', function (): void {
             ->assertJsonPath('error', 'invalid_target');
     });
 
-    it('accepts an authorization request that names no resource, for the MCP endpoint', function (): void {
+    it('refuses an authorization request that names no resource (RFC 8707)', function (): void {
         $clientId = OAuth::registerClient($this);
         $pkce = OAuth::pkcePair();
         $url = OAuth::authorizationUrl($clientId, $pkce['challenge'], 'mcp:read');
 
         $this->actingAs($this->user)
             ->get(preg_replace('/&resource=[^&]*/', '', $url))
-            ->assertOk();
+            ->assertStatus(400)
+            ->assertJsonPath('error', 'invalid_target');
     });
 
     it('refuses a token request for another resource (RFC 8707)', function (): void {

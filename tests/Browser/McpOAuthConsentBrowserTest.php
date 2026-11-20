@@ -47,12 +47,12 @@ it('has no critical or serious axe issues in light and dark, and names the retur
 
 it('records only what the user left ticked', function (): void {
     $this->actingAs($this->user);
-    // Wire scope is mcp:use; consent offers every grantable API-key scope, all pre-ticked.
+    // Least privilege: only mcp:read is pre-ticked; the user opts into collections:read.
     $url = OAuth::authorizationUrl($this->clientId, OAuth::pkcePair()['challenge']);
 
     visit($url)
-        ->click('#scope-mcp\:write')
-        ->click('#scope-collections\:write')
+        ->click('#scope-collections\:read')
+        ->click('[data-test="oauth-all-collections"]')
         ->click('[data-test="oauth-approve"]')
         ->wait(1);
 

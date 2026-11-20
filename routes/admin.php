@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\JobMonitorController;
 use App\Http\Controllers\Admin\McpOAuthClientController;
 use App\Http\Controllers\Admin\PendingToolCallController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\PruneUnusedMcpOAuthClientsController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RoleDeletionController;
 use App\Http\Controllers\Admin\RoleDuplicateController;
@@ -191,6 +192,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('mcp-oauth-clients/{client}/block', [McpOAuthClientController::class, 'blockClient'])
             ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
             ->name('mcp-oauth-clients.block');
+        Route::post('mcp-oauth-clients/bulk-block', [McpOAuthClientController::class, 'bulkBlockClients'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('mcp-oauth-clients.bulk-block');
+        Route::post('mcp-oauth-clients/prune-unused', PruneUnusedMcpOAuthClientsController::class)
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('mcp-oauth-clients.prune-unused');
         Route::post('mcp-oauth-clients/blocked-hosts', [McpOAuthClientController::class, 'blockHost'])
             ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
             ->name('mcp-oauth-clients.block-host');

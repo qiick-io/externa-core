@@ -6,9 +6,9 @@ namespace App\Providers;
 
 use App\Http\Controllers\Mcp\AuthorizeMcpClientController;
 use App\Http\Responses\McpOAuthBearerTokenResponse;
-use App\Listeners\Mcp\BindMcpAccessTokenListener;
 use App\Models\User;
 use App\Services\Mcp\McpClientConsentService;
+use App\Services\Mcp\McpOAuthRefreshTokenRepositoryService;
 use App\Services\Mcp\McpOAuthServerService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Auth\StatefulGuard;
@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use Laravel\Passport\Bridge\RefreshTokenRepository as PassportRefreshTokenRepository;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
 use Laravel\Passport\Scope;
@@ -50,6 +51,9 @@ class McpOAuthServiceProvider extends ServiceProvider
         $this->app->when(AuthorizeMcpClientController::class)
             ->needs(StatefulGuard::class)
             ->give(static fn (): StatefulGuard => Auth::guard(config('passport.guard')));
+
+        // RFC 9700 §4.14.2: reused refresh tokens revoke the whole token family.
+        $this->app->bind(PassportRefreshTokenRepository::class, McpOAuthRefreshTokenRepositoryService::class);
     }
 
     public function boot(McpOAuthServerService $oauthServer): void
@@ -79,11 +83,29 @@ class McpOAuthServiceProvider extends ServiceProvider
             ))->toResponse($request);
         });
 
-        RateLimiter::for('mcp-oauth-register', static fn (Request $request): Limit => Limit::perMinute(
-            max(1, (int) config('ai.mcp.oauth.registrations_per_minute', 10)),
-        )->by('mcp-oauth-register:'.$request->ip()));
+        RateLimiter::for('mcp-oauth-register', static function (Request $request): Limit {
+            return Limit::perMinute(
+                max(1, (int) config('ai.mcp.oauth.registrations_per_minute', 10)),
+            )->by('mcp-oauth-register:'.self::registrationThrottleKey($request));
+        });
 
         RateLimiter::for('mcp-oauth-token', static fn (Request $request): Limit => Limit::perMinute(60)
             ->by('mcp-oauth-token:'.$request->ip()));
+    }
+
+    /**
+     * IPv4: the address. IPv6: the /64 network prefix, so a single /64 cannot mint one
+     * registration budget per address.
+     */
+    private static function registrationThrottleKey(Request $request): string
+    {
+        $ipAddress = $request->ip() ?? 'unknown';
+        $packed = @inet_pton($ipAddress);
+
+        if ($packed !== false && strlen($packed) === 16) {
+            return 'v6:'.bin2hex(substr($packed, 0, 8));
+        }
+
+        return $ipAddress;
     }
 }

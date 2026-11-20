@@ -66,6 +66,7 @@ class ApproveMcpClientRequest extends FormRequest
                 Rule::in(array_map(static fn (ApiKeyScopeEnum $scope): string => $scope->value, $this->offeredScopes())),
                 $this->userMayGrantScope(...),
             ],
+            'all_collections' => ['required', 'boolean'],
             'collection_slugs' => ['nullable', 'array'],
             'collection_slugs.*' => [
                 'string',
@@ -76,7 +77,8 @@ class ApproveMcpClientRequest extends FormRequest
     }
 
     /**
-     * A grant without an `mcp` scope could never reach the MCP endpoint.
+     * A grant without an `mcp` scope could never reach the MCP endpoint. An empty collection
+     * list without `all_collections` is refused: silence must not mean every collection.
      *
      * @return list<Closure(Validator): void>
      */
@@ -98,6 +100,27 @@ class ApproveMcpClientRequest extends FormRequest
 
                 $validator->errors()->add('scopes', __('Select mcp:read or mcp:write: without one the client cannot use MCP.'));
             },
+            function (Validator $validator): void {
+                $consentService = app(McpClientConsentService::class);
+                $readableCount = $consentService->readableCollections($this)->count();
+
+                if ($readableCount === 0) {
+                    return;
+                }
+
+                if ($this->boolean('all_collections')) {
+                    return;
+                }
+
+                $collectionSlugs = array_values(array_filter($this->array('collection_slugs'), is_string(...)));
+
+                if ($collectionSlugs === []) {
+                    $validator->errors()->add(
+                        'collection_slugs',
+                        __('Select at least one collection, or explicitly allow every collection.'),
+                    );
+                }
+            },
         ];
     }
 
@@ -112,15 +135,18 @@ class ApproveMcpClientRequest extends FormRequest
     }
 
     /**
-     * The collections the grant is narrowed to; null for every collection the role may reach.
+     * The collections the grant is narrowed to; null only when the user explicitly chose every
+     * collection (`all_collections`).
      *
      * @return list<string>|null
      */
     public function approvedCollectionSlugs(): ?array
     {
-        $collectionSlugs = array_values(array_filter($this->array('collection_slugs'), is_string(...)));
+        if ($this->boolean('all_collections')) {
+            return null;
+        }
 
-        return $collectionSlugs === [] ? null : $collectionSlugs;
+        return array_values(array_filter($this->array('collection_slugs'), is_string(...)));
     }
 
     /**

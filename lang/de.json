@@ -257,5 +257,11 @@
     "The client this access token was issued to has been revoked.": "Der Client, für den dieses Zugriffstoken ausgestellt wurde, wurde widerrufen.",
     "The role granted to this access token is missing.": "Die diesem Zugriffstoken gewährte Rolle fehlt.",
     "You cannot grant the :scope scope: you do not hold it yourself.": "Du kannst den Bereich :scope nicht gewähren: Du besitzt ihn selbst nicht.",
-    "OAuth for MCP is enabled but Passport signing keys are missing. Run `php artisan passport:keys`, or set PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY.": "OAuth für MCP ist aktiv, aber die Passport-Signaturschlüssel fehlen. Führen Sie `php artisan passport:keys` aus oder setzen Sie PASSPORT_PRIVATE_KEY und PASSPORT_PUBLIC_KEY."
+    "OAuth for MCP is enabled but Passport signing keys are missing. Run `php artisan passport:keys`, or set PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY.": "OAuth für MCP ist aktiv, aber die Passport-Signaturschlüssel fehlen. Führen Sie `php artisan passport:keys` aus oder setzen Sie PASSPORT_PRIVATE_KEY und PASSPORT_PUBLIC_KEY.",
+    "Select at least one collection, or explicitly allow every collection.": "Wähle mindestens eine Collection oder erlaube ausdrücklich alle Collections.",
+    "The API key owner can no longer grant the key's scopes.": "Der Eigentümer des API-Schlüssels kann die Scopes des Schlüssels nicht mehr vergeben.",
+    "The API key owner no longer holds the key's role.": "Der Eigentümer des API-Schlüssels besitzt die Rolle des Schlüssels nicht mehr.",
+    "The account that authorized this access token can no longer grant its scopes.": "Das Konto, das dieses Zugriffstoken autorisiert hat, kann dessen Scopes nicht mehr vergeben.",
+    "The account that authorized this access token no longer holds the granted role.": "Das Konto, das dieses Zugriffstoken autorisiert hat, besitzt die gewährte Rolle nicht mehr.",
+    "The client redirect host is blocked on this server.": "Der Redirect-Host des Clients ist auf diesem Server gesperrt."
 }

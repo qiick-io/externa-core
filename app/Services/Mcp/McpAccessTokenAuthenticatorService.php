@@ -44,6 +44,7 @@ final class McpAccessTokenAuthenticatorService
     public function __construct(
         private readonly ApiKeyAuthenticatorService $apiKeyAuthenticator,
         private readonly McpOAuthServerService $oauthServer,
+        private readonly McpOAuthRedirectUriService $redirectUriService,
     ) {}
 
     /**
@@ -73,8 +74,14 @@ final class McpAccessTokenAuthenticatorService
 
         // Not ClientRepository::findActive(), which memoizes the client for the life of the
         // repository: a client revoked a moment ago must be refused on the very next call.
-        if (! Client::query()->whereKey($clientId)->where('revoked', false)->exists()) {
+        $client = Client::query()->whereKey($clientId)->where('revoked', false)->first();
+
+        if (! $client instanceof Client) {
             throw ApiKeyRejectedException::invalidAccessToken(__('The client this access token was issued to has been revoked.'));
+        }
+
+        if ($this->redirectUriService->clientHasBlockedRedirectHost($client)) {
+            throw ApiKeyRejectedException::invalidAccessToken(__('The client redirect host is blocked on this server.'));
         }
 
         $grant = $this->grantFor($token, $clientId, $userId);

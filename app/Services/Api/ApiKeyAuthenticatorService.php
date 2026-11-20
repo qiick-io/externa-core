@@ -12,6 +12,7 @@ use App\Http\Middleware\AuthenticateMcpRequestMiddleware;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Mcp\McpAccessTokenAuthenticatorService;
 use Illuminate\Http\Request;
 
@@ -34,6 +35,7 @@ final class ApiKeyAuthenticatorService
 {
     public function __construct(
         private readonly RecordApiKeyUsageAction $recordApiKeyUsageAction,
+        private readonly EffectivePermissionResolverService $permissionResolver,
     ) {}
 
     /**
@@ -124,6 +126,7 @@ final class ApiKeyAuthenticatorService
 
         $this->assertOwnerCanAct($apiKey, $isOwnerRequired);
         $this->assertRoleCanAct($apiKey);
+        $this->assertOwnerStillHoldsGrant($apiKey);
 
         if (! $apiKey->allowsIp((string) $request->ip())) {
             throw ApiKeyRejectedException::ipNotAllowed();
@@ -174,6 +177,43 @@ final class ApiKeyAuthenticatorService
 
         if ($role->name === RoleEnum::SuperAdmin->value) {
             throw ApiKeyRejectedException::unusableKey(__('API keys cannot use the super-admin role.'));
+        }
+    }
+
+    /**
+     * Re-check at use time: the owner still holds the grant's role and may still give every
+     * scope on the row. Demotion after consent or key creation must stop the credential.
+     *
+     * The permission resolver is forgotten for this owner first so a demotion in another
+     * request (or earlier in the same long-lived worker) is never masked by an in-memory cache.
+     */
+    private function assertOwnerStillHoldsGrant(ApiKey $apiKey): void
+    {
+        $owner = $apiKey->owner;
+
+        if (! $owner instanceof User) {
+            return;
+        }
+
+        $this->permissionResolver->forget($owner);
+        $owner->unsetRelation('roles');
+        $owner->unsetRelation('permissions');
+        $owner->unsetRelation('groups');
+
+        $role = $apiKey->role;
+
+        if ($role !== null && ! in_array((int) $role->id, $this->permissionResolver->effectiveRoleIds($owner), true)) {
+            throw ApiKeyRejectedException::unusableKey($apiKey->isOAuthGrant()
+                ? __('The account that authorized this access token no longer holds the granted role.')
+                : __('The API key owner no longer holds the key\'s role.'));
+        }
+
+        foreach ($apiKey->grantedScopes() as $scope) {
+            if (! $this->permissionResolver->canGrantScope($owner, $scope)) {
+                throw ApiKeyRejectedException::unusableKey($apiKey->isOAuthGrant()
+                    ? __('The account that authorized this access token can no longer grant its scopes.')
+                    : __('The API key owner can no longer grant the key\'s scopes.'));
+            }
         }
     }
 }

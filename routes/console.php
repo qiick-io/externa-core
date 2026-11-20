@@ -25,4 +25,4 @@ Schedule::command('ai:run-sync-sources')->everyMinute()->withoutOverlapping()->o
 Schedule::command('collections:process-schedules')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('collections:prune-revisions')->daily();
 Schedule::command('api-keys:notify-expiring')->daily()->onOneServer();
-Schedule::command('mcp:prune-unused-oauth-clients')->daily()->onOneServer();
+Schedule::command('mcp:prune-unused-oauth-clients')->hourly()->onOneServer();

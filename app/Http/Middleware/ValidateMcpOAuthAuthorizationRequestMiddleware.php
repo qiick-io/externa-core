@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\Mcp\McpOAuthRedirectUriService;
 use App\Services\Mcp\McpOAuthServerService;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laravel\Passport\Client;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -15,8 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * - PKCE with `S256` (OAuth 2.1, MCP authorization): a request without a code challenge method,
  *   or with `plain`, is refused with `invalid_request`;
- * - the RFC 8707 `resource`, when sent, is this server's MCP endpoint; any other is refused with
- *   `invalid_target`. A request without one is for the MCP endpoint, the only resource here.
+ * - the RFC 8707 `resource` must name this server's MCP endpoint (`invalid_target` otherwise);
+ * - the client's redirect host is not on the admin block list (existing clients included).
  *
  * Wire scopes other than laravel/mcp's `mcp:use` (API-key scopes, `openid`, …) are dropped rather
  * than failing the request (RFC 6749 §3.3); an empty list after filtering lets Passport apply its
@@ -29,6 +31,7 @@ class ValidateMcpOAuthAuthorizationRequestMiddleware
 {
     public function __construct(
         private readonly McpOAuthServerService $oauthServer,
+        private readonly McpOAuthRedirectUriService $redirectUriService,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -40,7 +43,26 @@ class ValidateMcpOAuthAuthorizationRequestMiddleware
         }
 
         if (! $this->oauthServer->acceptsResource($request->query->all()['resource'] ?? null)) {
-            return self::oauthError('invalid_target', 'The requested resource is not served by this authorization server.');
+            return self::oauthError('invalid_target', 'The resource parameter is required and must name this MCP endpoint.');
+        }
+
+        $clientId = $request->query('client_id');
+        $redirectUri = $request->query('redirect_uri');
+
+        if (is_string($clientId) && $clientId !== '') {
+            $client = Client::query()->whereKey($clientId)->where('revoked', false)->first();
+
+            if ($client instanceof Client && $this->redirectUriService->clientHasBlockedRedirectHost($client)) {
+                return self::oauthError('invalid_client', 'The client redirect host is blocked on this server.');
+            }
+
+            if (is_string($redirectUri) && $redirectUri !== '') {
+                $host = $this->redirectUriService->hostOf($redirectUri);
+
+                if ($host !== null && $this->redirectUriService->isHostBlocked($host)) {
+                    return self::oauthError('invalid_request', 'The redirect host is blocked on this server.');
+                }
+            }
         }
 
         $requestedScope = $request->query('scope');

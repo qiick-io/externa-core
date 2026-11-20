@@ -31,4 +31,13 @@ class BlockMcpOAuthRedirectHostRequest extends FormRequest
             'host' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9.-]+$/i'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('host') && is_string($this->input('host'))) {
+            $this->merge([
+                'host' => rtrim(strtolower(trim((string) $this->input('host'))), '.'),
+            ]);
+        }
+    }
 }

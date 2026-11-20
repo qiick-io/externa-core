@@ -57,16 +57,17 @@ type ConsentForm = {
     auth_token: string;
     scopes: string[];
     role_id: number | '';
+    all_collections: boolean;
     collection_slugs: string[];
 };
 
 /**
  * OAuth consent for a remote MCP client (#802), on the auth-card pattern of the login pages.
  *
- * The screen narrows what the client gets: the scopes it asked for (those the user may give are
- * pre-selected and can be cleared), the role it acts with, and optionally the collections it may
- * touch, exactly the controls of an API key. The client name is the client's own claim, so the
- * host the approval returns to is always shown next to it. The server re-checks every choice.
+ * The screen narrows what the client gets: mcp:read is pre-selected (least privilege); the role
+ * it acts with; and an explicit collection choice (all collections, or one or more slugs — empty
+ * is refused). The client name is the client's own claim, so the host the approval returns to is
+ * always shown next to it. The server re-checks every choice.
  *
  * ponytail: plain controls on the auth card; the consent screen's polish (scope groups, a
  * collection picker for long lists) is deferred in #802.
@@ -82,10 +83,12 @@ export default function OAuthAuthorize({
     const { t } = useTranslation();
     const approval = useForm<ConsentForm>({
         auth_token: authToken,
+        // Least privilege: only mcp:read is pre-ticked; the user opts into writes.
         scopes: scopes
-            .filter((scope) => scope.isGrantable)
+            .filter((scope) => scope.isGrantable && scope.value === 'mcp:read')
             .map((scope) => scope.value),
         role_id: roles.length === 1 ? roles[0].id : '',
+        all_collections: false,
         collection_slugs: [],
     });
     const denial = useForm({ auth_token: authToken });
@@ -264,30 +267,56 @@ export default function OAuthAuthorize({
                                             'oauth.authorize.collectionsDescription',
                                         )}
                                     </FieldDescription>
-                                    {collections.map((collection) => (
-                                        <Field
-                                            key={collection.slug}
-                                            orientation="horizontal"
-                                        >
-                                            <Checkbox
-                                                id={`collection-${collection.slug}`}
-                                                checked={approval.data.collection_slugs.includes(
-                                                    collection.slug,
-                                                )}
-                                                onCheckedChange={(value) =>
-                                                    toggleCollection(
-                                                        collection.slug,
-                                                        value === true,
-                                                    )
-                                                }
-                                            />
-                                            <FieldLabel
-                                                htmlFor={`collection-${collection.slug}`}
+                                    <Field orientation="horizontal">
+                                        <Checkbox
+                                            id="all-collections"
+                                            checked={
+                                                approval.data.all_collections
+                                            }
+                                            onCheckedChange={(value) => {
+                                                const isAll = value === true;
+                                                approval.setData({
+                                                    ...approval.data,
+                                                    all_collections: isAll,
+                                                    collection_slugs: isAll
+                                                        ? []
+                                                        : approval.data
+                                                              .collection_slugs,
+                                                });
+                                            }}
+                                            data-test="oauth-all-collections"
+                                        />
+                                        <FieldLabel htmlFor="all-collections">
+                                            {t(
+                                                'oauth.authorize.allCollections',
+                                            )}
+                                        </FieldLabel>
+                                    </Field>
+                                    {!approval.data.all_collections &&
+                                        collections.map((collection) => (
+                                            <Field
+                                                key={collection.slug}
+                                                orientation="horizontal"
                                             >
-                                                {collection.name}
-                                            </FieldLabel>
-                                        </Field>
-                                    ))}
+                                                <Checkbox
+                                                    id={`collection-${collection.slug}`}
+                                                    checked={approval.data.collection_slugs.includes(
+                                                        collection.slug,
+                                                    )}
+                                                    onCheckedChange={(value) =>
+                                                        toggleCollection(
+                                                            collection.slug,
+                                                            value === true,
+                                                        )
+                                                    }
+                                                />
+                                                <FieldLabel
+                                                    htmlFor={`collection-${collection.slug}`}
+                                                >
+                                                    {collection.name}
+                                                </FieldLabel>
+                                            </Field>
+                                        ))}
                                     <FieldError>{collectionsError}</FieldError>
                                 </FieldSet>
                             )}

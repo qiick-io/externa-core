@@ -3004,7 +3004,7 @@
             "rolePlaceholder": "Rolle wählen",
             "roleDescription": "Der Client handelt mit dieser Rolle und nie mit mehr, als du selbst darfst.",
             "collectionsLegend": "Sammlungen",
-            "collectionsDescription": "Lass alles leer, um jede Sammlung zu erlauben, die die Rolle erreicht, oder wähle die Sammlungen, die der Client nutzen darf.",
+            "collectionsDescription": "Wählen Sie alle Collections oder einzelne. Keine Auswahl ist nicht erlaubt.",
             "approve": "Erlauben",
             "deny": "Ablehnen",
             "scopeDescriptions": {
@@ -3014,7 +3014,8 @@
                 "filesWrite": "Dateien hochladen, verschieben und taggen (inklusive Lesen)",
                 "mcpRead": "Die MCP-Lesewerkzeuge nutzen",
                 "mcpWrite": "Die MCP-Schreibwerkzeuge nutzen (inklusive Lesen)"
-            }
+            },
+            "allCollections": "Alle Collections, die diese Rolle erreichen kann"
         }
     },
     "mcpOauthClients": {
@@ -3041,6 +3042,8 @@
             "blocked": "Gesperrt",
             "authorized": "Autorisiert",
             "unused": "Ungenutzt"
-        }
+        },
+        "bulkBlock": "Ausgewählte sperren",
+        "pruneUnused": "Unbenutzte Clients bereinigen"
     }
 }

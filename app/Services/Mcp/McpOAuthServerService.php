@@ -49,18 +49,24 @@ final class McpOAuthServerService
 
     /**
      * Whether Passport can sign and verify tokens. Env PEM wins over files in `storage/`.
+     * A half-set env pair (only one of private/public) is treated as missing; key files must
+     * exist and be readable.
      */
     public function hasPassportKeys(): bool
     {
         $privateKey = config('passport.private_key');
         $publicKey = config('passport.public_key');
+        $hasPrivateEnv = is_string($privateKey) && $privateKey !== '';
+        $hasPublicEnv = is_string($publicKey) && $publicKey !== '';
 
-        if (is_string($privateKey) && $privateKey !== '' && is_string($publicKey) && $publicKey !== '') {
-            return true;
+        if ($hasPrivateEnv || $hasPublicEnv) {
+            return $hasPrivateEnv && $hasPublicEnv;
         }
 
-        return is_file(Passport::keyPath('oauth-private.key'))
-            && is_file(Passport::keyPath('oauth-public.key'));
+        $privatePath = Passport::keyPath('oauth-private.key');
+        $publicPath = Passport::keyPath('oauth-public.key');
+
+        return is_readable($privatePath) && is_readable($publicPath);
     }
 
     /**
@@ -72,11 +78,11 @@ final class McpOAuthServerService
     }
 
     /**
-     * RFC 8414 issuer identifier: the app URL, https in production, no trailing slash.
+     * RFC 8414 issuer identifier: `config('app.url')`, never the request Host header.
      */
     public function issuer(): string
     {
-        return rtrim(url('/'), '/');
+        return rtrim((string) config('app.url'), '/');
     }
 
     /**
@@ -89,16 +95,11 @@ final class McpOAuthServerService
     }
 
     /**
-     * Whether an RFC 8707 `resource` parameter names the MCP endpoint. An absent one is accepted:
-     * the MCP endpoint is the only resource this server issues tokens for. More than one
-     * resource, or a value that is not a string, is refused (`invalid_target`).
+     * Whether an RFC 8707 `resource` parameter names the MCP endpoint. Absent or non-string
+     * values are refused (`invalid_target`): clients must send the audience explicitly.
      */
     public function acceptsResource(mixed $resource): bool
     {
-        if ($resource === null) {
-            return true;
-        }
-
         return is_string($resource) && rtrim($resource, '/') === $this->resourceIdentifier();
     }
 
@@ -139,11 +140,11 @@ final class McpOAuthServerService
     }
 
     /**
-     * Days after registration a client with no successful authorisation is pruned.
+     * Hours after registration a client with no successful authorisation is pruned.
      */
-    public function unusedClientRetentionDays(): int
+    public function unusedClientRetentionHours(): int
     {
-        return max(1, (int) config('ai.mcp.oauth.unused_client_retention_days', 30));
+        return max(1, (int) config('ai.mcp.oauth.unused_client_retention_hours', 24));
     }
 
     /**

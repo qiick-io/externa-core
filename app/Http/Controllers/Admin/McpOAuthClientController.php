@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Mcp\BlockMcpOAuthClientAction;
 use App\Actions\Mcp\BlockMcpOAuthRedirectHostAction;
+use App\Actions\Mcp\UnblockMcpOAuthRedirectHostAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BlockMcpOAuthRedirectHostRequest;
+use App\Http\Requests\Admin\BulkBlockMcpOAuthClientsRequest;
 use App\Models\OAuthBlockedRedirectHost;
 use App\Models\User;
 use App\Services\Mcp\McpOAuthClientAdminService;
@@ -59,9 +61,32 @@ class McpOAuthClientController extends Controller
         return back();
     }
 
-    public function unblockHost(OAuthBlockedRedirectHost $blockedHost): RedirectResponse
-    {
-        $blockedHost->delete();
+    public function unblockHost(
+        Request $request,
+        OAuthBlockedRedirectHost $blockedHost,
+        UnblockMcpOAuthRedirectHostAction $unblockMcpOAuthRedirectHostAction,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $unblockMcpOAuthRedirectHostAction->execute($blockedHost, $user);
+
+        return back();
+    }
+
+    public function bulkBlockClients(
+        BulkBlockMcpOAuthClientsRequest $request,
+        BlockMcpOAuthClientAction $blockMcpOAuthClientAction,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+
+        foreach ($request->clientIds() as $clientId) {
+            $client = Client::query()->find($clientId);
+
+            if ($client instanceof Client && ! $client->revoked) {
+                $blockMcpOAuthClientAction->execute($client, $user);
+            }
+        }
 
         return back();
     }

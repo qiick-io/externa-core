@@ -131,12 +131,17 @@ it('prunes unused OAuth clients older than the retention window', function (): v
     $unused = Client::factory()->asPublic()->create([
         'name' => 'Unused',
         'redirect_uris' => [OAuth::REDIRECT_URI],
-        'created_at' => now()->subDays(40),
+        'created_at' => now()->subHours(25),
     ]);
     $kept = Client::factory()->asPublic()->create([
         'name' => 'Kept',
         'redirect_uris' => [OAuth::REDIRECT_URI],
-        'created_at' => now()->subDays(40),
+        'created_at' => now()->subHours(25),
+    ]);
+    $recentUnused = Client::factory()->asPublic()->create([
+        'name' => 'Recent unused',
+        'redirect_uris' => [OAuth::REDIRECT_URI],
+        'created_at' => now()->subHours(2),
     ]);
     ApiKey::query()->create([
         'name' => 'grant',
@@ -152,5 +157,6 @@ it('prunes unused OAuth clients older than the retention window', function (): v
     $this->artisan('mcp:prune-unused-oauth-clients')->assertSuccessful();
 
     expect(Client::query()->whereKey($unused->getKey())->exists())->toBeFalse()
-        ->and(Client::query()->whereKey($kept->getKey())->exists())->toBeTrue();
+        ->and(Client::query()->whereKey($kept->getKey())->exists())->toBeTrue()
+        ->and(Client::query()->whereKey($recentUnused->getKey())->exists())->toBeTrue();
 });
