@@ -81,7 +81,7 @@ final class SettingsScopeRefService
         $rowsToDrop = 0;
 
         foreach ($duplicateGroups as $duplicateGroup) {
-            $rowsToDrop += ((int) $duplicateGroup->row_count) - 1;
+            $rowsToDrop += $duplicateGroup['row_count'] - 1;
         }
 
         return [
@@ -103,10 +103,10 @@ final class SettingsScopeRefService
 
         foreach ($this->duplicateGroups() as $duplicateGroup) {
             $keepersAndLosers = DB::table('settings')
-                ->where('scope', $duplicateGroup->scope)
-                ->where('scope_ref', $duplicateGroup->scope_ref)
-                ->where('group', $duplicateGroup->group)
-                ->where('key', $duplicateGroup->key)
+                ->where('scope', $duplicateGroup['scope'])
+                ->where('scope_ref', $duplicateGroup['scope_ref'])
+                ->where('group', $duplicateGroup['group'])
+                ->where('key', $duplicateGroup['key'])
                 ->orderByDesc('updated_at')
                 ->orderByDesc('id')
                 ->get(['id', 'updated_at', 'value']);
@@ -118,10 +118,10 @@ final class SettingsScopeRefService
                 Log::warning('settings.scope_ref dedupe dropped duplicate', [
                     'dropped_id' => $loser->id,
                     'kept_id' => $keeper?->id,
-                    'scope' => $duplicateGroup->scope,
-                    'scope_ref' => $duplicateGroup->scope_ref,
-                    'group' => $duplicateGroup->group,
-                    'key' => $duplicateGroup->key,
+                    'scope' => $duplicateGroup['scope'],
+                    'scope_ref' => $duplicateGroup['scope_ref'],
+                    'group' => $duplicateGroup['group'],
+                    'key' => $duplicateGroup['key'],
                     'dropped_updated_at' => $loser->updated_at,
                     'kept_updated_at' => $keeper?->updated_at,
                 ]);
@@ -143,14 +143,44 @@ final class SettingsScopeRefService
     }
 
     /**
-     * @return Collection<int, object{scope: string, scope_ref: string, group: string, key: string, row_count: int|string}>
+     * Groups with more than one row on (scope, scope_ref, group, key), counted in PHP so no raw SQL.
+     *
+     * @return Collection<int, array{scope: string, scope_ref: string, group: string, key: string, row_count: int}>
      */
     private function duplicateGroups(): Collection
     {
-        return DB::table('settings')
-            ->select('scope', 'scope_ref', 'group', 'key', DB::raw('COUNT(*) as row_count'))
-            ->groupBy('scope', 'scope_ref', 'group', 'key')
-            ->havingRaw('COUNT(*) > 1')
-            ->get();
+        /** @var array<string, array{scope: string, scope_ref: string, group: string, key: string, row_count: int}> $countsByIdentity */
+        $countsByIdentity = [];
+
+        DB::table('settings')
+            ->orderBy('id')
+            ->chunkById(500, function (Collection $settingRows) use (&$countsByIdentity): void {
+                foreach ($settingRows as $settingRow) {
+                    $identityKey = $settingRow->scope."\0".$settingRow->scope_ref."\0".$settingRow->group."\0".$settingRow->key;
+
+                    if (! isset($countsByIdentity[$identityKey])) {
+                        $countsByIdentity[$identityKey] = [
+                            'scope' => (string) $settingRow->scope,
+                            'scope_ref' => (string) $settingRow->scope_ref,
+                            'group' => (string) $settingRow->group,
+                            'key' => (string) $settingRow->key,
+                            'row_count' => 0,
+                        ];
+                    }
+
+                    $countsByIdentity[$identityKey]['row_count']++;
+                }
+            });
+
+        /** @var list<array{scope: string, scope_ref: string, group: string, key: string, row_count: int}> $duplicates */
+        $duplicates = [];
+
+        foreach ($countsByIdentity as $group) {
+            if ($group['row_count'] > 1) {
+                $duplicates[] = $group;
+            }
+        }
+
+        return collect($duplicates);
     }
 }

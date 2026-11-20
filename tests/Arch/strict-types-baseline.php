@@ -265,7 +265,6 @@ return [
     'App\Services\Search\MeilisearchClientService',
     'App\Services\Search\MeilisearchDocumentBuilderService',
     'App\Services\Search\MeilisearchSyncDispatcherService',
-    'App\Services\Settings\SettingsRepositoryService',
     'App\Services\Settings\ThemePresetService',
     'App\Services\Settings\UserNotificationPreferencesService',
     'App\Services\Webhooks\OutboundWebhookCatalogService',
