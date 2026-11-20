@@ -57,7 +57,11 @@ class ValidateMcpOAuthAuthorizationRequestMiddleware
             }
 
             if (is_string($redirectUri) && $redirectUri !== '') {
-                $host = $this->redirectUriService->hostOf($redirectUri);
+                try {
+                    $host = $this->redirectUriService->hostOf($redirectUri);
+                } catch (\InvalidArgumentException) {
+                    return self::oauthError('invalid_request', 'The redirect host is not a valid domain name.');
+                }
 
                 if ($host !== null && $this->redirectUriService->isHostBlocked($host)) {
                     return self::oauthError('invalid_request', 'The redirect host is blocked on this server.');

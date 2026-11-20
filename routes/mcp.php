@@ -37,6 +37,7 @@ use App\Http\Middleware\EnsureMcpOAuthEnabledMiddleware;
 use App\Http\Middleware\ValidateMcpOAuthAuthorizationRequestMiddleware;
 use App\Http\Middleware\ValidateMcpOAuthTokenRequestMiddleware;
 use App\Mcp\Servers\ExternaServer;
+use App\Services\Mcp\McpOAuthServerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
@@ -57,21 +58,54 @@ Mcp::web('/mcp', ExternaServer::class)
     ->name('mcp');
 
 Route::middleware(EnsureMcpOAuthEnabledMiddleware::class)->group(function (): void {
-    // Root protected-resource metadata: laravel/mcp would advertise `url('/')` for the empty
-    // path; this server's only resource is `/mcp`, so register first and let oauthRoutes() skip.
-    Route::get('.well-known/oauth-protected-resource', static function (): JsonResponse {
-        $issuer = rtrim((string) config('app.url'), '/');
+    // Every advertised URL comes from config('app.url'), never the request Host. Register
+    // root and nested discovery before Mcp::oauthRoutes() so laravel/mcp's url('/') documents
+    // are shadowed (first match wins).
+    $metadata = static function (?string $path = null): JsonResponse {
+        $oauthServer = app(McpOAuthServerService::class);
+        $issuer = $oauthServer->issuer();
+        $resourcePath = is_string($path) && $path !== '' ? '/'.ltrim($path, '/') : '';
 
         return response()->json([
-            'resource' => $issuer.'/mcp',
+            'resource' => $issuer.$resourcePath,
             'authorization_servers' => [config('mcp.authorization_server') ?? $issuer],
             'scopes_supported' => [Registrar::OAUTH_SCOPE],
         ]);
-    })->name('mcp.oauth.protected-resource');
+    };
 
-    // Nested discovery + authorization-server metadata from laravel/mcp (`mcp:use` on the wire).
-    // Registration is off here so we can put the governed controller on the same route name.
+    $authorizationServerMetadata = static function (): JsonResponse {
+        $issuer = app(McpOAuthServerService::class)->issuer();
+
+        return response()->json(array_filter([
+            'issuer' => config('mcp.authorization_server') ?? $issuer,
+            'authorization_endpoint' => $issuer.'/oauth/authorize',
+            'token_endpoint' => $issuer.'/oauth/token',
+            'registration_endpoint' => $issuer.'/oauth/register',
+            'response_types_supported' => ['code'],
+            'code_challenge_methods_supported' => ['S256'],
+            'scopes_supported' => [Registrar::OAUTH_SCOPE],
+            'grant_types_supported' => ['authorization_code', 'refresh_token'],
+            'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
+        ]));
+    };
+
+    // Exact documents first so laravel/mcp skips them (hasGetRoute). Nested documents must be
+    // registered after oauthRoutes(): a second Route::get for the same URI replaces the package
+    // handlers that still build URLs from the request Host via url('/').
+    Route::get('.well-known/oauth-protected-resource', static fn (): JsonResponse => $metadata('mcp'))
+        ->name('mcp.oauth.protected-resource');
+
+    Route::get('.well-known/oauth-authorization-server', $authorizationServerMetadata)
+        ->name('mcp.oauth.authorization-server');
+
     Mcp::oauthRoutes(registration: false);
+
+    Route::get('.well-known/oauth-protected-resource/{path}', static function (string $path) use ($metadata): JsonResponse {
+        return $metadata($path);
+    })->where('path', '.*')->name('mcp.oauth.protected-resource.nested');
+
+    Route::get('.well-known/oauth-authorization-server/{path}', static fn () => $authorizationServerMetadata())
+        ->where('path', '.*')->name('mcp.oauth.authorization-server.nested');
 
     Route::post('oauth/register', RegisterMcpClientController::class)
         ->middleware('throttle:mcp-oauth-register')

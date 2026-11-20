@@ -17,10 +17,11 @@ use Laravel\Passport\Token;
  * Record what a user approved for a remote MCP client (#802): the grant row every access token
  * for that client acts under.
  *
- * One active grant per user and client. Approving again replaces what the grant allows (role,
- * scopes, collections) and revokes every token, refresh token and unused authorization code the
- * client held, so a connector never keeps access from an earlier, wider consent. A revoked grant
- * stays as it is, for the audit trail; approving afterwards starts a new one.
+ * One active grant per user and client. Approving again starts a new grant row (the previous
+ * active row is revoked in place for the audit trail) and revokes every token, refresh token and
+ * unused authorization code the client held, so presenting an old refresh token cannot revoke the
+ * new grant via family reuse detection. A revoked grant stays as it is; approving afterwards
+ * starts a new one.
  *
  * The row has a random, never-shown `key_hash` and a `key_prefix` that is not token-shaped, so
  * it can never be presented as an API key.
@@ -33,32 +34,28 @@ final class GrantMcpClientAccessAction
     public function execute(McpClientGrantData $grantData): ApiKey
     {
         return DB::transaction(function () use ($grantData): ApiKey {
-            $grant = ApiKey::query()
+            $previousGrant = ApiKey::query()
                 ->where('oauth_client_id', $grantData->client->getKey())
                 ->where('owner_id', $grantData->user->id)
                 ->whereNull('revoked_at')
                 ->lockForUpdate()
                 ->first();
 
-            $grantedAttributes = [
+            if ($previousGrant instanceof ApiKey) {
+                $previousGrant->forceFill(['revoked_at' => now()])->save();
+            }
+
+            $grant = ApiKey::query()->create([
                 'name' => $grantData->client->name,
                 'role_id' => $grantData->roleId,
                 'scopes' => array_map(static fn (ApiKeyScopeEnum $scope): string => $scope->value, $grantData->scopes),
                 'collection_slugs' => $grantData->collectionSlugs,
-            ];
-
-            if ($grant instanceof ApiKey) {
-                $grant->forceFill($grantedAttributes)->save();
-            } else {
-                $grant = ApiKey::query()->create([
-                    ...$grantedAttributes,
-                    'key_prefix' => 'oauth_'.Str::random(8),
-                    'key_hash' => ApiKey::hashSecret(Str::random(64)),
-                    'oauth_client_id' => $grantData->client->getKey(),
-                    'owner_id' => $grantData->user->id,
-                    'created_by' => $grantData->user->id,
-                ]);
-            }
+                'key_prefix' => 'oauth_'.Str::random(8),
+                'key_hash' => ApiKey::hashSecret(Str::random(64)),
+                'oauth_client_id' => $grantData->client->getKey(),
+                'owner_id' => $grantData->user->id,
+                'created_by' => $grantData->user->id,
+            ]);
 
             $this->revokeEarlierCredentials($grantData);
 

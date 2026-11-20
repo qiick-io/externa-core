@@ -58,6 +58,11 @@ class McpOAuthServiceProvider extends ServiceProvider
 
     public function boot(McpOAuthServerService $oauthServer): void
     {
+        // laravel/mcp falls back to url('/') for issuer when this is null; pin to APP_URL.
+        if (config('mcp.authorization_server') === null) {
+            config(['mcp.authorization_server' => $oauthServer->issuer()]);
+        }
+
         Passport::tokensCan($oauthServer->scopeDescriptions());
         Passport::setDefaultScope(array_keys($oauthServer->scopeDescriptions()));
         Passport::tokensExpireIn($oauthServer->accessTokenLifetime());
@@ -86,23 +91,34 @@ class McpOAuthServiceProvider extends ServiceProvider
         RateLimiter::for('mcp-oauth-register', static function (Request $request): Limit {
             return Limit::perMinute(
                 max(1, (int) config('ai.mcp.oauth.registrations_per_minute', 10)),
-            )->by('mcp-oauth-register:'.self::registrationThrottleKey($request));
+            )->by('mcp-oauth-register:'.self::clientThrottleKey($request));
         });
 
         RateLimiter::for('mcp-oauth-token', static fn (Request $request): Limit => Limit::perMinute(60)
-            ->by('mcp-oauth-token:'.$request->ip()));
+            ->by('mcp-oauth-token:'.self::clientThrottleKey($request)));
     }
 
     /**
-     * IPv4: the address. IPv6: the /64 network prefix, so a single /64 cannot mint one
-     * registration budget per address.
+     * Rate-limit identity for registration, token and MCP auth failures.
+     *
+     * IPv4: the address. IPv4-mapped IPv6 (`::ffff:a.b.c.d`): the embedded IPv4 so dual-stack
+     * proxies share one budget. Other IPv6: the /64 network prefix.
      */
-    private static function registrationThrottleKey(Request $request): string
+    public static function clientThrottleKey(Request $request): string
     {
         $ipAddress = $request->ip() ?? 'unknown';
         $packed = @inet_pton($ipAddress);
 
-        if ($packed !== false && strlen($packed) === 16) {
+        if ($packed === false) {
+            return $ipAddress;
+        }
+
+        if (strlen($packed) === 16) {
+            // ::ffff:0:0/96 — unmap before the /64 bucket would collapse every mapped client.
+            if (strncmp($packed, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff", 12) === 0) {
+                return inet_ntop(substr($packed, 12)) ?: $ipAddress;
+            }
+
             return 'v6:'.bin2hex(substr($packed, 0, 8));
         }
 

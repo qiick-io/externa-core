@@ -199,15 +199,11 @@ it('owned key cannot exceed owner collection ACL on REST and GraphQL', function 
     $pageItem = CollectionItem::factory()->create(['collection_id' => $pages->id]);
 
     $owner = makeAclOwner($posts, [CollectionPermissionActionEnum::Read]);
-    $owner['role']->givePermissionTo(PermissionEnum::CanShowCollections->value);
 
     $auth = makeApiKeyForRole();
     grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
     grantRoleActions($auth['role'], $pages, [CollectionPermissionActionEnum::Read]);
-    $auth['key']->forceFill([
-        'owner_id' => $owner['user']->id,
-        'scopes' => ['collections:read'],
-    ])->save();
+    $auth['key']->forceFill(['owner_id' => $owner['user']->id])->save();
 
     $asKey = fn () => $this->withToken($auth['plain']);
 
@@ -249,7 +245,6 @@ it('owner role downgrade narrows key access on the next request', function (): v
         'is_system' => false,
         'is_assignable' => true,
     ]);
-    $wideOwnerRole->givePermissionTo(PermissionEnum::CanShowCollections->value);
     grantRoleActions($wideOwnerRole, $posts, [CollectionPermissionActionEnum::Read]);
     grantRoleActions($wideOwnerRole, $pages, [CollectionPermissionActionEnum::Read]);
 
@@ -259,7 +254,6 @@ it('owner role downgrade narrows key access on the next request', function (): v
         'is_system' => false,
         'is_assignable' => true,
     ]);
-    $narrowOwnerRole->givePermissionTo(PermissionEnum::CanShowCollections->value);
     grantRoleActions($narrowOwnerRole, $posts, [CollectionPermissionActionEnum::Read]);
 
     $owner = User::factory()->create(['is_active' => true]);
@@ -268,10 +262,7 @@ it('owner role downgrade narrows key access on the next request', function (): v
     $auth = makeApiKeyForRole();
     grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
     grantRoleActions($auth['role'], $pages, [CollectionPermissionActionEnum::Read]);
-    $auth['key']->forceFill([
-        'owner_id' => $owner->id,
-        'scopes' => ['collections:read'],
-    ])->save();
+    $auth['key']->forceFill(['owner_id' => $owner->id])->save();
 
     $this->withToken($auth['plain'])
         ->getJson("/api/v1/collections/{$pages->slug}/items/{$pageItem->id}")

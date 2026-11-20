@@ -273,8 +273,9 @@ describe('the consent screen', function (): void {
         OAuth::mcpRequest($this, $first['access_token'])->assertUnauthorized()->assertJsonPath('message', 'The access token has been revoked.');
         OAuth::mcpRequest($this, (string) $second)->assertOk();
 
-        expect(ApiKey::query()->where('oauth_client_id', $first['client_id'])->count())->toBe(1)
-            ->and($first['grant']->fresh()->scopes)->toBe(['mcp:read']);
+        expect(ApiKey::query()->where('oauth_client_id', $first['client_id'])->count())->toBe(2)
+            ->and($first['grant']->fresh()->isRevoked())->toBeTrue()
+            ->and(ApiKey::query()->where('oauth_client_id', $first['client_id'])->whereNull('revoked_at')->sole()->scopes)->toBe(['mcp:read']);
     });
 });
 

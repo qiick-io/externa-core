@@ -6,12 +6,13 @@ namespace App\Services\Mcp;
 
 use App\Models\OAuthBlockedRedirectHost;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Laravel\Passport\Client;
 
 /**
  * Redirect URI and blocked-host rules for MCP OAuth (#815): exact match, no fragments,
  * dangerous schemes denylisted even when listed in custom schemes, and blocked hosts that
- * match the registered host or any subdomain (trailing dots normalised).
+ * match the registered host or any subdomain (trailing dots normalised, IDN → ASCII).
  */
 final class McpOAuthRedirectUriService
 {
@@ -42,19 +43,50 @@ final class McpOAuthRedirectUriService
             return false;
         }
 
+        $host = parse_url($redirectUri, PHP_URL_HOST);
+
+        if (is_string($host) && $host !== '') {
+            try {
+                $this->normalizeHost($host);
+            } catch (InvalidArgumentException) {
+                return false;
+            }
+        }
+
         return true;
     }
 
     /**
-     * Normalise a host for storage and comparison: lower case, no trailing dots.
+     * Normalise a host for storage and comparison: lower case, no trailing dots, IDN to ASCII
+     * (UTS #46 / IDNA2008, nontransitional). Throws when conversion fails.
+     *
+     * @throws InvalidArgumentException
      */
     public function normalizeHost(string $host): string
     {
-        return Str::lower(rtrim(trim($host), '.'));
+        $normalizedHost = Str::lower(rtrim(trim($host), '.'));
+
+        if ($normalizedHost === '') {
+            throw new InvalidArgumentException('Host is empty.');
+        }
+
+        $asciiHost = idn_to_ascii(
+            $normalizedHost,
+            IDNA_DEFAULT | IDNA_NONTRANSITIONAL_TO_ASCII,
+            INTL_IDNA_VARIANT_UTS46,
+        );
+
+        if ($asciiHost === false || $asciiHost === '') {
+            throw new InvalidArgumentException('Host is not a valid internationalised domain name.');
+        }
+
+        return Str::lower($asciiHost);
     }
 
     /**
      * Host of a redirect URI, or null when the URI has none (private-use schemes).
+     *
+     * @throws InvalidArgumentException when the host fails IDN conversion
      */
     public function hostOf(string $redirectUri): ?string
     {
@@ -72,10 +104,10 @@ final class McpOAuthRedirectUriService
      */
     public function isHostBlocked(string $host): bool
     {
-        $normalizedHost = $this->normalizeHost($host);
-
-        if ($normalizedHost === '') {
-            return false;
+        try {
+            $normalizedHost = $this->normalizeHost($host);
+        } catch (InvalidArgumentException) {
+            return true;
         }
 
         foreach (OAuthBlockedRedirectHost::query()->pluck('host') as $blockedHost) {
@@ -83,7 +115,11 @@ final class McpOAuthRedirectUriService
                 continue;
             }
 
-            $normalizedBlocked = $this->normalizeHost($blockedHost);
+            try {
+                $normalizedBlocked = $this->normalizeHost($blockedHost);
+            } catch (InvalidArgumentException) {
+                continue;
+            }
 
             if ($normalizedHost === $normalizedBlocked) {
                 return true;
@@ -113,7 +149,11 @@ final class McpOAuthRedirectUriService
                 continue;
             }
 
-            $host = $this->hostOf($redirectUri);
+            try {
+                $host = $this->hostOf($redirectUri);
+            } catch (InvalidArgumentException) {
+                return true;
+            }
 
             if ($host !== null && $this->isHostBlocked($host)) {
                 return true;

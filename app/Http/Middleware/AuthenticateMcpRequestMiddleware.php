@@ -6,9 +6,11 @@ namespace App\Http\Middleware;
 
 use App\Data\Api\ApiAccessData;
 use App\Enums\ApiKeyScopeEnum;
+use App\Exceptions\MissingPassportKeysException;
 use App\Models\ApiKey;
 use App\Models\Role;
 use App\Models\User;
+use App\Providers\McpOAuthServiceProvider;
 use App\Services\Api\ApiKeyAuthenticatorService;
 use App\Services\Mcp\McpAccessTokenAuthenticatorService;
 use App\Services\Mcp\McpOAuthServerService;
@@ -16,7 +18,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
-use LogicException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -51,7 +52,7 @@ class AuthenticateMcpRequestMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $failureKey = 'mcp-auth-failures:'.$request->ip();
+        $failureKey = 'mcp-auth-failures:'.McpOAuthServiceProvider::clientThrottleKey($request);
         $maxFailures = max(1, (int) config('ai.mcp.auth_failures_per_minute', 20));
 
         if (RateLimiter::tooManyAttempts($failureKey, $maxFailures)) {
@@ -68,13 +69,13 @@ class AuthenticateMcpRequestMiddleware
 
         try {
             return $this->actAs($request, $this->authenticateCredential($request, $bearer), $next);
-        } catch (LogicException) {
+        } catch (MissingPassportKeysException $exception) {
             RateLimiter::hit($failureKey, 60);
 
             return response()->json([
-                'message' => __('OAuth for MCP is enabled but Passport signing keys are missing. Run `php artisan passport:keys`, or set PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY.'),
-                'error' => 'invalid_token',
-            ], 503, ['WWW-Authenticate' => 'Bearer error="invalid_token"']);
+                'message' => $exception->getMessage(),
+                'error' => 'temporarily_unavailable',
+            ], 503);
         } catch (HttpExceptionInterface $exception) {
             if (in_array($exception->getStatusCode(), [401, 403], true)) {
                 RateLimiter::hit($failureKey, 60);
@@ -87,16 +88,16 @@ class AuthenticateMcpRequestMiddleware
     /**
      * The API key, or the OAuth grant row, the bearer token acts as.
      *
-     * OAuth door only when ready (keys present): `isEnabled()` alone would let league throw a
-     * LogicException and surface as a 500 when keys are missing. A non-key bearer while OAuth
-     * is on but keys are absent answers 503 here so connectors get a clear signal.
+     * OAuth door only when ready (keys present): `isEnabled()` alone would let league throw when
+     * keys are missing. A non-key bearer while OAuth is on but keys are absent answers 503 here
+     * so connectors get a clear signal — never `error=invalid_token`.
      */
     private function authenticateCredential(Request $request, string $bearer): ApiKey
     {
         $isApiKeyShaped = ApiKey::publicPrefixOf($bearer) !== null;
 
         if (! $isApiKeyShaped && $this->oauthServer->isEnabled() && ! $this->oauthServer->hasPassportKeys()) {
-            throw new LogicException('Passport signing keys are missing while MCP OAuth is enabled.');
+            throw MissingPassportKeysException::make();
         }
 
         if (! $isApiKeyShaped && $this->oauthServer->isReady()) {

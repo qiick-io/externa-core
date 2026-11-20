@@ -64,7 +64,9 @@ it('answers 503 on POST /mcp when OAuth is on and Passport keys are missing', fu
         'params' => [],
     ], [
         'Authorization' => 'Bearer eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxIn0.signature',
-    ])->assertStatus(503)->assertJsonPath('error', 'invalid_token');
+    ])->assertStatus(503)
+        ->assertJsonPath('error', 'temporarily_unavailable')
+        ->assertJsonMissing(['error' => 'invalid_token']);
 });
 
 it('keeps the oauth authorize query string after password login and reaches consent', function (): void {

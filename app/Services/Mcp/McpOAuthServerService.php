@@ -21,8 +21,8 @@ use Laravel\Passport\Passport;
  *   (RFC 8414 §2, RFC 8707 §2).
  * - Clients register themselves as public clients and prove possession with PKCE (S256 only).
  *   Only the authorization code and refresh token grants are accepted at the token endpoint.
- * - Missing Passport keys fail closed: OAuth can be configured on, but endpoints refuse with a
- *   clear error until keys exist (never a 500 from league/oauth2-server).
+ * - Missing or unusable Passport keys fail closed: OAuth can be configured on, but endpoints
+ *   refuse with a clear error until keys exist and are loadable (never a 500 from league).
  */
 final class McpOAuthServerService
 {
@@ -50,7 +50,8 @@ final class McpOAuthServerService
     /**
      * Whether Passport can sign and verify tokens. Env PEM wins over files in `storage/`.
      * A half-set env pair (only one of private/public) is treated as missing; key files must
-     * exist and be readable.
+     * exist, be readable, and have modes league accepts (400/440/600/640/660) so a world-readable
+     * 644 never becomes a 500 when CryptKey emits a notice.
      */
     public function hasPassportKeys(): bool
     {
@@ -66,7 +67,7 @@ final class McpOAuthServerService
         $privatePath = Passport::keyPath('oauth-private.key');
         $publicPath = Passport::keyPath('oauth-public.key');
 
-        return is_readable($privatePath) && is_readable($publicPath);
+        return $this->keyFileIsUsable($privatePath) && $this->keyFileIsUsable($publicPath);
     }
 
     /**
@@ -153,5 +154,23 @@ final class McpOAuthServerService
     public function registrationGlobalCap(): int
     {
         return max(1, (int) config('ai.mcp.oauth.registrations_global_cap', 10_000));
+    }
+
+    /**
+     * Whether a Passport key file is readable and has a mode CryptKey accepts (no E_USER_NOTICE).
+     */
+    private function keyFileIsUsable(string $path): bool
+    {
+        if (! is_readable($path)) {
+            return false;
+        }
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            return true;
+        }
+
+        $permissions = decoct(fileperms($path) & 0777);
+
+        return in_array($permissions, ['400', '440', '600', '640', '660'], true);
     }
 }

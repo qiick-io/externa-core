@@ -11,8 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Laravel\Passport\Client;
 
 /**
- * Block a redirect host from MCP OAuth (#815): store the host, revoke every client whose
- * redirect URIs resolve to it (or a subdomain), and write an audit entry.
+ * Block a redirect host from MCP OAuth (#815): store the host (ASCII / punycode), revoke every
+ * client whose redirect URIs resolve to it (or a subdomain), and write an audit entry.
+ *
+ * The block row and audit entry are written in a short transaction; matching clients are chunked
+ * outside that lock so a large client table cannot hold the row lock open.
  */
 final class BlockMcpOAuthRedirectHostAction
 {
@@ -25,20 +28,11 @@ final class BlockMcpOAuthRedirectHostAction
     {
         $normalizedHost = $this->redirectUriService->normalizeHost($host);
 
-        return DB::transaction(function () use ($normalizedHost, $actor): OAuthBlockedRedirectHost {
+        $blockedHost = DB::transaction(function () use ($normalizedHost, $actor): OAuthBlockedRedirectHost {
             $blockedHost = OAuthBlockedRedirectHost::query()->firstOrCreate(
                 ['host' => $normalizedHost],
                 ['created_by' => $actor->id],
             );
-
-            Client::query()
-                ->where('revoked', false)
-                ->orderBy('id')
-                ->each(function (Client $client) use ($actor): void {
-                    if ($this->redirectUriService->clientHasBlockedRedirectHost($client)) {
-                        $this->blockMcpOAuthClientAction->execute($client, $actor);
-                    }
-                });
 
             activity('api-keys')
                 ->causedBy($actor)
@@ -49,5 +43,18 @@ final class BlockMcpOAuthRedirectHostAction
 
             return $blockedHost;
         });
+
+        Client::query()
+            ->where('revoked', false)
+            ->orderBy('id')
+            ->chunkById(100, function ($clients) use ($actor): void {
+                foreach ($clients as $client) {
+                    if ($this->redirectUriService->clientHasBlockedRedirectHost($client)) {
+                        $this->blockMcpOAuthClientAction->execute($client, $actor);
+                    }
+                }
+            });
+
+        return $blockedHost;
     }
 }

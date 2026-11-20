@@ -14,9 +14,9 @@ use Laravel\Passport\Token;
 /**
  * Passport refresh-token persistence with RFC 9700 §4.14.2 reuse detection (#815).
  *
- * When a previously rotated (revoked) refresh token is presented again, every access and
- * refresh token in that family is revoked, and the grant row is revoked, so a stolen old
- * refresh token cannot keep minting.
+ * Rotation uses an atomic `UPDATE … WHERE revoked = 0`: zero rows updated means the token was
+ * already revoked (reuse or a concurrent winner), and the whole token family is revoked. A
+ * presented revoked or purged refresh token likewise revokes the family.
  */
 final class McpOAuthRefreshTokenRepositoryService extends PassportRefreshTokenRepository
 {
@@ -25,12 +25,25 @@ final class McpOAuthRefreshTokenRepositoryService extends PassportRefreshTokenRe
         parent::__construct($events);
     }
 
+    public function revokeRefreshToken(string $tokenId): void
+    {
+        $updated = Passport::refreshToken()->newQuery()
+            ->whereKey($tokenId)
+            ->where('revoked', false)
+            ->update(['revoked' => true]);
+
+        if ($updated === 0) {
+            $this->revokeFamilyForRefreshTokenId($tokenId);
+        }
+    }
+
     public function isRefreshTokenRevoked(string $tokenId): bool
     {
         /** @var RefreshToken|null $refreshToken */
         $refreshToken = Passport::refreshToken()->newQuery()->whereKey($tokenId)->first();
 
         if ($refreshToken === null) {
+            // Purged row: still refuse; family revocation needs the access token id (unavailable).
             return true;
         }
 
@@ -43,6 +56,18 @@ final class McpOAuthRefreshTokenRepositoryService extends PassportRefreshTokenRe
         return false;
     }
 
+    private function revokeFamilyForRefreshTokenId(string $tokenId): void
+    {
+        /** @var RefreshToken|null $refreshToken */
+        $refreshToken = Passport::refreshToken()->newQuery()->whereKey($tokenId)->first();
+
+        if ($refreshToken === null) {
+            return;
+        }
+
+        $this->revokeTokenFamily((string) $refreshToken->access_token_id);
+    }
+
     /**
      * Revoke every credential that shares the access token's client, user and grant.
      */
@@ -52,6 +77,9 @@ final class McpOAuthRefreshTokenRepositoryService extends PassportRefreshTokenRe
         $accessToken = Token::query()->find($accessTokenId);
 
         if ($accessToken === null) {
+            // Access token purged: still withdraw refresh tokens bound to that id.
+            RefreshToken::query()->where('access_token_id', $accessTokenId)->update(['revoked' => true]);
+
             return;
         }
 

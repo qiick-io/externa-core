@@ -181,16 +181,21 @@ final class ApiKeyAuthenticatorService
     }
 
     /**
-     * Re-check at use time: the owner may still give every scope on the row, and for an OAuth
-     * grant they still hold the role they approved. Demotion after consent or key creation must
-     * stop the credential. API keys keep a separate owner ceiling (ACL intersection); their
-     * `role_id` is the acting role, not necessarily one of the owner's assigned roles.
+     * Re-check at use time for OAuth grants only: the owner may still give every scope on the
+     * row, and they still hold the role they approved (an instance super-admin may keep any
+     * non-super-admin role they granted). Plain API keys keep the 1.5 owner ceiling (ACL
+     * intersection) without a second canGrantScope pass — that would break released 1.x keys
+     * whose owner lacks AI access.
      *
      * The permission resolver is forgotten for this owner first so a demotion in another
      * request (or earlier in the same long-lived worker) is never masked by an in-memory cache.
      */
     private function assertOwnerStillHoldsGrant(ApiKey $apiKey): void
     {
+        if (! $apiKey->isOAuthGrant()) {
+            return;
+        }
+
         $owner = $apiKey->owner;
 
         if (! $owner instanceof User) {
@@ -202,22 +207,34 @@ final class ApiKeyAuthenticatorService
         $owner->unsetRelation('permissions');
         $owner->unsetRelation('groups');
 
-        if ($apiKey->isOAuthGrant()) {
-            $role = $apiKey->role;
+        $role = $apiKey->role;
 
-            if ($role !== null && ! in_array((int) $role->id, $this->permissionResolver->effectiveRoleIds($owner), true)) {
-                throw ApiKeyRejectedException::unusableKey(
-                    __('The account that authorized this access token no longer holds the granted role.'),
-                );
-            }
+        if ($role !== null && ! $this->ownerMayStillActAsRole($owner, $role->name, (int) $role->id)) {
+            throw ApiKeyRejectedException::unusableKey(
+                __('The account that authorized this access token no longer holds the granted role.'),
+            );
         }
 
         foreach ($apiKey->grantedScopes() as $scope) {
             if (! $this->permissionResolver->canGrantScope($owner, $scope)) {
-                throw ApiKeyRejectedException::unusableKey($apiKey->isOAuthGrant()
-                    ? __('The account that authorized this access token can no longer grant its scopes.')
-                    : __('The API key owner can no longer grant the key\'s scopes.'));
+                throw ApiKeyRejectedException::unusableKey(
+                    __('The account that authorized this access token can no longer grant its scopes.'),
+                );
             }
         }
+    }
+
+    /**
+     * Whether the grant owner may still act as `$roleName`: they hold it, or they are an
+     * instance super-admin granting any role except super-admin (same rule as consent).
+     */
+    private function ownerMayStillActAsRole(User $owner, string $roleName, int $roleId): bool
+    {
+        if (in_array($roleId, $this->permissionResolver->effectiveRoleIds($owner), true)) {
+            return true;
+        }
+
+        return $this->permissionResolver->isSuperAdmin($owner)
+            && $roleName !== RoleEnum::SuperAdmin->value;
     }
 }

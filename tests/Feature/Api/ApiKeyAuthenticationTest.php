@@ -7,7 +7,6 @@ use App\Actions\ApiKeys\RotateApiKeyAction;
 use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
-use App\Enums\PermissionEnum;
 use App\Models\ApiKey;
 use App\Models\CollectionItem;
 use App\Models\Role;
@@ -37,30 +36,13 @@ beforeEach(function (): void {
 });
 
 /**
- * Owned key with MCP access on a role holding no grants. The owner holds the permissions
- * needed to grant the given scopes (use-time re-check), without holding the key's acting role.
+ * Owned key with MCP access on a role holding no grants.
  *
  * @return array{plain: string, key: ApiKey}
  */
 function makeAuthenticationMcpKey(array $scopes): array
 {
-    $ownerRole = Role::query()->create([
-        'name' => 'mcp-auth-owner-'.uniqid(),
-        'guard_name' => 'web',
-        'is_system' => false,
-        'is_assignable' => true,
-    ]);
-    $ownerRole->syncPermissions([
-        PermissionEnum::CanUseAi->value,
-        PermissionEnum::CanShowCollections->value,
-        PermissionEnum::CanEditCollections->value,
-        PermissionEnum::CanShowFiles->value,
-        PermissionEnum::CanEditFiles->value,
-    ]);
-
     $owner = User::factory()->create(['is_active' => true]);
-    $owner->syncRoles([$ownerRole]);
-
     $secret = ApiKey::generateSecret();
     $key = ApiKey::factory()->withSecret($secret)->create([
         'role_id' => Role::factory()->create()->id,
