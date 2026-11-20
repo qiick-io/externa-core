@@ -40,6 +40,8 @@ final class UserRelationColumnService
     /**
      * Only the positive result is memoised: before the column exists we re-probe so a long-lived
      * worker that saw "missing" still notices it after migrate (upgrade also calls forget).
+     *
+     * Schema probes are swallowed when the database is unreachable (PHPStan / lint without sqlite).
      */
     public function hasPublicIdColumn(): bool
     {
@@ -47,10 +49,14 @@ final class UserRelationColumnService
             return true;
         }
 
-        if (Schema::hasColumn('users', 'public_id')) {
-            self::$hasPublicIdColumn = true;
+        try {
+            if (Schema::hasColumn('users', 'public_id')) {
+                self::$hasPublicIdColumn = true;
 
-            return true;
+                return true;
+            }
+        } catch (\Throwable) {
+            return false;
         }
 
         return false;

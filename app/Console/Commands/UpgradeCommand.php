@@ -398,7 +398,7 @@ class UpgradeCommand extends Command
         if ($migrateCode !== self::SUCCESS) {
             $this->error('Migrate failed; leaving the application in maintenance mode.');
 
-            return $migrateCode;
+            return self::FAILURE;
         }
 
         UserRelationColumnService::forgetPublicIdColumnCache();
