@@ -121,9 +121,17 @@ final class SettingsScopeRefService
      */
     public function dedupe(): int
     {
+        $duplicateGroups = $this->duplicateGroups();
+
+        if ($duplicateGroups->isNotEmpty() && ! Schema::hasTable('settings_dedupe_archive')) {
+            throw new \RuntimeException(
+                'settings_dedupe_archive is missing; refusing to delete duplicate settings without an archive. Run the scope_ref migration first (or create the archive table).'
+            );
+        }
+
         $deleted = 0;
 
-        foreach ($this->duplicateGroups() as $duplicateGroup) {
+        foreach ($duplicateGroups as $duplicateGroup) {
             $keepersAndLosers = $this->orderedRowsForGroup($duplicateGroup);
             $keeper = $keepersAndLosers->first();
             $losers = $keepersAndLosers->slice(1);
@@ -159,15 +167,28 @@ final class SettingsScopeRefService
     }
 
     /**
-     * Whether `settings.scope_ref` exists (cached per process for the deploy window).
+     * Whether `settings.scope_ref` exists.
+     *
+     * Only the positive result is memoised: before the column exists we re-probe so a
+     * long-lived worker that saw "missing" still notices it after migrate.
      */
     public function hasScopeRefColumn(): bool
     {
-        return self::$hasScopeRefColumn ??= Schema::hasColumn('settings', 'scope_ref');
+        if (self::$hasScopeRefColumn === true) {
+            return true;
+        }
+
+        if (Schema::hasColumn('settings', 'scope_ref')) {
+            self::$hasScopeRefColumn = true;
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Forget the cached column probe (tests that drop/add the column mid-run).
+     * Forget the cached column probe (upgrade after migrate; tests that drop/add mid-run).
      */
     public static function forgetScopeRefColumnCache(): void
     {
@@ -275,7 +296,9 @@ final class SettingsScopeRefService
     private function archiveDroppedRow(\stdClass $loser, int|string|null $keptId): void
     {
         if (! Schema::hasTable('settings_dedupe_archive')) {
-            return;
+            throw new \RuntimeException(
+                'settings_dedupe_archive is missing; refusing to delete settings id '.$loser->id.' without an archive.'
+            );
         }
 
         $payload = [
