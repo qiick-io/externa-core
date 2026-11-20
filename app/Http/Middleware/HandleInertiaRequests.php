@@ -60,7 +60,8 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => $projectSettings->general()->displayName(),
             'appVersion' => app(AppVersionService::class)->current(),
-            // Settings → Connected apps / MCP OAuth clients exist only while OAuth is on (#815 / #816).
+            // Settings → MCP OAuth clients (admin) exists only while OAuth is on (#815).
+            // Connected apps stays in the nav either way so grants remain revocable (#816).
             'isMcpOAuthEnabled' => app(McpOAuthServerService::class)->isEnabled(),
             'auth' => [
                 'user' => $user,

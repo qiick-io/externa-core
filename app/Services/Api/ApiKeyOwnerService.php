@@ -8,6 +8,7 @@ use App\Enums\RoleEnum;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Services\Mcp\McpClientCredentialsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,34 +18,45 @@ use Illuminate\Support\Facades\Log;
 class ApiKeyOwnerService
 {
     /**
-     * Revoke every active key owned by the user and log an activity entry per key.
+     * Revoke every active key owned by the user, and every OAuth grant with its tokens, and log
+     * an activity entry per key.
      *
      * @return int Number of keys revoked
      */
     public function revokeForOwner(User $owner, string $reason): int
     {
-        $keys = ApiKey::query()
-            ->where('owner_id', $owner->id)
-            ->whereNull('revoked_at')
-            ->get();
+        return (int) DB::transaction(function () use ($owner, $reason): int {
+            $keys = ApiKey::query()
+                ->where('owner_id', $owner->id)
+                ->whereNull('revoked_at')
+                ->lockForUpdate()
+                ->get();
 
-        $count = 0;
-        foreach ($keys as $key) {
-            $key->forceFill(['revoked_at' => now()])->save();
-            activity('api')
-                ->performedOn($key)
-                ->causedBy($owner)
-                ->withProperties([
-                    'reason' => $reason,
-                    'owner_id' => $owner->id,
-                ])
-                ->event('api_key_revoked')
-                ->log('API key revoked because owner '.$reason);
+            $count = 0;
 
-            $count++;
-        }
+            foreach ($keys as $key) {
+                $key->forceFill(['revoked_at' => now()])->save();
 
-        return $count;
+                // An OAuth grant (#802) also holds Passport tokens: withdraw them with it.
+                if ($key->isOAuthGrant()) {
+                    app(McpClientCredentialsService::class)->revokeIssuedCredentials((string) $key->oauth_client_id, $owner->id);
+                }
+
+                activity('api')
+                    ->performedOn($key)
+                    ->causedBy($owner)
+                    ->withProperties([
+                        'reason' => $reason,
+                        'owner_id' => $owner->id,
+                    ])
+                    ->event('api_key_revoked')
+                    ->log('API key revoked because owner '.$reason);
+
+                $count++;
+            }
+
+            return $count;
+        });
     }
 
     /**

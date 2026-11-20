@@ -395,7 +395,8 @@
             "aiToolsNav": "Schreibwerkzeuge",
             "pendingToolCallsNav": "Tool-Freigaben",
             "jobs": "Jobs",
-            "mcpOauthClients": "MCP-OAuth-Clients"
+            "mcpOauthClients": "MCP-OAuth-Clients",
+            "connectedApps": "Verbundene Apps"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -2544,7 +2545,8 @@
             "members_synced": "Mitglieder synchronisiert",
             "collection_permissions_synced": "Collection-Berechtigungen synchronisiert",
             "file_permissions_synced": "Datei-Berechtigungen synchronisiert",
-            "oauth_authorized": "MCP-Client autorisiert"
+            "oauth_authorized": "MCP-Client autorisiert",
+            "oauth_revoked": "Zugriff des MCP-Clients widerrufen"
         },
         "logs": {
             "default": "Anwendung",
@@ -3045,5 +3047,24 @@
         },
         "bulkBlock": "Ausgewählte sperren",
         "pruneUnused": "Unbenutzte Clients bereinigen"
+    },
+    "connectedApps": {
+        "head": "Verbundene Apps",
+        "description": "Remote-MCP-Clients, denen du erlaubt hast, diesen Arbeitsbereich in deinem Namen zu nutzen, etwa Chat-Konnektoren. Widerrufe einen, und seine nächste Anfrage wird abgelehnt.",
+        "empty": "Keine verbundenen Apps. Wenn du einen MCP-Client auf seiner Zustimmungsseite erlaubst, erscheint er hier.",
+        "allCollections": "alle Sammlungen",
+        "neverUsed": "Nie",
+        "revoke": "{{name}} widerrufen",
+        "columns": {
+            "client": "Client",
+            "access": "Zugriff",
+            "lastUsed": "Zuletzt genutzt",
+            "actions": "Aktionen"
+        },
+        "confirm": {
+            "title": "{{name}} widerrufen?",
+            "description": "Der Client verliert sofort den Zugriff: Seine nächste Anfrage wird abgelehnt, und er kann sein Token nicht erneuern. Um ihn wieder zu nutzen, verbinde ihn erneut.",
+            "confirm": "Zugriff widerrufen"
+        }
     }
 }
