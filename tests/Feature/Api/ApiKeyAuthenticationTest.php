@@ -54,14 +54,15 @@ function makeAuthenticationMcpKey(array $scopes): array
 }
 
 /**
- * Minimal MCP JSON-RPC ping with the headers the server requires.
+ * Minimal MCP JSON-RPC `server/discover` (the 2026-07-28 handshake; `ping` is legacy-only since
+ * laravel/mcp 1.2.1) with the headers the server requires.
  */
-function pingMcpWithToken(string $token): TestResponse
+function discoverMcpWithToken(string $token): TestResponse
 {
     return test()->withToken($token)->postJson('/mcp', [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'method' => 'ping',
+        'method' => 'server/discover',
         'params' => [
             '_meta' => [
                 'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
@@ -72,7 +73,7 @@ function pingMcpWithToken(string $token): TestResponse
     ], [
         'Accept' => 'application/json, text/event-stream',
         'MCP-Protocol-Version' => '2026-07-28',
-        'Mcp-Method' => 'ping',
+        'Mcp-Method' => 'server/discover',
     ]);
 }
 
@@ -160,7 +161,7 @@ describe('invalid_token', function (): void {
         $mcpKey['key']->forceFill([$state === 'expired' ? 'expires_at' : 'revoked_at' => now()->subMinute()])->save();
 
         // laravel/mcp adds its realm to the challenge; the error code is the shared one.
-        pingMcpWithToken($mcpKey['plain'])
+        discoverMcpWithToken($mcpKey['plain'])
             ->assertUnauthorized()
             ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", error="invalid_token"')
             ->assertJsonPath('error', 'invalid_token');
@@ -210,7 +211,7 @@ describe('insufficient_scope', function (): void {
             ->assertForbidden()
             ->assertJsonPath('error', 'insufficient_scope')
             ->assertJsonPath('message', 'The API key holds no scopes.');
-        pingMcpWithToken($mcpKey['plain'])
+        discoverMcpWithToken($mcpKey['plain'])
             ->assertForbidden()
             ->assertJsonPath('error', 'insufficient_scope');
     })->with([
@@ -223,7 +224,7 @@ describe('insufficient_scope', function (): void {
     it('refuses MCP to a key without an mcp scope', function (): void {
         $mcpKey = makeAuthenticationMcpKey([ApiKeyScopeEnum::CollectionsWrite->value]);
 
-        pingMcpWithToken($mcpKey['plain'])
+        discoverMcpWithToken($mcpKey['plain'])
             ->assertForbidden()
             ->assertJsonPath('error', 'insufficient_scope')
             ->assertJsonPath('scope', 'mcp:read');
@@ -232,7 +233,7 @@ describe('insufficient_scope', function (): void {
     it('lets mcp:write stand in for mcp:read', function (): void {
         $mcpKey = makeAuthenticationMcpKey([ApiKeyScopeEnum::McpWrite->value]);
 
-        pingMcpWithToken($mcpKey['plain'])->assertOk();
+        discoverMcpWithToken($mcpKey['plain'])->assertOk();
     });
 });
 
@@ -332,7 +333,7 @@ describe('limits and usage', function (): void {
         $this->auth['key']->forceFill(['scopes' => [ApiKeyScopeEnum::CollectionsRead->value]])->save();
         $mcpKey = makeAuthenticationMcpKey([ApiKeyScopeEnum::CollectionsRead->value]);
 
-        pingMcpWithToken($mcpKey['plain'])->assertForbidden();
+        discoverMcpWithToken($mcpKey['plain'])->assertForbidden();
 
         expect($mcpKey['key']->fresh()->last_used_at)->toBeNull();
     });
@@ -343,7 +344,7 @@ describe('sessions', function (): void {
         $mcpKey = makeAuthenticationMcpKey([ApiKeyScopeEnum::McpRead->value]);
 
         $response = $surface === 'mcp'
-            ? pingMcpWithToken($mcpKey['plain'])
+            ? discoverMcpWithToken($mcpKey['plain'])
             : $this->withToken($this->auth['plain'])->getJson('/api/v1/collections');
 
         $response->assertOk()->assertCookieMissing((string) config('session.cookie'));
