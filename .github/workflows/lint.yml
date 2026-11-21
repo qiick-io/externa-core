@@ -129,6 +129,8 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: |
           cp .env.example .env
+          # Schema::hasColumn during Larastan needs the sqlite file to exist (empty is fine).
+          touch database/database.sqlite
           php artisan key:generate
           # actions/routes are gitignored; without them import/order misclassifies @/actions|@/routes as unknown
           php artisan wayfinder:generate --with-form --no-interaction

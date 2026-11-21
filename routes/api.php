@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\FileController;
 use App\Http\Controllers\Api\V1\LivePreviewController;
 use App\Http\Controllers\Api\V1\OpenApiController;
 use App\Http\Middleware\ApiRequestCostMiddleware;
+use App\Http\Middleware\EmitBigintUserIdDeprecationHeadersMiddleware;
 use App\Http\Middleware\EnforcePublicApiOriginMiddleware;
 use App\Http\Middleware\RequireApiKeyScopeMiddleware;
 use App\Http\Middleware\ResolveApiAccessMiddleware;
@@ -34,6 +35,7 @@ Route::prefix('v1')
         EnforcePublicApiOriginMiddleware::class,
         ResolveApiAccessMiddleware::class,
         ApiRequestCostMiddleware::class,
+        EmitBigintUserIdDeprecationHeadersMiddleware::class,
     ])
     ->group(function (): void {
         $requiresScope = static fn (ApiKeyScopeEnum $scope): string => RequireApiKeyScopeMiddleware::class.':'.$scope->value;
