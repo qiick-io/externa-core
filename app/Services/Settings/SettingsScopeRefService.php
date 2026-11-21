@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Settings;
 
+use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -174,9 +175,11 @@ final class SettingsScopeRefService
     /**
      * Whether `settings.scope_ref` exists.
      *
-     * Only a positive probe is memoised (per process and in the file cache across requests):
-     * a shared "missing" must not stick across parallel Pest workers. {@see forgetScopeRefColumnCache()}
-     * clears both (called by `externa:upgrade` after migrate and by the scope_ref migration).
+     * Only a positive probe is memoised (per process and across HTTP requests via the file cache):
+     * a shared "missing" must not stick across parallel Pest workers. Tests use the array store so
+     * Pest workers with divergent schemas do not race on a shared file cache.
+     * {@see forgetScopeRefColumnCache()} clears both (called by `externa:upgrade` after migrate
+     * and by the scope_ref migration).
      *
      * @throws \Throwable when the schema probe fails (DB unreachable); never treat that as "missing".
      */
@@ -186,7 +189,7 @@ final class SettingsScopeRefService
             return true;
         }
 
-        if (Cache::store(self::CACHE_STORE)->get(self::CACHE_KEY) === true) {
+        if (self::probeCache()->get(self::CACHE_KEY) === true) {
             return self::$hasScopeRefColumn = true;
         }
 
@@ -194,7 +197,7 @@ final class SettingsScopeRefService
 
         if ($exists) {
             self::$hasScopeRefColumn = true;
-            Cache::store(self::CACHE_STORE)->forever(self::CACHE_KEY, true);
+            self::probeCache()->forever(self::CACHE_KEY, true);
         }
 
         return $exists;
@@ -206,7 +209,15 @@ final class SettingsScopeRefService
     public static function forgetScopeRefColumnCache(): void
     {
         self::$hasScopeRefColumn = null;
-        Cache::store(self::CACHE_STORE)->forget(self::CACHE_KEY);
+        self::probeCache()->forget(self::CACHE_KEY);
+    }
+
+    /**
+     * File store across HTTP requests; array store in tests (Pest parallel workers share the filesystem).
+     */
+    private static function probeCache(): Repository
+    {
+        return Cache::store(app()->runningUnitTests() ? 'array' : self::CACHE_STORE);
     }
 
     /**
