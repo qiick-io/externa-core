@@ -11,12 +11,14 @@ use Illuminate\Support\Facades\Schema;
  * Column list for eager-loading users on API payloads during the public_id deploy window (#827).
  *
  * Mid-upgrade code may run before `users.public_id` exists; omit that column until migrate finishes.
- * Presence is memoised per process and in Cache across requests; {@see forgetPublicIdColumnCache()}
- * clears both (called by `externa:upgrade` after migrate and by the backfill).
+ * Presence is memoised per process and in the file cache across requests (not Redis — deploy-window
+ * probes must not depend on Redis being up); {@see forgetPublicIdColumnCache()} clears both.
  */
 final class UserRelationColumnService
 {
     private const string CACHE_KEY = 'schema.columns.users.public_id';
+
+    private const string CACHE_STORE = 'file';
 
     private static ?bool $hasPublicIdColumn = null;
 
@@ -54,14 +56,14 @@ final class UserRelationColumnService
             return self::$hasPublicIdColumn;
         }
 
-        $cached = Cache::get(self::CACHE_KEY);
+        $cached = Cache::store(self::CACHE_STORE)->get(self::CACHE_KEY);
 
         if (is_bool($cached)) {
             return self::$hasPublicIdColumn = $cached;
         }
 
         $exists = Schema::hasColumn('users', 'public_id');
-        Cache::forever(self::CACHE_KEY, $exists);
+        Cache::store(self::CACHE_STORE)->forever(self::CACHE_KEY, $exists);
 
         return self::$hasPublicIdColumn = $exists;
     }
@@ -69,6 +71,6 @@ final class UserRelationColumnService
     public static function forgetPublicIdColumnCache(): void
     {
         self::$hasPublicIdColumn = null;
-        Cache::forget(self::CACHE_KEY);
+        Cache::store(self::CACHE_STORE)->forget(self::CACHE_KEY);
     }
 }
