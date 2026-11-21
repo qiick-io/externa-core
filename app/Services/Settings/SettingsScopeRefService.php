@@ -174,27 +174,30 @@ final class SettingsScopeRefService
     /**
      * Whether `settings.scope_ref` exists.
      *
-     * Memoised per process and in the file cache across requests (not Redis); {@see forgetScopeRefColumnCache()}
+     * Only a positive probe is memoised (per process and in the file cache across requests):
+     * a shared "missing" must not stick across parallel Pest workers. {@see forgetScopeRefColumnCache()}
      * clears both (called by `externa:upgrade` after migrate and by the scope_ref migration).
      *
      * @throws \Throwable when the schema probe fails (DB unreachable); never treat that as "missing".
      */
     public function hasScopeRefColumn(): bool
     {
-        if (self::$hasScopeRefColumn !== null) {
-            return self::$hasScopeRefColumn;
+        if (self::$hasScopeRefColumn === true) {
+            return true;
         }
 
-        $cached = Cache::store(self::CACHE_STORE)->get(self::CACHE_KEY);
-
-        if (is_bool($cached)) {
-            return self::$hasScopeRefColumn = $cached;
+        if (Cache::store(self::CACHE_STORE)->get(self::CACHE_KEY) === true) {
+            return self::$hasScopeRefColumn = true;
         }
 
         $exists = Schema::hasColumn('settings', 'scope_ref');
-        Cache::store(self::CACHE_STORE)->forever(self::CACHE_KEY, $exists);
 
-        return self::$hasScopeRefColumn = $exists;
+        if ($exists) {
+            self::$hasScopeRefColumn = true;
+            Cache::store(self::CACHE_STORE)->forever(self::CACHE_KEY, true);
+        }
+
+        return $exists;
     }
 
     /**
