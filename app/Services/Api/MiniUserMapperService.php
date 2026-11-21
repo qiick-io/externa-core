@@ -8,11 +8,14 @@ use App\Models\User;
 
 /**
  * Compact public-API user payload shared by item resources and relation hydration.
+ *
+ * `public_id` is the stable external id. The bigint `id` stays for one deprecation window
+ * (OpenAPI `deprecated: true`) where CMS clients already key on it (#827).
  */
 final class MiniUserMapperService
 {
     /**
-     * @return array{id: int, name: string, email: string|null}|null
+     * @return array{id: int, public_id: string, name: string, email: string|null}|null
      */
     public function toArray(?User $user): ?array
     {
@@ -20,8 +23,18 @@ final class MiniUserMapperService
             return null;
         }
 
+        $attributes = $user->getAttributes();
+
+        // Soft-deleted users stay off MiniUser (1.5 behaviour) so include=users never
+        // leaks their email; flat user_*_public_id still resolves via withTrashed relations.
+        if (array_key_exists('deleted_at', $attributes) && $attributes['deleted_at'] !== null) {
+            return null;
+        }
+
         return [
             'id' => (int) $user->id,
+            // Empty when the column is not selected yet during the deploy window.
+            'public_id' => array_key_exists('public_id', $attributes) ? (string) $attributes['public_id'] : '',
             'name' => $user->name !== '' ? $user->name : ($user->email ?? ('#'.$user->id)),
             'email' => $user->email,
         ];

@@ -31,6 +31,13 @@ paths:
             responses:
                 '200':
                     description: Collection summaries (empty array when no read grants)
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -48,6 +55,13 @@ paths:
             responses:
                 '200':
                     description: Collection with fields
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -98,6 +112,13 @@ paths:
             responses:
                 '200':
                     description: Paginated items
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -126,6 +147,13 @@ paths:
             responses:
                 '201':
                     description: Created item
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -160,6 +188,13 @@ paths:
             responses:
                 '200':
                     description: Per-item results (partial success allowed)
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -191,6 +226,13 @@ paths:
             responses:
                 '200':
                     description: Per-item results (partial success allowed)
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -222,6 +264,13 @@ paths:
             responses:
                 '200':
                     description: Per-id results (partial success allowed)
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -249,6 +298,13 @@ paths:
             responses:
                 '200':
                     description: Item
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -276,6 +332,13 @@ paths:
             responses:
                 '200':
                     description: Updated item
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -299,6 +362,13 @@ paths:
             responses:
                 '204':
                     description: Deleted (empty body)
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                 '403':
                     $ref: '#/components/responses/Forbidden'
                 '404':
@@ -327,6 +397,13 @@ paths:
             responses:
                 '200':
                     description: Paginated files
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -360,6 +437,13 @@ paths:
             responses:
                 '201':
                     description: Uploaded file
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -381,6 +465,13 @@ paths:
             responses:
                 '200':
                     description: File resource
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -407,6 +498,13 @@ paths:
             responses:
                 '200':
                     description: Updated file
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/json:
                             schema:
@@ -429,6 +527,13 @@ paths:
             responses:
                 '204':
                     description: Deleted (empty body)
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                 '403':
                     $ref: '#/components/responses/Forbidden'
                 '404':
@@ -446,6 +551,13 @@ paths:
             responses:
                 '200':
                     description: Binary stream
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/octet-stream:
                             schema:
@@ -473,6 +585,13 @@ paths:
             responses:
                 '200':
                     description: Transformed image bytes
+                    headers:
+                        Deprecation:
+                            $ref: '#/components/headers/Deprecation'
+                        Sunset:
+                            $ref: '#/components/headers/Sunset'
+                        Link:
+                            $ref: '#/components/headers/Link'
                     content:
                         application/octet-stream:
                             schema:
@@ -557,6 +676,27 @@ components:
                 collection fields the caller can read. Unknown / non-sortable / unreadable keys → 422.
                 Default (omit): newest `id` first. Nulls sort last; `id` is always the tiebreaker.
             example: -published_at,title
+    headers:
+        Deprecation:
+            description: |
+                RFC 9745 `@<unix-seconds>` on every authenticated Public CMS v1 response while bigint user ids
+                (`id` on MiniUser, `user_created_id` / `user_updated_id`) remain in payloads (#827).
+            schema:
+                type: string
+                example: '@1795132800'
+        Sunset:
+            description: |
+                HTTP-date after which the deprecated bigint user id fields may be removed
+                (≥ 12 months from the 1.6.0 release). Prefer `public_id` / `user_*_public_id`.
+            schema:
+                type: string
+                example: 'Sat, 20 Nov 2027 00:00:00 GMT'
+        Link:
+            description: |
+                `rel=deprecation` points at the upgrade notes for migrating off bigint user ids.
+            schema:
+                type: string
+                example: '<https://docs.qiick.io/externa/upgrade#users-public-id>; rel="deprecation"'
     responses:
         Forbidden:
             description: Missing collection/file permission or origin gate failure
@@ -591,10 +731,20 @@ components:
                     type: integer
         MiniUser:
             type: object
-            required: [id, name, email]
+            description: |
+                Compact user on item payloads when `include=users`. `public_id` is the stable
+                external id; the bigint `id` is kept for one deprecation window for CMS clients
+                that already key on it (#827).
+            required: [id, public_id, name, email]
             properties:
                 id:
                     type: integer
+                    deprecated: true
+                    description: Internal bigint; prefer public_id. Removed after the deprecation window.
+                public_id:
+                    type: string
+                    format: uuid
+                    description: UUID v7 public id (fleet external user id).
                 name:
                     type: string
                 email:
@@ -649,6 +799,8 @@ components:
                 - updated_at
                 - user_created_id
                 - user_updated_id
+                - user_created_public_id
+                - user_updated_public_id
                 - user_created
                 - user_updated
             properties:
@@ -674,8 +826,20 @@ components:
                 user_created_id:
                     type: integer
                     nullable: true
+                    deprecated: true
+                    description: Internal bigint; prefer user_created_public_id (#827).
                 user_updated_id:
                     type: integer
+                    nullable: true
+                    deprecated: true
+                    description: Internal bigint; prefer user_updated_public_id (#827).
+                user_created_public_id:
+                    type: string
+                    format: uuid
+                    nullable: true
+                user_updated_public_id:
+                    type: string
+                    format: uuid
                     nullable: true
                 user_created:
                     allOf:
@@ -747,8 +911,20 @@ components:
                 user_created_id:
                     type: integer
                     nullable: true
+                    deprecated: true
+                    description: Internal bigint; prefer user_created_public_id (#827).
                 user_updated_id:
                     type: integer
+                    nullable: true
+                    deprecated: true
+                    description: Internal bigint; prefer user_updated_public_id (#827).
+                user_created_public_id:
+                    type: string
+                    format: uuid
+                    nullable: true
+                user_updated_public_id:
+                    type: string
+                    format: uuid
                     nullable: true
                 user_created:
                     allOf:

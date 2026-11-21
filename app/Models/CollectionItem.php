@@ -151,19 +151,23 @@ class CollectionItem extends Model
     }
 
     /**
+     * Soft-deleted creators still resolve for flat `user_*_public_id`; MiniUser omits them.
+     *
      * @return BelongsTo<User, $this>
      */
     public function userCreated(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_created_id');
+        return $this->belongsTo(User::class, 'user_created_id')->withTrashed();
     }
 
     /**
+     * Soft-deleted updaters still resolve for flat `user_*_public_id`; MiniUser omits them.
+     *
      * @return BelongsTo<User, $this>
      */
     public function userUpdated(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_updated_id');
+        return $this->belongsTo(User::class, 'user_updated_id')->withTrashed();
     }
 
     /**

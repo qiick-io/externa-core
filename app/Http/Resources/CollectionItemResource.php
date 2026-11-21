@@ -9,6 +9,7 @@ use App\Services\Api\FileFieldExpanderService;
 use App\Services\Api\MiniUserMapperService;
 use App\Services\Api\PublicApiIncludeParserService;
 use App\Services\Api\RelationIncludeHydratorService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Collections\CollectionItemDataAccessorService;
 use App\Services\Collections\CollectionLocaleResolverService;
 use Illuminate\Http\Request;
@@ -75,9 +76,14 @@ class CollectionItemResource extends JsonResource
                 ->stripData($request, $item->collection, $data);
         }
 
-        if ($wantsUsers) {
-            $item->loadMissing(['userCreated:id,first_name,last_name,email', 'userUpdated:id,first_name,last_name,email']);
-        }
+        // public_id fields always leave the database; load them even when MiniUser is omitted.
+        // Force load (not loadMissing): controllers may have eager-loaded a narrower select
+        // without deleted_at, which would leave soft-deleted users leaking into MiniUser.
+        $userSelect = app(UserRelationColumnService::class)->selectList();
+        $item->load([
+            'userCreated:'.$userSelect,
+            'userUpdated:'.$userSelect,
+        ]);
 
         return [
             'id' => $item->id,
@@ -88,6 +94,8 @@ class CollectionItemResource extends JsonResource
             'published_at' => $item->published_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
+            'user_created_public_id' => $item->userCreated?->public_id,
+            'user_updated_public_id' => $item->userUpdated?->public_id,
             'user_created' => $wantsUsers ? app(MiniUserMapperService::class)->toArray($item->userCreated) : null,
             'user_updated' => $wantsUsers ? app(MiniUserMapperService::class)->toArray($item->userUpdated) : null,
         ];

@@ -189,8 +189,22 @@ export interface components {
             per_page: number;
             total: number;
         };
+        /**
+         * @description Compact user on item payloads when `include=users`. `public_id` is the stable
+         *     external id; the bigint `id` is kept for one deprecation window for CMS clients
+         *     that already key on it (#827).
+         */
         MiniUser: {
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer public_id. Removed after the deprecation window.
+             */
             id: number;
+            /**
+             * Format: uuid
+             * @description UUID v7 public id (fleet external user id).
+             */
+            public_id: string;
             name: string;
             email: string | null;
         };
@@ -227,8 +241,20 @@ export interface components {
             updated_at: string | null;
             /** Format: date-time */
             published_at?: string | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_created_public_id (#827).
+             */
             user_created_id: number | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_updated_public_id (#827).
+             */
             user_updated_id: number | null;
+            /** Format: uuid */
+            user_created_public_id: string | null;
+            /** Format: uuid */
+            user_updated_public_id: string | null;
             user_created: components["schemas"]["MiniUser"] | null;
             user_updated: components["schemas"]["MiniUser"] | null;
         };
@@ -266,8 +292,20 @@ export interface components {
              * @description Nullable publish timestamp; sortable via `sort=published_at` / `-published_at`
              */
             published_at?: string | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_created_public_id (#827).
+             */
             user_created_id: number | null;
+            /**
+             * @deprecated
+             * @description Internal bigint; prefer user_updated_public_id (#827).
+             */
             user_updated_id: number | null;
+            /** Format: uuid */
+            user_created_public_id?: string | null;
+            /** Format: uuid */
+            user_updated_public_id?: string | null;
             /** @description Null unless `include=users` */
             user_created: components["schemas"]["MiniUser"] | null;
             /** @description Null unless `include=users` */
@@ -467,7 +505,20 @@ export interface components {
         Sort: string;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /**
+         * @description RFC 9745 `@<unix-seconds>` on every authenticated Public CMS v1 response while bigint user ids
+         *     (`id` on MiniUser, `user_created_id` / `user_updated_id`) remain in payloads (#827).
+         */
+        Deprecation: string;
+        /**
+         * @description HTTP-date after which the deprecated bigint user id fields may be removed
+         *     (≥ 12 months from the 1.6.0 release). Prefer `public_id` / `user_*_public_id`.
+         */
+        Sunset: string;
+        /** @description `rel=deprecation` points at the upgrade notes for migrating off bigint user ids. */
+        Link: string;
+    };
     pathItems: never;
 }
 export type $defs = Record<string, never>;
@@ -484,6 +535,9 @@ export interface operations {
             /** @description Collection summaries (empty array when no read grants) */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -506,6 +560,9 @@ export interface operations {
             /** @description Collection with fields */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -572,6 +629,9 @@ export interface operations {
             /** @description Paginated items */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -601,6 +661,9 @@ export interface operations {
             /** @description Created item */
             201: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -630,6 +693,9 @@ export interface operations {
             /** @description Per-item results (partial success allowed) */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -659,6 +725,9 @@ export interface operations {
             /** @description Per-id results (partial success allowed) */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -688,6 +757,9 @@ export interface operations {
             /** @description Per-item results (partial success allowed) */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -726,6 +798,9 @@ export interface operations {
             /** @description Item */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -751,6 +826,9 @@ export interface operations {
             /** @description Deleted (empty body) */
             204: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -778,6 +856,9 @@ export interface operations {
             /** @description Updated item */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -806,6 +887,9 @@ export interface operations {
             /** @description Paginated files */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -836,6 +920,9 @@ export interface operations {
             /** @description Uploaded file */
             201: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -860,6 +947,9 @@ export interface operations {
             /** @description File resource */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -884,6 +974,9 @@ export interface operations {
             /** @description Deleted (empty body) */
             204: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -910,6 +1003,9 @@ export interface operations {
             /** @description Updated file */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -935,6 +1031,9 @@ export interface operations {
             /** @description Binary stream */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -960,6 +1059,9 @@ export interface operations {
             /** @description Transformed image bytes */
             200: {
                 headers: {
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
                     [name: string]: unknown;
                 };
                 content: {

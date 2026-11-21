@@ -10,6 +10,7 @@ use App\Models\CollectionItemChatMessage;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Settings\SettingsScopeRefService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
@@ -443,15 +444,34 @@ class ChatUnreadService
     public function subscriberIdsForCollection(int $collectionId): array
     {
         $ids = [];
-        $rows = Setting::query()
+        $query = Setting::query()
             ->where('scope', SettingsRepositoryService::SCOPE_USER)
             ->where('group', self::NOTIFY_GROUP)
-            ->where('key', self::NOTIFY_KEY)
+            ->where('key', self::NOTIFY_KEY);
+
+        if (app(SettingsScopeRefService::class)->hasScopeRefColumn()) {
+            $rows = $query
+                ->where('scope_ref', '!=', SettingsRepositoryService::SCOPE_REF_INSTANCE)
+                ->get(['scope_ref', 'value']);
+
+            foreach ($rows as $row) {
+                $value = is_array($row->value) ? array_map('intval', $row->value) : [];
+
+                if (in_array($collectionId, $value, true)) {
+                    $ids[] = (int) $row->scope_ref;
+                }
+            }
+
+            return $ids;
+        }
+
+        $rows = $query
             ->whereNotNull('scope_id')
             ->get(['scope_id', 'value']);
 
         foreach ($rows as $row) {
             $value = is_array($row->value) ? array_map('intval', $row->value) : [];
+
             if (in_array($collectionId, $value, true)) {
                 $ids[] = (int) $row->scope_id;
             }

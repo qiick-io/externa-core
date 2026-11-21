@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Services\Api\UserRelationColumnService;
 use App\Services\AppVersionService;
+use App\Services\Settings\SettingsScopeRefService;
 use App\Services\Upgrade\UpgradeGitService;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Process\ProcessResult;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Redis;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
@@ -79,8 +83,8 @@ class UpgradeCommand extends Command
         $this->newLine();
 
         if (! $this->option('no-migrate')) {
-            $this->info('Running migrate --force…');
-            $code = $this->call('migrate', ['--force' => true]);
+            $code = $this->runMigrateUnderMaintenance();
+
             if ($code !== self::SUCCESS) {
                 return $code;
             }
@@ -101,7 +105,9 @@ class UpgradeCommand extends Command
         $this->info('Clearing caches…');
         $this->call('optimize:clear');
         // optimize:clear leaves Lighthouse's schema file; a stale one hides new GraphQL arguments and fields.
-        $this->call('lighthouse:clear-cache');
+        if (array_key_exists('lighthouse:clear-cache', Artisan::all())) {
+            $this->call('lighthouse:clear-cache');
+        }
 
         $this->newLine();
         $this->info('Automated subset done. Smoke: login + open one collection.');
@@ -363,5 +369,74 @@ class UpgradeCommand extends Command
     private function git(array $args): ProcessResult
     {
         return app(UpgradeGitService::class)->run($args);
+    }
+
+    /**
+     * Maintenance around migrate: queue restart before (stop old workers) and after, Horizon
+     * terminate when Redis is up, then `up`. On migrate failure the app stays DOWN.
+     *
+     * @return self::SUCCESS|self::FAILURE
+     */
+    private function runMigrateUnderMaintenance(): int
+    {
+        $this->info('Putting the application into maintenance mode…');
+        $this->call('down', ['--retry' => 60]);
+
+        $this->info('Restarting queue workers (before migrate)…');
+        $this->call('queue:restart');
+
+        $this->info('Running migrate --force…');
+
+        try {
+            $migrateCode = $this->call('migrate', ['--force' => true]);
+        } catch (\Throwable $migrateException) {
+            $this->error('Migrate failed; leaving the application in maintenance mode.');
+            $this->error($migrateException->getMessage());
+
+            return self::FAILURE;
+        }
+
+        if ($migrateCode !== self::SUCCESS) {
+            $this->error('Migrate failed; leaving the application in maintenance mode.');
+
+            return self::FAILURE;
+        }
+
+        UserRelationColumnService::forgetPublicIdColumnCache();
+        SettingsScopeRefService::forgetScopeRefColumnCache();
+
+        $this->info('Restarting queue workers (after migrate)…');
+        $this->call('queue:restart');
+
+        // Horizon is installed for the full stack but Redis may be absent (SQLite smoke /
+        // database queue). Terminate only when it can talk to Redis; never fail the upgrade.
+        if (array_key_exists('horizon:terminate', Artisan::all()) && $this->shouldTerminateHorizon()) {
+            $this->info('Terminating Horizon supervisors…');
+
+            try {
+                $this->call('horizon:terminate');
+            } catch (\Throwable $horizonException) {
+                $this->warn('horizon:terminate skipped: '.$horizonException->getMessage());
+            }
+        }
+
+        $this->info('Bringing the application back up…');
+        $this->call('up');
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Horizon needs a reachable Redis; skip terminate when Redis is down (smoke / database queue).
+     */
+    private function shouldTerminateHorizon(): bool
+    {
+        try {
+            Redis::connection()->client()->ping();
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
