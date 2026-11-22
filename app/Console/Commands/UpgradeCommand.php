@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Services\Api\UserRelationColumnService;
 use App\Services\AppVersionService;
 use App\Services\Mcp\McpOAuthServerService;
+use App\Services\Settings\SettingsScopeRefService;
 use App\Services\Upgrade\UpgradeGitService;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Process\ProcessResult;
@@ -418,6 +419,7 @@ class UpgradeCommand extends Command
         }
 
         app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
+        app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 
         $this->info('Restarting queue workers (after migrate)…');
         $this->call('queue:restart');

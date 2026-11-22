@@ -27,6 +27,7 @@ use App\Services\Authorization\RequestActorResolverService;
 use App\Services\Http\CurlSseStreamerService;
 use App\Services\Settings\Project\ProjectSecuritySettingsService;
 use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsScopeRefService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -81,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AiToolExecutorService::class);
         // Request / job scoped: Octane and the queue worker flush scoped instances between units of work.
         $this->app->scoped(UserRelationColumnService::class);
+        $this->app->scoped(SettingsScopeRefService::class);
         $this->registerOidcBindings();
     }
 

@@ -1,13 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Settings;
 
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Thin get/set store for project- and user-scoped settings.
+ *
+ * Reads and writes go through `scope_ref` when the column exists (`''` for instance / null
+ * scope_id). During the deploy window, before migrate finishes, queries fall back to
+ * `scope_id` so mid-upgrade traffic still works (#827 step 4). `scope_id` is dual-written
+ * for one release so older readers still work. Those missing-column fallbacks are temporary
+ * until v2 drops `scope_id`.
  */
 class SettingsRepositoryService
 {
@@ -15,41 +24,54 @@ class SettingsRepositoryService
 
     public const SCOPE_USER = 'user';
 
+    /** Empty string sentinel for instance / project-wide scope (NOT NULL; see #827). */
+    public const SCOPE_REF_INSTANCE = '';
+
+    public function __construct(
+        private SettingsScopeRefService $scopeRefService,
+    ) {}
+
     /**
      * Read a single setting value.
      */
     public function get(string $scope, string $group, string $key, ?int $scopeId = null, mixed $default = null): mixed
     {
-        $row = Setting::query()
-            ->where('scope', $scope)
-            ->where('group', $group)
-            ->where('key', $key)
-            ->when(
-                $scopeId === null,
-                fn ($query) => $query->whereNull('scope_id'),
-                fn ($query) => $query->where('scope_id', $scopeId),
-            )
-            ->first();
+        return $this->scopeRefService->runWithScopeRefFallback(function () use ($scope, $group, $key, $scopeId, $default): mixed {
+            $row = $this->scopedQuery($scope, $scopeId)
+                ->where('group', $group)
+                ->where('key', $key)
+                ->first();
 
-        return $row?->value ?? $default;
+            return $row?->value ?? $default;
+        });
     }
 
     /**
      * Persist a single setting value.
+     *
+     * Side effects: dual-writes `scope_id` alongside `scope_ref` when the column exists.
      */
     public function set(string $scope, string $group, string $key, mixed $value, ?int $scopeId = null): void
     {
-        Setting::query()->updateOrCreate(
-            [
+        $this->scopeRefService->runWithScopeRefFallback(function () use ($scope, $group, $key, $value, $scopeId): void {
+            $attributes = [
                 'scope' => $scope,
-                'scope_id' => $scopeId,
                 'group' => $group,
                 'key' => $key,
-            ],
-            [
+            ];
+            $values = [
+                'scope_id' => $scopeId,
                 'value' => $value,
-            ],
-        );
+            ];
+
+            if ($this->scopeRefService->hasScopeRefColumn()) {
+                $attributes['scope_ref'] = SettingsScopeRefService::scopeRefFromScopeId($scopeId);
+            } else {
+                $attributes['scope_id'] = $scopeId;
+            }
+
+            Setting::query()->updateOrCreate($attributes, $values);
+        });
 
         $this->forgetProjectSettingsMemo($scope, $group);
     }
@@ -63,21 +85,65 @@ class SettingsRepositoryService
     {
         DB::transaction(function () use ($scope, $group, $values, $scopeId): void {
             foreach ($values as $key => $value) {
-                Setting::query()->updateOrCreate(
-                    [
-                        'scope' => $scope,
-                        'scope_id' => $scopeId,
-                        'group' => $group,
-                        'key' => $key,
-                    ],
-                    [
-                        'value' => $value,
-                    ],
-                );
+                $this->set($scope, $group, $key, $value, $scopeId);
             }
         });
+    }
 
-        $this->forgetProjectSettingsMemo($scope, $group);
+    /**
+     * All stored keys for the project scope and group, merged with defaults.
+     *
+     * @param  array<string, mixed>  $defaults
+     * @return array<string, mixed>
+     */
+    public function project(string $group, array $defaults = []): array
+    {
+        /** @var array<string, mixed> $stored */
+        $stored = $this->scopeRefService->runWithScopeRefFallback(function () use ($group): array {
+            return $this->scopedQuery(self::SCOPE_PROJECT, null)
+                ->where('group', $group)
+                ->pluck('value', 'key')
+                ->all();
+        });
+
+        return array_merge($defaults, $stored);
+    }
+
+    /**
+     * All stored keys for a user and group, merged with defaults.
+     *
+     * @param  array<string, mixed>  $defaults
+     * @return array<string, mixed>
+     */
+    public function forUser(User $user, string $group, array $defaults = []): array
+    {
+        /** @var array<string, mixed> $stored */
+        $stored = $this->scopeRefService->runWithScopeRefFallback(function () use ($user, $group): array {
+            return $this->scopedQuery(self::SCOPE_USER, (int) $user->id)
+                ->where('group', $group)
+                ->pluck('value', 'key')
+                ->all();
+        });
+
+        return array_merge($defaults, $stored);
+    }
+
+    /**
+     * @return Builder<Setting>
+     */
+    private function scopedQuery(string $scope, ?int $scopeId): Builder
+    {
+        $query = Setting::query()->where('scope', $scope);
+
+        if ($this->scopeRefService->hasScopeRefColumn()) {
+            return $query->where('scope_ref', SettingsScopeRefService::scopeRefFromScopeId($scopeId));
+        }
+
+        if ($scopeId === null) {
+            return $query->whereNull('scope_id');
+        }
+
+        return $query->where('scope_id', $scopeId);
     }
 
     private function forgetProjectSettingsMemo(string $scope, string $group): void
@@ -91,41 +157,5 @@ class SettingsRepositoryService
         }
 
         app(ProjectSettingsService::class)->forgetRawCache();
-    }
-
-    /**
-     * All stored keys for the project scope and group, merged with defaults.
-     *
-     * @param  array<string, mixed>  $defaults
-     * @return array<string, mixed>
-     */
-    public function project(string $group, array $defaults = []): array
-    {
-        $stored = Setting::query()
-            ->where('scope', self::SCOPE_PROJECT)
-            ->whereNull('scope_id')
-            ->where('group', $group)
-            ->pluck('value', 'key')
-            ->all();
-
-        return array_merge($defaults, $stored);
-    }
-
-    /**
-     * All stored keys for a user and group, merged with defaults.
-     *
-     * @param  array<string, mixed>  $defaults
-     * @return array<string, mixed>
-     */
-    public function forUser(User $user, string $group, array $defaults = []): array
-    {
-        $stored = Setting::query()
-            ->where('scope', self::SCOPE_USER)
-            ->where('scope_id', $user->id)
-            ->where('group', $group)
-            ->pluck('value', 'key')
-            ->all();
-
-        return array_merge($defaults, $stored);
     }
 }
