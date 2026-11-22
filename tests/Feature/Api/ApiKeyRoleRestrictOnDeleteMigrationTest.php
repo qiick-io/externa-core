@@ -32,6 +32,19 @@ test('a role with no API keys can still be deleted at the database', function ()
         ->and(DB::table('roles')->where('id', $role->id)->exists())->toBeFalse();
 });
 
+test('the restrictOnDelete migration up() is re-runnable', function (): void {
+    $migration = require database_path('migrations/2026_11_22_094151_change_api_keys_role_id_to_restrict_on_delete.php');
+
+    $migration->up();
+    $migration->up();
+
+    $role = Role::factory()->create(['name' => 'fk-rerun-'.uniqid()]);
+    ApiKey::factory()->create(['role_id' => $role->id]);
+
+    expect(fn () => DB::table('roles')->where('id', $role->id)->delete())
+        ->toThrow(QueryException::class);
+});
+
 test('the restrictOnDelete migration reverses back to cascadeOnDelete', function (): void {
     $migration = require database_path('migrations/2026_11_22_094151_change_api_keys_role_id_to_restrict_on_delete.php');
 
