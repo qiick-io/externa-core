@@ -3,16 +3,20 @@
 namespace App\Models;
 
 use App\Services\Api\ApiKeyOwnerService;
+use App\Services\Api\UserRelationColumnService;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Ai\Concerns\HasConversations;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
@@ -37,11 +41,16 @@ use Spatie\Permission\Traits\HasRoles;
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 /**
  * Authenticated application user with roles, groups, soft deletes, and AI conversations.
+ *
+ * `public_id` is the UUID v7 exposed outside the database (REST MiniUser, GraphQL); the
+ * primary key stays bigint and admin/Inertia routes may keep using it (#827).
+ *
+ * @property string $public_id
  */
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasConversations, HasFactory, HasRoles, LogsApplicationActivityTrait, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasConversations, HasFactory, HasRoles, HasUuids, LogsApplicationActivityTrait, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * The column defaults a freshly created user does not read back from the
@@ -67,12 +76,50 @@ class User extends Authenticatable implements PasskeyUser
     ];
 
     /**
+     * Only `public_id` is a generated UUID; the primary key stays an auto-increment id.
+     *
+     * Empty during the deploy window before the column exists so HasUuids does not write it.
+     * Temporary until v2 removes the deploy-window fallback.
+     *
+     * @return list<string>
+     */
+    public function uniqueIds(): array
+    {
+        if (! app(UserRelationColumnService::class)->hasPublicIdColumn()) {
+            return [];
+        }
+
+        return ['public_id'];
+    }
+
+    /**
      * Activity log options excluding sensitive credential fields.
      */
     public function getActivitylogOptions(): LogOptions
     {
         return $this->applicationActivityLogOptions()
             ->logExcept(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token']);
+    }
+
+    /**
+     * Temporary until v2: if a restored backup dropped `public_id` after the request memoised it,
+     * sync the probe from Schema and insert without the UUID column.
+     *
+     * Prefer a pre-insert Schema sync over catch-and-retry: PostgreSQL aborts the transaction on
+     * the failed INSERT, so a retry in the same transaction would raise 25P02.
+     *
+     * @param  Builder<static>  $query
+     */
+    protected function performInsert(Builder $query): bool
+    {
+        $columns = app(UserRelationColumnService::class);
+        $columns->forgetPublicIdColumnCache();
+
+        if (! $columns->hasPublicIdColumn()) {
+            unset($this->attributes['public_id']);
+        }
+
+        return parent::performInsert($query);
     }
 
     /**
@@ -138,13 +185,28 @@ class User extends Authenticatable implements PasskeyUser
     /**
      * Resolve route binding including soft-deleted users.
      *
+     * Accepts the bigint primary key (admin / Inertia) or `public_id` when the value is a UUID
+     * (public API clients migrating off the integer id).
+     *
      * @param  mixed  $value
      * @param  string|null  $field
      */
     public function resolveRouteBinding($value, $field = null): ?self
     {
+        if ($field !== null) {
+            return $this->withTrashed()
+                ->where($field, $value)
+                ->firstOrFail();
+        }
+
+        if (is_string($value) && Str::isUuid($value)) {
+            return $this->withTrashed()
+                ->where('public_id', $value)
+                ->firstOrFail();
+        }
+
         return $this->withTrashed()
-            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->where($this->getRouteKeyName(), $value)
             ->firstOrFail();
     }
 }

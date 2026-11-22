@@ -34,6 +34,10 @@
 
 -
 
+### Release checklist (1.6.0+)
+
+- [ ] Set `EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX` to the actual release unix instant (UTC). Sunset is Deprecation plus one calendar year (`sunsetHttpDate()`). The OpenAPI YAML Deprecation / Sunset examples are literals pinned by a test — edit them by hand to match.
+
 ### Links
 
 - CHANGELOG: `CHANGELOG.md`

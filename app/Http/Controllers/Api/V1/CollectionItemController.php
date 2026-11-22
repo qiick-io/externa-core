@@ -18,6 +18,7 @@ use App\Services\Api\PublicApiIncludeParserService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Api\PublicItemSortParserService;
 use App\Services\Api\RelationIncludeHydratorService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionLocaleResolverService;
 use Illuminate\Http\JsonResponse;
@@ -98,8 +99,8 @@ class CollectionItemController extends Controller
                 ->where('collection_id', $collection->id)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:'.app(UserRelationColumnService::class)->selectList(),
+                    'userUpdated:'.app(UserRelationColumnService::class)->selectList(),
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ]);
             $this->itemQueryService->applyFilters($query, $collection, $stringFilters, null, $request);
@@ -155,8 +156,8 @@ class CollectionItemController extends Controller
                 ->whereKey($item)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:'.app(UserRelationColumnService::class)->selectList(),
+                    'userUpdated:'.app(UserRelationColumnService::class)->selectList(),
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ])
                 ->first();

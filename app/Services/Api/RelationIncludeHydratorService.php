@@ -31,6 +31,7 @@ class RelationIncludeHydratorService
         private FileFieldExpanderService $fileFieldExpander,
         private PublicApiIncludeParserService $includeParser,
         private MiniUserMapperService $miniUserMapper,
+        private UserRelationColumnService $userRelationColumns,
     ) {}
 
     /**
@@ -222,13 +223,14 @@ class RelationIncludeHydratorService
                 continue;
             }
 
+            $userSelect = $this->userRelationColumns->selectList();
             $loaded = CollectionItem::query()
                 ->where('collection_id', $collectionId)
                 ->whereIn('id', $missing)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:'.$userSelect,
+                    'userUpdated:'.$userSelect,
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ])
                 ->get();
@@ -409,6 +411,8 @@ class RelationIncludeHydratorService
             'updated_at' => $item->updated_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
+            'user_created_public_id' => $item->userCreated?->public_id,
+            'user_updated_public_id' => $item->userUpdated?->public_id,
             'user_created' => $wantsUsers ? $this->miniUserMapper->toArray($item->userCreated) : null,
             'user_updated' => $wantsUsers ? $this->miniUserMapper->toArray($item->userUpdated) : null,
         ];

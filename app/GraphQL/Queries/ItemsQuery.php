@@ -12,6 +12,7 @@ use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Api\PublicItemSortParserService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionLocaleResolverService;
 
@@ -75,8 +76,8 @@ final class ItemsQuery
                 ->where('collection_id', $collection->id)
                 ->with([
                     'fieldValues',
-                    'userCreated:id,first_name,last_name,email',
-                    'userUpdated:id,first_name,last_name,email',
+                    'userCreated:'.app(UserRelationColumnService::class)->selectList(),
+                    'userUpdated:'.app(UserRelationColumnService::class)->selectList(),
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ]);
 

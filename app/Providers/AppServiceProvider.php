@@ -16,6 +16,7 @@ use App\Services\Ai\AiToolArgumentRedactorService;
 use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
 use App\Services\Ai\AiToolWriteGateService;
+use App\Services\Api\UserRelationColumnService;
 use App\Services\Auth\GuardedDeletePasskeyService;
 use App\Services\Auth\OidcBreakGlassPolicyService;
 use App\Services\Auth\OidcSecondFactorChallengeService;
@@ -78,6 +79,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AiToolApprovalService::class);
         $this->app->singleton(AiToolRegistryService::class);
         $this->app->singleton(AiToolExecutorService::class);
+        // Request / job scoped: Octane and the queue worker flush scoped instances between units of work.
+        $this->app->scoped(UserRelationColumnService::class);
         $this->registerOidcBindings();
     }
 

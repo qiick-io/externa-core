@@ -17,6 +17,7 @@ use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -111,9 +112,46 @@ it('keeps file fields as ids and users null without include', function (): void 
         ->assertJsonPath('data.data.cover', $file->id)
         ->assertJsonPath('data.user_created_id', $creator->id)
         ->assertJsonPath('data.user_updated_id', $creator->id)
+        ->assertJsonPath('data.user_created_public_id', $creator->public_id)
+        ->assertJsonPath('data.user_updated_public_id', $creator->public_id)
         ->assertJsonPath('data.user_created', null)
         ->assertJsonPath('data.user_updated', null)
         ->assertJsonMissingPath('data.data.cover.url');
+});
+
+it('keeps soft-deleted creators off include=users MiniUser while exposing public_id', function (): void {
+    $collection = Collection::query()->create([
+        'name' => 'Articles',
+        'slug' => 'include-trashed-user',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+
+    $creator = User::factory()->create([
+        'first_name' => 'Deleted',
+        'last_name' => 'Author',
+        'email' => 'deleted-author@example.com',
+    ]);
+    $publicId = $creator->public_id;
+    $item = CollectionItem::factory()->create([
+        'collection_id' => $collection->id,
+        'user_created_id' => $creator->id,
+        'user_updated_id' => $creator->id,
+    ]);
+    $creator->delete();
+
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+
+    $response = $this->getJson("/api/v1/collections/include-trashed-user/items/{$item->id}?include=users")
+        ->assertOk()
+        ->assertJsonPath('data.user_created_id', $creator->id)
+        ->assertJsonPath('data.user_created_public_id', $publicId)
+        ->assertJsonPath('data.user_updated_public_id', $publicId)
+        ->assertJsonPath('data.user_created', null)
+        ->assertJsonPath('data.user_updated', null);
+
+    expect($response->json('data.user_created'))->toBeNull()
+        ->and($response->getContent())->not->toContain('deleted-author@example.com');
 });
 
 it('expands files and users when included', function (): void {
@@ -150,7 +188,9 @@ it('expands files and users when included', function (): void {
         ->assertJsonPath('data.data.cover.filename', 'expanded-cover.jpg')
         ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"))
         ->assertJsonPath('data.user_created.id', $creator->id)
-        ->assertJsonPath('data.user_created.email', 'grace@example.com');
+        ->assertJsonPath('data.user_created.public_id', $creator->public_id)
+        ->assertJsonPath('data.user_created.email', 'grace@example.com')
+        ->assertJsonPath('data.user_created_public_id', $creator->public_id);
 });
 
 it('hydrates m2o and m2m relations only when field names are included', function (): void {
@@ -308,4 +348,42 @@ it('returns different cached payloads for different include values', function ()
 
     $expandedAgain = $this->getJson($baseUrl.'?include=files')->assertOk();
     expect($expandedAgain->json('data.data.cover.filename'))->toBe('cache-cover.jpg');
+});
+
+it('eager-loads item users so list query count does not scale with items', function (): void {
+    $collection = Collection::query()->create([
+        'name' => 'Articles',
+        'slug' => 'include-user-qcount',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+
+    $creator = User::factory()->create();
+    $updater = User::factory()->create();
+
+    foreach (range(1, 15) as $index) {
+        CollectionItem::factory()->create([
+            'collection_id' => $collection->id,
+            'user_created_id' => $creator->id,
+            'user_updated_id' => $updater->id,
+        ]);
+    }
+
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+
+    $url = '/api/v1/collections/include-user-qcount/items?per_page=15&include=users';
+    $this->getJson($url)->assertOk();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $this->getJson($url)->assertOk()->assertJsonPath('meta.total', 15);
+    $userQueries = collect(DB::getQueryLog())
+        ->filter(fn (array $query): bool => str_contains(strtolower($query['query']), 'from "users"')
+            || str_contains(strtolower($query['query']), 'from `users`')
+            || str_contains(strtolower($query['query']), 'from users'))
+        ->count();
+    DB::disableQueryLog();
+
+    // loadMissing + list eager-load: two whereIn user queries, not 2 per item (30+).
+    expect($userQueries)->toBeLessThanOrEqual(4);
 });

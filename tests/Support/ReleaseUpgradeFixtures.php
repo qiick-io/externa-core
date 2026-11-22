@@ -46,6 +46,11 @@ final class ReleaseUpgradeFixtures
     public const LEGACY_OIDC_SUBJECTS_MIGRATION = '2026_11_20_000000_import_legacy_oidc_subjects';
 
     /**
+     * Adds and backfills `users.public_id` UUID v7 (#827 step 2).
+     */
+    public const USERS_PUBLIC_ID_MIGRATION = '2026_11_20_120000_add_public_id_to_users_table';
+
+    /**
      * Issuer a 1.5.x install would have saved under Settings → Authentication & Security.
      */
     public const LEGACY_OIDC_ISSUER = 'https://idp.example.com/realms/externa';
@@ -267,6 +272,12 @@ final class ReleaseUpgradeFixtures
             array_push($violations, ...self::apiKeysRoleRestrictViolations($roleRestrictExpectations));
         }
 
+        if (in_array(self::USERS_PUBLIC_ID_MIGRATION, $seededGroups, true)) {
+            /** @var list<string> $publicIdUserIds */
+            $publicIdUserIds = $expectations[self::USERS_PUBLIC_ID_MIGRATION];
+            array_push($violations, ...self::usersPublicIdViolations($publicIdUserIds));
+        }
+
         return $violations;
     }
 
@@ -284,7 +295,86 @@ final class ReleaseUpgradeFixtures
             self::API_KEY_SCOPES_MIGRATION => self::seedApiKeys(...),
             self::LEGACY_OIDC_SUBJECTS_MIGRATION => self::seedLegacyOidcSubjects(...),
             self::API_KEYS_ROLE_RESTRICT_MIGRATION => self::seedApiKeysBoundToCustomRoles(...),
+            self::USERS_PUBLIC_ID_MIGRATION => self::seedUsersWithoutPublicId(...),
         ];
+    }
+
+    /**
+     * A 1.5.x-shaped users table: rows with no `public_id` column yet. After migrate every seeded
+     * user (and every other user) must have a non-null UUID `public_id`.
+     *
+     * @return list<string> user ids that must receive a public_id
+     */
+    private static function seedUsersWithoutPublicId(): array
+    {
+        if (Schema::hasColumn('users', 'public_id')) {
+            throw new RuntimeException('users.public_id already exists: seed against the release schema, not this branch.');
+        }
+
+        $userIds = [];
+
+        foreach (['alice', 'bob', 'cara'] as $slug) {
+            $userIds[] = (string) DB::table('users')->insertGetId([
+                'is_active' => true,
+                'first_name' => ucfirst($slug),
+                'last_name' => 'PublicId',
+                'email' => "public-id-upgrade-{$slug}@example.com",
+                'email_verified_at' => self::FIXTURE_CREATED_AT,
+                'password' => '$2y$12$AG/kAh9FGl311e5Mzv2qluJgB7Un2wIlKvvmXT4U6HVsGIymh2gnS',
+                'locale' => 'en',
+                'timezone' => 'UTC',
+                'created_at' => self::FIXTURE_CREATED_AT,
+                'updated_at' => self::FIXTURE_UPDATED_AT,
+            ]);
+        }
+
+        return $userIds;
+    }
+
+    /**
+     * @param  list<string>  $userIds
+     * @return list<string>
+     */
+    private static function usersPublicIdViolations(array $userIds): array
+    {
+        $violations = [];
+
+        if (! Schema::hasColumn('users', 'public_id')) {
+            return ['users.public_id column is missing after the upgrade.'];
+        }
+
+        foreach ($userIds as $userId) {
+            $publicId = DB::table('users')->where('id', $userId)->value('public_id');
+
+            if (! is_string($publicId) || $publicId === '') {
+                $violations[] = "users row {$userId}: public_id is missing after the upgrade.";
+
+                continue;
+            }
+
+            if (! preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $publicId)) {
+                $violations[] = "users row {$userId}: public_id {$publicId} is not a UUID.";
+            }
+        }
+
+        $stillNull = (int) DB::table('users')->whereNull('public_id')->count();
+
+        if ($stillNull > 0) {
+            $violations[] = "users.public_id still null on {$stillNull} row(s) after the upgrade.";
+        }
+
+        if (! Schema::hasIndex('users', 'users_public_id_unique')) {
+            $violations[] = 'users.public_id unique index is missing after the upgrade.';
+        }
+
+        $publicIdColumn = collect(Schema::getColumns('users'))
+            ->first(fn (array $column): bool => $column['name'] === 'public_id');
+
+        if ($publicIdColumn === null || ($publicIdColumn['nullable'] ?? true) === true) {
+            $violations[] = 'users.public_id must be NOT NULL after the upgrade.';
+        }
+
+        return $violations;
     }
 
     /**
