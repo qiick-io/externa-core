@@ -17,8 +17,9 @@ use Illuminate\Auth\Access\Response;
  * Each ability requires the same permission as its `permission:` route middleware
  * (super-admins pass through the resolver; a missing permission is a message-less deny).
  * Record abilities keep the super-admin role and locked system roles (`is_system`,
- * `public`) intact. These invariants bind super-admins too, so their denials carry
- * the message the admin UI shows.
+ * `public`) intact, and refuse deleting a role that API keys still reference.
+ * These invariants bind super-admins too, so their denials carry the message the
+ * admin UI shows.
  */
 final class RolePolicy
 {
@@ -87,6 +88,14 @@ final class RolePolicy
 
         if ($this->isProtected($role)) {
             return Response::deny(__('This role cannot be deleted.'));
+        }
+
+        $apiKeyCount = $role->apiKeys()->count();
+
+        if ($apiKeyCount > 0) {
+            return Response::deny(__('This role cannot be deleted while :count API key(s) still use it.', [
+                'count' => $apiKeyCount,
+            ]));
         }
 
         return Response::allow();
