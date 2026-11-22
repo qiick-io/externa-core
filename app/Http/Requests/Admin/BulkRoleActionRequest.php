@@ -49,10 +49,10 @@ class BulkRoleActionRequest extends FormRequest
      */
     public function deletableIds(): array
     {
-        return $this->candidateRoles()
+        return array_values($this->candidateRoles()
             ->filter(fn (Role $role): bool => ! $this->isProtected($role) && $role->api_keys_count === 0)
-            ->pluck('id')
-            ->all();
+            ->map(fn (Role $role): int => (int) $role->id)
+            ->all());
     }
 
     /**
