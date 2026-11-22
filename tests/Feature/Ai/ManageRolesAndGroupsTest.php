@@ -5,6 +5,7 @@ use App\Ai\Tools\ManageGroups;
 use App\Ai\Tools\ManageRoles;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
+use App\Models\ApiKey;
 use App\Models\Role as AppRole;
 use App\Models\User;
 use App\Models\UserGroup;
@@ -172,6 +173,25 @@ test('manage roles cannot delete or rename super-admin', function () {
     expect($rename)->toContain('cannot be renamed')
         ->and($delete)->toContain('cannot be deleted')
         ->and(Role::query()->where('name', RoleEnum::SuperAdmin->value)->exists())->toBeTrue();
+});
+
+test('manage roles refuses to delete a role that API keys still use', function () {
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanDeleteRoles->value,
+    ]);
+    $this->actingAs($user);
+
+    $role = AppRole::factory()->create(['name' => 'ai-api-bound']);
+    ApiKey::factory()->create(['role_id' => $role->id]);
+
+    $result = (string) (new ManageRoles)->handle(new Request([
+        'action' => 'delete',
+        'role_id' => $role->id,
+    ]));
+
+    expect($result)->toBe('Error: This role cannot be deleted while 1 API key(s) still use it.')
+        ->and(AppRole::query()->whereKey($role->id)->exists())->toBeTrue();
 });
 
 test('manage roles refuses to delete locked system roles, even for a super-admin', function () {
