@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Api;
 
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -62,49 +61,5 @@ final class UserRelationColumnService
     public function forgetPublicIdColumnCache(): void
     {
         $this->hasPublicIdColumn = null;
-    }
-
-    /**
-     * Temporary until v2: run $operation; on unknown `users.public_id`, forget the memo and retry once.
-     *
-     * @template TReturn
-     *
-     * @param  callable(): TReturn  $operation
-     * @return TReturn
-     */
-    public function runWithPublicIdFallback(callable $operation): mixed
-    {
-        // Refresh from Schema so a mid-process drop cannot keep a stale positive memo.
-        $this->hasPublicIdColumn = Schema::hasColumn('users', 'public_id');
-
-        try {
-            return $operation();
-        } catch (QueryException $exception) {
-            if (! $this->isUnknownPublicIdColumn($exception)) {
-                throw $exception;
-            }
-
-            $this->forgetPublicIdColumnCache();
-            $this->hasPublicIdColumn = Schema::hasColumn('users', 'public_id');
-
-            return $operation();
-        }
-    }
-
-    /**
-     * Whether the exception is an unknown-column failure for `users.public_id` (any supported engine).
-     */
-    public function isUnknownPublicIdColumn(QueryException $exception): bool
-    {
-        $message = strtolower($exception->getMessage());
-
-        if (! str_contains($message, 'public_id')) {
-            return false;
-        }
-
-        return str_contains($message, 'unknown column')
-            || str_contains($message, 'no such column')
-            || str_contains($message, 'has no column named')
-            || str_contains($message, 'does not exist');
     }
 }

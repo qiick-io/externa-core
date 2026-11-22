@@ -10,6 +10,7 @@ use App\Services\Api\UserRelationColumnService;
 use App\Services\Users\UserPublicIdBackfillService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use DateTimeImmutable;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -126,7 +127,9 @@ test('eager loads tolerate a missing public_id column during the deploy window',
 test('public api v1 responses emit Deprecation Sunset and Link headers', function (): void {
     $response = $this->getJson('/api/v1/collections');
     $sunset = EmitBigintUserIdDeprecationHeadersMiddleware::sunsetHttpDate();
-    $sunsetUnix = strtotime($sunset);
+    $expectedSunsetUnix = (new DateTimeImmutable('@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX))
+        ->modify('+1 year')
+        ->getTimestamp();
 
     $response->assertOk()
         ->assertHeader('Deprecation', '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
@@ -135,10 +138,7 @@ test('public api v1 responses emit Deprecation Sunset and Link headers', functio
     expect($response->headers->get('Link'))
         ->toContain('rel="deprecation"')
         ->toContain('users-public-id')
-        ->and(EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
-        ->toBeLessThan($sunsetUnix)
-        ->and($sunsetUnix - EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
-        ->toBe(EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_AFTER_SECONDS);
+        ->and(strtotime($sunset))->toBe($expectedSunsetUnix);
 });
 
 test('openapi deprecation examples follow DEPRECATION_UNIX', function (): void {

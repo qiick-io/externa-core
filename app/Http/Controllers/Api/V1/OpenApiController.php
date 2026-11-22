@@ -18,7 +18,7 @@ class OpenApiController extends Controller
         /** @var array<string, mixed> $spec */
         $spec = Yaml::parseFile($path);
 
-        // Keep Deprecation / Sunset examples aligned with the middleware constant (release SOT).
+        // JSON examples follow the middleware; the YAML file keeps literals pinned by a test.
         $spec['components']['headers']['Deprecation']['schema']['example'] = '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX;
         $spec['components']['headers']['Sunset']['schema']['example'] = EmitBigintUserIdDeprecationHeadersMiddleware::sunsetHttpDate();
 
