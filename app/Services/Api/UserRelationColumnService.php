@@ -74,6 +74,11 @@ final class UserRelationColumnService
      */
     public function runWithPublicIdFallback(callable $operation): mixed
     {
+        // SQLite may not throw for every missing-column shape; re-validate a positive memo.
+        if ($this->hasPublicIdColumn === true && ! Schema::hasColumn('users', 'public_id')) {
+            $this->forgetPublicIdColumnCache();
+        }
+
         try {
             return $operation();
         } catch (QueryException $exception) {
