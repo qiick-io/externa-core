@@ -25,7 +25,7 @@ test('users:backfill-public-id dry-run counts every user when the column is miss
     Schema::table('users', function ($table): void {
         $table->dropColumn('public_id');
     });
-    UserRelationColumnService::forgetPublicIdColumnCache();
+    app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
 
     $expected = (int) User::query()->count();
 
@@ -36,5 +36,5 @@ test('users:backfill-public-id dry-run counts every user when the column is miss
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_120000_add_public_id_to_users_table.php');
     $migration->up();
-    UserRelationColumnService::forgetPublicIdColumnCache();
+    app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
 });

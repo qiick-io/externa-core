@@ -417,7 +417,7 @@ class UpgradeCommand extends Command
             return self::FAILURE;
         }
 
-        UserRelationColumnService::forgetPublicIdColumnCache();
+        app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
 
         $this->info('Restarting queue workers (after migrate)…');
         $this->call('queue:restart');

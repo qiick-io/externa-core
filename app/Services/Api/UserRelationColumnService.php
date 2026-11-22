@@ -4,26 +4,24 @@ declare(strict_types=1);
 
 namespace App\Services\Api;
 
-use Illuminate\Contracts\Cache\Repository;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 
 /**
  * Column list for eager-loading users on API payloads during the public_id deploy window (#827).
  *
  * Mid-upgrade code may run before `users.public_id` exists; omit that column until migrate finishes.
- * Only a positive probe is memoised (per process and across HTTP requests via the file cache): a shared
- * "missing" result must not stick across parallel Pest workers or long-lived processes that later
- * see the column after migrate. Tests use the array store so Pest workers with divergent schemas do
- * not race on a shared file cache. {@see forgetPublicIdColumnCache()} clears both.
+ * The missing-column fallbacks (uniqueIds empty, select without public_id, create without the
+ * attribute) are temporary until v2 removes the bigint/public_id dual surface and the deploy window.
+ *
+ * The column probe is memoised only for the current request or queue job (scoped binding; Octane
+ * and the queue worker flush scoped instances between units of work). Never use a cross-process
+ * cache: a restored pre-upgrade backup would keep a stale "column exists" and 500 on every write.
+ * {@see forgetPublicIdColumnCache()} clears the in-request memo (migrations / upgrade / tests).
  */
 final class UserRelationColumnService
 {
-    private const string CACHE_KEY = 'schema.columns.users.public_id';
-
-    private const string CACHE_STORE = 'file';
-
-    private static ?bool $hasPublicIdColumn = null;
+    private ?bool $hasPublicIdColumn = null;
 
     /**
      * @return list<string>
@@ -55,35 +53,54 @@ final class UserRelationColumnService
      */
     public function hasPublicIdColumn(): bool
     {
-        if (self::$hasPublicIdColumn === true) {
-            return true;
-        }
-
-        if (self::probeCache()->get(self::CACHE_KEY) === true) {
-            return self::$hasPublicIdColumn = true;
-        }
-
-        $exists = Schema::hasColumn('users', 'public_id');
-
-        if ($exists) {
-            self::$hasPublicIdColumn = true;
-            self::probeCache()->forever(self::CACHE_KEY, true);
-        }
-
-        return $exists;
-    }
-
-    public static function forgetPublicIdColumnCache(): void
-    {
-        self::$hasPublicIdColumn = null;
-        self::probeCache()->forget(self::CACHE_KEY);
+        return $this->hasPublicIdColumn ??= Schema::hasColumn('users', 'public_id');
     }
 
     /**
-     * File store across HTTP requests; array store in tests (Pest parallel workers share the filesystem).
+     * Clear the in-request / in-job memo (upgrade after migrate; tests; unknown-column retry).
      */
-    private static function probeCache(): Repository
+    public function forgetPublicIdColumnCache(): void
     {
-        return Cache::store(app()->runningUnitTests() ? 'array' : self::CACHE_STORE);
+        $this->hasPublicIdColumn = null;
+    }
+
+    /**
+     * Temporary until v2: run $operation; on unknown `users.public_id`, forget the memo and retry once.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $operation
+     * @return TReturn
+     */
+    public function runWithPublicIdFallback(callable $operation): mixed
+    {
+        try {
+            return $operation();
+        } catch (QueryException $exception) {
+            if (! $this->isUnknownPublicIdColumn($exception)) {
+                throw $exception;
+            }
+
+            $this->forgetPublicIdColumnCache();
+
+            return $operation();
+        }
+    }
+
+    /**
+     * Whether the exception is an unknown-column failure for `users.public_id` (any supported engine).
+     */
+    public function isUnknownPublicIdColumn(QueryException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        if (! str_contains($message, 'public_id')) {
+            return false;
+        }
+
+        return str_contains($message, 'unknown column')
+            || str_contains($message, 'no such column')
+            || str_contains($message, 'has no column named')
+            || str_contains($message, 'does not exist');
     }
 }

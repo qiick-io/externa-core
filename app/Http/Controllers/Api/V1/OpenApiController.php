@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EmitBigintUserIdDeprecationHeadersMiddleware;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\Yaml\Yaml;
 
@@ -16,6 +17,10 @@ class OpenApiController extends Controller
         $path = resource_path('openapi/public-cms-v1.yaml');
         /** @var array<string, mixed> $spec */
         $spec = Yaml::parseFile($path);
+
+        // Keep Deprecation / Sunset examples aligned with the middleware constant (release SOT).
+        $spec['components']['headers']['Deprecation']['schema']['example'] = '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX;
+        $spec['components']['headers']['Sunset']['schema']['example'] = EmitBigintUserIdDeprecationHeadersMiddleware::sunsetHttpDate();
 
         return response()->json($spec, 200, [
             'Cache-Control' => 'public, max-age=300',

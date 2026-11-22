@@ -34,6 +34,10 @@
 
 -
 
+### Release checklist (1.6.0+)
+
+- [ ] Set `EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX` to the actual release unix instant (UTC). Sunset / OpenAPI examples follow from that constant — do not edit them by hand.
+
 ### Links
 
 - CHANGELOG: `CHANGELOG.md`

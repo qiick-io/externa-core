@@ -28,7 +28,7 @@ return new class extends Migration
             Schema::table('users', function (Blueprint $table): void {
                 $table->uuid('public_id')->nullable()->after('id');
             });
-            UserRelationColumnService::forgetPublicIdColumnCache();
+            app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
         }
 
         app(UserPublicIdBackfillService::class)->backfill();
@@ -62,7 +62,7 @@ return new class extends Migration
             Schema::table('users', function (Blueprint $table): void {
                 $table->dropColumn('public_id');
             });
-            UserRelationColumnService::forgetPublicIdColumnCache();
+            app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
         }
     }
 };

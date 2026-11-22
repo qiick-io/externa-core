@@ -13,6 +13,7 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Fleet users baseline: public_id UUID v7 is the external id; PK stays bigint (#827 step 2).
@@ -97,6 +98,7 @@ test('public_id migration is re-runnable after a partial apply', function (): vo
 
 test('eager loads tolerate a missing public_id column during the deploy window', function (): void {
     $user = User::factory()->create();
+    $columns = app(UserRelationColumnService::class);
 
     Schema::table('users', function ($table): void {
         if (Schema::hasIndex('users', 'users_public_id_unique')) {
@@ -106,9 +108,9 @@ test('eager loads tolerate a missing public_id column during the deploy window',
     Schema::table('users', function ($table): void {
         $table->dropColumn('public_id');
     });
-    UserRelationColumnService::forgetPublicIdColumnCache();
+    $columns->forgetPublicIdColumnCache();
 
-    $select = app(UserRelationColumnService::class)->selectList();
+    $select = $columns->selectList();
     expect($select)->not->toContain('public_id');
 
     $loaded = User::query()->select(explode(',', $select))->findOrFail($user->id);
@@ -118,17 +120,17 @@ test('eager loads tolerate a missing public_id column during the deploy window',
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_120000_add_public_id_to_users_table.php');
     $migration->up();
-    UserRelationColumnService::forgetPublicIdColumnCache();
+    $columns->forgetPublicIdColumnCache();
 });
 
 test('public api v1 responses emit Deprecation Sunset and Link headers', function (): void {
     $response = $this->getJson('/api/v1/collections');
+    $sunset = EmitBigintUserIdDeprecationHeadersMiddleware::sunsetHttpDate();
+    $sunsetUnix = strtotime($sunset);
 
     $response->assertOk()
         ->assertHeader('Deprecation', '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
-        ->assertHeader('Sunset', EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_HTTP_DATE);
-
-    $sunsetUnix = strtotime(EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_HTTP_DATE);
+        ->assertHeader('Sunset', $sunset);
 
     expect($response->headers->get('Link'))
         ->toContain('rel="deprecation"')
@@ -136,10 +138,26 @@ test('public api v1 responses emit Deprecation Sunset and Link headers', functio
         ->and(EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
         ->toBeLessThan($sunsetUnix)
         ->and($sunsetUnix - EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX)
-        ->toBeGreaterThanOrEqual(365 * 24 * 60 * 60);
+        ->toBe(EmitBigintUserIdDeprecationHeadersMiddleware::SUNSET_AFTER_SECONDS);
+});
+
+test('openapi deprecation examples follow DEPRECATION_UNIX', function (): void {
+    $sunset = EmitBigintUserIdDeprecationHeadersMiddleware::sunsetHttpDate();
+    $deprecation = '@'.EmitBigintUserIdDeprecationHeadersMiddleware::DEPRECATION_UNIX;
+
+    $response = $this->getJson('/api/v1/openapi.json')->assertOk();
+    expect($response->json('components.headers.Deprecation.schema.example'))->toBe($deprecation)
+        ->and($response->json('components.headers.Sunset.schema.example'))->toBe($sunset);
+
+    /** @var array<string, mixed> $yaml */
+    $yaml = Yaml::parseFile(resource_path('openapi/public-cms-v1.yaml'));
+    expect($yaml['components']['headers']['Deprecation']['schema']['example'])->toBe($deprecation)
+        ->and($yaml['components']['headers']['Sunset']['schema']['example'])->toBe($sunset);
 });
 
 test('creating a user succeeds when the public_id column is missing', function (): void {
+    $columns = app(UserRelationColumnService::class);
+
     Schema::table('users', function ($table): void {
         if (Schema::hasIndex('users', 'users_public_id_unique')) {
             $table->dropUnique(['public_id']);
@@ -148,7 +166,7 @@ test('creating a user succeeds when the public_id column is missing', function (
     Schema::table('users', function ($table): void {
         $table->dropColumn('public_id');
     });
-    UserRelationColumnService::forgetPublicIdColumnCache();
+    $columns->forgetPublicIdColumnCache();
 
     $user = User::factory()->create(['first_name' => 'DeployWindow']);
 
@@ -159,7 +177,37 @@ test('creating a user succeeds when the public_id column is missing', function (
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_120000_add_public_id_to_users_table.php');
     $migration->up();
-    UserRelationColumnService::forgetPublicIdColumnCache();
+    $columns->forgetPublicIdColumnCache();
+});
+
+test('creating a user recovers when public_id was dropped after the probe memoised it', function (): void {
+    $columns = app(UserRelationColumnService::class);
+
+    expect($columns->hasPublicIdColumn())->toBeTrue();
+
+    Schema::table('users', function ($table): void {
+        if (Schema::hasIndex('users', 'users_public_id_unique')) {
+            $table->dropUnique(['public_id']);
+        }
+    });
+    Schema::table('users', function ($table): void {
+        $table->dropColumn('public_id');
+    });
+
+    // No forget: simulates a restored pre-upgrade backup while the request still holds a positive memo.
+    expect($columns->hasPublicIdColumn())->toBeTrue();
+
+    $user = User::factory()->create(['first_name' => 'RollbackWindow']);
+
+    expect($user->exists)->toBeTrue()
+        ->and(Schema::hasColumn('users', 'public_id'))->toBeFalse()
+        ->and($columns->hasPublicIdColumn())->toBeFalse()
+        ->and((new User)->uniqueIds())->toBe([]);
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_120000_add_public_id_to_users_table.php');
+    $migration->up();
+    $columns->forgetPublicIdColumnCache();
 });
 
 test('cors exposes deprecation and rate-limit headers', function (): void {

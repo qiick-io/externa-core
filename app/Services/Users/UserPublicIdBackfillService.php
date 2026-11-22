@@ -64,7 +64,7 @@ final class UserPublicIdBackfillService
             }
         } while ($userIds->count() === $chunkSize);
 
-        UserRelationColumnService::forgetPublicIdColumnCache();
+        app(UserRelationColumnService::class)->forgetPublicIdColumnCache();
 
         return $written;
     }

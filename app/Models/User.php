@@ -8,11 +8,13 @@ use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -78,6 +80,7 @@ class User extends Authenticatable implements PasskeyUser
      * Only `public_id` is a generated UUID; the primary key stays an auto-increment id.
      *
      * Empty during the deploy window before the column exists so HasUuids does not write it.
+     * Temporary until v2 removes the deploy-window fallback.
      *
      * @return list<string>
      */
@@ -97,6 +100,30 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->applicationActivityLogOptions()
             ->logExcept(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token']);
+    }
+
+    /**
+     * Temporary until v2: if a restored backup dropped `public_id` after the request memoised it,
+     * forget the probe and insert without the UUID column once.
+     *
+     * @param  Builder<User>  $query
+     */
+    protected function performInsert(Builder $query): bool
+    {
+        try {
+            return parent::performInsert($query);
+        } catch (QueryException $exception) {
+            $columns = app(UserRelationColumnService::class);
+
+            if (! $columns->isUnknownPublicIdColumn($exception)) {
+                throw $exception;
+            }
+
+            $columns->forgetPublicIdColumnCache();
+            unset($this->attributes['public_id']);
+
+            return parent::performInsert($query);
+        }
     }
 
     /**
