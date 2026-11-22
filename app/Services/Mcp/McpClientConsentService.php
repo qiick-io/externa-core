@@ -22,6 +22,8 @@ use Laravel\Passport\Scope;
 use League\OAuth2\Server\Entities\ScopeEntityInterface;
 use League\OAuth2\Server\RequestTypes\AuthorizationRequest;
 use League\OAuth2\Server\RequestTypes\AuthorizationRequestInterface;
+use League\Uri\UriString;
+use Throwable;
 
 /**
  * What the consent screen for a remote MCP client offers and accepts (#802).
@@ -200,10 +202,19 @@ final class McpClientConsentService
     {
         $redirectUri = $request->query('redirect_uri');
         $redirectUri = is_string($redirectUri) && $redirectUri !== '' ? $redirectUri : ($client->redirect_uris[0] ?? '');
-        $redirectHost = parse_url((string) $redirectUri, PHP_URL_HOST);
+        $redirectUriService = app(McpOAuthRedirectUriService::class);
+        $redirectHost = $redirectUriService->rawHostOf((string) $redirectUri);
 
-        return is_string($redirectHost) && $redirectHost !== ''
-            ? $redirectHost
-            : (string) parse_url((string) $redirectUri, PHP_URL_SCHEME);
+        if (is_string($redirectHost) && $redirectHost !== '') {
+            return $redirectHost;
+        }
+
+        try {
+            $parts = UriString::parse((string) $redirectUri);
+        } catch (Throwable) {
+            return '';
+        }
+
+        return is_string($parts['scheme'] ?? null) ? (string) $parts['scheme'] : '';
     }
 }

@@ -13,6 +13,10 @@ use Laravel\Passport\Client;
  */
 final class McpOAuthClientAdminService
 {
+    public function __construct(
+        private readonly McpOAuthRedirectUriService $redirectUriService,
+    ) {}
+
     /**
      * Every registered client, newest first, with whether it ever received a grant.
      *
@@ -26,10 +30,12 @@ final class McpOAuthClientAdminService
             ->pluck('oauth_client_id')
             ->all();
 
+        $redirectUriService = $this->redirectUriService;
+
         return array_values(Client::query()
             ->orderByDesc('created_at')
             ->get()
-            ->map(static function (Client $client) use ($authorizedClientIds): array {
+            ->map(static function (Client $client) use ($authorizedClientIds, $redirectUriService): array {
                 $redirectUris = $client->getAttribute('redirect_uris');
                 $redirectUris = is_array($redirectUris) ? $redirectUris : [];
 
@@ -37,12 +43,12 @@ final class McpOAuthClientAdminService
                     'id' => (string) $client->getKey(),
                     'name' => (string) $client->name,
                     'redirect_hosts' => array_values(array_unique(array_filter(array_map(
-                        static function (mixed $uri): ?string {
+                        static function (mixed $uri) use ($redirectUriService): ?string {
                             if (! is_string($uri)) {
                                 return null;
                             }
 
-                            $host = parse_url($uri, PHP_URL_HOST);
+                            $host = $redirectUriService->rawHostOf($uri);
 
                             return is_string($host) && $host !== '' ? strtolower($host) : null;
                         },

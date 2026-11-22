@@ -7,6 +7,7 @@ namespace App\Actions\Mcp;
 use App\Data\Mcp\McpClientGrantData;
 use App\Enums\ApiKeyScopeEnum;
 use App\Models\ApiKey;
+use App\Services\Mcp\McpOAuthRedirectUriService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Passport\AuthCode;
@@ -66,7 +67,7 @@ final class GrantMcpClientAccessAction
                 ->withProperties([
                     'name' => $grant->name,
                     'oauth_client_id' => $grant->oauth_client_id,
-                    'redirect_host' => parse_url($grantData->redirectUri, PHP_URL_HOST),
+                    'redirect_host' => app(McpOAuthRedirectUriService::class)->rawHostOf($grantData->redirectUri),
                     'role_id' => $grant->role_id,
                     'scopes' => $grant->scopes,
                     'collection_slugs' => $grant->collection_slugs,

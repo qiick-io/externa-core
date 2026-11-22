@@ -101,8 +101,9 @@ class McpOAuthServiceProvider extends ServiceProvider
     /**
      * Rate-limit identity for registration, token and MCP auth failures.
      *
-     * IPv4: the address. IPv4-mapped IPv6 (`::ffff:a.b.c.d`): the embedded IPv4 so dual-stack
-     * proxies share one budget. Other IPv6: the /64 network prefix.
+     * IPv4: the address. IPv4-mapped (`::ffff:a.b.c.d`), IPv4-compatible (`::a.b.c.d`) and
+     * NAT64 well-known (`64:ff9b::/96`) unmap to the embedded IPv4 so dual-stack / translated
+     * clients share one budget. Other IPv6: the /64 network prefix.
      */
     public static function clientThrottleKey(Request $request): string
     {
@@ -114,14 +115,32 @@ class McpOAuthServiceProvider extends ServiceProvider
         }
 
         if (strlen($packed) === 16) {
-            // ::ffff:0:0/96 — unmap before the /64 bucket would collapse every mapped client.
-            if (strncmp($packed, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff", 12) === 0) {
-                return inet_ntop(substr($packed, 12)) ?: $ipAddress;
+            $embeddedIpv4 = self::embeddedIpv4FromMappedOrTranslated($packed);
+
+            if ($embeddedIpv4 !== null) {
+                return $embeddedIpv4;
             }
 
             return 'v6:'.bin2hex(substr($packed, 0, 8));
         }
 
         return $ipAddress;
+    }
+
+    /**
+     * Embedded IPv4 from ::ffff:/96, ::/96 (IPv4-compatible) or 64:ff9b::/96 (NAT64), else null.
+     */
+    private static function embeddedIpv4FromMappedOrTranslated(string $packed): ?string
+    {
+        $prefix = substr($packed, 0, 12);
+        $isIpv4Mapped = $prefix === "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff";
+        $isIpv4Compatible = $prefix === "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+        $isNat64WellKnown = $prefix === "\x00\x64\xff\x9b\x00\x00\x00\x00\x00\x00\x00\x00";
+
+        if (! $isIpv4Mapped && ! $isIpv4Compatible && ! $isNat64WellKnown) {
+            return null;
+        }
+
+        return inet_ntop(substr($packed, 12)) ?: null;
     }
 }

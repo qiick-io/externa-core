@@ -17,6 +17,7 @@ use App\Services\Mcp\McpOAuthServerService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\Request;
+use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
 use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
@@ -74,16 +75,28 @@ it('keeps a plain mcp:read API key working when the owner cannot grant that scop
     OAuth::mcpRequest($this, $secret['plain'])->assertOk();
 });
 
-it('refuses registration when a Unicode redirect host matches a blocked punycode host', function (): void {
-    $asciiHost = app(McpOAuthRedirectUriService::class)->normalizeHost('évil.com');
-
-    expect($asciiHost)->toBe('xn--vil-9la.com');
-
-    OAuthBlockedRedirectHost::query()->create(['host' => $asciiHost]);
+it('refuses non-ASCII redirect hosts at registration (clients must use punycode)', function (string $redirectUri): void {
+    OAuthBlockedRedirectHost::query()->create(['host' => 'evil.com']);
 
     $this->postJson('/oauth/register', [
         'client_name' => 'IDN bypass probe',
-        'redirect_uris' => ['https://évil.com/cb'],
+        'redirect_uris' => [$redirectUri],
+    ])->assertStatus(400)->assertJsonPath('error', 'invalid_redirect_uri');
+
+    expect(Client::query()->count())->toBe(0);
+})->with([
+    'fullwidth letters' => ['https://ｅｖｉｌ.com/cb'],
+    'combining accent' => ['https://évil.com/cb'],
+    'uppercase É' => ['https://Évil.com/cb'],
+    'subdomain of fullwidth' => ['https://sub.ｅｖｉｌ.com/cb'],
+]);
+
+it('refuses the NFC punycode form when that ASCII host is blocked', function (): void {
+    OAuthBlockedRedirectHost::query()->create(['host' => 'xn--vil-9la.com']);
+
+    $this->postJson('/oauth/register', [
+        'client_name' => 'NFC punycode',
+        'redirect_uris' => ['https://xn--vil-9la.com/cb'],
     ])->assertStatus(400)->assertJsonPath('error', 'invalid_redirect_uri');
 });
 
@@ -103,12 +116,44 @@ it('stores a blocked Unicode host as ASCII and matches the punycode form', funct
         ->assertRedirect();
 
     expect(OAuthBlockedRedirectHost::query()->where('host', 'xn--vil-9la.com')->exists())->toBeTrue()
-        ->and(OAuthBlockedRedirectHost::query()->where('host', 'évil.com')->exists())->toBeFalse();
+        ->and(OAuthBlockedRedirectHost::query()->where('host', 'évil.com')->exists())->toBeFalse()
+        ->and(app(McpOAuthRedirectUriService::class)->normalizeHost('évil.com'))->toBe('xn--vil-9la.com');
 
     $this->postJson('/oauth/register', [
         'client_name' => 'Punycode form',
         'redirect_uris' => ['https://xn--vil-9la.com/cb'],
     ])->assertStatus(400)->assertJsonPath('error', 'invalid_redirect_uri');
+});
+
+it('refuses authorize and token when an existing client has a non-ASCII redirect host', function (): void {
+    $role = Role::query()->create([
+        'name' => 'mcp-nonascii-'.uniqid(),
+        'guard_name' => 'web',
+        'is_system' => false,
+        'is_assignable' => true,
+    ]);
+    $role->syncPermissions([PermissionEnum::CanUseAi->value, ...allCollectionPermissions()]);
+    $user = User::factory()->create(['is_active' => true, 'email_verified_at' => now()]);
+    $user->syncRoles([$role]);
+
+    $clientId = OAuth::registerClient($this);
+    $client = Client::query()->findOrFail($clientId);
+    $client->forceFill(['redirect_uris' => ['https://ｅｖｉｌ.com/cb']])->save();
+
+    $pkce = OAuth::pkcePair();
+
+    $this->actingAs($user)
+        ->get(OAuth::authorizationUrl($clientId, $pkce['challenge'], 'mcp:use', [
+            'redirect_uri' => 'https://ｅｖｉｌ.com/cb',
+        ]))
+        ->assertStatus(400);
+
+    $this->post('/oauth/token', [
+        'grant_type' => 'refresh_token',
+        'refresh_token' => 'not-a-token',
+        'client_id' => $clientId,
+        'resource' => OAuth::resource(),
+    ])->assertStatus(400)->assertJsonPath('error', 'invalid_client');
 });
 
 it('revokes the token family when concurrent refreshers race on the same refresh token', function (): void {
@@ -187,14 +232,18 @@ it('does not revoke a new grant when an old refresh token from a prior consent i
     OAuth::mcpRequest($this, $secondAccess)->assertOk();
 });
 
-it('unmaps IPv4-mapped IPv6 addresses before building throttle keys', function (): void {
-    $mapped = Request::create('/', 'POST', server: ['REMOTE_ADDR' => '::ffff:203.0.113.50']);
+it('unmaps IPv4-mapped, IPv4-compatible and NAT64 IPv6 addresses before building throttle keys', function (string $remoteAddr): void {
+    $request = Request::create('/', 'POST', server: ['REMOTE_ADDR' => $remoteAddr]);
     $plain = Request::create('/', 'POST', server: ['REMOTE_ADDR' => '203.0.113.50']);
 
-    expect(McpOAuthServiceProvider::clientThrottleKey($mapped))
+    expect(McpOAuthServiceProvider::clientThrottleKey($request))
         ->toBe(McpOAuthServiceProvider::clientThrottleKey($plain))
         ->toBe('203.0.113.50');
-});
+})->with([
+    'ipv4-mapped' => ['::ffff:203.0.113.50'],
+    'ipv4-compatible' => ['::203.0.113.50'],
+    'nat64 well-known' => ['64:ff9b::203.0.113.50'],
+]);
 
 it('advertises discovery URLs from config app.url even when the Host header differs', function (): void {
     config([

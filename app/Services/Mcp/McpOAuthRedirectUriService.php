@@ -8,11 +8,18 @@ use App\Models\OAuthBlockedRedirectHost;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Laravel\Passport\Client;
+use League\Uri\UriString;
+use Throwable;
 
 /**
  * Redirect URI and blocked-host rules for MCP OAuth (#815): exact match, no fragments,
  * dangerous schemes denylisted even when listed in custom schemes, and blocked hosts that
- * match the registered host or any subdomain (trailing dots normalised, IDN → ASCII).
+ * match the registered host or any subdomain.
+ *
+ * Registered redirect hosts must already be ASCII (punycode for IDN). Unicode spellings
+ * (fullwidth letters, combining accents, …) are refused: `parse_url` corrupts high bytes and
+ * `idn_to_ascii` can emit `'?'` instead of failing. Hosts are parsed with League Uri, never
+ * `parse_url`. The admin block form still accepts Unicode and stores the ASCII form.
  */
 final class McpOAuthRedirectUriService
 {
@@ -33,7 +40,13 @@ final class McpOAuthRedirectUriService
             return false;
         }
 
-        $scheme = parse_url($redirectUri, PHP_URL_SCHEME);
+        try {
+            $parts = UriString::parse($redirectUri);
+        } catch (Throwable) {
+            return false;
+        }
+
+        $scheme = $parts['scheme'] ?? null;
 
         if (! is_string($scheme) || $scheme === '') {
             return false;
@@ -43,14 +56,17 @@ final class McpOAuthRedirectUriService
             return false;
         }
 
-        $host = parse_url($redirectUri, PHP_URL_HOST);
+        $rawHost = $parts['host'] ?? null;
 
-        if (is_string($host) && $host !== '') {
-            try {
-                $this->normalizeHost($host);
-            } catch (InvalidArgumentException) {
-                return false;
-            }
+        if (! is_string($rawHost) || $rawHost === '') {
+            return true;
+        }
+
+        try {
+            $this->assertRedirectHostIsAscii($rawHost);
+            $this->normalizeHost($this->unwrapIpv6Host($rawHost));
+        } catch (InvalidArgumentException) {
+            return false;
         }
 
         return true;
@@ -58,25 +74,32 @@ final class McpOAuthRedirectUriService
 
     /**
      * Normalise a host for storage and comparison: lower case, no trailing dots, IDN to ASCII
-     * (UTS #46 / IDNA2008, nontransitional). Throws when conversion fails.
+     * (UTS #46 / IDNA2008, nontransitional, STD3). Throws when conversion fails or reports errors.
      *
      * @throws InvalidArgumentException
      */
     public function normalizeHost(string $host): string
     {
-        $normalizedHost = Str::lower(rtrim(trim($host), '.'));
+        $normalizedHost = Str::lower(rtrim(trim($this->unwrapIpv6Host($host)), '.'));
 
         if ($normalizedHost === '') {
             throw new InvalidArgumentException('Host is empty.');
         }
 
+        $idnaInfo = [];
         $asciiHost = idn_to_ascii(
             $normalizedHost,
-            IDNA_DEFAULT | IDNA_NONTRANSITIONAL_TO_ASCII,
+            IDNA_DEFAULT | IDNA_NONTRANSITIONAL_TO_ASCII | IDNA_USE_STD3_RULES,
             INTL_IDNA_VARIANT_UTS46,
+            $idnaInfo,
         );
 
-        if ($asciiHost === false || $asciiHost === '') {
+        if (
+            $asciiHost === false
+            || $asciiHost === ''
+            || str_contains($asciiHost, '?')
+            || (($idnaInfo['errors'] ?? 0) !== 0)
+        ) {
             throw new InvalidArgumentException('Host is not a valid internationalised domain name.');
         }
 
@@ -85,22 +108,32 @@ final class McpOAuthRedirectUriService
 
     /**
      * Host of a redirect URI, or null when the URI has none (private-use schemes).
+     * Non-ASCII hosts are refused: clients must register the punycode form.
      *
-     * @throws InvalidArgumentException when the host fails IDN conversion
+     * @throws InvalidArgumentException when the host is non-ASCII or fails IDN conversion
      */
     public function hostOf(string $redirectUri): ?string
     {
-        $host = parse_url($redirectUri, PHP_URL_HOST);
+        try {
+            $parts = UriString::parse($redirectUri);
+        } catch (Throwable $exception) {
+            throw new InvalidArgumentException('Redirect URI could not be parsed.', 0, $exception);
+        }
 
-        if (! is_string($host) || $host === '') {
+        $rawHost = $parts['host'] ?? null;
+
+        if (! is_string($rawHost) || $rawHost === '') {
             return null;
         }
 
-        return $this->normalizeHost($host);
+        $this->assertRedirectHostIsAscii($rawHost);
+
+        return $this->normalizeHost($rawHost);
     }
 
     /**
      * Whether `$host` is blocked: exact match or a subdomain of a blocked host.
+     * A host that fails normalisation is treated as blocked (fail closed).
      */
     public function isHostBlocked(string $host): bool
     {
@@ -134,7 +167,8 @@ final class McpOAuthRedirectUriService
     }
 
     /**
-     * Whether any of the client's redirect URIs resolve to a blocked host.
+     * Whether any of the client's redirect URIs resolve to a blocked host, or use a non-ASCII
+     * host that registration would refuse.
      */
     public function clientHasBlockedRedirectHost(Client $client): bool
     {
@@ -161,5 +195,51 @@ final class McpOAuthRedirectUriService
         }
 
         return false;
+    }
+
+    /**
+     * Raw host from a redirect URI via League Uri (no `parse_url`), or null when absent.
+     */
+    public function rawHostOf(string $redirectUri): ?string
+    {
+        try {
+            $parts = UriString::parse($redirectUri);
+        } catch (Throwable) {
+            return null;
+        }
+
+        $rawHost = $parts['host'] ?? null;
+
+        if (! is_string($rawHost) || $rawHost === '') {
+            return null;
+        }
+
+        return $this->unwrapIpv6Host($rawHost);
+    }
+
+    /**
+     * Redirect hosts on the wire must already be ASCII; IDN clients register the punycode form.
+     *
+     * @throws InvalidArgumentException
+     */
+    private function assertRedirectHostIsAscii(string $host): void
+    {
+        $candidate = $this->unwrapIpv6Host($host);
+
+        if (preg_match('/[^\x00-\x7F]/', $candidate) === 1) {
+            throw new InvalidArgumentException('Redirect host must be ASCII; register the punycode form for an IDN.');
+        }
+    }
+
+    /**
+     * Strip brackets from an IPv6 literal host (`[::1]` → `::1`).
+     */
+    private function unwrapIpv6Host(string $host): string
+    {
+        if (str_starts_with($host, '[') && str_ends_with($host, ']')) {
+            return substr($host, 1, -1);
+        }
+
+        return $host;
     }
 }
