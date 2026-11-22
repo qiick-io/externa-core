@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -104,26 +103,23 @@ class User extends Authenticatable implements PasskeyUser
 
     /**
      * Temporary until v2: if a restored backup dropped `public_id` after the request memoised it,
-     * forget the probe and insert without the UUID column once.
+     * sync the probe from Schema and insert without the UUID column.
+     *
+     * Prefer a pre-insert Schema sync over catch-and-retry: PostgreSQL aborts the transaction on
+     * the failed INSERT, so a retry in the same transaction would raise 25P02.
      *
      * @param  Builder<static>  $query
      */
     protected function performInsert(Builder $query): bool
     {
-        try {
-            return parent::performInsert($query);
-        } catch (QueryException $exception) {
-            $columns = app(UserRelationColumnService::class);
+        $columns = app(UserRelationColumnService::class);
+        $columns->forgetPublicIdColumnCache();
 
-            if (! $columns->isUnknownPublicIdColumn($exception)) {
-                throw $exception;
-            }
-
-            $columns->forgetPublicIdColumnCache();
+        if (! $columns->hasPublicIdColumn()) {
             unset($this->attributes['public_id']);
-
-            return parent::performInsert($query);
         }
+
+        return parent::performInsert($query);
     }
 
     /**
