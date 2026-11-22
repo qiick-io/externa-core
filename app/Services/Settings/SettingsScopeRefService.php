@@ -200,11 +200,9 @@ final class SettingsScopeRefService
      */
     public function runWithScopeRefFallback(callable $operation): mixed
     {
-        // SQLite treats a missing double-quoted "scope_ref" as a string literal (no QueryException),
-        // so re-validate a positive memo against Schema before querying.
-        if ($this->hasScopeRefColumn === true && ! Schema::hasColumn('settings', 'scope_ref')) {
-            $this->forgetScopeRefColumnCache();
-        }
+        // Refresh from Schema so a mid-process backup restore cannot keep a stale positive memo.
+        // (SQLite will not throw on a missing double-quoted "scope_ref" in WHERE.)
+        $this->hasScopeRefColumn = Schema::hasColumn('settings', 'scope_ref');
 
         try {
             return $operation();
@@ -214,6 +212,7 @@ final class SettingsScopeRefService
             }
 
             $this->forgetScopeRefColumnCache();
+            $this->hasScopeRefColumn = Schema::hasColumn('settings', 'scope_ref');
 
             return $operation();
         }

@@ -62,7 +62,16 @@ it('memoizes the raw bag across every area reader until settings change', functi
     $projectSettings->content()->revisionRetentionDays();
     $projectSettings->integrations()->webhookUrl();
 
-    expect(DB::getQueryLog())->toHaveCount(1);
+    // One settings select (+ at most one schema probe for scope_ref); area readers share the memoized bag.
+    $dataQueries = collect(DB::getQueryLog())->filter(function (array $query): bool {
+        $sql = strtolower($query['query']);
+
+        return ! str_contains($sql, 'pragma')
+            && ! str_contains($sql, 'information_schema')
+            && ! str_contains($sql, 'pg_attribute')
+            && ! str_contains($sql, 'sqlite_master');
+    });
+    expect($dataQueries->values()->all())->toHaveCount(1);
 
     DB::disableQueryLog();
 });

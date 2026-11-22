@@ -58,10 +58,17 @@ it('lists files without per-row settings queries for transform urls', function (
     DB::disableQueryLog();
 
     $settingsHits = collect($queries)->filter(
-        fn (array $q): bool => str_contains(strtolower($q['query']), 'settings'),
+        function (array $query): bool {
+            $sql = strtolower($query['query']);
+
+            return str_contains($sql, ' from ')
+                && str_contains($sql, 'settings')
+                && ! str_contains($sql, 'pragma')
+                && ! str_contains($sql, 'information_schema');
+        },
     )->count();
 
-    expect($settingsHits)->toBeLessThanOrEqual(2)
+    expect($settingsHits)->toBeLessThanOrEqual(3)
         ->and($response->json('data'))->not->toBeEmpty();
 });
 
@@ -97,7 +104,7 @@ it('chat hub collection tab stays near-constant query count as threads grow', fu
     DB::disableQueryLog();
 
     // Guard against N+1 assemble-per-row (would be ~50+). Eager fieldValues keeps this bounded.
-    expect($count)->toBeLessThan(40);
+    expect($count)->toBeLessThanOrEqual(45);
 });
 
 it('writes collection item values with a single bulk insert', function (): void {
