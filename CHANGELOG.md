@@ -56,6 +56,16 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Replace the local Socialite OIDC client with `qiick/laravel-oidc` `^1.0@beta` (1.0.0-beta.4): settings-backed provider, JIT, auto-link, SSO-only + break-glass, domain allowlist, button label; identity key is `(issuer, subject)` in `user_identities` (#827).
 - `laravel/mcp` 1.1.2 → 1.2.1, ahead of OAuth for remote MCP clients (#802). Two effects on the `/mcp` endpoint: a request whose `Origin` header is neither `APP_URL` nor `localhost` is refused with `403` before authentication (DNS-rebinding protection; requests without an `Origin` header, which is what server-side clients send, are unaffected), and `ping` is answered only for clients on the legacy `initialize` handshake, so a 2026-07-28 client probes with `server/discover` instead. API keys, scopes and tools are unchanged.
 
+## [1.5.1] - 2026-11-22
+
+### Upgrade notes
+
+- Run `php artisan externa:upgrade` (or `php artisan migrate`) so `api_keys.role_id` switches from `cascadeOnDelete` to `restrictOnDelete`. No row data changes. Rolling back the older `owner_id` migration is refused: restore a pre-upgrade backup instead.
+
+### Fixed
+
+- Deleting a role no longer cascades away every API key that still holds it: the admin (and AI) delete paths refuse while any key — active or revoked — references the role, with a translated count; bulk delete skips those roles and reports how many; an additive migration switches `api_keys.role_id` to `restrictOnDelete` (#833).
+
 ## [1.5.0] - 2026-11-18
 
 ### Upgrade notes
@@ -541,6 +551,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
 [Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.5.0...HEAD
+[1.5.1]: https://github.com/qiick-io/externa-core/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/qiick-io/externa-core/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.4.0
 [1.3.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.3.0
