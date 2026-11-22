@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\IrreversibleMigrationException;
 use App\Services\Api\ApiKeyOwnerService;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -28,8 +29,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('api_keys', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('owner_id');
-        });
+        throw new IrreversibleMigrationException(
+            __('This migration cannot be rolled back: it would erase every recorded API key owner. Restore the pre-upgrade backup instead.')
+        );
     }
 };

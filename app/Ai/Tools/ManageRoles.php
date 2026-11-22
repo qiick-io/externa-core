@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Actions\Roles\DeleteRoleAction;
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
@@ -360,7 +361,7 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
 
         $summary = $this->serializeRole($role, false);
         $this->logAiMutation($role, 'delete_role');
-        $role->delete();
+        app(DeleteRoleAction::class)->execute($role);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return json_encode(['ok' => true, 'deleted' => $summary], JSON_PRETTY_PRINT) ?: '{}';
