@@ -17,6 +17,7 @@ use App\Services\Api\CollectionPermissionSyncService;
 use App\Services\Api\FilePermissionSyncService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
@@ -360,7 +361,11 @@ class ManageRoles implements Approvable, ClassifiesToolActionsContract, Tool
 
         $summary = $this->serializeRole($role, false);
         $this->logAiMutation($role, 'delete_role');
-        $role->delete();
+
+        // Transaction so Spatie's permission detach rolls back if the restrict FK refuses.
+        DB::transaction(function () use ($role): void {
+            $role->delete();
+        });
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return json_encode(['ok' => true, 'deleted' => $summary], JSON_PRETTY_PRINT) ?: '{}';
