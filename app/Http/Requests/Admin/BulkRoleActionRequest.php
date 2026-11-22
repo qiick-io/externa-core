@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
@@ -8,6 +10,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 /**
@@ -40,19 +43,44 @@ class BulkRoleActionRequest extends FormRequest
     }
 
     /**
+     * Role ids that may be deleted: not protected, and not still referenced by API keys.
+     *
      * @return list<int>
      */
     public function deletableIds(): array
     {
-        return collect($this->validated('ids'))
-            ->reject(function (int $id): bool {
-                $role = Role::query()->whereKey($id)->first();
+        return array_values($this->candidateRoles()
+            ->filter(fn (Role $role): bool => ! $this->isProtected($role) && $role->api_keys_count === 0)
+            ->map(fn (Role $role): int => (int) $role->id)
+            ->all());
+    }
 
-                return $role === null
-                    || $role->name === RoleEnum::SuperAdmin->value
-                    || $role->isLockedSystemRole();
-            })
-            ->values()
-            ->all();
+    /**
+     * How many selected custom roles are kept because API keys still reference them.
+     */
+    public function skippedApiKeyRoleCount(): int
+    {
+        return $this->candidateRoles()
+            ->filter(fn (Role $role): bool => ! $this->isProtected($role) && $role->api_keys_count > 0)
+            ->count();
+    }
+
+    /**
+     * @return Collection<int, Role>
+     */
+    private function candidateRoles(): Collection
+    {
+        /** @var list<int> $ids */
+        $ids = $this->validated('ids');
+
+        return Role::query()
+            ->whereIn('id', $ids)
+            ->withCount('apiKeys')
+            ->get();
+    }
+
+    private function isProtected(Role $role): bool
+    {
+        return $role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole();
     }
 }

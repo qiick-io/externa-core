@@ -123,7 +123,6 @@ return [
     'App\Http\Middleware\EnsureUserHasPermissionMiddleware',
     'App\Http\Middleware\SetSecurityHeadersMiddleware',
     'App\Http\Middleware\ThrottleAuthSensitiveMiddleware',
-    'App\Http\Requests\Admin\BulkRoleActionRequest',
     'App\Http\Requests\Admin\BulkUserActionRequest',
     'App\Http\Requests\Admin\BulkUserGroupActionRequest',
     'App\Http\Requests\Admin\StorePermissionRequest',
