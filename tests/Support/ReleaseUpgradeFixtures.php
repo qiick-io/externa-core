@@ -50,6 +50,8 @@ final class ReleaseUpgradeFixtures
      */
     public const LEGACY_OIDC_ISSUER = 'https://idp.example.com/realms/externa';
 
+    public const API_KEYS_ROLE_RESTRICT_MIGRATION = '2026_11_22_094151_change_api_keys_role_id_to_restrict_on_delete';
+
     /**
      * Cache tables: the upgrade clears them on purpose (`optimize:clear`).
      */
@@ -259,6 +261,12 @@ final class ReleaseUpgradeFixtures
             array_push($violations, ...self::legacyOidcSubjectViolations($oidcExpectations));
         }
 
+        if (in_array(self::API_KEYS_ROLE_RESTRICT_MIGRATION, $seededGroups, true)) {
+            /** @var array{roleIds: list<string>, apiKeyIds: list<string>} $roleRestrictExpectations */
+            $roleRestrictExpectations = $expectations[self::API_KEYS_ROLE_RESTRICT_MIGRATION];
+            array_push($violations, ...self::apiKeysRoleRestrictViolations($roleRestrictExpectations));
+        }
+
         return $violations;
     }
 
@@ -275,6 +283,7 @@ final class ReleaseUpgradeFixtures
             self::THEME_PRESETS_MIGRATION => self::seedThemePresets(...),
             self::API_KEY_SCOPES_MIGRATION => self::seedApiKeys(...),
             self::LEGACY_OIDC_SUBJECTS_MIGRATION => self::seedLegacyOidcSubjects(...),
+            self::API_KEYS_ROLE_RESTRICT_MIGRATION => self::seedApiKeysBoundToCustomRoles(...),
         ];
     }
 
@@ -583,6 +592,49 @@ final class ReleaseUpgradeFixtures
     }
 
     /**
+     * Custom roles with an active and a revoked API key each, so the restrict-on-delete
+     * migration is rehearsed against real `api_keys.role_id` rows (docblock: no row changes;
+     * a raw DELETE of a referenced role must fail afterwards).
+     *
+     * @return array{roleIds: list<string>, apiKeyIds: list<string>}
+     */
+    private static function seedApiKeysBoundToCustomRoles(): array
+    {
+        $roleIds = [];
+        $apiKeyIds = [];
+
+        foreach (['active', 'revoked'] as $offset => $state) {
+            $roleId = DB::table('roles')->insertGetId([
+                'name' => 'upgrade-role-restrict-'.$state,
+                'guard_name' => 'web',
+                'created_at' => self::FIXTURE_CREATED_AT,
+                'updated_at' => self::FIXTURE_UPDATED_AT,
+            ]);
+            $roleIds[] = (string) $roleId;
+
+            $row = [
+                'uuid' => sprintf('00000000-0000-4000-b000-%012d', $offset + 1),
+                'name' => 'Upgrade role-restrict '.$state,
+                'key_prefix' => 'ek_restr'.str_pad((string) ($offset + 1), 4, '0', STR_PAD_LEFT),
+                'key_hash' => hash('sha256', 'upgrade-role-restrict-'.$state),
+                'role_id' => $roleId,
+                'scopes' => '["collections:read"]',
+                'revoked_at' => $state === 'revoked' ? '2026-07-08 09:10:11' : null,
+                'created_at' => self::FIXTURE_CREATED_AT,
+                'updated_at' => self::FIXTURE_UPDATED_AT,
+            ];
+
+            if (Schema::hasColumn('api_keys', 'owner_id')) {
+                $row['owner_id'] = null;
+            }
+
+            $apiKeyIds[] = (string) DB::table('api_keys')->insertGetId($row);
+        }
+
+        return ['roleIds' => $roleIds, 'apiKeyIds' => $apiKeyIds];
+    }
+
+    /**
      * Tool calls from before the column existed: their `api_key_id` must stay null.
      *
      * @return list<string> pending tool call ids
@@ -627,6 +679,49 @@ final class ReleaseUpgradeFixtures
             && $rowBefore['group'] === 'appearance'
             && $rowBefore['key'] === 'theme_preset'
             && in_array(self::THEME_PRESETS_MIGRATION, $seededGroups, true);
+    }
+
+    /**
+     * After the restrict migration, `api_keys.role_id` must be restrict/no action, and every
+     * seeded key/role row must still exist (docblock: no row changes).
+     *
+     * @param  array{roleIds: list<string>, apiKeyIds: list<string>}  $expectations
+     * @return list<string>
+     */
+    private static function apiKeysRoleRestrictViolations(array $expectations): array
+    {
+        $violations = [];
+
+        foreach ($expectations['apiKeyIds'] as $apiKeyId) {
+            if (! DB::table('api_keys')->where('id', $apiKeyId)->exists()) {
+                $violations[] = "api_keys row {$apiKeyId} is lost after the role-restrict migration.";
+            }
+        }
+
+        foreach ($expectations['roleIds'] as $roleId) {
+            if (! DB::table('roles')->where('id', $roleId)->exists()) {
+                $violations[] = "roles row {$roleId} is lost after the role-restrict migration.";
+            }
+        }
+
+        $roleForeignKey = null;
+
+        foreach (Schema::getForeignKeys('api_keys') as $foreignKey) {
+            if ($foreignKey['columns'] === ['role_id']) {
+                $roleForeignKey = $foreignKey;
+
+                break;
+            }
+        }
+
+        $onDelete = strtolower((string) ($roleForeignKey['on_delete'] ?? ''));
+
+        if ($roleForeignKey === null || ! in_array($onDelete, ['restrict', 'no action'], true)) {
+            $violations[] = 'api_keys.role_id foreign key must use restrictOnDelete after the migration, got '
+                .($roleForeignKey === null ? 'none' : var_export($roleForeignKey['on_delete'], true)).'.';
+        }
+
+        return $violations;
     }
 
     /**

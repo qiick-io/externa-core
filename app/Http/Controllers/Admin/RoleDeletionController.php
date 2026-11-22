@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Roles\BulkDeleteRolesAction;
+use App\Actions\Roles\DeleteRoleAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkRoleActionRequest;
 use App\Models\Role;
@@ -20,11 +22,11 @@ class RoleDeletionController extends Controller
     /**
      * Delete a role unless it is protected or still referenced by API keys.
      */
-    public function destroy(Role $role): RedirectResponse
+    public function destroy(Role $role, DeleteRoleAction $deleteRoleAction): RedirectResponse
     {
         Gate::authorize('delete', $role);
 
-        $role->delete();
+        $deleteRoleAction->execute($role);
 
         return redirect()
             ->route('roles.index')
@@ -34,20 +36,16 @@ class RoleDeletionController extends Controller
     /**
      * Bulk-delete roles, skipping protected roles and roles that API keys still use.
      */
-    public function bulkActions(BulkRoleActionRequest $request): RedirectResponse
+    public function bulkActions(BulkRoleActionRequest $request, BulkDeleteRolesAction $bulkDeleteRolesAction): RedirectResponse
     {
-        $ids = $request->deletableIds();
-        $skippedApiKeyCount = $request->skippedApiKeyRoleCount();
-
-        if ($ids !== []) {
-            Role::query()->whereIn('id', $ids)->delete();
-        }
+        $result = $bulkDeleteRolesAction->execute($request->deletableIds());
+        $skippedApiKeyCount = $request->skippedApiKeyRoleCount() + $result['skippedForeignKey'];
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->back()
-            ->with('success', $this->bulkDeleteFlashMessage(count($ids), $skippedApiKeyCount));
+            ->with('success', $this->bulkDeleteFlashMessage($result['deleted'], $skippedApiKeyCount));
     }
 
     private function bulkDeleteFlashMessage(int $deletedCount, int $skippedApiKeyCount): string

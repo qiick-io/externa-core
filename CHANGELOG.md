@@ -40,6 +40,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Fixed
 
 - Deleting a role no longer cascades away every API key that still holds it: the admin (and AI) delete paths refuse while any key — active or revoked — references the role, with a translated count; bulk delete skips those roles and reports how many; an additive migration switches `api_keys.role_id` to `restrictOnDelete` (#833).
+- Rolling back the `owner_id` API-key migration is refused (it would erase every recorded owner); restore a pre-upgrade backup instead. The restrict-on-delete migration is re-runnable after a partial failure (#833).
 - API key IP allowlists accept and match IPv6 addresses and CIDRs; malformed entries are refused when creating a key.
 - Install / seed: no default super-admin password outside `local` and `testing`; outside those envs the seeder creates an admin only with a strong non-default `INITIAL_SUPER_ADMIN_PASSWORD`; `externa:install` prompts or fails closed under `--no-interaction` instead of creating `superadmin@example.com` / `password` (#821).
 - GraphQL: enable default max query depth (15) and max query complexity (2000), and disable introspection in production by default; all three remain overridable via `GRAPHQL_MAX_DEPTH`, `GRAPHQL_MAX_COMPLEXITY` and `LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION` (#819).
