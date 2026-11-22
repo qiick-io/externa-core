@@ -43,6 +43,11 @@ class ValidateMcpOAuthTokenRequestMiddleware
 
         $clientId = $request->input('client_id');
 
+        if (! is_string($clientId) || $clientId === '') {
+            // Public clients may send only HTTP Basic (client_id as username, empty password).
+            $clientId = $request->getUser();
+        }
+
         if (is_string($clientId) && $clientId !== '') {
             $client = Client::query()->whereKey($clientId)->where('revoked', false)->first();
 

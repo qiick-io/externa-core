@@ -97,6 +97,7 @@ it('accepts loopback http and listed private-use schemes', function (string $red
     ])->assertCreated();
 })->with([
     'loopback' => ['http://127.0.0.1:8787/callback'],
+    'ipv6 loopback' => ['http://[::1]:3000/cb'],
     'cursor scheme' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
 ]);
 

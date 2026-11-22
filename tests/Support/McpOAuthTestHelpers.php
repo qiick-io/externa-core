@@ -94,10 +94,12 @@ final class McpOAuthTestHelpers
 
     /**
      * Open the consent screen as the user; the response (an Inertia page).
+     *
+     * @param  array<string, string>  $authorizeOverrides
      */
-    public static function openConsent(object $test, User $user, string $clientId, string $codeChallenge, ?string $scope = null): TestResponse
+    public static function openConsent(object $test, User $user, string $clientId, string $codeChallenge, ?string $scope = null, array $authorizeOverrides = []): TestResponse
     {
-        return $test->actingAs($user)->get(self::authorizationUrl($clientId, $codeChallenge, $scope));
+        return $test->actingAs($user)->get(self::authorizationUrl($clientId, $codeChallenge, $scope, $authorizeOverrides));
     }
 
     /**

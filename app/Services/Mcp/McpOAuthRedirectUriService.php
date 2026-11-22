@@ -74,7 +74,9 @@ final class McpOAuthRedirectUriService
 
     /**
      * Normalise a host for storage and comparison: lower case, no trailing dots, IDN to ASCII
-     * (UTS #46 / IDNA2008, nontransitional, STD3). Throws when conversion fails or reports errors.
+     * (UTS #46 / IDNA2008, nontransitional, STD3). IP literals (RFC 8252 loopback included) skip
+     * IDNA — `idn_to_ascii('::1')` fails and would wrongly refuse `http://[::1]:…`. Throws when
+     * conversion fails or reports errors.
      *
      * @throws InvalidArgumentException
      */
@@ -84,6 +86,10 @@ final class McpOAuthRedirectUriService
 
         if ($normalizedHost === '') {
             throw new InvalidArgumentException('Host is empty.');
+        }
+
+        if (filter_var($normalizedHost, FILTER_VALIDATE_IP) !== false) {
+            return $normalizedHost;
         }
 
         $idnaInfo = [];

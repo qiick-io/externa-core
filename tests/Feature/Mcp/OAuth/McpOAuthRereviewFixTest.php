@@ -125,6 +125,57 @@ it('stores a blocked Unicode host as ASCII and matches the punycode form', funct
     ])->assertStatus(400)->assertJsonPath('error', 'invalid_redirect_uri');
 });
 
+it('registers an IPv6 loopback client and completes the OAuth flow end to end', function (): void {
+    $redirectUri = 'http://[::1]:3000/cb';
+    $role = Role::query()->create([
+        'name' => 'mcp-ipv6-loopback-'.uniqid(),
+        'guard_name' => 'web',
+        'is_system' => false,
+        'is_assignable' => true,
+    ]);
+    $role->syncPermissions([PermissionEnum::CanUseAi->value, ...allCollectionPermissions()]);
+    $user = User::factory()->create(['is_active' => true, 'email_verified_at' => now()]);
+    $user->syncRoles([$role]);
+
+    $clientId = OAuth::registerClient($this, $redirectUri);
+    $pkce = OAuth::pkcePair();
+    $consentPage = OAuth::openConsent($this, $user, $clientId, $pkce['challenge'], 'mcp:use', [
+        'redirect_uri' => $redirectUri,
+    ])->assertOk();
+    $clientRedirect = OAuth::approve($this, $consentPage, [
+        'scopes' => ['mcp:read'],
+        'role_id' => $role->id,
+    ])->assertRedirect();
+
+    expect((string) $clientRedirect->headers->get('Location'))->toStartWith($redirectUri.'?');
+
+    $accessToken = (string) OAuth::exchangeCode($this, $clientId, OAuth::codeFrom($clientRedirect), $pkce['verifier'], [
+        'redirect_uri' => $redirectUri,
+    ])->assertOk()->json('access_token');
+    auth()->forgetGuards();
+
+    expect(app(McpOAuthRedirectUriService::class)->normalizeHost('[::1]'))->toBe('::1')
+        ->and(app(McpOAuthRedirectUriService::class)->clientHasBlockedRedirectHost(
+            Client::query()->findOrFail($clientId),
+        ))->toBeFalse();
+
+    OAuth::mcpRequest($this, $accessToken)->assertOk();
+});
+
+it('applies the blocked-host check when the client id arrives only via HTTP Basic', function (): void {
+    $clientId = OAuth::registerClient($this);
+    $client = Client::query()->findOrFail($clientId);
+    $client->forceFill(['redirect_uris' => ['https://ｅｖｉｌ.com/cb']])->save();
+
+    $this->post('/oauth/token', [
+        'grant_type' => 'refresh_token',
+        'refresh_token' => 'not-a-token',
+        'resource' => OAuth::resource(),
+    ], [
+        'HTTP_AUTHORIZATION' => 'Basic '.base64_encode($clientId.':'),
+    ])->assertStatus(400)->assertJsonPath('error', 'invalid_client');
+});
+
 it('refuses authorize and token when an existing client has a non-ASCII redirect host', function (): void {
     $role = Role::query()->create([
         'name' => 'mcp-nonascii-'.uniqid(),
