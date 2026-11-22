@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Settings;
 
-use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -20,15 +19,16 @@ use Illuminate\Support\Facades\Schema;
  * timestamp; then highest `id`); losers are archived then deleted.
  *
  * Dry-run and duplicate discovery work before the migration adds `scope_ref`: identity is
- * computed from `scope_id` when the column is missing.
+ * computed from `scope_id` when the column is missing. The `scope_id` / missing-column
+ * fallbacks (repository, chat unread) are temporary until v2 drops `scope_id`.
+ *
+ * The column probe is memoised only for the current request or queue job (scoped binding).
+ * Never use a cross-process cache: a restored pre-upgrade backup would keep a stale
+ * "column exists" and make settings reads miss (including security settings).
  */
 final class SettingsScopeRefService
 {
-    private const string CACHE_KEY = 'schema.columns.settings.scope_ref';
-
-    private const string CACHE_STORE = 'file';
-
-    private static ?bool $hasScopeRefColumn = null;
+    private ?bool $hasScopeRefColumn = null;
 
     /**
      * How many rows still need `scope_ref` aligned with `scope_id` (null → '').
@@ -175,49 +175,65 @@ final class SettingsScopeRefService
     /**
      * Whether `settings.scope_ref` exists.
      *
-     * Only a positive probe is memoised (per process and across HTTP requests via the file cache):
-     * a shared "missing" must not stick across parallel Pest workers. Tests use the array store so
-     * Pest workers with divergent schemas do not race on a shared file cache.
-     * {@see forgetScopeRefColumnCache()} clears both (called by `externa:upgrade` after migrate
-     * and by the scope_ref migration).
-     *
      * @throws \Throwable when the schema probe fails (DB unreachable); never treat that as "missing".
      */
     public function hasScopeRefColumn(): bool
     {
-        if (self::$hasScopeRefColumn === true) {
-            return true;
-        }
-
-        if (self::probeCache()->get(self::CACHE_KEY) === true) {
-            return self::$hasScopeRefColumn = true;
-        }
-
-        $exists = Schema::hasColumn('settings', 'scope_ref');
-
-        if ($exists) {
-            self::$hasScopeRefColumn = true;
-            self::probeCache()->forever(self::CACHE_KEY, true);
-        }
-
-        return $exists;
+        return $this->hasScopeRefColumn ??= Schema::hasColumn('settings', 'scope_ref');
     }
 
     /**
-     * Forget the cached column probe (upgrade after migrate; tests that drop/add mid-run).
+     * Clear the in-request / in-job memo (upgrade after migrate; tests; unknown-column retry).
      */
-    public static function forgetScopeRefColumnCache(): void
+    public function forgetScopeRefColumnCache(): void
     {
-        self::$hasScopeRefColumn = null;
-        self::probeCache()->forget(self::CACHE_KEY);
+        $this->hasScopeRefColumn = null;
     }
 
     /**
-     * File store across HTTP requests; array store in tests (Pest parallel workers share the filesystem).
+     * Temporary until v2: run $operation; on unknown `settings.scope_ref`, forget the memo and retry once.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $operation
+     * @return TReturn
      */
-    private static function probeCache(): Repository
+    public function runWithScopeRefFallback(callable $operation): mixed
     {
-        return Cache::store(app()->runningUnitTests() ? 'array' : self::CACHE_STORE);
+        // SQLite treats a missing double-quoted "scope_ref" as a string literal (no QueryException),
+        // so re-validate a positive memo against Schema before querying.
+        if ($this->hasScopeRefColumn === true && ! Schema::hasColumn('settings', 'scope_ref')) {
+            $this->forgetScopeRefColumnCache();
+        }
+
+        try {
+            return $operation();
+        } catch (QueryException $exception) {
+            if (! $this->isUnknownScopeRefColumn($exception)) {
+                throw $exception;
+            }
+
+            $this->forgetScopeRefColumnCache();
+
+            return $operation();
+        }
+    }
+
+    /**
+     * Whether the exception is an unknown-column failure for `settings.scope_ref` (any supported engine).
+     */
+    public function isUnknownScopeRefColumn(QueryException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        if (! str_contains($message, 'scope_ref')) {
+            return false;
+        }
+
+        return str_contains($message, 'unknown column')
+            || str_contains($message, 'no such column')
+            || str_contains($message, 'has no column named')
+            || str_contains($message, 'does not exist');
     }
 
     /**

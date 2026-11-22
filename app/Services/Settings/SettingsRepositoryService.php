@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\DB;
  * Reads and writes go through `scope_ref` when the column exists (`''` for instance / null
  * scope_id). During the deploy window, before migrate finishes, queries fall back to
  * `scope_id` so mid-upgrade traffic still works (#827 step 4). `scope_id` is dual-written
- * for one release so older readers still work.
+ * for one release so older readers still work. Those missing-column fallbacks are temporary
+ * until v2 drops `scope_id`.
  */
 class SettingsRepositoryService
 {
@@ -35,12 +36,14 @@ class SettingsRepositoryService
      */
     public function get(string $scope, string $group, string $key, ?int $scopeId = null, mixed $default = null): mixed
     {
-        $row = $this->scopedQuery($scope, $scopeId)
-            ->where('group', $group)
-            ->where('key', $key)
-            ->first();
+        return $this->scopeRefService->runWithScopeRefFallback(function () use ($scope, $group, $key, $scopeId, $default): mixed {
+            $row = $this->scopedQuery($scope, $scopeId)
+                ->where('group', $group)
+                ->where('key', $key)
+                ->first();
 
-        return $row?->value ?? $default;
+            return $row?->value ?? $default;
+        });
     }
 
     /**
@@ -50,23 +53,25 @@ class SettingsRepositoryService
      */
     public function set(string $scope, string $group, string $key, mixed $value, ?int $scopeId = null): void
     {
-        $attributes = [
-            'scope' => $scope,
-            'group' => $group,
-            'key' => $key,
-        ];
-        $values = [
-            'scope_id' => $scopeId,
-            'value' => $value,
-        ];
+        $this->scopeRefService->runWithScopeRefFallback(function () use ($scope, $group, $key, $value, $scopeId): void {
+            $attributes = [
+                'scope' => $scope,
+                'group' => $group,
+                'key' => $key,
+            ];
+            $values = [
+                'scope_id' => $scopeId,
+                'value' => $value,
+            ];
 
-        if ($this->scopeRefService->hasScopeRefColumn()) {
-            $attributes['scope_ref'] = SettingsScopeRefService::scopeRefFromScopeId($scopeId);
-        } else {
-            $attributes['scope_id'] = $scopeId;
-        }
+            if ($this->scopeRefService->hasScopeRefColumn()) {
+                $attributes['scope_ref'] = SettingsScopeRefService::scopeRefFromScopeId($scopeId);
+            } else {
+                $attributes['scope_id'] = $scopeId;
+            }
 
-        Setting::query()->updateOrCreate($attributes, $values);
+            Setting::query()->updateOrCreate($attributes, $values);
+        });
 
         $this->forgetProjectSettingsMemo($scope, $group);
     }
@@ -93,10 +98,13 @@ class SettingsRepositoryService
      */
     public function project(string $group, array $defaults = []): array
     {
-        $stored = $this->scopedQuery(self::SCOPE_PROJECT, null)
-            ->where('group', $group)
-            ->pluck('value', 'key')
-            ->all();
+        /** @var array<string, mixed> $stored */
+        $stored = $this->scopeRefService->runWithScopeRefFallback(function () use ($group): array {
+            return $this->scopedQuery(self::SCOPE_PROJECT, null)
+                ->where('group', $group)
+                ->pluck('value', 'key')
+                ->all();
+        });
 
         return array_merge($defaults, $stored);
     }
@@ -109,10 +117,13 @@ class SettingsRepositoryService
      */
     public function forUser(User $user, string $group, array $defaults = []): array
     {
-        $stored = $this->scopedQuery(self::SCOPE_USER, (int) $user->id)
-            ->where('group', $group)
-            ->pluck('value', 'key')
-            ->all();
+        /** @var array<string, mixed> $stored */
+        $stored = $this->scopeRefService->runWithScopeRefFallback(function () use ($user, $group): array {
+            return $this->scopedQuery(self::SCOPE_USER, (int) $user->id)
+                ->where('group', $group)
+                ->pluck('value', 'key')
+                ->all();
+        });
 
         return array_merge($defaults, $stored);
     }

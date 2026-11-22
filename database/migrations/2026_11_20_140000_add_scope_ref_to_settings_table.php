@@ -33,7 +33,7 @@ return new class extends Migration
             Schema::table('settings', function (Blueprint $table): void {
                 $table->string('scope_ref', 36)->default('')->after('scope_id');
             });
-            SettingsScopeRefService::forgetScopeRefColumnCache();
+            app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
         }
 
         $scopeRef = app(SettingsScopeRefService::class);
@@ -55,7 +55,7 @@ return new class extends Migration
             Schema::table('settings', function (Blueprint $table): void {
                 $table->dropColumn('scope_ref');
             });
-            SettingsScopeRefService::forgetScopeRefColumnCache();
+            app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
         }
 
         // Keep settings_dedupe_archive: it is the only copy of rows dedupe deleted.

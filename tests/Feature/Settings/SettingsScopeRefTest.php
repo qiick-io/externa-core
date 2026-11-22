@@ -47,7 +47,7 @@ test('settings:backfill-scope-ref dry-run works before scope_ref exists and list
         });
     }
 
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 
     DB::table('settings')->insert([
         [
@@ -81,7 +81,7 @@ test('settings:backfill-scope-ref dry-run works before scope_ref exists and list
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
     $migration->up();
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 });
 
 test('a duplicate instance key is refused on postgresql and mysql', function (): void {
@@ -202,7 +202,7 @@ test('settings:backfill-scope-ref without dry-run refuses when the archive table
     }
 
     Schema::dropIfExists('settings_dedupe_archive');
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 
     DB::table('settings')->insert([
         [
@@ -232,7 +232,7 @@ test('settings:backfill-scope-ref without dry-run refuses when the archive table
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
     $migration->up();
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 });
 
 test('scope_ref migration down keeps the dedupe archive table', function (): void {
@@ -246,7 +246,7 @@ test('scope_ref migration down keeps the dedupe archive table', function (): voi
         ->and(Schema::hasColumn('settings', 'scope_ref'))->toBeFalse();
 
     $migration->up();
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
     expect(Schema::hasColumn('settings', 'scope_ref'))->toBeTrue();
 });
 
@@ -263,7 +263,7 @@ test('chat unread subscribers fall back to scope_id when scope_ref is missing', 
         });
     }
 
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 
     $userId = 4242;
     $collectionId = 99;
@@ -285,7 +285,7 @@ test('chat unread subscribers fall back to scope_id when scope_ref is missing', 
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
     $migration->up();
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 });
 
 test('repository falls back to scope_id when scope_ref is missing', function (): void {
@@ -301,7 +301,7 @@ test('repository falls back to scope_id when scope_ref is missing', function ():
         });
     }
 
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
 
     DB::table('settings')->insert([
         'scope' => 'project',
@@ -323,5 +323,39 @@ test('repository falls back to scope_id when scope_ref is missing', function ():
     /** @var object{up(): void} $migration */
     $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
     $migration->up();
-    SettingsScopeRefService::forgetScopeRefColumnCache();
+    app(SettingsScopeRefService::class)->forgetScopeRefColumnCache();
+});
+
+test('repository recovers when scope_ref was dropped after the probe memoised it', function (): void {
+    $scopeRef = app(SettingsScopeRefService::class);
+    $settings = app(SettingsRepositoryService::class);
+
+    expect($scopeRef->hasScopeRefColumn())->toBeTrue();
+
+    $settings->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'stale_memo_probe', 'kept');
+
+    Schema::table('settings', function ($table): void {
+        if (Schema::hasIndex('settings', 'settings_scope_ref_unique')) {
+            $table->dropUnique('settings_scope_ref_unique');
+        }
+    });
+    Schema::table('settings', function ($table): void {
+        $table->dropColumn('scope_ref');
+    });
+
+    // No forget: simulates a restored pre-upgrade backup while the request still holds a positive memo.
+    expect($scopeRef->hasScopeRefColumn())->toBeTrue()
+        ->and(Schema::hasColumn('settings', 'scope_ref'))->toBeFalse();
+
+    expect($settings->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'stale_memo_probe'))
+        ->toBe('kept')
+        ->and($scopeRef->hasScopeRefColumn())->toBeFalse();
+
+    $settings->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'stale_memo_write', 'written');
+    expect(DB::table('settings')->where('key', 'stale_memo_write')->whereNull('scope_id')->exists())->toBeTrue();
+
+    /** @var object{up(): void} $migration */
+    $migration = require database_path('migrations/2026_11_20_140000_add_scope_ref_to_settings_table.php');
+    $migration->up();
+    $scopeRef->forgetScopeRefColumnCache();
 });

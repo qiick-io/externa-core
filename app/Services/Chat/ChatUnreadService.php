@@ -443,40 +443,45 @@ class ChatUnreadService
      */
     public function subscriberIdsForCollection(int $collectionId): array
     {
-        $ids = [];
-        $query = Setting::query()
-            ->where('scope', SettingsRepositoryService::SCOPE_USER)
-            ->where('group', self::NOTIFY_GROUP)
-            ->where('key', self::NOTIFY_KEY);
+        $scopeRef = app(SettingsScopeRefService::class);
 
-        if (app(SettingsScopeRefService::class)->hasScopeRefColumn()) {
+        // Temporary until v2 drops scope_id: fall back when scope_ref is missing mid-deploy / after backup restore.
+        return $scopeRef->runWithScopeRefFallback(function () use ($collectionId, $scopeRef): array {
+            $ids = [];
+            $query = Setting::query()
+                ->where('scope', SettingsRepositoryService::SCOPE_USER)
+                ->where('group', self::NOTIFY_GROUP)
+                ->where('key', self::NOTIFY_KEY);
+
+            if ($scopeRef->hasScopeRefColumn()) {
+                $rows = $query
+                    ->where('scope_ref', '!=', SettingsRepositoryService::SCOPE_REF_INSTANCE)
+                    ->get(['scope_ref', 'value']);
+
+                foreach ($rows as $row) {
+                    $value = is_array($row->value) ? array_map('intval', $row->value) : [];
+
+                    if (in_array($collectionId, $value, true)) {
+                        $ids[] = (int) $row->scope_ref;
+                    }
+                }
+
+                return $ids;
+            }
+
             $rows = $query
-                ->where('scope_ref', '!=', SettingsRepositoryService::SCOPE_REF_INSTANCE)
-                ->get(['scope_ref', 'value']);
+                ->whereNotNull('scope_id')
+                ->get(['scope_id', 'value']);
 
             foreach ($rows as $row) {
                 $value = is_array($row->value) ? array_map('intval', $row->value) : [];
 
                 if (in_array($collectionId, $value, true)) {
-                    $ids[] = (int) $row->scope_ref;
+                    $ids[] = (int) $row->scope_id;
                 }
             }
 
             return $ids;
-        }
-
-        $rows = $query
-            ->whereNotNull('scope_id')
-            ->get(['scope_id', 'value']);
-
-        foreach ($rows as $row) {
-            $value = is_array($row->value) ? array_map('intval', $row->value) : [];
-
-            if (in_array($collectionId, $value, true)) {
-                $ids[] = (int) $row->scope_id;
-            }
-        }
-
-        return $ids;
+        });
     }
 }
