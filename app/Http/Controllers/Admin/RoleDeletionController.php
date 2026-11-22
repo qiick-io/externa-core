@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Roles\BulkDeleteRolesAction;
 use App\Actions\Roles\DeleteRoleAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkRoleActionRequest;
@@ -35,9 +36,9 @@ class RoleDeletionController extends Controller
     /**
      * Bulk-delete roles, skipping protected roles and roles that API keys still use.
      */
-    public function bulkActions(BulkRoleActionRequest $request, DeleteRoleAction $deleteRoleAction): RedirectResponse
+    public function bulkActions(BulkRoleActionRequest $request, BulkDeleteRolesAction $bulkDeleteRolesAction): RedirectResponse
     {
-        $result = $deleteRoleAction->executeMany($request->deletableIds());
+        $result = $bulkDeleteRolesAction->execute($request->deletableIds());
         $skippedApiKeyCount = $request->skippedApiKeyRoleCount() + $result['skippedForeignKey'];
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
