@@ -106,7 +106,7 @@ class User extends Authenticatable implements PasskeyUser
      * Temporary until v2: if a restored backup dropped `public_id` after the request memoised it,
      * forget the probe and insert without the UUID column once.
      *
-     * @param  Builder<User>  $query
+     * @param  Builder<static>  $query
      */
     protected function performInsert(Builder $query): bool
     {
