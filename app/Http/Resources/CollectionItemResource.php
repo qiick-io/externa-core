@@ -78,14 +78,11 @@ class CollectionItemResource extends JsonResource
 
         // public_id fields always leave the database; load them even when MiniUser is omitted.
         // loadMissing: list/show already eager-load with selectList() (includes deleted_at).
-        $userColumns = app(UserRelationColumnService::class);
-        $userColumns->runWithPublicIdFallback(function () use ($item, $userColumns): void {
-            $userSelect = $userColumns->selectList();
-            $item->loadMissing([
-                'userCreated:'.$userSelect,
-                'userUpdated:'.$userSelect,
-            ]);
-        });
+        $userSelect = app(UserRelationColumnService::class)->selectList();
+        $item->loadMissing([
+            'userCreated:'.$userSelect,
+            'userUpdated:'.$userSelect,
+        ]);
 
         return [
             'id' => $item->id,

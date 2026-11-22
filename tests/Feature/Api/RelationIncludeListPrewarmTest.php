@@ -134,7 +134,15 @@ function measurePrewarmListQueries(object $test, string $slug, int $perPage): ar
     $relationWhereIn = 0;
     foreach ($log as $row) {
         $sql = $row['query'];
+        $sqlLower = strtolower($sql);
         if (str_contains($sql, 'from "settings"') || str_contains($sql, 'from `settings`')) {
+            continue;
+        }
+        // Request-scoped column probes are not list N+1 (SQLite pragma, MySQL/pgsql catalogs).
+        if (str_contains($sqlLower, 'pragma table_info')
+            || str_contains($sqlLower, 'information_schema')
+            || str_contains($sqlLower, 'pg_attribute')
+            || str_contains($sqlLower, 'sqlite_master')) {
             continue;
         }
         $withoutSettings++;
