@@ -191,6 +191,7 @@
     "This file type is not allowed.": "Dieser Dateityp ist nicht erlaubt.",
     "This file type is not in the project upload allowlist.": "Dieser Dateityp steht nicht auf der Upload-Allowlist des Projekts.",
     "This item is outside your permission filter.": "Dieses Element liegt außerhalb Ihres Berechtigungsfilters.",
+    "This migration cannot be rolled back: it would erase every recorded API key owner. Restore the pre-upgrade backup instead.": "Diese Migration kann nicht rückgängig gemacht werden: sie würde jeden gespeicherten API-Schlüssel-Besitzer löschen. Stellen Sie stattdessen das Backup vor dem Upgrade wieder her.",
     "This role cannot be deleted.": "Diese Rolle kann nicht gelöscht werden.",
     "This role cannot be deleted while :count API key(s) still use it.": "Diese Rolle kann nicht gelöscht werden, solange noch :count API-Schlüssel sie verwenden.",
     "This role cannot be duplicated.": "Diese Rolle kann nicht dupliziert werden.",
