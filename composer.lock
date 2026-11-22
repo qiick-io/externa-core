@@ -7353,16 +7353,16 @@
         },
         {
             "name": "qiick/laravel-oidc",
-            "version": "v1.0.0-beta.5",
+            "version": "v1.0.0-beta.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/qiick-io/laravel-oidc.git",
-                "reference": "389731dd9e574577d5bf55038b6a367a62e35378"
+                "reference": "619bfa45aa2652cae70b277547f24ce3cb846eb8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/qiick-io/laravel-oidc/zipball/389731dd9e574577d5bf55038b6a367a62e35378",
-                "reference": "389731dd9e574577d5bf55038b6a367a62e35378",
+                "url": "https://api.github.com/repos/qiick-io/laravel-oidc/zipball/619bfa45aa2652cae70b277547f24ce3cb846eb8",
+                "reference": "619bfa45aa2652cae70b277547f24ce3cb846eb8",
                 "shasum": ""
             },
             "require": {
@@ -7371,7 +7371,8 @@
                 "illuminate/cache": "^12.0 || ^13.0",
                 "illuminate/http": "^12.0 || ^13.0",
                 "illuminate/support": "^12.0 || ^13.0",
-                "php": "^8.3"
+                "php": "^8.3",
+                "qiick/laravel-outbound": "^0.1"
             },
             "require-dev": {
                 "larastan/larastan": "^3.3.1",
@@ -7379,6 +7380,7 @@
                 "nunomaduro/collision": "^8.5",
                 "orchestra/testbench": "^10.0 || ^11.0",
                 "pestphp/pest": "^4.0",
+                "pestphp/pest-plugin-mutate": "^4.0",
                 "phpstan/phpstan": "^2.1.11"
             },
             "type": "library",
@@ -7420,8 +7422,81 @@
                 "issues": "https://github.com/qiick-io/laravel-oidc/issues",
                 "source": "https://github.com/qiick-io/laravel-oidc"
             },
-            "time": "2026-11-22T10:21:06+00:00",
-            "published-time": "2026-11-22T10:21:13+00:00"
+            "time": "2026-11-22T15:29:46+00:00",
+            "published-time": "2026-11-22T15:29:50+00:00"
+        },
+        {
+            "name": "qiick/laravel-outbound",
+            "version": "v0.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/qiick-io/laravel-outbound.git",
+                "reference": "049024bada8d34048b24ee1e7bf53579ca599206"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/qiick-io/laravel-outbound/zipball/049024bada8d34048b24ee1e7bf53579ca599206",
+                "reference": "049024bada8d34048b24ee1e7bf53579ca599206",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-intl": "*",
+                "ext-mbstring": "*",
+                "guzzlehttp/guzzle": "^7.8 || ^8.0",
+                "illuminate/contracts": "^12.0 || ^13.0",
+                "illuminate/http": "^12.0 || ^13.0",
+                "illuminate/support": "^12.0 || ^13.0",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.3.1",
+                "laravel/pint": "^1.30.4 <1.31.0",
+                "nunomaduro/collision": "^8.5",
+                "orchestra/testbench": "^10.0 || ^11.0",
+                "pestphp/pest": "^4.0",
+                "pestphp/pest-plugin-mutate": "^4.0",
+                "phpstan/phpstan": "^2.1.11"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Qiick\\Outbound\\Laravel\\OutboundServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Qiick\\Outbound\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Qiick",
+                    "homepage": "https://qiick.io"
+                }
+            ],
+            "description": "SSRF-safe outbound HTTP and Standard Webhooks signing for qiick Laravel products.",
+            "homepage": "https://github.com/qiick-io/laravel-outbound",
+            "keywords": [
+                "laravel",
+                "outbound",
+                "qiick",
+                "ssrf",
+                "standard-webhooks",
+                "webhooks"
+            ],
+            "support": {
+                "issues": "https://github.com/qiick-io/laravel-outbound/issues",
+                "source": "https://github.com/qiick-io/laravel-outbound"
+            },
+            "time": "2026-11-22T10:42:56+00:00",
+            "published-time": "2026-11-22T10:45:30+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
