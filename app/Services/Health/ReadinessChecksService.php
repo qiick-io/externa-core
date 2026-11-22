@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Health;
 
+use App\Services\Mcp\McpOAuthServerService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Throwable;
@@ -24,6 +25,12 @@ class ReadinessChecksService
 
         if ($this->isRedisRequired()) {
             $checks['redis'] = $this->redis();
+        }
+
+        $oauthServer = app(McpOAuthServerService::class);
+
+        if ($oauthServer->isEnabled()) {
+            $checks['passport_keys'] = $oauthServer->hasPassportKeys() ? 'ok' : 'fail';
         }
 
         return $checks;

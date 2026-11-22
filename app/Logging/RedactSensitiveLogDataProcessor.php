@@ -38,6 +38,9 @@ final class RedactSensitiveLogDataProcessor implements ProcessorInterface
         'key_hash',
         'recovery_code',
         'credential',
+        'code_verifier',
+        'refresh_token',
+        'id_token',
     ];
 
     /**
@@ -46,13 +49,16 @@ final class RedactSensitiveLogDataProcessor implements ProcessorInterface
      */
     private const string API_KEY_TOKEN_PATTERN = '/\b(ext_(?:live|test)_[A-Za-z0-9]{8})[A-Za-z0-9]{32,}\b|\b(ek_[A-Za-z0-9]{9})[A-Za-z0-9]{31}\b/';
 
+    /** Compact JWS/JWT (header.payload.signature). */
+    private const string JWT_PATTERN = '/\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/';
+
     /** Nested arrays deeper than this are replaced instead of walked. */
     private const int MAX_DEPTH = 10;
 
     public function __invoke(LogRecord $record): LogRecord
     {
         return $record->with(
-            message: $this->redactApiKeyTokens($record->message),
+            message: $this->redactSecretsInText($record->message),
             context: $this->redact($record->context, 0),
             extra: $this->redact($record->extra, 0),
         );
@@ -80,20 +86,22 @@ final class RedactSensitiveLogDataProcessor implements ProcessorInterface
             }
 
             if (is_string($value)) {
-                $values[$key] = $this->redactApiKeyTokens($value);
+                $values[$key] = $this->redactSecretsInText($value);
             }
         }
 
         return $values;
     }
 
-    private function redactApiKeyTokens(string $text): string
+    private function redactSecretsInText(string $text): string
     {
-        return (string) preg_replace_callback(
+        $withApiKeys = (string) preg_replace_callback(
             self::API_KEY_TOKEN_PATTERN,
             static fn (array $tokenParts): string => ($tokenParts[1] !== '' ? $tokenParts[1] : $tokenParts[2]).self::REDACTED,
             $text,
         );
+
+        return (string) preg_replace(self::JWT_PATTERN, self::REDACTED, $withApiKeys);
     }
 
     private function isSensitiveKey(string $key): bool
@@ -110,6 +118,11 @@ final class RedactSensitiveLogDataProcessor implements ProcessorInterface
         }
 
         if (preg_match('/(^|_)token$/', $normalisedKey) === 1) {
+            return true;
+        }
+
+        // OAuth authorization `code` (not HTTP status codes like `status_code`).
+        if ($normalisedKey === 'code') {
             return true;
         }
 

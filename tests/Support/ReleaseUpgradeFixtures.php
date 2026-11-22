@@ -38,6 +38,8 @@ final class ReleaseUpgradeFixtures
 
     public const PENDING_TOOL_CALL_API_KEY_MIGRATION = '2026_11_11_115827_add_api_key_id_to_pending_tool_calls_table';
 
+    public const API_KEY_OAUTH_CLIENT_MIGRATION = '2026_11_19_100004_add_oauth_client_id_to_api_keys_table';
+
     /**
      * Copies `users.oidc_sub` into `user_identities` for the saved issuer (#827).
      */
@@ -225,6 +227,19 @@ final class ReleaseUpgradeFixtures
             array_push($violations, ...self::themePresetViolations($presetsBySettingId, $tablesBefore['settings']['rows'], $tablesAfter['settings']['rows'] ?? []));
         }
 
+        if (in_array(self::API_KEY_OAUTH_CLIENT_MIGRATION, $seededGroups, true)) {
+            /** @var list<string> $apiKeyIds */
+            $apiKeyIds = $expectations[self::API_KEY_OAUTH_CLIENT_MIGRATION];
+
+            foreach ($apiKeyIds as $apiKeyId) {
+                $apiKeyRowAfter = $tablesAfter['api_keys']['rows'][$apiKeyId] ?? [];
+
+                if (! array_key_exists('oauth_client_id', $apiKeyRowAfter) || $apiKeyRowAfter['oauth_client_id'] !== null) {
+                    $violations[] = "api_keys row {$apiKeyId}: an API key from before OAuth must stay an API key (oauth_client_id null), got ".var_export($apiKeyRowAfter['oauth_client_id'] ?? 'no column', true).'.';
+                }
+            }
+        }
+
         if (in_array(self::PENDING_TOOL_CALL_API_KEY_MIGRATION, $seededGroups, true)) {
             /** @var list<string> $pendingToolCallIds */
             $pendingToolCallIds = $expectations[self::PENDING_TOOL_CALL_API_KEY_MIGRATION];
@@ -255,6 +270,7 @@ final class ReleaseUpgradeFixtures
     private static function fixtureGroups(): array
     {
         return [
+            self::API_KEY_OAUTH_CLIENT_MIGRATION => self::seedReleasedApiKeys(...),
             self::PENDING_TOOL_CALL_API_KEY_MIGRATION => self::seedPendingToolCalls(...),
             self::THEME_PRESETS_MIGRATION => self::seedThemePresets(...),
             self::API_KEY_SCOPES_MIGRATION => self::seedApiKeys(...),
@@ -483,6 +499,87 @@ final class ReleaseUpgradeFixtures
         }
 
         return $presetsBySettingId;
+    }
+
+    /**
+     * API keys as 1.5.0 stores them, for the column OAuth adds to `api_keys` (#802): owned and
+     * ownerless, current `ext_` and legacy `ek_` tokens, a rotation grace window, IP allowlists,
+     * collection narrowing, every scope, revoked, expired and used keys, and an MCP call parked
+     * under one of them (the foreign key the new `oauth_access_tokens.api_key_id` sits beside).
+     * Every one must come out an API key, unchanged.
+     *
+     * @return list<string> api key ids
+     */
+    private static function seedReleasedApiKeys(): array
+    {
+        $roleId = DB::table('roles')->insertGetId([
+            'name' => 'upgrade-rehearsal-oauth',
+            'guard_name' => 'web',
+            'created_at' => self::FIXTURE_CREATED_AT,
+            'updated_at' => self::FIXTURE_UPDATED_AT,
+        ]);
+        $ownerId = DB::table('users')->insertGetId([
+            'first_name' => 'Upgrade',
+            'last_name' => 'Rehearsal',
+            'email' => 'upgrade-rehearsal-oauth@example.test',
+            'password' => hash('sha256', 'not a password'),
+            'is_active' => true,
+            'created_at' => self::FIXTURE_CREATED_AT,
+            'updated_at' => self::FIXTURE_UPDATED_AT,
+        ]);
+        $scopeSets = [
+            '["mcp:read"]',
+            '["collections:write","files:read","mcp:write"]',
+            '["collections:read"]',
+            '["collections:write","files:write"]',
+        ];
+        $apiKeyIds = [];
+
+        foreach ($scopeSets as $offset => $scopes) {
+            foreach (['ext_live_', 'ek_'] as $tokenShape) {
+                $sequence = count($apiKeyIds) + 1;
+                $keyPrefix = $tokenShape === 'ext_live_'
+                    ? 'ext_live_'.str_pad((string) $sequence, 8, 'Q', STR_PAD_LEFT)
+                    : 'ek_'.str_pad((string) $sequence, 9, 'Q', STR_PAD_LEFT);
+
+                $apiKeyIds[] = (string) DB::table('api_keys')->insertGetId([
+                    'uuid' => sprintf('00000000-0000-4000-a000-%012d', $sequence),
+                    'name' => 'Released key '.$sequence,
+                    'key_prefix' => $keyPrefix,
+                    'key_hash' => hash('sha256', 'released-key-secret-'.$sequence),
+                    'previous_key_hash' => $sequence === 2 ? hash('sha256', 'released-key-previous-secret') : null,
+                    'previous_key_valid_until' => $sequence === 2 ? '2026-12-01 00:00:00' : null,
+                    'role_id' => $roleId,
+                    'owner_id' => $sequence % 3 === 0 ? null : $ownerId,
+                    'created_by' => $ownerId,
+                    'collection_slugs' => $offset === 2 ? '["posts"]' : null,
+                    'scopes' => $scopes,
+                    'ip_allowlist' => $sequence === 4 ? '["10.0.0.0/8","192.0.2.7"]' : null,
+                    'rate_limit_per_minute' => $sequence === 5 ? 30 : null,
+                    'expires_at' => $sequence === 6 ? '2026-05-06 07:08:09' : null,
+                    'last_used_at' => $sequence % 2 === 0 ? '2026-06-07 08:09:10' : null,
+                    'last_used_ip' => $sequence % 2 === 0 ? '203.0.113.9' : null,
+                    'revoked_at' => $sequence === 7 ? '2026-07-08 09:10:11' : null,
+                    'created_at' => self::FIXTURE_CREATED_AT,
+                    'updated_at' => self::FIXTURE_UPDATED_AT,
+                ]);
+            }
+        }
+
+        DB::table('pending_tool_calls')->insert([
+            'uuid' => '00000000-0000-4000-a100-000000000001',
+            'tool' => 'ManageCollectionItems',
+            'surface' => 'mcp',
+            'arguments' => '{"action":"publish","item_id":1}',
+            'status' => 'pending',
+            'requested_by' => $ownerId,
+            'api_key_id' => (int) $apiKeyIds[1],
+            'expires_at' => '2026-08-09 10:11:12',
+            'created_at' => self::FIXTURE_CREATED_AT,
+            'updated_at' => self::FIXTURE_UPDATED_AT,
+        ]);
+
+        return $apiKeyIds;
     }
 
     /**

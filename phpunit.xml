@@ -43,6 +43,8 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="INERTIA_SSR_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- OAuth for MCP clients (#802) stays off unless a test turns it on, whatever the local .env says. -->
+        <env name="AI_MCP_OAUTH_ENABLED" value="false" force="true"/>
         <!-- Compose oidc profile sets these on app; keep Pest on issuer-only discovery. -->
         <env name="OIDC_DISCOVERY_BASE" value="" force="true"/>
         <env name="OIDC_SERVER_ORIGIN" value="" force="true"/>

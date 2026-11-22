@@ -68,6 +68,22 @@ if [[ -f artisan ]]; then
     php artisan key:generate --force || true
   fi
 
+  # OAuth for remote MCP clients (#802 / #815) signs access tokens with Passport's key pair:
+  # generated once into the persistent storage volume (unless PASSPORT_PRIVATE_KEY /
+  # PASSPORT_PUBLIC_KEY are set), so enabling OAuth later does not 503. Then narrowed again:
+  # league/oauth2-server refuses a key file whose mode is not 400, 440, 600, 640 or 660, and
+  # the chmod above widens it.
+  if [[ "$role" == "app" && -z "${PASSPORT_PRIVATE_KEY:-}" && ! -f storage/oauth-private.key ]]; then
+    echo "Generating the OAuth signing keys..."
+    php artisan passport:keys --no-interaction
+  fi
+
+  if [[ -f storage/oauth-private.key ]]; then
+    chown www-data:www-data storage/oauth-private.key storage/oauth-public.key 2>/dev/null || true
+    chmod 600 storage/oauth-private.key
+    chmod 660 storage/oauth-public.key
+  fi
+
   if [[ -n "${DB_HOST:-}" && "${DB_CONNECTION:-}" != "sqlite" ]]; then
     echo "Waiting for database ${DB_HOST}:${DB_PORT:-5432}..."
     for i in $(seq 1 60); do
