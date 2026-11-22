@@ -8,6 +8,7 @@ use App\Enums\PermissionEnum;
 use App\Models\ApiKey;
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Admin decisions on project API keys (Settings → API keys).
@@ -18,7 +19,8 @@ use App\Services\Authorization\EffectivePermissionResolverService;
  * Every ability needs a session user: an API key never manages keys.
  *
  * An OAuth grant row (#802) is not an API key: it is neither listed, rotated nor revoked here.
- * Rotating one would mint a bearer secret for a grant that has none.
+ * Rotating one would mint a bearer secret for a grant that has none. Its owner revokes it under
+ * Settings → Connected apps ({@see self::revokeGrant()}).
  */
 final class ApiKeyPolicy
 {
@@ -46,6 +48,18 @@ final class ApiKeyPolicy
     public function delete(?User $user, ApiKey $apiKey): bool
     {
         return ! $apiKey->isOAuthGrant() && $this->hasPermission($user, PermissionEnum::CanManageApiKeys);
+    }
+
+    /**
+     * A user revokes their own OAuth grants (#802), and needs no permission for it: someone whose
+     * AI access was taken away must still be able to disconnect a client. Anyone else's grant, or
+     * an API key, is not found here.
+     */
+    public function revokeGrant(?User $user, ApiKey $apiKey): Response
+    {
+        return $user !== null && $apiKey->isOAuthGrant() && $apiKey->owner_id === $user->id
+            ? Response::allow()
+            : Response::denyAsNotFound();
     }
 
     private function hasPermission(?User $user, PermissionEnum $permission): bool

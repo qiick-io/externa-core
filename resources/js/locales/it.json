@@ -395,7 +395,8 @@
             "aiToolsNav": "Strumenti in scrittura",
             "pendingToolCallsNav": "Approvazioni strumenti",
             "jobs": "Job",
-            "mcpOauthClients": "Client OAuth MCP"
+            "mcpOauthClients": "Client OAuth MCP",
+            "connectedApps": "App collegate"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -2544,7 +2545,8 @@
             "members_synced": "Membri sincronizzati",
             "collection_permissions_synced": "Permessi collection sincronizzati",
             "file_permissions_synced": "Permessi file sincronizzati",
-            "oauth_authorized": "Client MCP autorizzato"
+            "oauth_authorized": "Client MCP autorizzato",
+            "oauth_revoked": "Accesso del client MCP revocato"
         },
         "logs": {
             "default": "Applicazione",
@@ -3045,5 +3047,24 @@
         },
         "bulkBlock": "Blocca selezionati",
         "pruneUnused": "Elimina client inutilizzati"
+    },
+    "connectedApps": {
+        "head": "App collegate",
+        "description": "I client MCP remoti a cui hai permesso di usare questo spazio di lavoro a tuo nome, come i connettori delle chat. Revocane uno e la sua prossima richiesta viene rifiutata.",
+        "empty": "Nessuna app collegata. Quando consenti un client MCP nella sua schermata di consenso, compare qui.",
+        "allCollections": "tutte le collezioni",
+        "neverUsed": "Mai",
+        "revoke": "Revoca {{name}}",
+        "columns": {
+            "client": "Client",
+            "access": "Accesso",
+            "lastUsed": "Ultimo uso",
+            "actions": "Azioni"
+        },
+        "confirm": {
+            "title": "Revocare {{name}}?",
+            "description": "Il client perde subito l'accesso: la sua prossima richiesta viene rifiutata e non può rinnovare il token. Per usarlo di nuovo, ricollegalo.",
+            "confirm": "Revoca accesso"
+        }
     }
 }

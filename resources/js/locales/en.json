@@ -395,7 +395,8 @@
             "aiToolsNav": "Write tools",
             "pendingToolCallsNav": "Tool approvals",
             "jobs": "Jobs",
-            "mcpOauthClients": "MCP OAuth clients"
+            "mcpOauthClients": "MCP OAuth clients",
+            "connectedApps": "Connected apps"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -2544,7 +2545,8 @@
             "members_synced": "Members synced",
             "collection_permissions_synced": "Collection permissions synced",
             "file_permissions_synced": "File permissions synced",
-            "oauth_authorized": "MCP client authorized"
+            "oauth_authorized": "MCP client authorized",
+            "oauth_revoked": "MCP client access revoked"
         },
         "logs": {
             "default": "Application",
@@ -3045,5 +3047,24 @@
         },
         "bulkBlock": "Block selected",
         "pruneUnused": "Prune unused clients"
+    },
+    "connectedApps": {
+        "head": "Connected apps",
+        "description": "Remote MCP clients you allowed to use this workspace on your behalf, such as chat connectors. Revoke one and its next request is refused.",
+        "empty": "No connected apps. When you allow an MCP client on its consent screen, it appears here.",
+        "allCollections": "all collections",
+        "neverUsed": "Never",
+        "revoke": "Revoke {{name}}",
+        "columns": {
+            "client": "Client",
+            "access": "Access",
+            "lastUsed": "Last used",
+            "actions": "Actions"
+        },
+        "confirm": {
+            "title": "Revoke {{name}}?",
+            "description": "The client loses access at once: its next request is refused and it cannot refresh its token. To use it again, connect it again.",
+            "confirm": "Revoke access"
+        }
     }
 }

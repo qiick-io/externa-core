@@ -11,6 +11,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Settings\AiToolSettingsController;
 use App\Http\Controllers\Settings\AppearanceSettingsController;
 use App\Http\Controllers\Settings\AppearanceSidebarSettingsController;
+use App\Http\Controllers\Settings\ConnectedMcpClientController;
 use App\Http\Controllers\Settings\LocaleController;
 use App\Http\Controllers\Settings\NotificationPreferencesController;
 use App\Http\Controllers\Settings\PerformanceSettingsController;
@@ -38,6 +39,13 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // OAuth grants to remote MCP clients (#802 / #816): each user's own. Stays reachable while
+    // OAuth is off so leftover grants can still be revoked.
+    Route::get('settings/connected-apps', [ConnectedMcpClientController::class, 'index'])
+        ->name('connected-apps.index');
+    Route::delete('settings/connected-apps/{apiKey}', [ConnectedMcpClientController::class, 'destroy'])
+        ->name('connected-apps.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 
