@@ -14,14 +14,8 @@ permissions:
   contents: read
 
 concurrency:
-  # The event is part of the group: the pull-request run and the push run on one commit are
-  # separate evidence and must not cancel each other. On develop and main nothing is cancelled
-  # in progress — a cancelled run is indistinguishable from a check that never ran (#805).
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
-
-# Vitest stays in quality for PR → develop code changes (#381).
-# Docs/md-only PRs skip Vitest (and heavy frontend gates) but `quality` still succeeds.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
