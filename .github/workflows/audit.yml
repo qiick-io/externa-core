@@ -20,6 +20,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Policy (#32 / #289): PR/push gates fail on high+critical for Composer (ignore low/medium)
+# and production npm deps. Weekly schedule also runs a non-blocking full audit
+# (Composer all severities + npm including dev).
 jobs:
   composer-audit:
     runs-on: ubuntu-latest

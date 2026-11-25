@@ -20,6 +20,19 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Gate policy (#381 / #255):
+# - Required check NAMES stay: ci (8.4), ci (8.5), ci-mysql, ci-mariadb, ci-pgsql, browser
+#   (stubs report success when the heavy work is skipped so branch protection stays green).
+# - pull_request → develop (code): Pest on PHP 8.4 only; other PHP/DB stub; browser runs axe smoke.
+# - pull_request → develop that changes a toolchain / stack file (package.json, lockfiles, composer.json,
+#   vite / vitest / tsconfig, qiick-standards.json, this file), a migration under database/migrations/,
+#   or app/Console/Commands/UpgradeCommand.php: full matrix + full browser suite (#669, #789).
+# - docs/md-only PR → develop: all Pest/browser stub.
+# - push → develop/main, PR → main, schedule: full matrix + full browser suite.
+# - install-upgrade (#792, #794) runs in full mode only, per engine, and is not a required check.
+# - Required jobs run with if: always() and fail first when changes/assets did not succeed,
+#   so a broken build can never surface as a skipped (= passing) required check (#438).
+
 jobs:
   changes:
     runs-on: ubuntu-latest

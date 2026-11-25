@@ -17,6 +17,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Vitest stays in quality for PR → develop code changes (#381).
+# Docs/md-only PRs skip Vitest (and heavy frontend gates) but `quality` still succeeds.
+
 jobs:
   changes:
     runs-on: ubuntu-latest
