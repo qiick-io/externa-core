@@ -1,0 +1,14 @@
+name: Release SBOM
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  release-sbom:
+    uses: qiick-io/app-ui/.github/workflows/release-sbom.yml@e08e28b1f61250335337bf706a676bd7c4ab844a # F31-F33 standards (app-ui #291)
+    permissions:
+      contents: write
