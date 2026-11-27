@@ -64,6 +64,33 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Replace the local Socialite OIDC client with `qiick/laravel-oidc` `^1.0@beta` (1.0.0-beta.4): settings-backed provider, JIT, auto-link, SSO-only + break-glass, domain allowlist, button label; identity key is `(issuer, subject)` in `user_identities` (#827).
 - `laravel/mcp` 1.1.2 → 1.2.1, ahead of OAuth for remote MCP clients (#802). Two effects on the `/mcp` endpoint: a request whose `Origin` header is neither `APP_URL` nor `localhost` is refused with `403` before authentication (DNS-rebinding protection; requests without an `Origin` header, which is what server-side clients send, are unaffected), and `ping` is answered only for clients on the legacy `initialize` handshake, so a 2026-07-28 client probes with `server/discover` instead. API keys, scopes and tools are unchanged.
 
+## [1.5.2] - 2026-11-27
+
+### Security
+
+Backport the Composer advisory fixes from [#848](https://github.com/qiick-io/externa-core/pull/848). The lockfile also updates `symfony/http-foundation` to 8.1.13, as required by the patched HTTP Kernel. No functional changes.
+
+| Package | Advisory | First fixed version | Locked version |
+| --- | --- | --- | --- |
+| `symfony/html-sanitizer` | [CVE-2026-133756](https://symfony.com/cve-2026-133756) / `PKSA-8dv1-1nwm-344v` | 8.1.12 | 8.1.13 |
+| `symfony/http-kernel` | [CVE-2026-133743](https://symfony.com/cve-2026-133743) / `PKSA-k1tg-4k6j-w4xf` | 8.1.12 | 8.1.13 |
+| `symfony/mailer` | [CVE-2026-133751](https://symfony.com/cve-2026-133751) / `PKSA-vqxj-j8fm-1q3k` | 8.1.12 | 8.1.12 |
+| `symfony/mailer` | [CVE-2026-133755](https://symfony.com/cve-2026-133755) / `PKSA-9r8k-3vgs-8f3v` | 8.1.12 | 8.1.12 |
+| `symfony/routing` | [CVE-2026-133746](https://symfony.com/cve-2026-133746) / `PKSA-pbtx-4qgh-mmkh` | 8.1.12 | 8.1.12 |
+| `symfony/routing` | [CVE-2026-133754](https://symfony.com/cve-2026-133754) / `PKSA-2vy6-qchn-f13r` | 8.1.12 | 8.1.12 |
+| `symfony/serializer` | [CVE-2026-133761](https://symfony.com/cve-2026-133761) / `PKSA-1b51-1qqv-synq` | 8.1.12 | 8.1.13 |
+| `symfony/serializer` | [CVE-2026-133752](https://symfony.com/cve-2026-133752) / `PKSA-8kyx-1yw4-pbyj` | 8.1.12 | 8.1.13 |
+| `web-auth/webauthn-lib` | [GHSA-rxc4-cg58-jrpw](https://github.com/web-auth/webauthn-framework/security/advisories/GHSA-rxc4-cg58-jrpw) / `PKSA-mstn-ywch-n48d` | 5.3.13 | 5.3.17 |
+| `web-auth/webauthn-lib` | [GHSA-8gvp-8vj9-p3q7](https://github.com/web-auth/webauthn-framework/security/advisories/GHSA-8gvp-8vj9-p3q7) / `PKSA-cc3j-tk8g-4j9v` | 5.3.13 | 5.3.17 |
+| `web-auth/webauthn-lib` | [GHSA-p8cj-mmjr-5c2m](https://github.com/web-auth/webauthn-framework/security/advisories/GHSA-p8cj-mmjr-5c2m) / `PKSA-2h5m-mtv3-857q` | 5.3.13 | 5.3.17 |
+| `web-auth/webauthn-lib` | [GHSA-c9p6-r72h-rp3x](https://github.com/web-auth/webauthn-framework/security/advisories/GHSA-c9p6-r72h-rp3x) / `PKSA-ktqk-pv7f-ynkv` | 5.3.13 | 5.3.17 |
+| `web-auth/webauthn-lib` | [GHSA-2jv3-c2vg-rhc4](https://github.com/web-auth/webauthn-framework/security/advisories/GHSA-2jv3-c2vg-rhc4) / `PKSA-f652-rtjq-ksry` | 5.3.13 | 5.3.17 |
+| `web-auth/webauthn-lib` | [GHSA-p653-gg6c-rrjw](https://github.com/web-auth/webauthn-framework/security/advisories/GHSA-p653-gg6c-rrjw) / `PKSA-3yvx-trwt-wx7f` | 5.3.13 | 5.3.17 |
+
+### Upgrade notes
+
+- Follow the standard upgrade procedure. This patch requires no database migrations or configuration changes.
+
 ## [1.5.1] - 2026-11-22
 
 ### Upgrade notes
@@ -558,7 +585,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/qiick-io/externa-core/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/qiick-io/externa-core/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/qiick-io/externa-core/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.4.0
