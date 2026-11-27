@@ -9,6 +9,6 @@ permissions:
 
 jobs:
   release-sbom:
-    uses: qiick-io/app-ui/.github/workflows/release-sbom.yml@e08e28b1f61250335337bf706a676bd7c4ab844a # F31-F33 standards (app-ui #291)
+    uses: qiick-io/app-ui/.github/workflows/release-sbom.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
     permissions:
       contents: write

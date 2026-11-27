@@ -13,13 +13,13 @@ permissions:
 
 jobs:
   conformance:
-    uses: qiick-io/app-ui/.github/workflows/fleet-security-check.yml@e08e28b1f61250335337bf706a676bd7c4ab844a # F31-F33 standards (app-ui #291)
+    uses: qiick-io/app-ui/.github/workflows/fleet-security-check.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
     with:
       security-txt: public/.well-known/security.txt
-      standards-ref: e08e28b1f61250335337bf706a676bd7c4ab844a
+      standards-ref: 88c526a407710ae5cc1acd5c7848432b21c42f9e
   codeql:
     needs: conformance
-    uses: qiick-io/app-ui/.github/workflows/codeql.yml@e08e28b1f61250335337bf706a676bd7c4ab844a # F31-F33 standards (app-ui #291)
+    uses: qiick-io/app-ui/.github/workflows/codeql.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
     with:
       is-public-fleet: ${{ needs.conformance.outputs.is-public-fleet == 'true' }}
       languages: '["actions","javascript-typescript"]'
@@ -29,7 +29,7 @@ jobs:
   scorecard:
     if: github.event_name != 'pull_request'
     needs: conformance
-    uses: qiick-io/app-ui/.github/workflows/scorecard.yml@e08e28b1f61250335337bf706a676bd7c4ab844a # F31-F33 standards (app-ui #291)
+    uses: qiick-io/app-ui/.github/workflows/scorecard.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
     with:
       is-public-fleet: ${{ needs.conformance.outputs.is-public-fleet == 'true' }}
       is-default-branch: ${{ needs.conformance.outputs.is-default-branch == 'true' }}
