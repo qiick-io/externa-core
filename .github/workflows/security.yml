@@ -1,0 +1,39 @@
+name: Fleet security
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  schedule:
+    - cron: '17 5 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    uses: qiick-io/app-ui/.github/workflows/fleet-security-check.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
+    with:
+      security-txt: public/.well-known/security.txt
+      standards-ref: 88c526a407710ae5cc1acd5c7848432b21c42f9e
+  codeql:
+    needs: conformance
+    uses: qiick-io/app-ui/.github/workflows/codeql.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
+    with:
+      is-public-fleet: ${{ needs.conformance.outputs.is-public-fleet == 'true' }}
+      languages: '["actions","javascript-typescript"]'
+    permissions:
+      contents: read
+      security-events: write
+  scorecard:
+    if: github.event_name != 'pull_request'
+    needs: conformance
+    uses: qiick-io/app-ui/.github/workflows/scorecard.yml@88c526a407710ae5cc1acd5c7848432b21c42f9e # app-ui develop after #291
+    with:
+      is-public-fleet: ${{ needs.conformance.outputs.is-public-fleet == 'true' }}
+      is-default-branch: ${{ needs.conformance.outputs.is-default-branch == 'true' }}
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write

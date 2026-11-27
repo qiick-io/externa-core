@@ -8,6 +8,10 @@
 
 # Externa
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/qiick-io/externa-core/badge)](https://scorecard.dev/viewer/?uri=github.com/qiick-io/externa-core)
+
+PHPStan at `max` runs as an advisory check for PHP alongside the existing PHP quality gate. CodeQL covers GitHub Actions and JavaScript/TypeScript.
+
 [![Docs](https://img.shields.io/badge/docs-docs.qiick.io%2Fexterna-0f766e)](https://docs.qiick.io/externa)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 

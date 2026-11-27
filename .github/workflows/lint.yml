@@ -143,6 +143,11 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: composer analyse
 
+      - name: PHPStan max (advisory)
+        if: needs.changes.outputs.docs_only != 'true'
+        continue-on-error: true
+        run: vendor/bin/phpstan analyse --level=max --memory-limit=1G --no-progress
+
       - name: Larastan baseline only shrinks
         if: needs.changes.outputs.docs_only != 'true'
         run: node scripts/qiick-ratchet.mjs phpstan
